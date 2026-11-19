@@ -4574,7 +4574,12 @@ function facadeTextures(){
     const ST=M(g,'stein','#a9a59b'); R(0.333,0.545,0.372,0.74,ST); R(0.343,0.56,0.362,0.725,'#222b31'); R(0.503,0.545,0.542,0.74,ST); R(0.513,0.56,0.532,0.725,'#222b31');
     R(0.378,0.49,0.497,0.9,M(g,'stein','#b9ad92')); g.fillStyle=M(g,'wood','#2a1d17'); g.beginPath(); g.moveTo(X(0.398),Y(0.9)); g.lineTo(X(0.398),Y(0.6)); g.quadraticCurveTo(X(0.4375),Y(0.52),X(0.477),Y(0.6)); g.lineTo(X(0.477),Y(0.9)); g.closePath(); g.fill();
     g.fillStyle='rgba(120,140,150,0.35)'; g.fillRect(X(0.428),Y(0.62),X(0.019),Y(0.24)); R(0.462,0.72,0.468,0.735,'#c9b26a');
-    R(0,0.9,1,1,M(g,'stein','#8f8a80')); R(0,0.9,1,0.905,'rgba(0,0,0,.25)'); });
+    R(0,0.9,1,1,M(g,'stein','#8f8a80')); R(0,0.9,1,0.905,'rgba(0,0,0,.25)');
+    wc.forEach(c=>R(c-ww/2-0.004,0.226,c+ww/2+0.004,0.233,'#e9e6df')); [[0.133,0.238],[0.695,0.855],[0.333,0.372],[0.503,0.542]].forEach(([a,b])=>R(a-0.004,0.74,b+0.004,0.75,'#d8d4cc'));
+    R(0.436,0.28,0.444,0.33,'#2a2a2a'); R(0.433,0.29,0.447,0.315,'#f4efd8'); g.fillStyle='#3a2a20'; g.font='bold '+(Y(0.05)|0)+'px serif'; g.fillText('4',X(0.432),Y(0.475));
+    R(0.553,0.64,0.578,0.7,'#c9ccd0'); R(0.553,0.64,0.578,0.648,'#8e9296');   // Briefkasten
+    const dg=g.createLinearGradient(0,Y(0.78),0,Y(0.9)); dg.addColorStop(0,'rgba(80,70,50,0)'); dg.addColorStop(1,'rgba(80,70,50,0.22)'); g.fillStyle=dg; g.fillRect(0,Y(0.78),X(1),Y(0.12));
+    R(0,0,1,0.012,'#7d8186'); });
   // Weberstraße 2 (türkis), Giebelseite: Obergeschoss hell/türkis gestreifte Bretter mit 5 Sprossenfenstern, türkises Band, Putz mit vergittertem Fenster, Bruchsteinsockel
   const TQ='#1f9c95';
   const p_turkW=draw(512,512,false,(g,X,Y,R,W2)=>{ R(0,0.05,1,0.46,M(g,'wood','#dcd9c8')); for (let x=0.01;x<1;x+=0.033) R(x,0.05,x+0.012,0.46,M(g,'wood',TQ));
@@ -4691,6 +4696,82 @@ function buildChurch({p,gmin,gmax}, grp, lam, T){
   const ball=new THREE.Mesh(new THREE.SphereGeometry(0.42,14,10), gold); ball.position.y=SY+0.9; tg.add(ball);
   const star=new THREE.Group(); for (let k=0;k<4;k++){ const ray=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.9,0.08), gold); ray.rotation.z=k*Math.PI/4; star.add(ray); } star.position.y=SY+3.0; tg.add(star);
   const moon=new THREE.Mesh(new THREE.TorusGeometry(0.28,0.05,6,12,Math.PI), gold); moon.position.y=SY+2.35; moon.rotation.z=Math.PI; tg.add(moon);
+  churchDetails({p,o,W2,y0,eave,gmin,half,Vm,uW,uE,dir,tg,TW,TH,tc,ridgeY}, grp, lam);
+}
+// ---- Plastische Details der Kirche nach Hicores Fotos: vorstehende Lisenen, Gesimse, Fensterrahmen, spiegelnde Scheiben,
+// 3D-Uhren, Schallläden, Vorhalle am Turm und Sakristei-Anbau mit Walmdach
+function churchDetails(C, grp, lam){
+  const ORA=0xd4572e, WH=0xf2eee6;
+  const oraM=lam({color:ORA}), whM=lam({color:WH}), sillM=lam({color:0xe1dbcf});
+  const glass=new THREE.MeshStandardMaterial({color:0x26343d, roughness:0.06, metalness:0.85, envMapIntensity:1.4});
+  const leadM=lam({color:0x3a3f42});
+  // Spitzbogen-Form (Breite w, Fuß 0, Kämpfer hk, Scheitel ht)
+  const arch=(w,hk,ht)=>{ const sh=new THREE.Shape(); sh.moveTo(-w/2,0); sh.lineTo(-w/2,hk); sh.quadraticCurveTo(-w/2,hk+(ht-hk)*0.75,0,ht); sh.quadraticCurveTo(w/2,hk+(ht-hk)*0.75,w/2,hk); sh.lineTo(w/2,0); sh.lineTo(-w/2,0); return sh; };
+  const ring=(w,hk,ht,f)=>{ const out=arch(w+2*f,hk,ht+f); out.holes.push(new THREE.Path(arch(w,hk,ht).getPoints(24))); const sh=new THREE.Shape(out.getPoints(24)); sh.holes=out.holes; return sh; };
+  const place=(obj,x,y,z,nx,nz)=>{ obj.position.set(x,y,z); obj.rotation.y=Math.atan2(nx,nz); grp.add(obj); obj.castShadow=true; return obj; };
+  // Kirchenschiff: Joche wie die Textur (ca. 5,8 m), Lisenen an den Jochgrenzen, Fenster in der Mitte
+  let cx=0, cz=0; C.p.forEach(([x,z])=>{ cx+=x/C.p.length; cz+=z/C.p.length; });
+  const H=C.eave-C.y0;
+  for (let i=0;i<C.p.length;i++){ const a=C.p[i], b=C.p[(i+1)%C.p.length], l=Math.hypot(b[0]-a[0],b[1]-a[1]); if (l<2) continue;
+    const k=Math.max(1,Math.round(l/5.8)), tx=(b[0]-a[0])/l, tz=(b[1]-a[1])/l; let nx=tz, nz=-tx; const mx=(a[0]+b[0])/2, mz=(a[1]+b[1])/2;
+    if (Math.hypot(mx+nx-cx,mz+nz-cz)<Math.hypot(mx-cx,mz-cz)){ nx=-nx; nz=-nz; }
+    const nearTower=Math.hypot(mx-C.tc[0],mz-C.tc[2])<C.TW*0.9;
+    const P=(d,o)=>[a[0]+tx*d+nx*o, a[1]+tz*d+nz*o];
+    // Traufgesims und Sockel durchgehend
+    { const [x,z]=P(l/2,0.12); const g=new THREE.Mesh(new THREE.BoxGeometry(l+0.3,0.42,0.3),sillM); place(g,x,C.eave-0.2,z,nx,nz);
+      const [x2,z2]=P(l/2,0.05); const sk=new THREE.Mesh(new THREE.BoxGeometry(l,0.6,0.12),oraM); place(sk,x2,C.gmin-0.1,z2,nx,nz); }
+    const sc=(l/k)/4.5;
+    for (let j=0;j<=k;j++){ const [x,z]=P(l*j/k,0.06); const li=new THREE.Mesh(new THREE.BoxGeometry(0.34*sc,H-0.6,0.14),oraM); place(li,x,C.y0+0.6+(H-0.6)/2-0.02,z,nx,nz); }
+    if (nearTower) continue;
+    for (let j=0;j<k;j++){ const d=l*(j+0.5)/k; const w=1.7*sc, hk=4.0, ht=5.6, yb=C.y0+0.4+2.9;
+      const fr=new THREE.Mesh(new THREE.ExtrudeGeometry(ring(w,hk,ht,0.24*sc),{depth:0.1,bevelEnabled:false}),oraM); const [x,z]=P(d,0.0); place(fr,x,yb,z,nx,nz);
+      const gl=new THREE.Mesh(new THREE.ShapeGeometry(arch(w,hk,ht)),glass); const [gx,gz]=P(d,0.035); place(gl,gx,yb,gz,nx,nz);
+      // Bleisprossen
+      const sp=new THREE.Group(); for (let yy=0.5; yy<hk+1.2; yy+=0.55){ const r=new THREE.Mesh(new THREE.BoxGeometry(w*(yy>hk?0.6:1),0.035,0.03),leadM); r.position.set(0,yy,0.05); sp.add(r); }
+      const mv=new THREE.Mesh(new THREE.BoxGeometry(0.05,ht,0.03),leadM); mv.position.set(0,ht/2,0.05); sp.add(mv); const [sx,sz]=P(d,0.0); place(sp,sx,yb,sz,nx,nz);
+      const sill=new THREE.Mesh(new THREE.BoxGeometry(w+0.5*sc,0.12,0.25),sillM); const [bx,bz]=P(d,0.1); place(sill,bx,yb-0.06,bz,nx,nz); } }
+  // Turm: Ecklisenen, Fenster- und Schallladenrahmen, Glas, Lamellen, Uhren
+  const tg=C.tg, T2=C.TW/2;
+  [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([sx,sz])=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(0.98,C.TH-0.6,0.98),oraM); b.position.set(sx*(T2-0.39),(C.TH-0.6)/2+0.6,sz*(T2-0.39)); b.castShadow=true; tg.add(b); });
+  const clockTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); g.fillStyle='#f6f3ea'; g.beginPath(); g.arc(128,128,124,0,7); g.fill(); g.strokeStyle='#1d1d1d'; g.lineWidth=5; g.beginPath(); g.arc(128,128,112,0,7); g.stroke();
+    g.fillStyle='#1d1d1d'; g.font='bold 30px serif'; g.textAlign='center'; g.textBaseline='middle'; ['XII','I','II','III','IIII','V','VI','VII','VIII','IX','X','XI'].forEach((t,i)=>{ const a=i/12*Math.PI*2; g.save(); g.translate(128+Math.sin(a)*88,128-Math.cos(a)*88); g.rotate(a); g.fillText(t,0,0); g.restore(); });
+    const t=new THREE.CanvasTexture(c); return t; })();
+  const dayFrac=(new Date().getHours()%12+new Date().getMinutes()/60)/12;
+  for (let f=0;f<4;f++){ const fg=new THREE.Group(); fg.rotation.y=f*Math.PI/2; tg.add(fg);
+    const axisX=Math.round(Math.sin(f*Math.PI/2)), toEast=axisX===C.dir;   // Ostseite stößt an das Schiff
+    const frame=(yb,w,h,louver)=>{ const t=0.22, z=T2+0.05; [[0,yb+h+t/2,w+2*t,t],[0,yb-t/2,w+2*t,t],[-w/2-t/2,yb+h/2,t,h],[w/2+t/2,yb+h/2,t,h]].forEach(([x,y,ww,hh])=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(ww,hh,0.12),oraM); m.position.set(x,y,z); m.castShadow=true; fg.add(m); });
+      if (louver){ for (let y=yb+0.15; y<yb+h-0.1; y+=0.28){ const sl=new THREE.Mesh(new THREE.BoxGeometry(w-0.05,0.05,0.26),lam({color:0x9a958c})); sl.position.set(0,y,T2-0.08); sl.rotation.x=-0.6; fg.add(sl); } const bk=new THREE.Mesh(new THREE.PlaneGeometry(w,h),lam({color:0x15191b})); bk.position.set(0,yb+h/2,T2-0.2); fg.add(bk); }
+      else { const gl=new THREE.Mesh(new THREE.PlaneGeometry(w,h),glass); gl.position.set(0,yb+h/2,T2+0.03); fg.add(gl); const m1=new THREE.Mesh(new THREE.BoxGeometry(0.06,h,0.04),whM); m1.position.set(0,yb+h/2,T2+0.05); fg.add(m1);
+        for (let k=1;k<4;k++){ const m2=new THREE.Mesh(new THREE.BoxGeometry(w,0.05,0.04),whM); m2.position.set(0,yb+h*k/4,T2+0.05); fg.add(m2); } const sl=new THREE.Mesh(new THREE.BoxGeometry(w+0.6,0.12,0.3),sillM); sl.position.set(0,yb-0.28,T2+0.12); fg.add(sl); } };
+    if (!toEast){ frame(3.2,1.0,1.5); frame(8.0,1.0,1.7); }
+    frame(17.6,1.25,5.2,true);
+    // Uhr mit Zeigern (zeigt beim Start die echte Uhrzeit)
+    const cl=new THREE.Mesh(new THREE.CylinderGeometry(0.78,0.78,0.08,32),[lam({color:ORA}),lam({map:clockTex}),lam({color:ORA})]); cl.rotation.x=Math.PI/2; cl.rotation.y=0; cl.position.set(0,15.9,T2+0.08); cl.rotation.z=0; fg.add(cl);
+    cl.rotation.set(Math.PI/2,0,0); cl.geometry.rotateY(Math.PI);
+    const cf=new THREE.Mesh(new THREE.BoxGeometry(1.95,1.95,0.06),oraM); cf.position.set(0,15.9,T2+0.03); fg.add(cf);
+    const hand=(len,wd,ang)=>{ const hm=new THREE.Mesh(new THREE.BoxGeometry(wd,len,0.03),lam({color:0x1a1a1a})); hm.geometry.translate(0,len/2-0.08,0); hm.position.set(0,15.9,T2+0.14); hm.rotation.z=-ang; fg.add(hm); };
+    hand(0.48,0.08,dayFrac*Math.PI*2); hand(0.68,0.05,((new Date().getMinutes())/60)*Math.PI*2); }
+  // Gesimsbänder plastisch (vorstehend)
+  [[14.1,0.3,0.42],[C.TH-0.15,0.5,0.7]].forEach(([y,h,e])=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(C.TW+e,h,C.TW+e),sillM); b.position.y=y; b.castShadow=true; tg.add(b); });
+  // Anbauten auf der Straßenseite: Vorhalle neben dem Turm, Sakristei am Ostende
+  const o=C.o, W2=C.W2; const sideV=(()=>{ const A=W2((C.uW+C.uE)/2,o.v0-4,0), B=W2((C.uW+C.uE)/2,o.v1+4,0); const ca=courseNear(A[0],A[2],60), cb=courseNear(B[0],B[2],60); const da=ca.i<0?99:ca.d, db=cb.i<0?99:cb.d; return da<db?-1:1; })();
+  const vOut=sideV<0?o.v0:o.v1;
+  const annex=(u0,u1,depth,h,hip)=>{ const um=(u0+u1)/2, len=Math.abs(u1-u0), vm=vOut+sideV*depth/2; const P=W2(um,vm,0); const gy=terrainH(P[0],P[2]);
+    const g=new THREE.Group(); g.position.set(P[0],gy-0.3,P[2]); g.rotation.y=-Math.atan2(o.s,o.c); grp.add(g);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(len,h+0.3,depth),lam((()=>{ const t=photoTex('putz_weiss',256,[2,1]); return t?{map:t,color:0xfbf8f0}:{color:WH}; })())); body.position.y=(h+0.3)/2; body.castShadow=body.receiveShadow=true; g.add(body);
+    [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([a,b])=>{ const li=new THREE.Mesh(new THREE.BoxGeometry(0.4,h+0.3,0.4),oraM); li.position.set(a*(len/2-0.15),(h+0.3)/2,b*(depth/2-0.15)); g.add(li); });
+    // Walmdach
+    const rh=hip?depth*0.45:depth*0.55, ov=0.35, L2=len/2+ov, D2=depth/2+ov, rg=hip?Math.max(0.2,L2-D2):L2;
+    const pos=[ -L2,0,-D2, L2,0,-D2, rg,rh,0,  -L2,0,-D2, rg,rh,0, -rg,rh,0,  L2,0,D2, -L2,0,D2, -rg,rh,0,  L2,0,D2, -rg,rh,0, rg,rh,0,  -L2,0,D2, -L2,0,-D2, -rg,rh,0,  L2,0,-D2, L2,0,D2, rg,rh,0 ];
+    const uvs=[]; for (let i=0;i<pos.length;i+=3) uvs.push((pos[i]+L2)/2,(pos[i+1]*1.5+Math.abs(pos[i+2]))/2);
+    const rgm=new THREE.BufferGeometry(); rgm.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); rgm.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2)); rgm.computeVertexNormals();
+    const roof=new THREE.Mesh(rgm,lam({map:facadeTextures().roof, color:0xffc2a8})); roof.position.y=h+0.3; roof.castShadow=true; g.add(roof);
+    return {g,len,depth,h}; };
+  const v1=annex(C.uW+C.dir*0.6, C.uW+C.dir*4.4, 3.4, 3.6, false);
+  { const d=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.3,0.08),lam({map:facadeTextures().wood, color:0x6a3e26})); d.position.set(0,1.45,sideV*(v1.depth/2+0.03)); v1.g.add(d);
+    const fr=new THREE.Mesh(new THREE.BoxGeometry(1.6,2.7,0.06),oraM); fr.position.set(0,1.5,sideV*(v1.depth/2+0.01)); v1.g.add(fr); }
+  const v2=annex(C.uE-C.dir*9.5, C.uE-C.dir*1.5, 4.2, 3.3, true);
+  [-2.2,0,2.2].forEach(x=>{ const fr=new THREE.Mesh(new THREE.BoxGeometry(0.95,1.35,0.06),oraM); fr.position.set(x,1.9,sideV*(v2.depth/2+0.02)); v2.g.add(fr); const gl=new THREE.Mesh(new THREE.PlaneGeometry(0.7,1.1),glass); gl.position.set(x,1.9,sideV*(v2.depth/2+0.06)); if (sideV<0) gl.rotation.y=Math.PI; v2.g.add(gl); });
 }
 // Kirchhof und Friedhof nach Luftbild: Linden und Koniferen um die Kirche, gegenüber an der Straße der Friedhof
 // mit weißer Mauer, Grabreihen, Wegekreuz, Hecken und Lebensbäumen
@@ -4781,20 +4862,52 @@ function buildPowerPoles(grp, lam){ if (!REAL.side || !REAL.bg) return; const g=
   if (wires.length){ const wg=new THREE.BufferGeometry(); wg.setAttribute('position',new THREE.Float32BufferAttribute(wires,3)); grp.add(new THREE.LineSegments(wg,new THREE.LineBasicMaterial({color:0x222222}))); }
   REAL.poleCount=poles.length; }
 // Weberstraße 4: Lattenzaun (orange) vor der Straßenseite, Hecke, Vorgarten-Beete, alte Kastanie an der Kreuzung
-function buildHomeDetails(grp, lam){ const H=REAL.home; if (!H) return; const p=H.p; const pick=[], rails=[], hedge=[], beds=[]; const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(1,1,1), v=new THREE.Vector3();
-  for (let i=0;i<p.length;i++){ const a=p[i], b=p[(i+1)%p.length]; const l=Math.hypot(b[0]-a[0],b[1]-a[1]); if (l<6) continue; const mx=(a[0]+b[0])/2, mz=(a[1]+b[1])/2; let nx=(b[1]-a[1])/l, nz=-(b[0]-a[0])/l; // außen (Polygon gegen Uhrzeigersinn)
+function buildHomeDetails(grp, lam){ const H=REAL.home; if (!H) return; const p=H.p; const m=new THREE.Matrix4(), q=new THREE.Quaternion(), sc=new THREE.Vector3(1,1,1), v=new THREE.Vector3(), Y=new THREE.Vector3(0,1,0);
+  const L={pick:[],rails:[],wall:[],step:[],block:[],path:[],soil:[],stem:[],tulip:[],flower:[],bush:[],slab:[]}; const FC=[0xe23b3b,0xf2d23c,0xf4f0ea,0xb565d8,0xff8fb0,0xe8742a];
+  const put=(list,x,y,z,sx,sy,sz)=>{ v.set(x,y,z); sc.set(sx,sy,sz); m.compose(v,q,sc); list.push(m.clone()); };
+  let fs=5; const fr=()=>(fs=(fs*16807)%2147483647)/2147483647;
+  for (let i=0;i<p.length;i++){ const a=p[i], b=p[(i+1)%p.length]; const l=Math.hypot(b[0]-a[0],b[1]-a[1]); if (l<6) continue; const mx=(a[0]+b[0])/2, mz=(a[1]+b[1])/2; let nx=(b[1]-a[1])/l, nz=-(b[0]-a[0])/l;
     if (Math.hypot(mx+nx-H.cx,mz+nz-H.cz) < Math.hypot(mx-H.cx,mz-H.cz)){ nx=-nx; nz=-nz; }
     if (!nearSideRoad(mx+nx*7,mz+nz*7,1.5) && !nearSideRoad(mx+nx*10,mz+nz*10,1.5)) continue;
-    const off=3.0, tx=(b[0]-a[0])/l, tz=(b[1]-a[1])/l; q.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.atan2(tx,tz));
-    for (let d=0.4; d<l-0.4; d+=0.14){ if (Math.abs(d-l/2)<0.8) continue; const x=a[0]+tx*d+nx*off, z=a[1]+tz*d+nz*off; if (nearSideRoad(x,z,0.6)) continue; const h=terrainMeshH(x,z)+0.35; v.set(x,h+0.5,z); m.compose(v,q,s); pick.push(m.clone()); }
-    [0.62,1.12].forEach(hh=>{ const x=mx+nx*(off-0.03), z=mz+nz*(off-0.03); v.set(x,terrainMeshH(x,z)+0.35+hh,z); s.set(1,1,l-0.8); m.compose(v,q,s); rails.push(m.clone()); s.set(1,1,1); });
-    for (let d=0.5; d<l; d+=1.4){ const x=a[0]+tx*d+nx*(off+1.2), z=a[1]+tz*d+nz*(off+1.2); if (nearSideRoad(x,z,0.8)) continue; v.set(x,terrainMeshH(x,z)+0.5,z); m.compose(v,q,s); hedge.push(m.clone()); }
-    [-1,1].forEach(sg=>{ const x=mx+tx*sg*1.3+nx*(off-1.4), z=mz+tz*sg*1.3+nz*(off-1.4); v.set(x,terrainMeshH(x,z)+0.08,z); m.compose(v,q,s); beds.push(m.clone()); }); }
-  const inst=(geo,mat,list)=>{ if (!list.length) return; const im=new THREE.InstancedMesh(geo,mat,list.length); list.forEach((mm,i)=>im.setMatrixAt(i,mm)); im.castShadow=true; grp.add(im); };
-  inst(new THREE.BoxGeometry(0.075,1.0,0.02), lam({color:0xd88a3c}), pick); inst(new THREE.BoxGeometry(0.03,0.08,1), lam({color:0xc47a32}), rails);
-  inst(new THREE.BoxGeometry(0.8,0.75,1.45), lam({color:0x2c5222}), hedge); inst(new THREE.BoxGeometry(0.45,0.16,2.2), lam({color:0xd9822b}), beds);
-  // Bruchstein-Terrasse unter dem Zaun angedeutet: Sockelmauer
+    const tx=(b[0]-a[0])/l, tz=(b[1]-a[1])/l; q.setFromAxisAngle(Y, Math.atan2(tx,tz));
+    const P=(d,o)=>[a[0]+tx*d+nx*o, a[1]+tz*d+nz*o]; const dDoor=0.5625*l;   // Tür wie auf der Fassade (u 0,4375, gespiegelt)
+    const base=terrainMeshH(...P(dDoor,0.5)), top=base+0.55;   // Terrassenhöhe vor dem Haus
+    // Stützmauer aus Beton (off 3 m) mit Lücke für die Treppe, Zaun obendrauf
+    for (let d=0.3; d<l-0.3; d+=0.5){ if (Math.abs(d-dDoor)<0.85) continue; const [x,z]=P(d,3.0); const g=terrainMeshH(x,z); put(L.wall,x,(g-0.4+top)/2,z,0.26,top-g+0.4,0.52); }
+    for (let d=0.4; d<l-0.4; d+=0.14){ if (Math.abs(d-dDoor)<0.85) continue; const [x,z]=P(d,3.0); put(L.pick,x,top+0.5,z,1,1,1); }
+    [0.62,1.12].forEach(hh=>{ [[0.4,dDoor-0.85],[dDoor+0.85,l-0.4]].forEach(([d0,d1])=>{ const [x,z]=P((d0+d1)/2,2.97); put(L.rails,x,top+hh-0.5+0.5,z,1,1,d1-d0); }); });
+    // Plattenweg zur Tür auf der Terrasse und Treppe (4 Stufen) durch die Mauer
+    { const [x,z]=P(dDoor,1.5); put(L.slab,x,top-0.03,z,2.4,0.08,1.4); }
+    for (let k=0;k<4;k++){ const o=3.0+k*0.32-0.15, h=top-(k)*0.55/4; const [x,z]=P(dDoor,o); const g=terrainMeshH(x,z); put(L.step,x,(h+g-0.3)/2,z,0.34,h-g+0.3,1.5); }
+    // rote Pflanzsteine vor der Mauer mit Blumen
+    for (let d=0.4; d<l-0.4; d+=0.42){ if (Math.abs(d-dDoor)<0.95) continue; const [x,z]=P(d,3.6); const g=terrainMeshH(x,z); put(L.block,x,g+0.12,z,0.5,0.4,0.4);
+      for (let k=0;k<4;k++){ const [fx,fz]=P(d+(fr()-0.5)*0.36,3.6+(fr()-0.5)*0.2); put(L.flower,fx,g+0.36+fr()*0.08,fz,0.05+fr()*0.03,0.04,0.05+fr()*0.03); } }
+    // Blumen im schmalen Beet zwischen Haus und Mauer
+    for (let d=0.6; d<l-0.6; d+=0.55){ if (Math.abs(d-dDoor)<1.4) continue; for (let k=0;k<5;k++){ const [x,z]=P(d+(fr()-0.5)*0.4,2.5+fr()*0.3); put(L.flower,x,top+0.1+fr()*0.25,z,0.05+fr()*0.03,0.04,0.05+fr()*0.03); } }
+    // Weg vom Fuß der Treppe in den Garten, links und rechts Tulpenbeete
+    const PL=7.5; { const [x,z]=P(dDoor,4.3+PL/2); put(L.path,x,terrainMeshH(x,z)+0.03,z,PL,0.08,1.1); }
+    [-1,1].forEach(sg=>{ const [x,z]=P(dDoor+sg*0.85,4.3+PL/2); put(L.soil,x,terrainMeshH(x,z)+0.04,z,PL,0.1,0.38);
+      for (let o=4.4; o<4.3+PL; o+=0.22){ const [tx2,tz2]=P(dDoor+sg*(0.78+fr()*0.14),o); const g=terrainMeshH(tx2,tz2); put(L.stem,tx2,g+0.17,tz2,0.02,0.26,0.02); put(L.tulip,tx2,g+0.32,tz2,0.04,0.06,0.04); } });
+    // Strauch rechts im Garten
+    { const [x,z]=P(dDoor+0.32*l,6.5); put(L.bush,x,terrainMeshH(x,z)+0.75,z,1.6,1.5,1.6); }
+  }
+  const inst=(geo,mat,list,col)=>{ if (!list.length) return; const im=new THREE.InstancedMesh(geo,mat,list.length); list.forEach((mm,i)=>{ im.setMatrixAt(i,mm); if (col) im.setColorAt(i,new THREE.Color(col(i))); }); im.castShadow=true; im.receiveShadow=true; grp.add(im); };
+  const box=new THREE.BoxGeometry(1,1,1);
+  inst(new THREE.BoxGeometry(0.075,1.0,0.02), lam({color:0xd88a3c}), L.pick); inst(new THREE.BoxGeometry(0.03,0.08,1), lam({color:0xc47a32}), L.rails);
+  const conc=photoTex('putz_weiss',128,[2,1]); inst(box, lam(conc?{map:conc,color:0xb8b3a8}:{color:0xa8a398}), L.wall); inst(box, lam({color:0xe9e7e2}), L.step); inst(box, lam({color:0xc9c4bb}), L.slab);
+  inst(box, lam({color:0xa64a42}), L.block); inst(box, lam({color:0x8f877b}), L.path); inst(box, lam({color:0x5b4532}), L.soil);
+  inst(box, lam({color:0x3f7a2a}), L.stem); inst(new THREE.SphereGeometry(1,8,6), lam({color:0xffffff}), L.tulip, i=>[0xd8231f,0xe8321f,0xc81a30][i%3]);
+  inst(new THREE.SphereGeometry(1,6,5), lam({color:0xffffff}), L.flower, i=>FC[(i*7)%FC.length]); inst(new THREE.IcosahedronGeometry(0.5,1), lam({color:0x3d6b2a}), L.bush);
   REAL.extraTrees=REAL.extraTrees||[]; REAL.extraTrees.push([869,-304,0,1.3]); }
+function buildChimneys(list, grp, lam){ if (!list.length) return; const m=new THREE.Matrix4(), q=new THREE.Quaternion(), sc=new THREE.Vector3(), v=new THREE.Vector3(), Y=new THREE.Vector3(0,1,0);
+  const brickTex=photoTex('backstein',128,[1,2]);
+  const groups={ brick:{body:[],cap:[]}, sand:{body:[],cap:[]} };
+  list.forEach(c=>{ q.setFromAxisAngle(Y,c.rot); const h=c.y1-c.y0; v.set(c.x,c.y0+h/2,c.z); sc.set(c.w,h,c.w); m.compose(v,q,sc); groups[c.mat].body.push(m.clone());
+    v.set(c.x,c.y1+0.06,c.z); sc.set(c.w+0.14,0.12,c.w+0.14); m.compose(v,q,sc); groups[c.mat].cap.push(m.clone()); });
+  const box=new THREE.BoxGeometry(1,1,1);
+  const inst=(list,mat)=>{ if (!list.length) return; const im=new THREE.InstancedMesh(box,mat,list.length); list.forEach((mm,i)=>im.setMatrixAt(i,mm)); im.castShadow=true; grp.add(im); };
+  inst(groups.brick.body, lam(brickTex?{map:brickTex,color:0xd08a70}:{color:0x9c4a35})); inst(groups.brick.cap, lam({color:0x6e6a64}));
+  inst(groups.sand.body, lam({color:0xc8bba0})); inst(groups.sand.cap, lam({color:0x8d8a84})); }
 function buildRealWorld(def, grp){
   const D=realData(); if (!D) return;
   const T=facadeTextures();
@@ -4812,6 +4925,7 @@ function buildRealWorld(def, grp){
   const wall=(arr,x0,z0,x1,z1,y0,y1,u0,full)=>{ const l=Math.hypot(x1-x0,z1-z0), u1=u0+l/4, v0=0, v1=full?1:(y1-y0)/3;
     arr.push([[x0,y0,z0],[x1,y0,z1],[x1,y1,z1],[u0,v0],[u1,v0],[u1,v1],'w']); arr.push([[x0,y0,z0],[x1,y1,z1],[x0,y1,z0],[u0,v0],[u1,v1],[u0,v1],'w']); return u1; };
   let hseed=7; const hr=()=>(hseed=(hseed*16807)%2147483647)/2147483647;
+  let cseed=99; const cr=()=>(cseed=(cseed*16807)%2147483647)/2147483647; const chim=[];
   const church=[], fled=[], MATX={};
   // Weberstraße 4: L-Grundriss in Fachwerk-Haupthaus + weißen Anbau teilen
   // Weberstraße 2 (altes Gemeindeamt, türkis): L-Grundriss in Hauptbau + Putzflügel teilen, Hauptbau ca. 5 m von der (geglätteten) Strecke weg
@@ -4862,6 +4976,11 @@ function buildRealWorld(def, grp){
     else if ((HG && HG!=='plaster') || (GK[kind] && kind!=='umgebinde' && !HG)){ const gw=(o.v1-o.v0)/4, gh=(ridge-eave)/3; pushTri(B[gk],g1[1],g1[0],g1[2],[gw,0],[0,0],[gw/2,gh]); pushTri(B[gk],g2[1],g2[0],g2[2],[gw,0],[0,0],[gw/2,gh]); }
     else { pushTri(B[gk],g1[1],g1[0],g1[2],[1,0],[0,0],[0.5,0.6]); pushTri(B[gk],g2[1],g2[0],g2[2],[1,0],[0,0],[0.5,0.6]); }
     if (kind==='redu' && o.u1-o.u0>9){ fled.push({o,eave,ridge,half,pitch}); }
+    // Schornsteine: Weberstraße 4 zwei Sandsteinschornsteine wie auf dem Foto, sonst meist einer aus Ziegel
+    { const L=o.u1-o.u0; const n= kind==='fach'?2 : kind==='redu'?2 : (area>45 && cr()<0.85)?1:0; const rot=-Math.atan2(s,c);
+      for (let k=0;k<n;k++){ const uu= kind==='fach'?o.u0+L*(k?0.56:0.40) : n===2?o.u0+L*(k?0.68:0.32) : o.u0+L*(0.3+0.4*cr()); const dv=(kind==='fach'?-0.35:(cr()<0.5?-1:1)*(0.15+0.35*cr()))*half;
+        const P=W2(uu,Vm+dv,0), yb=ridge-Math.abs(dv)*pitch-0.4, top=ridge+(kind==='fach'?1.6:0.9), w=kind==='fach'?0.7:0.55;
+        chim.push({x:P[0],z:P[2],y0:yb,y1:top,w,rot,mat:kind==='fach'?'sand':'brick'}); } }
   });
   ['turk','turkG','fach','fachG','redu','reduG','villa','villaG','garage','ocker','p_fach','p_turkW','p_turkG','p_redu'].forEach(k=>{ MATX[k]=()=>lam({map:T[k]}); });
   const MATS={ ...MATX, plaster:()=>lam({map:T.plaster}), wood:()=>lam({map:T.wood}), umgebinde:()=>lam({map:T.umgebinde}), barn:()=>lam({map:T.barn}), roof:()=>lam({map:T.roof, side:THREE.DoubleSide}), slate:()=>lam({map:T.slate, side:THREE.DoubleSide}), flat:()=>lam({color:0x5a5f66}) };
@@ -4871,7 +4990,7 @@ function buildRealWorld(def, grp){
     tris.forEach((tr,i)=>{ if (k==='plaster' && i%2===0 && hrr()<0.25) ci=tint.plaster[(hrr()*5)|0]; const ym=tr[6]==='w'?Math.min(tr[0][1],tr[1][1],tr[2][1]):0; for (let j=0;j<3;j++){ v.push(...tr[j]); uv.push(...tr[3+j]); const cc=(k==='plaster'?ci:[1,1,1]); const a=tr[6]==='w'?0.62+0.38*smooth01(Math.min(1,(tr[j][1]-ym-0.3)/2.2)):1; col.push(cc[0]*a,cc[1]*a,cc[2]*a); } });
     const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.computeVertexNormals();
     const m=MATS[k](); m.vertexColors=true; const mesh=new THREE.Mesh(g,m); mesh.castShadow=true; mesh.receiveShadow=true; grp.add(mesh); });
-  buildEyebrows(fled, grp, lam, T); buildPowerPoles(grp, lam);
+  buildEyebrows(fled, grp, lam, T); buildPowerPoles(grp, lam); buildChimneys(chim, grp, lam);
   REAL.extraTrees=[]; church.forEach(ch=>{ buildChurch(ch, grp, lam, T); buildChurchYard(ch, grp, lam); });
   buildHomeDetails(grp, lam);
   // ---- Teiche (OSM-Wasserflächen) und Bäche
@@ -6137,7 +6256,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 36`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 37`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
