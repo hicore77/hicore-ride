@@ -5662,15 +5662,19 @@ async function connectTrainer(){
   try {
     // Bluefy (iPad): pro Tippen genau EIN requestDevice. Stufe 0 exakt wie beim Pulsgurt (nur Dienst-Filter, keine optionalServices),
     // Stufe 1 (nächstes Tippen, nach Fehler oder wenn nach 8 s kein Fenster kam): alle Geräte zeigen.
-    const stage=trainer.searchStage||0; const tag=stage===0?'Stufe 1/2':'Stufe 2/2 (alle Geräte)';
+    // Bluefy lehnt die lange Elite-Kennung im Suchfilter ab (Fehler ohne Text). Deshalb Stufen, je eine pro Tippen:
+    // 1: nur Standard-Dienste (Drivo sendet CSC 0x1816) · 2: zusätzlich Elite-Dienst freigeben · 3: alle Geräte
+    const stage=trainer.searchStage||0; const tag='Stufe '+(stage+1)+'/3';
+    const base=[{services:[CPS]},{services:[FTMS]},{services:[CSC]}];
+    const o= stage===0 ? {filters:base} : stage===1 ? {filters:base, optionalServices:[ELITE]} : {acceptAllDevices:true, optionalServices:[FTMS, CPS, CSC]};
     $('trS').textContent='Suche läuft … ('+tag+')';
-    const o= stage===0 ? {filters:[{services:[CPS]},{services:[FTMS]},{services:[CSC]},{services:[ELITE]}]} : {acceptAllDevices:true, optionalServices:[FTMS, CPS, CSC, ELITE]};
-    trainer.searchStage = stage===0 ? 1 : 0;   // falls gar nichts zurückkommt: nächstes Tippen nimmt die andere Stufe
+    trainer.searchStage=(stage+1)%3;   // falls nichts zurückkommt: nächstes Tippen nimmt die nächste Stufe
     const wd=setTimeout(()=>{ if (!trainer.dev) $('trS').textContent='keine Reaktion ('+tag+') – bitte noch einmal „Suchen“ tippen'; }, 8000);
     let dev;
     try { dev=await navigator.bluetooth.requestDevice(o); }
-    catch(e){ clearTimeout(wd); if (e.name!=='NotFoundError' && e.name!=='SecurityError' && stage===0){ log('Trainersuche: '+e.name+' '+e.message); toast('Bitte noch einmal auf „Suchen“ tippen (zeigt alle Geräte)'); $('trS').textContent='Fehler '+e.name+': '+e.message+' – noch einmal „Suchen“ tippen'; return; } throw e; }
-    clearTimeout(wd); trainer.searchStage=0;
+    catch(e){ clearTimeout(wd); const msg=errText(e); if (e && (e.name==='SecurityError')) throw e;
+      log('Trainersuche '+tag+': '+msg); $('trS').textContent=(e&&e.name==='NotFoundError'?'nichts gewählt':'Fehler: '+msg)+' ('+tag+') – noch einmal „Suchen“ tippen für '+(stage===0?'Stufe 2':stage===1?'Stufe 3 (alle Geräte)':'Stufe 1'); return; }
+    clearTimeout(wd); trainer.searchStage=stage;   // erfolgreiche Stufe merken
     $('trS').textContent='verbinde mit '+(dev.name||'Gerät')+' …';
     dev.addEventListener('gattserverdisconnected', ()=>{ $('trS').textContent='Verbindung getrennt'; $('trS').classList.remove('ok'); trainer.cp=null; trainer.type=null; toast('Trainer getrennt'); });
     const srv = await dev.gatt.connect();
@@ -5710,7 +5714,7 @@ async function connectTrainer(){
       if (trainer.type){ $('trS').textContent=(dev.name||'Trainer')+' · Elite/CSC · Kadenz + Tempo, Watt geschätzt'; $('trS').classList.add('ok'); log('Elite Drivo (ohne FTMS) verbunden: Trittfrequenz und Geschwindigkeit, Watt vorerst aus dem Tempo geschätzt, kein Widerstand.'); }
       else { let names=[]; try { names=(await srv.getPrimaryServices()).map(x=>x.uuid.slice(0,8)); } catch(e){} $('trS').textContent='Gerät ohne bekannten Dienst ('+names.join(', ')+')'; log('Weder FTMS noch Cycling Power gefunden.'); }
     }
-  } catch(e){ if (e.name==='SecurityError'){ btBlocked(); } else if (e.name!=='NotFoundError'){ log('Trainer: '+e.name+' '+e.message); toast('Trainer: '+e.message); } $('trS').textContent=e.name==='NotFoundError'?(trainer.searchStage===1?'kein Trainer gewählt – nochmal „Suchen“ zeigt alle Geräte':'kein Trainer gewählt'):'Fehler: '+e.message; }
+  } catch(e){ if (e.name==='SecurityError'){ btBlocked(); } else if (e.name!=='NotFoundError'){ log('Trainer: '+errText(e)); toast('Trainer: '+errText(e)); } $('trS').textContent=e&&e.name==='NotFoundError'?'kein Trainer gewählt':'Fehler: '+errText(e); }
 }
 function parseIndoorBike(dv){
   let o=0; const f=dv.getUint16(o,true); o+=2;
@@ -5724,6 +5728,7 @@ function parseIndoorBike(dv){
   lastData = performance.now();
 }
 // Diagnose: Rohdaten des Elite-Dienstes unter „Rollentrainer“ anzeigen (für Screenshot an Claude)
+function errText(e){ if (e==null) return 'unbekannt'; if (typeof e==='string') return e; return e.message||e.name||(()=>{ try { return JSON.stringify(e); } catch(_){ return String(e); } })()||String(e); }
 function showRaw(){ let el=$('trRaw'); if (!el){ el=document.createElement('div'); el.id='trRaw'; el.style.cssText='font:11px monospace;opacity:.75;white-space:pre-wrap;word-break:break-all;margin-top:4px'; $('trS').parentNode.appendChild(el); }
   el.textContent='Elite: '+(trainer.eliteChars||[]).join(' ')+'\n'+Object.entries(trainer.raw||{}).map(([k,v])=>k+': '+v).join('\n'); }
 // Cycling Speed and Cadence (0x2A5B): Radumdrehungen -> Tempo, Kurbel -> Kadenz; Watt grob aus dem Tempo (Ebene, 80 kg)
@@ -5770,7 +5775,7 @@ async function connectHR(){
     await c.startNotifications(); hrDev=dev;
     dev.addEventListener('gattserverdisconnected',()=>{ hrDev=null; $('hrS').textContent='Verbindung getrennt'; $('hrS').classList.remove('ok'); });
     $('hrS').textContent=(dev.name||'Pulsgurt')+' verbunden'; $('hrS').classList.add('ok');
-  } catch(e){ if (e.name==='SecurityError') btBlocked(); else if (e.name!=='NotFoundError') log('Puls: '+e.message); $('hrS').textContent='nicht verbunden'; }
+  } catch(e){ if (e.name==='SecurityError') btBlocked(); else if (e.name!=='NotFoundError') log('Puls: '+errText(e)); $('hrS').textContent='nicht verbunden'; }
 }
 
 // ================= Deko-Objekte aus Blender (GLB, eingebettet) =================
@@ -6057,7 +6062,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 30`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 31`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
