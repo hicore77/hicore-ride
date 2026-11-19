@@ -4552,10 +4552,51 @@ function facadeTextures(){
   const ocker=mk2(256,H6,g=>{ boards(g,0,0,256,186,'#d9b98a','#d2b183',8); g.fillStyle='#eadcc0'; g.fillRect(0,186,256,6);
     win2(g,30,62,34,48,'#f4f1e8'); win2(g,110,62,34,48,'#f4f1e8'); win2(g,190,62,34,48,'#f4f1e8'); g.fillStyle=M(g,'putz','#e8cfa4'); g.fillRect(0,192,256,148);
     win2(g,46,238,36,52,'#f4f1e8'); win2(g,176,238,36,52,'#f4f1e8'); plinth(g,340,44); });
-  // Echte Fassaden aus Hicores Fotos (entzerrt, Weißabgleich und Helligkeit angeglichen)
-  const ph=(k,rep)=>{ const F=window.FACADE_JPG||{}; if (!F[k]) return null; const t=new THREE.Texture(); const im=new Image(); im.onload=()=>{ t.image=im; t.needsUpdate=true; }; im.src='data:image/jpeg;base64,'+F[k];
-    t.wrapS=rep?THREE.RepeatWrapping:THREE.ClampToEdgeWrapping; t.wrapT=THREE.ClampToEdgeWrapping; t.anisotropy=4; return t; };
-  const p_fach=ph('fach')||fach, p_turkW=ph('turkW')||turk, p_turkG=ph('turkG')||turkG, p_redu=ph('redu',true)||redu;
+  // Nachgezeichnete Fassaden nach Hicores Fotos: Fenster, Türen, Balken an echter Stelle und in echter Anzahl, mit Materialmustern
+  const draw=(W,H,rep,fn)=>{ const c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d'); const X=f=>f*W, Y=f=>f*H;
+    const R=(x0,y0,x1,y1,st)=>{ g.fillStyle=st; g.fillRect(X(x0),Y(y0),X(x1)-X(x0),Y(y1)-Y(y0)); };
+    const W2=(x0,y0,x1,y1,fr,nx,ny,opt)=>{ opt=opt||{}; const f=Math.max(3,X(x1-x0)*0.11); const fp=M(g,'wood',fr); R(x0,y0,x1,y1,fp);
+      const gx=X(x0)+f, gy=Y(y0)+f, gw=X(x1)-X(x0)-2*f, gh=Y(y1)-Y(y0)-2*f; const gr=g.createLinearGradient(gx,gy,gx+gw,gy+gh); gr.addColorStop(0,'#3f5260'); gr.addColorStop(1,'#1b252d'); g.fillStyle=gr; g.fillRect(gx,gy,gw,gh);
+      if (opt.lace){ g.fillStyle='rgba(235,235,230,0.55)'; g.fillRect(gx,gy+gh*0.12,gw,gh*0.88); g.fillStyle='rgba(255,255,255,0.35)'; for (let i=0;i<40;i++) g.fillRect(gx+Math.random()*gw,gy+gh*0.2+Math.random()*gh*0.8,2,2); }
+      else { g.fillStyle='rgba(190,215,235,0.28)'; g.fillRect(gx,gy,gw*0.45,gh*0.45); }
+      g.fillStyle=fp; const m=Math.max(2,f*0.55); for (let i=1;i<nx;i++) g.fillRect(gx+gw*i/nx-m/2,gy,m,gh); for (let j=1;j<ny;j++) g.fillRect(gx,gy+gh*j/ny-m/2,gw,m);
+      g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(X(x0)-1,Y(y1),X(x1)-X(x0)+2,Math.max(2,f*0.6)); };
+    fn(g,X,Y,R,W2); const t=new THREE.CanvasTexture(c); t.wrapS=rep?THREE.RepeatWrapping:THREE.ClampToEdgeWrapping; t.wrapT=THREE.ClampToEdgeWrapping; t.anisotropy=4; return t; };
+  // Weberstraße 4, Langseite: Fachwerk-Obergeschoss (7 Fenster), Erdgeschoss Putz mit Doppelfenster, Rundbogentür in Steingewände, zwei schmalen Fenstern, Dreifachfenster
+  const p_fach=draw(1024,512,false,(g,X,Y,R,W2)=>{ R(0,0,1,0.9,M(g,'putz','#f2eee2')); const BM=M(g,'wood','#3b2a20');
+    R(0,0,1,0.035,BM); R(0,0.235,1,0.262,BM); R(0,0.44,1,0.49,BM);
+    const wc=[0.157,0.285,0.407,0.525,0.648,0.772,0.892], ww=0.056;
+    const posts=[0.045,0.985]; wc.forEach((c,i)=>{ posts.push(c-ww/2-0.012, c+ww/2+0.012); if (i<wc.length-1) posts.push((c+wc[i+1])/2); });
+    posts.forEach(x=>R(x-0.007,0.035,x+0.007,0.44,BM));
+    g.strokeStyle=BM; g.lineWidth=X(0.012); g.beginPath(); g.moveTo(X(0.07),Y(0.04)); g.lineTo(X(0.105),Y(0.44)); g.moveTo(X(0.96),Y(0.04)); g.lineTo(X(0.925),Y(0.44)); g.stroke();
+    wc.forEach(c=>W2(c-ww/2,0.085,c+ww/2,0.225,'#f4f4ef',1,1,{lace:true}));
+    W2(0.133,0.545,0.238,0.74,'#f4f4ef',2,1,{lace:true}); W2(0.695,0.545,0.855,0.74,'#f4f4ef',3,1,{lace:true});
+    const ST=M(g,'stein','#a9a59b'); R(0.333,0.545,0.372,0.74,ST); R(0.343,0.56,0.362,0.725,'#222b31'); R(0.503,0.545,0.542,0.74,ST); R(0.513,0.56,0.532,0.725,'#222b31');
+    R(0.378,0.49,0.497,0.9,M(g,'stein','#b9ad92')); g.fillStyle=M(g,'wood','#2a1d17'); g.beginPath(); g.moveTo(X(0.398),Y(0.9)); g.lineTo(X(0.398),Y(0.6)); g.quadraticCurveTo(X(0.4375),Y(0.52),X(0.477),Y(0.6)); g.lineTo(X(0.477),Y(0.9)); g.closePath(); g.fill();
+    g.fillStyle='rgba(120,140,150,0.35)'; g.fillRect(X(0.428),Y(0.62),X(0.019),Y(0.24)); R(0.462,0.72,0.468,0.735,'#c9b26a');
+    R(0,0.9,1,1,M(g,'stein','#8f8a80')); R(0,0.9,1,0.905,'rgba(0,0,0,.25)'); });
+  // Weberstraße 2 (türkis), Giebelseite: Obergeschoss hell/türkis gestreifte Bretter mit 5 Sprossenfenstern, türkises Band, Putz mit vergittertem Fenster, Bruchsteinsockel
+  const TQ='#1f9c95';
+  const p_turkW=draw(512,512,false,(g,X,Y,R,W2)=>{ R(0,0.05,1,0.46,M(g,'wood','#dcd9c8')); for (let x=0.01;x<1;x+=0.033) R(x,0.05,x+0.012,0.46,M(g,'wood',TQ));
+    R(0,0,1,0.05,M(g,'wood',TQ)); g.fillStyle=M(g,'wood',TQ); for (let x=0;x<1;x+=0.02){ g.beginPath(); g.arc(X(x+0.01),Y(0.05),X(0.008),0,Math.PI); g.fill(); }
+    [0.15,0.31,0.485,0.66,0.84].forEach(c=>{ W2(c-0.035,0.08,c+0.035,0.23,'#efe9d6',2,3); R(c-0.042,0.232,c+0.042,0.248,M(g,'wood',TQ)); });
+    R(0,0.46,1,0.51,M(g,'wood',TQ)); R(0,0.51,1,0.76,M(g,'putz','#f0c9a0'));
+    R(0.41,0.6,0.52,0.86,M(g,'stein','#a49f94')); R(0.43,0.62,0.50,0.84,'#203038'); g.strokeStyle='#1e9d96'; g.lineWidth=3; for (let y=0.64;y<0.84;y+=0.04){ g.beginPath(); g.arc(X(0.465),Y(y),X(0.018),0,7); g.stroke(); } g.strokeRect(X(0.43),Y(0.62),X(0.07),Y(0.22));
+    R(0,0.76,1,1,M(g,'stein','#8d8a82')); R(0,0.76,1,0.765,'rgba(0,0,0,.25)'); R(0.41,0.76,0.52,0.86,M(g,'stein','#a49f94')); R(0.43,0.76,0.50,0.84,'#203038'); });
+  // Türkis-Giebeldreieck: senkrechte Bretter, oben ein Fenster, darunter zwei
+  const p_turkG=draw(512,512,false,(g,X,Y,R,W2)=>{ R(0,0,1,1,M(g,'wood',TQ)); g.fillStyle='rgba(0,0,0,.12)'; for (let x=0;x<1;x+=0.022) g.fillRect(X(x),0,1.5,Y(1));
+    W2(0.47,0.07,0.53,0.24,'#efe9d6',2,3); W2(0.30,0.45,0.37,0.66,'#efe9d6',2,3); W2(0.61,0.41,0.68,0.64,'#efe9d6',2,3); });
+  // Rotbraunes Umgebinde, Langseite (Kachel 11 m): oben rotbraune Längslattung mit 6 weißen Fenstern; unten Tor, zwei gelbe Bögen mit Fenstern im Umgebinde, Haustür mit Steingewände
+  const p_redu=draw(512,512,true,(g,X,Y,R,W2)=>{ R(0,0,1,0.49,M(g,'wood','#7b2f24')); g.fillStyle='rgba(0,0,0,.2)'; for (let x=0;x<1;x+=0.025) g.fillRect(X(x),0,1.5,Y(0.49));
+    for (let i=0;i<6;i++){ const c=0.085+i*0.166; W2(c-0.04,0.08,c+0.04,0.29,'#f6f4ee',2,2); }
+    R(0,0.49,1,0.97,M(g,'putz','#f1ece2'));
+    g.fillStyle=M(g,'wood','#3a1f1c'); g.beginPath(); g.moveTo(X(0.08),Y(0.97)); g.lineTo(X(0.08),Y(0.6)); g.quadraticCurveTo(X(0.195),Y(0.5),X(0.31),Y(0.6)); g.lineTo(X(0.31),Y(0.97)); g.closePath(); g.fill(); R(0.193,0.56,0.197,0.97,'rgba(0,0,0,.4)');
+    const UB=M(g,'wood','#3e2420'); R(0.36,0.495,0.73,0.97,M(g,'putz','#f2c27c')); R(0.36,0.495,0.73,0.535,UB);
+    [[0.36,0.39],[0.545,0.565],[0.71,0.73]].forEach(([a,b])=>R(a,0.495,b,0.97,UB));
+    g.fillStyle=UB; [[0.39,0.545],[0.565,0.71]].forEach(([a,b])=>{ g.beginPath(); g.moveTo(X(a),Y(0.535)); g.lineTo(X(a),Y(0.62)); g.quadraticCurveTo(X((a+b)/2),Y(0.5),X(b),Y(0.62)); g.lineTo(X(b),Y(0.535)); g.closePath(); g.fill(); });
+    W2(0.425,0.57,0.51,0.78,'#f6f4ee',2,3); W2(0.60,0.57,0.675,0.78,'#f6f4ee',2,3);
+    const ST=M(g,'stein','#8d8f8c'); R(0.755,0.55,0.8,0.77,ST); W2(0.765,0.565,0.79,0.755,'#8a8e8c',1,2); R(0.82,0.51,0.94,0.97,ST); R(0.845,0.58,0.915,0.97,M(g,'wood','#3a2a22')); R(0.96,0.55,1,0.77,ST);
+    R(0,0.97,1,1,M(g,'stein','#9a968e')); });
   _facTex={plaster, wood, umgebinde, barn, roof, slate, turk, ocker, turkG, fach, fachG, redu, reduG, villa, villaG, garage, p_fach, p_turkW, p_turkG, p_redu}; return _facTex;
 }
 // ---- Dorfkirche Spitzkunnersdorf (nach Hicores Fotos): weißer Putz, rote Lisenen, Spitzbogenfenster,
@@ -4763,7 +4804,7 @@ function buildRealWorld(def, grp){
   // ---- Gebäude: Wände aus dem echten Grundriss, Satteldach über dem ausgerichteten Rechteck
   const B={ plaster:[], wood:[], umgebinde:[], barn:[], roof:[], slate:[], flat:[], turk:[], turkG:[], fach:[], fachG:[], redu:[], reduG:[], villa:[], villaG:[], garage:[], ocker:[], p_fach:[], p_turkW:[], p_turkG:[], p_redu:[] };
   // Foto-Fassaden je Haus: lange Seiten / kurze Seiten / Giebel; Zahl = Kachelbreite in m (sonst ganze Wand)
-  const PHOTO={};   // Foto-Fassaden (v34) auf Hicores Wunsch wieder aus; stattdessen Materialtexturen
+  const PHOTO={ fach:{long:'p_fach'}, turk:{short:'p_turkW', gable:'p_turkG'}, redu:{long:'p_redu', tile:11} };   // nachgezeichnete Fassaden je Wandseite
   const FULLH={turk:1,fach:1,redu:1,villa:1,garage:1,ocker:1};
   // Weberstraße 4 und Nachbarn (nach Hicores Fotos/Street View, Koordinaten 50.939404, 14.688188): feste Zuordnung über den Grundriss-Mittelpunkt
   const HOMEKIND=[[850.65,-320.15,'fach','slate',1.0,'villaG'],[845.2,-326.55,'villa','slate',0.95,'plaster'],[871,-335.2,'redu','roof',1.0],[866.6,-286.1,'turk','roof',1.05],[877.5,-287.2,'ocker','roof',0.9,'plaster'],[820,-350.1,'garage','roof',0.6],[888.5,-309,'villa','slate',0.95]];   // Textur über die ganze Wandhöhe
@@ -4800,11 +4841,11 @@ function buildRealWorld(def, grp){
       // Drohnenfotos: überwiegend Putzhäuser mit roten Ziegeln, einige dunkle Dächer, Umgebinde eher vereinzelt
       const r2=hr(); kind= r<0.2?'umgebinde' : r<0.28?'wood' : 'plaster'; roofK= r2<0.68?'roof':'slate'; pitch=r<0.2?1.0:0.85+hr()*0.15; }   // Foto-Typen nur an ihren echten Häusern (HOMEKIND)
     { let cx=0, cz=0; p.forEach(([x,z])=>{ cx+=x/p.length; cz+=z/p.length; }); const hk=HOMEKIND.find(h=>Math.hypot(h[0]-(HC?HC[0]:cx),h[1]-(HC?HC[1]:cz))<3.5); HG=hk&&hk[5]||null;
-      if (hk){ kind=hk[2]; roofK=hk[3]; pitch=hk[4]; flat=false; eave=gmax+(kind==='garage'?4.2:kind==='turk'?7.0:6.0); if (hk===HOMEKIND[0]) REAL.home={p,cx,cz}; if (hk===HOMEKIND[1]) eave=gmax+6.6; } }
+      if (hk){ kind=hk[2]; roofK=hk[3]; pitch=hk[4]; flat=false; eave=gmax+(kind==='garage'?4.2:kind==='turk'?7.0:kind==='fach'?5.4:6.0); if (hk===HOMEKIND[0]) REAL.home={p,cx,cz}; if (hk===HOMEKIND[1]) eave=gmax+6.6; } }
     // Wände
     const PH=PHOTO[kind]||null; let maxL=0;   /* Foto-Arten gibt es nur an ihren echten Häusern (HOMEKIND) */ for (let i=0;i<p.length;i++){ const a=p[i], b=p[(i+1)%p.length]; maxL=Math.max(maxL,Math.hypot(b[0]-a[0],b[1]-a[1])); }
     let u=0; for (let i=0;i<p.length;i++){ const a=p[i], b=p[(i+1)%p.length], l=Math.hypot(b[0]-a[0],b[1]-a[1]); const pk=PH&&(l>0.75*maxL?PH.long:PH.short);
-      if (pk){ const u1=PH.tile?l/PH.tile:1; B[pk].push([[a[0],y0,a[1]],[b[0],y0,b[1]],[b[0],eave,b[1]],[0,0],[u1,0],[u1,1],'w']); B[pk].push([[a[0],y0,a[1]],[b[0],eave,b[1]],[a[0],eave,a[1]],[0,0],[u1,1],[0,1],'w']); continue; }
+      if (pk){ const u1=PH.tile?l/PH.tile:1; B[pk].push([[a[0],y0,a[1]],[b[0],y0,b[1]],[b[0],eave,b[1]],[u1,0],[0,0],[0,1],'w']); B[pk].push([[a[0],y0,a[1]],[b[0],eave,b[1]],[a[0],eave,a[1]],[u1,0],[0,1],[u1,1],'w']);   /* u gespiegelt: von außen gesehen links->rechts wie auf dem Foto */ continue; }
       u=wall(B[kind],a[0],a[1],b[0],b[1],y0,eave,u,FULLH[kind]); }
     if (flat){ const s=new THREE.Shape(p.map(([x,z])=>new THREE.Vector2(x,-z))); const sg=new THREE.ShapeGeometry(s); sg.rotateX(-Math.PI/2); sg.translate(0,eave+0.05,0); const pa=sg.attributes.position; const ix=sg.index?sg.index.array:null;
       const get=i=>[pa.getX(i),pa.getY(i),pa.getZ(i)]; if (ix) for (let i=0;i<ix.length;i+=3) pushTri(B.flat,get(ix[i]),get(ix[i+1]),get(ix[i+2]),[0,0],[1,0],[1,1]); return; }
@@ -6096,7 +6137,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 35`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 36`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
