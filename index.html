@@ -5663,10 +5663,11 @@ async function connectTrainer(){
     // Bluefy (iPad): pro Tippen genau EIN requestDevice. Stufe 0 exakt wie beim Pulsgurt (nur Dienst-Filter, keine optionalServices),
     // Stufe 1 (nächstes Tippen, nach Fehler oder wenn nach 8 s kein Fenster kam): alle Geräte zeigen.
     // Bluefy lehnt die lange Elite-Kennung im Suchfilter ab (Fehler ohne Text). Deshalb Stufen, je eine pro Tippen:
-    // 1: nur Standard-Dienste (Drivo sendet CSC 0x1816) · 2: zusätzlich Elite-Dienst freigeben · 3: alle Geräte
+    // 1: Name „DR…“/„El…“ · 2: Standard-Dienste (FTMS/CPS/CSC) · 3: alle Geräte
     const stage=trainer.searchStage||0; const tag='Stufe '+(stage+1)+'/3';
+    // Stufe 1: über den Namen (Drivo meldet sich als „DR“, Elite-Geräte teils als „Elite…“/„DRIVO…“) – iOS filtert Dienste oft nur aus dem Werbepaket
     const base=[{services:[CPS]},{services:[FTMS]},{services:[CSC]}];
-    const o= stage===0 ? {filters:base} : stage===1 ? {filters:base, optionalServices:[ELITE]} : {acceptAllDevices:true, optionalServices:[FTMS, CPS, CSC]};
+    const o= stage===0 ? {filters:[{namePrefix:'DR'},{namePrefix:'Dr'},{namePrefix:'EL'},{namePrefix:'El'}], optionalServices:[FTMS, CPS, CSC]} : stage===1 ? {filters:base} : {acceptAllDevices:true, optionalServices:[FTMS, CPS, CSC]};
     $('trS').textContent='Suche läuft … ('+tag+')';
     trainer.searchStage=(stage+1)%3;   // falls nichts zurückkommt: nächstes Tippen nimmt die nächste Stufe
     const wd=setTimeout(()=>{ if (!trainer.dev) $('trS').textContent='keine Reaktion ('+tag+') – bitte noch einmal „Suchen“ tippen'; }, 8000);
@@ -6062,7 +6063,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 31`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 32`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
