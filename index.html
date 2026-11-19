@@ -142,6 +142,8 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
         <div><label>Gewicht Fahrer + Rad (kg)</label><input type="number" id="mass" value="88" min="40" max="160"></div>
         <div><label>Trainer-Schwierigkeit (Steigungsgefühl)</label><select id="diff"><option value="0.25">25 % (sanft)</option><option value="0.5" selected>50 % (Standard)</option><option value="0.75">75 %</option><option value="1">100 % (echt)</option></select></div>
         <div><label>Trikot</label><div style="display:flex;gap:10px;align-items:center"><select id="jersey" style="flex:1"><option value="std" selected>Standard (Orange)</option><option value="eyb">E.Y.B. – Enjoy Your Bike</option><option value="petz">Petz Racing</option></select><img id="jerseyThumb" alt="" style="width:46px;height:46px;border-radius:6px;object-fit:contain;background:#161b22;display:none"></div></div>
+        <div><label>Watt-Glättung (wie Zwift)</label><select id="pwSmooth"><option value="0">aus (Rohwerte)</option><option value="1">1 Sekunde</option><option value="3" selected>3 Sekunden (Standard)</option><option value="5">5 Sekunden</option><option value="10">10 Sekunden</option></select></div>
+        <div><label>Watt-Korrektur (z. B. einseitiger Powermeter)</label><select id="pwFac"><option value="0.9">−10 %</option><option value="0.95">−5 %</option><option value="1" selected>keine</option><option value="1.05">+5 %</option><option value="1.1">+10 %</option></select></div>
         <div><label>Mitfahrer (Bots)</label><select id="bots"><option value="0">keine</option><option value="3" selected>3 Bots</option><option value="6">6 Bots</option></select></div>
         <div><label>Grafikqualität</label><select id="gfx"><option value="1.25">Ultra (volle Auflösung, beste Schatten, weite Baumdetails)</option><option value="1">Hoch (volle Auflösung)</option><option value="0.7" selected>Mittel</option><option value="0.5">Niedrig (Handy/Laptop)</option></select></div>
         <div><label>Bilder pro Sekunde anzeigen</label><select id="fpsShow"><option value="0">aus</option><option value="1" selected>an</option></select></div>
@@ -5723,7 +5725,7 @@ function parseIndoorBike(dv){
   if (f&2) o+=2;                          // avg speed
   if (f&4){ S.cadence = dv.getUint16(o,true)/2; o+=2; }
   if (f&8) o+=2; if (f&16) o+=3; if (f&32) o+=2;
-  if (f&64){ S.power = Math.max(0, dv.getInt16(o,true)); o+=2; }
+  if (f&64){ pushPower(Math.max(0, dv.getInt16(o,true))); o+=2; }
   if (f&128) o+=2; if (f&256) o+=5;
   if (f&512){ const h=dv.getUint8(o); o+=1; if(h>0 && !hrDev) S.hr=h; }
   lastData = performance.now();
@@ -5742,9 +5744,15 @@ function parseCSC(dv){ let o=0; const f=dv.getUint8(o); o+=1; const now=performa
     trainer.lastCrank={revs,t,stale:0}; }
   if (trainer.type==='CSC' && trainer.cscV!==undefined){ const v=trainer.cscV; S.power=Math.round(Math.max(0, 0.5*1.2*0.32*v*v*v + 0.004*80*9.81*v)); }
   lastData=now; }
+// Watt-Glättung (Durchschnitt der letzten N Sekunden) und Korrekturfaktor, z. B. für einseitige Powermeter
+const pwBuf=[];
+function pushPower(p){ const now=performance.now(); pwBuf.push([now, p*(+$('pwFac').value||1)]); while (pwBuf.length && pwBuf[0][0]<now-12000) pwBuf.shift(); }
+function smoothPower(){ if (!pwBuf.length) return 0; const win=(+$('pwSmooth').value||0)*1000, now=performance.now();
+  if (win<=0) return pwBuf[pwBuf.length-1][1];
+  let sum=0, n=0; for (const [t,p] of pwBuf) if (t>=now-win){ sum+=p; n++; } return n ? sum/n : pwBuf[pwBuf.length-1][1]; }
 function parseCyclingPower(dv){
   let o=0; const f=dv.getUint16(o,true); o+=2;
-  S.power = Math.max(0, dv.getInt16(o,true)); o+=2;
+  pushPower(Math.max(0, dv.getInt16(o,true))); o+=2;
   if (f&1) o+=1; if (f&4) o+=2; if (f&16) o+=6;
   if (f&32){ const revs=dv.getUint16(o,true), t=dv.getUint16(o+2,true); o+=4;
     const lc=trainer.lastCrank;
@@ -6019,7 +6027,7 @@ let totalKm = store.get('totalKm', 0);
 let selWorld = store.get('world', 'insel');
 let builtWorld = null;
 // gespeicherte Einstellungen laden
-['mass','diff','bots','gfx','fpsShow','jersey'].forEach(k=>{ const v=store.get(k,null); if(v!==null) $(k).value=v; $(k).onchange=()=>store.set(k,$(k).value); });
+['mass','diff','bots','gfx','fpsShow','jersey','pwSmooth','pwFac'].forEach(k=>{ const v=store.get(k,null); if(v!==null) $(k).value=v; $(k).onchange=()=>store.set(k,$(k).value); });
 // Smartphone/Tablet: Hoch und Ultra sperren, beim ersten Start Niedrig
 // Smartphone/Tablet: immer mit Niedrig starten; Hoch/Ultra erlaubt, aber mit Warnung
 if (IS_MOBILE){ [...$('gfx').options].forEach(o=>{ if (+o.value>0.7) o.textContent=o.textContent.split(' (')[0]+' (am Handy Absturzgefahr)'; });
@@ -6063,7 +6071,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 32`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 33`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -6210,7 +6218,8 @@ function frame(now){
       S.power += (target + (Math.random()-0.5)*14 - S.power)*Math.min(1,dt*3);
       const tc = target>5 ? 82 + target/40 : 0; simCad += (tc-simCad)*Math.min(1,dt*2); S.cadence = simCad;
       if (!hrDev){ const th = 70 + S.power*0.38; S.hr = S.hr ? S.hr + (th-S.hr)*dt*0.05 : 70; }
-    } else if (performance.now()-lastData > 3000){ S.power=0; S.cadence=0; }
+    } else if (performance.now()-lastData > 3000){ S.power=0; S.cadence=0; pwBuf.length=0; }
+    else if (pwBuf.length) S.power=smoothPower();
 
     // drafting: if close behind a bot, less air drag
     let draft=1; for (const b of bots){ const gap=((b.d-S.dist)%L+L)%L; if (gap>0.5 && gap<6) draft=Math.min(draft, 0.7+gap*0.03); }
