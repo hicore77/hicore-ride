@@ -4116,7 +4116,7 @@ function terrainHoleMaterial(mat, W){
     float t=floor(texture2D(luTex,(ci+32.5)/64.0).r*255.0+0.5); float k=smoothstep(1.2,3.2,edge+vnz(P*0.7)*1.2)*vLuk; vec3 lc=vec3(0.0);
     vec3 wz=mapTexelToLinear(texture2D(tWz,u2/2.4)).rgb; float wl=dot(wz,vec3(0.3,0.6,0.1));
     float wv=sin(dot(P,vec2(0.11,0.065))-wT*1.7+vnz(P*0.025)*5.0)*smoothstep(0.25,0.75,vnz(P*0.018+vec2(wT*0.04,wT*0.025)));   // Windböen laufen übers Feld
-    if (t<0.5) k=0.0;
+    if (t<0.5){ k=0.0; diffuseColor.rgb*=mix(vec3(0.74,0.84,0.74), vec3(1.12,1.08,0.84), smoothstep(0.2,0.8,vnz(P*0.12)*0.6+vnz(P*0.55)*0.25+vnz(P*2.3)*0.15)); if (h21(ci+vec2(7.3,1.1))>0.3){ vec2 ur=vec2(P.x*luR.x-P.y*luR.y, P.x*luR.y+P.y*luR.x); float st=step(0.5,fract((h21(ci)>0.5?ur.x:ur.y)/5.0)); float mw=smoothstep(1.5,5.0,edge)*(1.0-smoothstep(90.0,230.0,length(P-cameraPosition.xz))); diffuseColor.rgb*=mix(vec3(1.0), st>0.5?vec3(1.12,1.1,0.88):vec3(0.88,0.93,0.9), mw); } }   /* gemähte Wiesen mit Mähstreifen */
     else if (t<1.5){ lc=mapTexelToLinear(texture2D(tBw,wq*0.9)).rgb*1.1; k*=smoothstep(0.3,0.6,vnz(P*0.025)+vnz(P*0.09)*0.3); }
     else if (t<2.5){ lc=wz*0.82; }
     else if (t<3.5){ lc=vec3(0.80,0.63,0.30)*(0.42+wl*1.2)*(0.9+0.2*vnz(u2*0.08)); }
@@ -6468,7 +6468,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 50`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 51`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
