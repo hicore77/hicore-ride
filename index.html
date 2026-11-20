@@ -3830,7 +3830,7 @@ const WORLDS = [
   { id:'insel', name:'Sonneninsel', unlockKm:0,
     desc:'Kleine, flache Runde an der Küste. Ideal zum Einrollen und Testen.',
     R:430, shape:[0.15,0.12,30,20], elev:t=> 4*Math.sin(t)+3*Math.sin(3*t+1)+1.5*Math.sin(6*t),
-    terrain:'island', lighthouse:0.28, sky:0x8fd0ff, fog:0xcfeaff, grass:[0.26,0.46], trees:'mixed', water:true },
+    terrain:'island', lighthouse:0.28, sky:0x8fd0ff, fog:0xcfeaff, grass:[0.27,0.42], trees:'mixed', water:true },
   { id:'spk', name:'Spitzkunnersdorf', unlockKm:0, real:true,
     desc:'Dein Heimatdorf nach echten Kartendaten: alle Straßen, alle Häuser, echtes Gelände. Runde ca. 19 km über fast jede Dorfstraße.',
     R:1550, roadW:5.5, terrain:'real', sky:0x9fcff5, fog:0xc8dcec, grass:[0.26,0.42], trees:'mixed', water:false },
@@ -4029,7 +4029,22 @@ function waterMaterial(color, rep){
 // ================= Echte Welt: Spitzkunnersdorf (OpenStreetMap + Höhenmodell) =================
 // Daten: window.SPK (gepackt aus OSM/Overpass + Terrarium-Höhen), Koordinaten in Metern: x = Ost, z = Süd, Ursprung lat0/lon0.
 // ================= Details am Straßenrand, Bäume, Zäune (v9) =================
-let TERR=null, TERR_MAP=null;          // Geländehöhen wie gerendert + Gras-Detailtextur
+let TERR=null, TERR_MAP=null;
+// Flurplan (nicht-reale Welten): gedrehtes, leicht verzogenes Raster aus Feldern. 0 Wiese, 1 Blumenwiese, 2 junges Getreide, 3 reifer Weizen, 4 Raps, 5 Acker (gepflügt), 6 Wald
+let LU=null;
+function luWarp(x,z){ return [x+14*Math.sin(z*0.011+1.3)+6*Math.sin(x*0.027), z+14*Math.sin(x*0.012+0.4)+6*Math.sin(z*0.023)]; }
+function buildLandUse(def){ LU=null; if (def.real || def.trees==='palm' || def.terrain==='mountains') return; const n=64, types=new Uint8Array(n*n);
+  const a=0.3+rand()*0.7, CS=[90+rand()*20, 62+rand()*16];
+  const P=def.terrain==='island'?[[0,0.36],[1,0.14],[2,0.12],[3,0.11],[4,0.07],[5,0.08],[6,0.12]]:[[0,0.32],[1,0.1],[2,0.12],[3,0.1],[4,0.06],[5,0.08],[6,0.22]];
+  for (let i=0;i<n*n;i++){ let r=rand(), t=0; for (const [k,w] of P){ if (r<w){ t=k; break; } r-=w; } types[i]=t; }
+  // Waldstücke zusammenhängend: Nachbarn eines Waldes werden öfter Wald
+  for (let i=0;i<n*n;i++){ if (types[i]!==6) continue; [1,-1,n,-n].forEach(o=>{ const j=i+o; if (j>=0 && j<n*n && types[j]<2 && rand()<0.35) types[j]=7; }); } for (let i=0;i<n*n;i++) if (types[i]===7) types[i]=6;
+  const data=new Uint8Array(n*n*4); for (let i=0;i<n*n;i++){ data[i*4]=types[i]; data[i*4+3]=255; }
+  const tex=new THREE.DataTexture(data,n,n,THREE.RGBAFormat); tex.magFilter=tex.minFilter=THREE.NearestFilter; tex.generateMipmaps=false; tex.needsUpdate=true;
+  LU={n,types,c:Math.cos(a),s:Math.sin(a),CS,tex}; }
+function landUse(x,z){ if (!LU) return {t:0,edge:99,key:0}; const [wx,wz]=luWarp(x,z); const u=wx*LU.c-wz*LU.s, v=wx*LU.s+wz*LU.c; const cu=u/LU.CS[0], cv=v/LU.CS[1]; const iu=Math.floor(cu), iv=Math.floor(cv);
+  const fu=(cu-iu)*LU.CS[0], fv=(cv-iv)*LU.CS[1]; const eu=Math.min(fu,LU.CS[0]-fu), ev=Math.min(fv,LU.CS[1]-fv); const gx=clamp(iu+32,0,63), gy=clamp(iv+32,0,63);
+  const key=eu<ev?(Math.round(cu)*7919+iv*104729):(iu*7919+Math.round(cv)*104729+55); return {t:LU.types[gy*64+gx], edge:Math.min(eu,ev), key, u, v}; }          // Geländehöhen wie gerendert + Gras-Detailtextur
 const CORR={SW:1.4, CW:13, HOLE:8.5};   // Bankett, Breite Randstreifen, Loch im Gelände (ab Straßenrand)
 function terrainMeshH(x,z){ if(!TERR) return terrainH(x,z);
   const gx=clamp((x-OFF)/CELL,0,G-0.0001), gz=clamp((z-OFF)/CELL,0,G-0.0001); const ix=gx|0, iz=gz|0, fx=gx-ix, fz=gz-iz, W=G+1;
@@ -4064,10 +4079,31 @@ function terrainHoleMaterial(mat, W){
   pts.forEach((p,i)=>{ const x=(p.x-OFF)/EXT*S, y=(p.z-OFF)/EXT*S; i?g.lineTo(x,y):g.moveTo(x,y); }); g.closePath(); g.stroke(); if (WORLD.real) streamMaskDraw(g,S);
   const t=freeCv(new THREE.CanvasTexture(c)); t.flipY=false; t.minFilter=THREE.LinearFilter; t.generateMipmaps=false;
   const oe=new THREE.Vector2(OFF,EXT);
-  mat.onBeforeCompile=(sh)=>{ sh.uniforms.roadMask={value:t}; sh.uniforms.maskOE={value:oe};
-    sh.vertexShader='varying vec2 vMaskP;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\n  vMaskP=(modelMatrix*vec4(transformed,1.0)).xz;');
-    sh.fragmentShader='uniform sampler2D roadMask; uniform vec2 maskOE; varying vec2 vMaskP;\n'+sh.fragmentShader.replace('void main() {','void main() {\n  if (texture2D(roadMask,(vMaskP-vec2(maskOE.x))/maskOE.y).r>0.5) discard;'); };
-  mat.customProgramCacheKey=()=>'terrainHole'; return mat; }
+  mat.onBeforeCompile=(sh)=>{ sh.uniforms.roadMask={value:t}; sh.uniforms.maskOE={value:oe}; sh.uniforms.tileS={value:mat.map?mat.map.repeat.x/EXT:0.15}; const LT=mat.userData.lu||{}; sh.uniforms.luOn={value:LU&&LT.wz?1:0}; sh.uniforms.luTex={value:LU?LU.tex:null}; sh.uniforms.luCS={value:new THREE.Vector2(...(LU?LU.CS:[90,70]))}; sh.uniforms.luR={value:new THREE.Vector2(LU?LU.c:1,LU?LU.s:0)}; sh.uniforms.tWz={value:LT.wz||null}; sh.uniforms.tWb={value:LT.wb||null}; sh.uniforms.tBw={value:LT.bw||null}; sh.uniforms.tFw={value:LT.fw||null};
+    sh.vertexShader='varying vec2 vMaskP; attribute float luk; varying float vLuk;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\n  vMaskP=(modelMatrix*vec4(transformed,1.0)).xz; vLuk=luk;');
+    sh.fragmentShader='uniform sampler2D roadMask; uniform vec2 maskOE; uniform float tileS; uniform float luOn; uniform sampler2D luTex, tWz, tWb, tBw, tFw; uniform vec2 luCS, luR; varying float vLuk; varying vec2 vMaskP;\nfloat h21(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nfloat vnz(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x), mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x), f.y); }\n'
+      +sh.fragmentShader.replace('void main() {','void main() {\n  if (texture2D(roadMask,(vMaskP-vec2(maskOE.x))/maskOE.y).r>0.5) discard;\n  float luW=0.0;')
+      .replace('#include <color_fragment>','#ifdef USE_COLOR\n  diffuseColor.rgb*=mix(vColor,vec3(1.0),luW);\n#endif')
+      .replace('#include <map_fragment>',`#ifdef USE_MAP
+  vec2 wq=vMaskP*tileS; vec4 tA=texture2D(map,vUv); vec4 tB=texture2D(map, mat2(0.8,-0.6,0.6,0.8)*wq*0.71+vec2(0.31,0.17));
+  float nA=vnz(vMaskP*0.05)*0.65+vnz(vMaskP*0.17)*0.35; vec4 texelColor=mix(tA,tB,smoothstep(0.35,0.65,nA)); texelColor=mapTexelToLinear(texelColor);
+  float mac=vnz(vMaskP*0.011)*0.6+vnz(vMaskP*0.037+3.1)*0.4; vec3 tnt=mix(vec3(0.84,0.95,0.86), vec3(1.06,1.02,0.84), smoothstep(0.32,0.78,mac));
+  float fine=0.9+0.2*vnz(vMaskP*0.85)+0.06*vnz(vMaskP*3.3);
+  diffuseColor*=texelColor; diffuseColor.rgb*=tnt*fine;
+  if (luOn>0.5){ diffuseColor.rgb*=vec3(0.80,0.85,0.76); vec2 P=vMaskP; vec2 w=vec2(P.x+14.0*sin(P.y*0.011+1.3)+6.0*sin(P.x*0.027), P.y+14.0*sin(P.x*0.012+0.4)+6.0*sin(P.y*0.023));
+    vec2 u2=vec2(w.x*luR.x-w.y*luR.y, w.x*luR.y+w.y*luR.x); vec2 cc=u2/luCS; vec2 ci=clamp(floor(cc),vec2(-32.0),vec2(31.0)); vec2 fr=fract(cc)*luCS; float edge=min(min(fr.x,luCS.x-fr.x),min(fr.y,luCS.y-fr.y));
+    float t=floor(texture2D(luTex,(ci+32.5)/64.0).r*255.0+0.5); float k=smoothstep(1.2,3.2,edge+vnz(P*0.7)*1.2)*vLuk; vec3 lc=vec3(0.0);
+    vec3 wz=mapTexelToLinear(texture2D(tWz,u2/2.4)).rgb; float wl=dot(wz,vec3(0.3,0.6,0.1));
+    if (t<0.5) k=0.0;
+    else if (t<1.5){ lc=mapTexelToLinear(texture2D(tBw,wq*0.9)).rgb*1.1; k*=smoothstep(0.3,0.6,vnz(P*0.025)+vnz(P*0.09)*0.3); }
+    else if (t<2.5){ lc=wz*0.82; }
+    else if (t<3.5){ lc=vec3(0.80,0.63,0.30)*(0.42+wl*1.2)*(0.9+0.2*vnz(u2*0.08)); }
+    else if (t<4.5){ float fl=vnz(u2*2.3)*0.6+vnz(u2*9.0)*0.4; lc=mix(wz, vec3(0.96,0.83,0.07)*(0.75+0.45*fl), 0.55+0.35*smoothstep(0.3,0.7,fl)); }
+    else if (t<5.5){ float fu=0.5+0.5*sin(u2.y*8.3776); vec3 b=mapTexelToLinear(texture2D(tFw,u2/3.0)).rgb; float l=dot(b,vec3(0.3,0.6,0.1)); lc=vec3(0.36,0.29,0.22)*(0.55+0.9*l)*(0.72+0.4*fu)*(0.85+0.3*vnz(P*0.05)); }
+    else { lc=mapTexelToLinear(texture2D(tWb,wq*0.8)).rgb*0.85; }
+    luW=k; lc=pow(max(lc,vec3(0.0)),vec3(1.9))*1.25; diffuseColor.rgb=mix(diffuseColor.rgb, lc*mix(vec3(1.0),tnt,0.5)*fine, luW); }
+#endif`); };
+  mat.customProgramCacheKey=()=>'terrainHole2'; return mat; }
 function lateralAt(i){ const a=pts[(i-1+N)%N], b=pts[(i+1)%N]; const dx=b.x-a.x, dz=b.z-a.z, l=Math.hypot(dx,dz)||1; return [dz/l, -dx/l]; }   // wie roadside(side=+1)
 // Bankett + Graben + Böschung als feines Netz beidseitig
 function buildCorridor(def, grp, W){
@@ -4148,10 +4184,40 @@ function windify(mat, amp, hRef){ hRef=hRef||0.4; const ob=mat.onBeforeCompile;
   mvPosition = viewMatrix * wp;
 gl_Position = projectionMatrix * mvPosition;`); };
   mat.customProgramCacheKey=()=>'wind'+amp+'_'+hRef; return mat; }
+// Feines Gras rund um den Fahrer: Zellen à 6 m werden beim Weiterfahren nachgeladen (gecacht), Rand blendet aus
+const GF={im:null, cells:new Map(), kx:1e9, kz:1e9};
+function fineGrassTexture(){ const S=256, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'); const R=Math.random;
+  for (let i=0;i<360;i++){ const u=(R()-0.5)*2*(0.3+0.7*R()), x0=S/2+u*S*0.22, dome=Math.pow(Math.max(0,1-Math.abs(u)),0.8), h=S*(0.1+R()*0.8*dome+0.08), bend=u*S*0.3+(R()-0.5)*S*0.1, w=0.7+R()*1.3, dry=R()<0.1;
+    const gg=140+R()*100|0; g.fillStyle=dry?`rgb(${185+R()*40|0},${175+R()*30|0},${110+R()*20|0})`:`rgb(${gg*0.62|0},${gg},${gg*0.36|0})`;
+    const tx=x0+bend, ty=S-h; g.beginPath(); g.moveTo(x0-w,S); g.quadraticCurveTo(x0+bend*0.3-w*0.4,S-h*0.55,tx,ty); g.quadraticCurveTo(x0+bend*0.3+w*0.4,S-h*0.55,x0+w,S); g.closePath(); g.fill(); }
+  for (let i=0;i<10;i++){ const x=S*0.1+R()*S*0.8, y=S*0.25+R()*S*0.5; g.strokeStyle='rgba(120,110,60,.9)'; g.lineWidth=1; g.beginPath(); g.moveTo(x,S); g.lineTo(x+(R()-0.5)*8,y); g.stroke(); g.fillStyle=`rgba(${150+R()*40|0},${130+R()*30|0},70,1)`; g.beginPath(); g.ellipse(x,y,1.6,5,0,0,7); g.fill(); }   // Rispen
+  const gr=g.createLinearGradient(0,S*0.6,0,S); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(10,25,5,.18)'); g.globalCompositeOperation='source-atop'; g.fillStyle=gr; g.fillRect(0,0,S,S);
+  const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
+function buildGrassField(def, grp, waterY){ GF.cells.clear(); GF.kx=GF.kz=1e9; GF.im=null; if (def.real) return;
+  const N=GFX_TREE_R>=380?22000:GFX_TREE_R>=260?15000:GFX_TREE_R>=180?9000:0; if (!N) return;
+  GF.cs=6; GF.rad=5; GF.per=Math.floor(N/((2*GF.rad+1)**2)); GF.N=GF.per*(2*GF.rad+1)**2; GF.waterY=def.water?waterY:-1e9; GF.def=def;
+  const mat=windify(new THREE.MeshLambertMaterial({map:fineGrassTexture(), alphaTest:0.42, side:THREE.DoubleSide}),0.06,0.28); mat.alphaToCoverage=true;
+  const im=new THREE.InstancedMesh(crossQuad(0.38,0.24),mat,GF.N); im.count=0; im.frustumCulled=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(GF.N*3),3); grp.add(im); GF.im=im; }
+function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) return c; let sd=(Math.abs(i*7919+j*104729)%2147483646)+1; const r=()=>(sd=(sd*16807)%2147483647)/2147483647;
+  const M=new Float32Array(GF.per*16), C=new Float32Array(GF.per*3), P=new Float32Array(GF.per*2); let n=0; const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), p=new THREE.Vector3(), col=new THREE.Color(); const gh=GF.def.grass;
+  for (let k=0;k<GF.per;k++){ const x=(i+r())*GF.cs, z=(j+r())*GF.cs; let h; const cn=courseNear(x,z,16);
+    if (cn.i>=0 && cn.d<CORR.CW+0.5){ const d=cum[cn.i]+cn.t*(cum[cn.i+1]-cum[cn.i]), Wd=roadWAt(d); if (cn.d<Wd/2+swAt(d)-0.05) continue; const a=pts[cn.i], b=pts[(cn.i+1)%N], side=((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x))<0?1:-1; h=profileH(d,side,cn.d); }
+    else h=terrainMeshH(x,z);
+    if (h<GF.waterY+1.3 || inPond(x,z,1.5)) continue; const lu=LU?landUse(x,z):{t:0,edge:99}; const inF=lu.edge>2; if (inF && (lu.t===5 || (lu.t===6 && r()<0.6))) continue; const crop=inF && lu.t>=2 && lu.t<=4;
+    q.setFromAxisAngle(UPV,r()*6.28); const sc=crop?0.9+r()*0.4:0.7+r()*0.8; s.set(sc,sc*(crop?(lu.t===3?3.2:lu.t===4?3.6:1.8)+r()*0.5:0.7+r()*0.8),sc); p.set(x,h-0.02,z); m.compose(p,q,s); M.set(m.elements,n*16);
+    const f=0.75+r()*0.35; col.setHSL(gh[0]-0.02+r()*0.05, gh[1]*(0.75+r()*0.25), 0.5); col.multiplyScalar(f*0.88); if (crop){ if (lu.t===3) col.setRGB(1.25*f,1.0*f,0.45*f); else if (lu.t===4) col.setRGB(1.2*f,1.15*f,0.25*f); } C.set([col.r,col.g,col.b],n*3); P[n*2]=x; P[n*2+1]=z; n++; }
+  c={M,C,P,n}; GF.cells.set(key,c); if (GF.cells.size>900){ const it=GF.cells.keys(); for (let k=0;k<300;k++) GF.cells.delete(it.next().value); } return c; }
+function updateGrassField(pos){ const im=GF.im; if (!im) return; const kx=Math.floor(pos.x/GF.cs), kz=Math.floor(pos.z/GF.cs); if (kx===GF.kx && kz===GF.kz) return; GF.kx=kx; GF.kz=kz;
+  const A=im.instanceMatrix.array, CA=im.instanceColor.array, Rm=GF.rad*GF.cs, cx=(kx+0.5)*GF.cs, cz=(kz+0.5)*GF.cs; let n=0;
+  for (let a=-GF.rad;a<=GF.rad;a++) for (let b=-GF.rad;b<=GF.rad;b++){ const c=gfCell(kx+a,kz+b);
+    for (let k=0;k<c.n;k++){ const dx=c.P[k*2]-cx, dz=c.P[k*2+1]-cz, dist=Math.sqrt(dx*dx+dz*dz); const f=clamp((Rm-dist)/(GF.cs*1.6),0,1); if (f<=0.02) continue;
+      const o=n*16, src=k*16; for (let e=0;e<16;e++) A[o+e]=c.M[src+e]; if (f<1){ for (const e of [0,1,2,4,5,6,8,9,10]) A[o+e]*=f; }
+      CA[n*3]=c.C[k*3]; CA[n*3+1]=c.C[k*3+1]; CA[n*3+2]=c.C[k*3+2]; n++; } }
+  im.count=n; im.instanceMatrix.needsUpdate=true; im.instanceColor.needsUpdate=true; }
 // Grasbüschel, Blumen, Steinchen am Rand
 function tuftTexture(flowers){ const S=256, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'); const R=Math.random;
   // feine, spitz zulaufende Halme in mehreren Grüntönen, einige trocken
-  for (let i=0;i<190;i++){ const x0=S/2+(R()-0.5)*S*0.62, h=S*(0.25+R()*0.68), bend=(R()-0.5)*S*0.35, w=1.2+R()*2.4, dry=R()<0.12;
+  for (let i=0;i<230;i++){ const u=(R()-0.5)*2*(0.35+0.65*R()), x0=S/2+u*S*0.2, dome=Math.pow(Math.max(0,1-Math.abs(u)),0.9), h=S*(0.12+R()*0.8*dome+0.1*dome), bend=u*S*0.32+(R()-0.5)*S*0.12, w=1.0+R()*2.0, dry=R()<0.12;
     const gg=95+R()*100|0; g.fillStyle=dry?`rgb(${150+R()*40|0},${140+R()*30|0},${80+R()*20|0})`:`rgb(${gg*0.5|0},${gg},${gg*0.28|0})`;
     const tx=x0+bend, ty=S-h; g.beginPath(); g.moveTo(x0-w,S); g.quadraticCurveTo(x0+bend*0.35-w*0.5,S-h*0.55,tx,ty); g.quadraticCurveTo(x0+bend*0.35+w*0.5,S-h*0.55,x0+w,S); g.closePath(); g.fill(); }
   // Schatten am Fuß
@@ -4173,7 +4239,7 @@ const _bloomT={}; function bloomTexture(kind){ if (_bloomT[kind]) return _bloomT
     else if (kind==='tagetes'){ const r=7+R()*4; for (let k=0;k<3;k++){ g.fillStyle=['#e3640e','#f39a12','#f6c21a'][k]; g.beginPath(); g.arc(x,y,r*(1-k*0.3),0,7); g.fill(); } g.strokeStyle='rgba(120,40,0,.4)'; g.lineWidth=1; g.beginPath(); g.arc(x,y,r*0.75,0,7); g.stroke(); }
     else { const r=8+R()*5, col=['#c8162e','#e85a8a','#f2a2b8','#fff2e6'][(R()*4)|0]; g.fillStyle=col; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); g.strokeStyle='rgba(60,0,10,.45)'; g.lineWidth=1.4; for (let k=0;k<4;k++){ g.beginPath(); g.arc(x+(R()-0.5)*3,y+(R()-0.5)*3,r*(0.25+k*0.18),R()*6,R()*6+3.5); g.stroke(); } } });
   const t=new THREE.CanvasTexture(c); t.anisotropy=4; _bloomT[kind]=t; return t; }
-function crossQuad(w,h){ const a=new THREE.PlaneGeometry(w,h).translate(0,h/2,0), b=a.clone().rotateY(Math.PI/2), c2=a.clone().rotateY(Math.PI/4); return mergeGeoC([a,b,c2]); }
+function crossQuad(w,h){ const a=new THREE.PlaneGeometry(w,h).translate(0,h/2,0), b=a.clone().rotateY(Math.PI/2), c2=a.clone().rotateY(Math.PI/4); const g=mergeGeoC([a,b,c2]); const n=g.attributes.normal; for (let i=0;i<n.count;i++){ const y=g.attributes.position.getY(i)/h; n.setXYZ(i,0,1,0); } return g; }   // Normalen nach oben: Halme werden wie der Boden beleuchtet (keine dunklen Flecken)
 function mergeGeoC(list){ const out={position:[],normal:[],uv:[],color:[]}; let hasC=list.some(g=>g.attributes.color);
   list.forEach(g0=>{ const g=g0.index?g0.toNonIndexed():g0; if(!g.attributes.normal) g.computeVertexNormals(); const n=g.attributes.position.count;
     for (const k of ['position','normal']) out[k].push(...g.attributes[k].array);
@@ -4194,7 +4260,7 @@ function buildVerge(def, grp, W){
     (rand()<0.16?flw:tufts).push(m.clone()); }
   for (let d=0; d<L; d+=1.2+rand()*2){ if (juncAt(d)>0.3) continue; const Sd=swAt(d); if (Sd<0.6) continue; const side=rand()<0.5?1:-1, off=roadWAt(d)/2+0.2+rand()*(Sd-0.3), pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
     q.setFromEuler(new THREE.Euler(rand()*3,rand()*3,rand()*3)); const sc=0.04+rand()*0.09; s.set(sc,sc*0.6,sc); p.set(x,profileH(d,side,off),z); m.compose(p,q,s); stones.push(m.clone()); }
-  const mk=(geo,mat,arr,vary)=>{ const im=mkIM(geo,mat,Math.max(1,arr.length)); const col=new THREE.Color(); arr.forEach((mm,i)=>{ im.setMatrixAt(i,mm); if (vary){ const f=0.8+rand()*0.35; col.setRGB(f*(0.95+rand()*0.12),f,f*(0.85+rand()*0.2)); im.setColorAt(i,col); } }); im.count=arr.length; grp.add(im); return im; };
+  const mk=(geo,mat,arr,vary)=>{ const im=mkIM(geo,mat,Math.max(1,arr.length)); const col=new THREE.Color(); arr.forEach((mm,i)=>{ im.setMatrixAt(i,mm); if (vary){ const f=0.68+rand()*0.3; col.setRGB(f*(0.97+rand()*0.12),f*0.95,f*(0.8+rand()*0.2)); im.setColorAt(i,col); } }); im.count=arr.length; grp.add(im); return im; };
   const tm=windify(new THREE.MeshLambertMaterial({map:tuftTexture(false), alphaTest:0.45, side:THREE.DoubleSide}),0.07,0.35), fm=windify(new THREE.MeshLambertMaterial({map:tuftTexture(true), alphaTest:0.45, side:THREE.DoubleSide}),0.07,0.4);
   mk(crossQuad(0.55,0.34),tm,tufts,true); mk(crossQuad(0.55,0.42),fm,flw,true);
   mk(new THREE.DodecahedronGeometry(1,0),new THREE.MeshLambertMaterial({color:0x8d8475}),stones,true);
@@ -4260,11 +4326,11 @@ function treeKit(def){
     return near; };
   // Laubbaum-Generator: Stamm, Leitast, Hauptäste mit Seitenästen, Blattbüschel an den Astenden
   const SP={ oak:{H:2.8,r:0.42,CR:3.9,CY:5.6,n:6,tilt:0.45,hue:0.27,l:0.36,leaf:'oak',core:0x3a6a2a,lead:false},
-    beech:{H:3.8,r:0.34,CR:3.4,CY:7.0,n:7,tilt:0.85,hue:0.25,l:0.40,leaf:'beech',core:0x42722f,lead:true},
-    birch:{H:5.2,r:0.16,CR:2.1,CY:7.2,n:8,tilt:1.0,hue:0.23,l:0.46,leaf:'birch',core:0x588a34,lead:true,bark:'birch'},
+    beech:{H:3.0,r:0.36,CR:4.0,CY:6.8,n:7,tilt:0.85,hue:0.25,l:0.40,leaf:'beech',core:0x42722f,lead:true},
+    birch:{H:4.0,r:0.18,CR:2.6,CY:6.8,n:8,tilt:1.0,hue:0.23,l:0.46,leaf:'birch',core:0x588a34,lead:true,bark:'birch'},
     maple:{H:2.6,r:0.32,CR:3.4,CY:5.2,n:6,tilt:0.65,hue:0.28,l:0.38,leaf:'maple',core:0x3c6c2a,lead:false,bark:'oak'},
-    linden:{H:3.0,r:0.38,CR:3.5,CY:6.6,n:7,tilt:0.75,hue:0.26,l:0.41,leaf:'linden',core:0x40702e,lead:true,bark:'oak'},
-    ash:{H:3.6,r:0.30,CR:3.4,CY:6.8,n:5,tilt:0.7,hue:0.24,l:0.42,leaf:'ash',core:0x467632,lead:true,bark:'beech'} };
+    linden:{H:2.8,r:0.40,CR:4.0,CY:6.4,n:7,tilt:0.75,hue:0.26,l:0.41,leaf:'linden',core:0x40702e,lead:true,bark:'oak'},
+    ash:{H:2.9,r:0.32,CR:3.8,CY:6.4,n:5,tilt:0.7,hue:0.24,l:0.42,leaf:'ash',core:0x467632,lead:true,bark:'beech'} };
   const leafTexC={}; const leafMC=(p)=>{ const k=p.leaf; if (!leafTexC[k]) leafTexC[k]=windify(lam({map:leafClusterTexture(k,p.hue,p.l), alphaTest:0.45, side:THREE.DoubleSide, vertexColors:true}),0.06,6.0); return leafTexC[k]; };
   const genTree=(name, seed)=>()=>{ const p=SP[name]; let sd=seed*9301+49297; const r=()=>((sd=(sd*16807)%2147483647)/2147483647);
     const limbs=[], blobs=[]; const lean=V3((r()-0.5)*0.4,0,(r()-0.5)*0.4);
@@ -4281,8 +4347,8 @@ function treeKit(def){
     const tg=mergeGeoC(limbs); const bk=trunkM[p.bark||name]||trunkM.oak;
     const cg=mergeGeoC(blobs.filter(b=>b[3]>=p.CR*0.36).map(([x,y,z,rr,sy],i)=>blob(x,y,z,rr*0.55,sy,i*1.3+seed,true)));
     const near=[[tg,bk],[cg,coreM(new THREE.Color(p.core).multiplyScalar(0.8)),'vary'],[cards(blobs,78,1.05),leafMC(p),'vary']];
-    near.far=()=>{ const ft=limb(V3(0,-0.3,0),T,p.r,p.r*0.7,5); const cy=blobs.reduce((a,b)=>a+b[1],0)/blobs.length; const fc=mergeGeoC([blob(lean.x,cy,lean.z,p.CR*1.05,name==='birch'?1.5:p.lead?1.15:0.85,seed,true), blob(lean.x+p.CR*0.35,cy+p.CR*0.35,lean.z-p.CR*0.2,p.CR*0.7,1,seed+3,true)]);
-      const fb=[[lean.x,cy,lean.z,p.CR*1.05,name==='birch'?1.5:p.lead?1.15:0.85]];   // ferne Krone mit wenigen großen Blattkarten (keine glatte Kugel mehr)
+    near.far=()=>{ const ft=limb(V3(0,-0.3,0),T,p.r,p.r*0.7,5); const cy=blobs.reduce((a,b)=>a+b[1],0)/blobs.length; const fc=mergeGeoC([blob(lean.x,cy,lean.z,p.CR*1.22,name==='birch'?1.5:p.lead?1.15:0.85,seed,true), blob(lean.x+p.CR*0.35,cy+p.CR*0.35,lean.z-p.CR*0.2,p.CR*0.7,1,seed+3,true)]);
+      const fb=[[lean.x,cy,lean.z,p.CR*1.22,name==='birch'?1.5:p.lead?1.15:0.85]];   // ferne Krone mit wenigen großen Blattkarten (keine glatte Kugel mehr)
       return [[ft,bk],[fc,coreM(new THREE.Color().setHSL(p.hue,0.42,p.l*0.7)),'vary'],[cards(fb,14,2.4),leafMC(p),'vary']]; };
     return near; };
   const TYPES={
@@ -5199,18 +5265,19 @@ function buildWorld(def){
   // Gelände
   {
     const geo = new THREE.PlaneGeometry(EXT, EXT, G, G); geo.rotateX(-Math.PI/2);
-    const pos = geo.attributes.position, col=[]; const c=new THREE.Color();
+    buildLandUse(def); const pos = geo.attributes.position, col=[], luk=[]; const c=new THREE.Color();
     for (let i=0;i<pos.count;i++){ const x=pos.getX(i), z=pos.getZ(i); const h=terrainH(x,z); pos.setY(i,h);
       const t=clamp((h-minY+10)/90,0,1);
       if (def.water && h<waterY+1.2) c.setHSL(0.12,0.45,0.72);                     // Sand
       else if (inPond(x,z,3) && !inPond(x,z,-2)) c.setHSL(def.grass[0]-0.04, def.grass[1]*0.7, 0.27);           // feuchtes, dunkles Ufer
       else if (def.terrain==='mountains' && h>maxY+25) c.setHSL(0,0,0.55+clamp((h-maxY-25)/40,0,1)*0.4); // Fels/Schnee
       else c.setHSL(def.grass[0]-0.05*t, def.grass[1], 0.30+0.12*t);
-      col.push(c.r,c.g,c.b); }
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(col,3)); geo.computeVertexNormals();
+      col.push(c.r,c.g,c.b); luk.push((def.water?clamp((h-waterY-1.4)/2.5,0,1):1)*(inPond(x,z,5)?0:1)); }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col,3)); geo.setAttribute('luk', new THREE.Float32BufferAttribute(luk,1)); geo.computeVertexNormals();
     TERR=new Float32Array(pos.count); for (let i=0;i<pos.count;i++) TERR[i]=pos.getY(i);
     const gt=grassDetailTexture(); const gr7=photo('rasen')?3.5:7; gt.repeat.set(EXT/gr7, EXT/gr7); TERR_MAP=gt;
-    const m = new THREE.Mesh(geo, terrainHoleMaterial(new THREE.MeshLambertMaterial({vertexColors:true, map:gt}), def.roadW||7)); m.material.userData.worldAO=true; m.material.userData.pbr={n:1.2, r:0.95, e:0.7}; m.receiveShadow = true; worldGroup.add(m);
+    const tmat=new THREE.MeshLambertMaterial({vertexColors:true, map:gt}); if (LU){ const pt=k=>{ const t=photoTex(k,512); if (t){ t.encoding=gt.encoding; t.anisotropy=gt.anisotropy; } return t; }; tmat.userData.lu={wz:pt('weizen'), wb:pt('waldboden'), bw:pt('blumenwiese'), fw:pt('feldweg')}; if (!tmat.userData.lu.wz) tmat.userData.lu={}; }
+    const m = new THREE.Mesh(geo, terrainHoleMaterial(tmat, def.roadW||7)); m.material.userData.worldAO=true; m.material.userData.pbr={n:1.2, r:0.95, e:0.7}; m.receiveShadow = true; worldGroup.add(m);
     if (def.real){ const fill=new THREE.Mesh(geo, new THREE.MeshLambertMaterial({vertexColors:true, map:gt})); fill.position.y=-0.3; fill.receiveShadow=true; worldGroup.add(fill); }   // Unterboden: füllt Lücken in engen Kurven
     if (def.water){ const w = new THREE.Mesh(new THREE.PlaneGeometry(12000,12000), waterMaterial(0x2f86c0, 600));
       w.rotation.x=-Math.PI/2; w.position.y=waterY; worldGroup.add(w); }
@@ -5247,7 +5314,7 @@ function buildWorld(def){
     if (def.real && idxM.length && idxP.length){ const g2=geo.clone(); g2.setIndex(idxP); const r2=new THREE.Mesh(g2,rmat(asphaltTexture('plain'))); r2.receiveShadow=true; worldGroup.add(r2); }
     buildRoadDecals(def, worldGroup, W);
     // Bankett, Graben, Böschung, Grasbüschel, Steinchen
-    buildCorridor(def, worldGroup, W); buildVerge(def, worldGroup, W);
+    buildCorridor(def, worldGroup, W); buildVerge(def, worldGroup, W); buildGrassField(def, worldGroup, waterY);
     // Leitpfosten alle 50 m, beidseitig
     const pc=document.createElement('canvas'); pc.width=16; pc.height=64; const pg=pc.getContext('2d'); pg.fillStyle='#f4f4f0'; pg.fillRect(0,0,16,64); pg.fillStyle='#111'; pg.fillRect(0,6,16,14); pg.fillStyle='#ff9a1a'; pg.fillRect(4,9,8,8);
     const postM=new THREE.MeshLambertMaterial({map:new THREE.CanvasTexture(pc)}); const nP=Math.floor(L/50)*2;
@@ -5262,7 +5329,7 @@ function buildWorld(def){
     const lam=(c,flat)=>new THREE.MeshLambertMaterial({color:c, flatShading:!!flat});
     const tr=(geo,x,y,z,rx,ry,rz)=>{ geo.rotateX(rx||0); geo.rotateY(ry||0); geo.rotateZ(rz||0); geo.translate(x,y,z); return geo; };
     const kit=treeKit(def), TYPES=kit.TYPES, mix=kit.mix;
-    const n=def.real?12000:Math.round(clamp(EXT*EXT/2600, 1200, 5000));
+    const n=def.real?12000:Math.round(clamp(EXT*EXT/(LU?1100:2600), 1200, LU?7000:5000));
     const clusters=[]; if (!def.real && def.trees!=='palm'){ for (let k=0;k<400 && clusters.length<Math.round(L/1000*1.4);k++){ const dd=rand()*L, side=rand()<0.5?1:-1, off=45+rand()*200, pp=posAt(dd), hd=headingAt(dd), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side, r=30+rand()*70; if (sampleGrid(nearD,x,z)<r*0.6+14) continue; clusters.push({x,z,r}); } }
     if (def.real) realTreeOK(0,0);
     const fb=def.real&&REAL.fbox?REAL.fbox:null, fbA=fb?fb.map(f=>(f[1]-f[0])*(f[3]-f[2])):null, fbS=fbA?fbA.reduce((a,b)=>a+b,0):0;
@@ -5277,6 +5344,7 @@ function buildWorld(def){
       const d=sampleGrid(nearD,x,z); let inForest=false;
       if (d<(def.roadW||7)/2+7.8) continue;
       if (def.real){ const ok=realTreeOK(x,z); if (!ok || (ok===1 && rand()<0.93) || (ok===3 && rand()<0.45)) continue; inForest=ok===2; if (inForest && fPlaced>=7500) continue; if (inForest) fPlaced++; }
+      else if (LU){ if (d<11) continue; const lu=landUse(x,z); if (lu.t===6){ if (lu.edge<1.5) continue; inForest=true; } else if (lu.t>=2 && lu.edge>2.5) continue; else if (!inCl && (d>200 && rand()<0.8 || rand()<0.5)) continue; }
       else if (!inCl && (d<11 || (d>260 && rand()<0.7))) continue;
       if (inCl) inForest=true;
       const h=d<(def.roadW||7)/2+CORR.CW+2?terrainMeshH(x,z):terrainH(x,z); if (def.water && h<minY-1.5) continue; if (def.terrain==='mountains' && h>maxY+40) continue; if (inPond(x,z,3)) continue;
@@ -5286,6 +5354,12 @@ function buildWorld(def){
       const f=0.78+rand()*0.38, hs=rand(); tcol.setRGB(f*(0.92+hs*0.16), f*(0.97+rand()*0.06), f*(0.85+(1-hs)*0.2));
       set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; placed++;
     }
+    if (LU){ let hb=0; const hmix=[['bushA',0.42],['bushB',0.38],['oak',0.05],['maple',0.04],['linden',0.03],['ash',0.04],['birch',0.04]];   // Hecken und Baumreihen an Feldrainen
+      for (let k=0;k<90000 && hb<3200;k++){ const dd=rand()*L, side=rand()<0.5?1:-1, off=13+Math.pow(rand(),1.6)*420, pp=posAt(dd), hd=headingAt(dd), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
+        const lu=landUse(x,z); if (lu.edge>1.3 || lu.t===6) continue; if ((Math.abs(lu.key)%100)/100>0.5) continue; if (sampleGrid(nearD,x,z)<12) continue; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
+        const type=pickMix(hmix), set=sets[type]; if (!set) continue; const bush=type.startsWith('bush'); const sc=bush?0.9+rand()*0.7:0.7+rand()*0.5;
+        q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc*(0.9+rand()*0.3),sc*(0.8+rand()*0.5),sc*(0.9+rand()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,s);
+        const f=0.78+rand()*0.38; tcol.setRGB(f*(0.92+rand()*0.16), f, f*(0.85+rand()*0.2)); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; hb++; } }
     if (def.real && REAL.extraTrees) REAL.extraTrees.forEach(([x,z,type,sc])=>{ const set=sets[type]; if (!set) return; q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc,sc*(0.95+rand()*0.1),sc); p.set(x,terrainH(x,z)-0.1,z); m.compose(p,q,s); set.mats.push(m.clone()); tcol.setRGB(0.95,1,0.95); set.cols.push(tcol.clone()); set.c++; });
     setupTreeLOD(sets, kit, worldGroup);
     // Felsen
@@ -6076,8 +6150,8 @@ function roadside(d, side, off, scale, faceRoad, yaw){
 }
 // Mengen pro Kilometer Strecke; Häuser stehen in kleinen Weilern, Tiere in Gruppen
 const PROP_PLAN = {
-  insel: { houses:'haus_strand', villages:1.0, extra:[['busch_blumen',22,9,40],['fels_1',8,9,60],['fels_3',6,9,60],['schild_holz',1.2,6,6],['bank',2.5,6,6]],
-           animals:[['hase',3,3],['moewe',2.5,2]], fence:0.6 },
+  insel: { houses:'haus_cottage', villages:0.8, extra:[['busch_blumen',22,9,40],['heuballen',4,14,60],['fels_1',5,9,60],['fels_3',4,9,60],['schild_holz',1.2,6,6],['bank',2.5,6,6]],
+           animals:[['kuh',0.8,5],['schaf',0.8,6],['hase',2.5,3],['moewe',1.5,2]], fence:1.2 },
   huegel:{ houses:'haus_cottage', villages:0.45, extra:[['baum_eiche',22,13,110],['baum_birke',16,11,80],['busch_blumen',8,9,40],['heuballen',5,10,40],['fels_2',3,10,80],['bank',1.2,6,6],['schild_holz',0.8,6,6]],
            animals:[['kuh',0.8,5],['schaf',0.9,6],['hase',1.5,2]], fence:1.6 },
   pass:  { houses:'haus_chalet', villages:0.3, extra:[['baum_kiefer',30,11,140],['fels_1',5,9,90],['fels_2',5,9,90],['fels_3',4,9,90],['bank',0.8,6,6],['schild_holz',0.5,6,6]],
@@ -6311,7 +6385,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 39`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 41`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -6480,7 +6554,7 @@ function frame(now){
   { if (!window._blob){ const c=document.createElement('canvas'); c.width=64; c.height=128; const g=c.getContext('2d'); const gr=g.createRadialGradient(32,64,2,32,64,62); gr.addColorStop(0,'rgba(0,0,0,0.55)'); gr.addColorStop(0.55,'rgba(0,0,0,0.25)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,64,128);
       const m=new THREE.Mesh(new THREE.PlaneGeometry(0.9,2.3).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4})); m.renderOrder=2; m.userData.noStd=true; scene.add(m); window._blob=m; }
     const b=window._blob, hb=headingAt(S.dist); b.position.set(me.g.position.x, me.g.position.y+0.03, me.g.position.z); b.rotation.y=hb; b.visible=!!S.running || true; }
-  { WIND.t.value+=dt; const hw=headingAt(S.dist); WIND.rp.value.copy(me.g.position); WIND.rv.value.set(Math.sin(hw),Math.cos(hw)); WIND.rs.value+=((active?Math.min(1,S.speed/9):0)-WIND.rs.value)*Math.min(1,dt*2); }
+  { WIND.t.value+=dt; const hw=headingAt(S.dist); WIND.rp.value.copy(me.g.position); updateGrassField(me.g.position); WIND.rv.value.set(Math.sin(hw),Math.cos(hw)); WIND.rs.value+=((active?Math.min(1,S.speed/9):0)-WIND.rs.value)*Math.min(1,dt*2); }
   animRider(me, active?S.cadence:0, active?S.speed:0, dt, active?S.power:0);
   for (const b of bots){ placeRider(b.r, b.d, b.lane); animRider(b.r, active?b.cad:0, active&&b.st?b.st.v:0, dt); }
 
