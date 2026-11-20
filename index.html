@@ -4060,7 +4060,7 @@ function buildLandUse(def){ LU=null; if (def.real || def.trees==='palm' || def.t
   const data=new Uint8Array(n*n*4); for (let i=0;i<n*n;i++){ data[i*4]=types[i]; data[i*4+3]=255; }
   const tex=new THREE.DataTexture(data,n,n,THREE.RGBAFormat); tex.magFilter=tex.minFilter=THREE.NearestFilter; tex.generateMipmaps=false; tex.needsUpdate=true;
   LU={n,types,c:Math.cos(a),s:Math.sin(a),CS,tex}; }
-function luClear(x,z){ if (!LU) return; const lu=landUse(x,z); if (lu.t<2 || lu.t>5) return; const iu=Math.floor(lu.u/LU.CS[0])+32, iv=Math.floor(lu.v/LU.CS[1])+32; if (iu<0||iv<0||iu>63||iv>63) return; const i=iv*64+iu; LU.types[i]=0; LU.tex.image.data[i*4]=0; LU.tex.needsUpdate=true; }   // Hofstelle/Weide: Wiese statt Acker
+function luClear(x,z){ if (!LU) return; const lu=landUse(x,z); if (lu.t<2) return; const iu=Math.floor(lu.u/LU.CS[0])+32, iv=Math.floor(lu.v/LU.CS[1])+32; if (iu<0||iv<0||iu>63||iv>63) return; const i=iv*64+iu; LU.types[i]=0; LU.tex.image.data[i*4]=0; LU.tex.needsUpdate=true; }   // Hofstelle/Weide: Wiese statt Acker
 function landUse(x,z){ if (!LU) return {t:0,edge:99,key:0}; const [wx,wz]=luWarp(x,z); const u=wx*LU.c-wz*LU.s, v=wx*LU.s+wz*LU.c; const cu=u/LU.CS[0], cv=v/LU.CS[1]; const iu=Math.floor(cu), iv=Math.floor(cv);
   const fu=(cu-iu)*LU.CS[0], fv=(cv-iv)*LU.CS[1]; const eu=Math.min(fu,LU.CS[0]-fu), ev=Math.min(fv,LU.CS[1]-fv); const gx=clamp(iu+32,0,63), gy=clamp(iv+32,0,63);
   const key=eu<ev?(Math.round(cu)*7919+iv*104729):(iu*7919+Math.round(cv)*104729+55); const t=LU.types[gy*64+gx];
@@ -4122,7 +4122,7 @@ function terrainHoleMaterial(mat, W){
     else if (t<3.5){ lc=vec3(0.80,0.63,0.30)*(0.42+wl*1.2)*(0.9+0.2*vnz(u2*0.08)); }
     else if (t<4.5){ float fl=vnz(u2*2.3)*0.6+vnz(u2*9.0)*0.4; lc=mix(wz, vec3(0.96,0.83,0.07)*(0.75+0.45*fl), 0.55+0.35*smoothstep(0.3,0.7,fl)); }
     else if (t<5.5){ vec2 ur=vec2(P.x*luR.x-P.y*luR.y, P.x*luR.y+P.y*luR.x); float fd=mod(ci.x+ci.y,2.0)<0.5?ur.y:ur.x; float fu=0.5+0.5*sin(fd*8.3776+vnz(P*0.4)*0.8); fu=mix(fu,vnz(P*3.1),0.25); fu=mix(fu,0.5,smoothstep(35.0,110.0,length(P-cameraPosition.xz))); /* Furchen in der Ferne ausblenden */ vec3 b=mapTexelToLinear(texture2D(tFw,u2/3.0)).rgb; float l=dot(b,vec3(0.3,0.6,0.1)); lc=vec3(0.36,0.29,0.22)*(0.55+0.9*l)*(0.72+0.4*fu)*(0.85+0.3*vnz(P*0.05)); }
-    else { vec3 wb=mapTexelToLinear(texture2D(tWb,wq*0.8)).rgb; lc=mix(wb*0.7, vec3(0.20,0.27,0.13)*(0.8+0.4*vnz(P*0.3)), 0.45+0.25*vnz(P*0.05)); }
+    else { vec3 wb=mapTexelToLinear(texture2D(tWb,wq*0.8)).rgb; lc=mix(wb*0.7, vec3(0.17,0.25,0.11)*(0.75+0.5*vnz(P*0.3)), 0.62+0.25*vnz(P*0.05)); }
     if (t>1.5 && t<4.5) lc*=1.0+0.16*wv; diffuseColor.rgb*=1.0+0.05*wv*(1.0-k);
     luW=k; lc=pow(max(lc,vec3(0.0)),vec3(1.9))*1.25; diffuseColor.rgb=mix(diffuseColor.rgb, lc*mix(vec3(1.0),tnt,0.5)*fine, luW); }
 #endif`); };
@@ -4460,7 +4460,7 @@ function setupTreeLOD(sets, kit, grp){
   TREE_LOD={types, last:null, R:GFX_TREE_R}; updateTreeLOD(new THREE.Vector3(1e9,0,1e9)); }
 function updateTreeLOD(cp, force){ const T=TREE_LOD; if (!T) return; if (!force && T.last && Math.hypot(cp.x-T.last.x,cp.z-T.last.z)<25) return; T.last={x:cp.x,z:cp.z}; const R2=T.R*T.R;
   for (const t of T.types){ let a=0, b=0; const st=t.st;
-    for (let i=0;i<st.c;i++){ const dx=t.pos[i*2]-cp.x, dz=t.pos[i*2+1]-cp.z, nearOne=dx*dx+dz*dz<R2; const set=nearOne?t.near:t.far, j=nearOne?a++:b++;
+    for (let i=0;i<st.c;i++){ const dx=t.pos[i*2]-cp.x, dz=t.pos[i*2+1]-cp.z, rf=st.rf&&st.rf[i]||1, nearOne=dx*dx+dz*dz<R2*rf; const set=nearOne?t.near:t.far, j=nearOne?a++:b++;
       for (const im of set){ im.setMatrixAt(j,st.mats[i]); if (im.userData.vary) im.setColorAt(j,st.cols[i]); } }
     t.near.forEach(im=>{ im.count=a; im.instanceMatrix.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
     t.far.forEach(im=>{ im.count=b; im.instanceMatrix.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; }); } }
@@ -5405,9 +5405,9 @@ function buildWorld(def){
   {
     const lam=(c,flat)=>new THREE.MeshLambertMaterial({color:c, flatShading:!!flat});
     const tr=(geo,x,y,z,rx,ry,rz)=>{ geo.rotateX(rx||0); geo.rotateY(ry||0); geo.rotateZ(rz||0); geo.translate(x,y,z); return geo; };
-    const kit=treeKit(def), TYPES=kit.TYPES, mix=kit.mix;
+    const kit=treeKit(def), TYPES=kit.TYPES, mix=kit.mix; if (!def.real) planVillages(def);   // Hofstellen vor den Bäumen festlegen
     const n=def.real?12000:Math.round(clamp(EXT*EXT/(LU?1100:2600), 1200, LU?7000:5000));
-    const clusters=[]; if (!def.real && def.trees!=='palm'){ for (let k=0;k<400 && clusters.length<Math.round(L/1000*1.4);k++){ const dd=rand()*L, side=rand()<0.5?1:-1, off=45+rand()*200, pp=posAt(dd), hd=headingAt(dd), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side, r=30+rand()*70; if (sampleGrid(nearD,x,z)<r*0.6+14) continue; clusters.push({x,z,r}); } }
+    const clusters=[]; if (!def.real && def.trees!=='palm' && !LU){   /* mit Flurplan gibt es echte Waldstücke, keine Zufallshaine */ for (let k=0;k<400 && clusters.length<Math.round(L/1000*1.4);k++){ const dd=rand()*L, side=rand()<0.5?1:-1, off=45+rand()*200, pp=posAt(dd), hd=headingAt(dd), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side, r=30+rand()*70; if (sampleGrid(nearD,x,z)<r*0.6+14) continue; clusters.push({x,z,r}); } }
     if (def.real) realTreeOK(0,0);
     const fb=def.real&&REAL.fbox?REAL.fbox:null, fbA=fb?fb.map(f=>(f[1]-f[0])*(f[3]-f[2])):null, fbS=fbA?fbA.reduce((a,b)=>a+b,0):0;
     const sets={}; mix.forEach(([k])=>{ sets[k]=null; }); [...new Set([...mix.map(e=>e[0]),...kit.forest.map(e=>e[0])])].forEach(k=>{ sets[k]={k, mats:[], cols:[], c:0}; });
@@ -5432,16 +5432,22 @@ function buildWorld(def){
       set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; placed++;
     }
     if (LU){ let wf=0; const step=7.5, cap=Math.round(GFX_TREE_R>=260?3200:2200);   // geschlossene Waldstücke
-      for (let gx=OFF; gx<OFF+EXT && wf<cap; gx+=step) for (let gz=OFF; gz<OFF+EXT && wf<cap; gz+=step){ const x=gx+(rand()-0.5)*step*0.9, z=gz+(rand()-0.5)*step*0.9; const lu=landUse(x,z); if (lu.t!==6 || lu.edge<1.2) continue;
-        if (sampleGrid(nearD,x,z)<12) continue; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
+      const cand=[]; for (let gx=OFF; gx<OFF+EXT; gx+=step) for (let gz=OFF; gz<OFF+EXT; gz+=step){ const x=gx+(rand()-0.5)*step*0.9, z=gz+(rand()-0.5)*step*0.9; const lu=landUse(x,z); if (lu.t!==6 || lu.edge<1.2) continue; const dd=sampleGrid(nearD,x,z); if (dd<12) continue; cand.push([dd+rand()*25,x,z]); }
+      cand.sort((a,b)=>a[0]-b[0]);   // straßennahe Waldstücke zuerst voll bestocken
+      for (const [dd,x,z] of cand){ if (wf>=cap) break; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
         const type=pickMix(kit.forest), set=sets[type]; if (!set) continue; const sc=0.95+rand()*0.6; q.setFromEuler(new THREE.Euler((rand()-0.5)*0.05,rand()*6.28,(rand()-0.5)*0.05)); s.set(sc*(0.85+rand()*0.3),sc*(0.9+rand()*0.35),sc*(0.85+rand()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,s);
-        const f=0.72+rand()*0.35; tcol.setRGB(f*(0.9+rand()*0.15), f, f*(0.85+rand()*0.2)); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; wf++; } }
+        const f=0.72+rand()*0.35; tcol.setRGB(f*(0.9+rand()*0.15), f, f*(0.85+rand()*0.2)); set.mats.push(m.clone()); set.cols.push(tcol.clone()); (set.rf=set.rf||{})[set.c]=dd<40?0.36:0.16; set.c++; wf++; } }   // Waldbäume: Detailstufe nur nah (Waldrand), innen Fernstufe
     if (LU){ let hb=0; const hmix=[['bushA',0.42],['bushB',0.38],['oak',0.05],['maple',0.04],['linden',0.03],['ash',0.04],['birch',0.04]];   // Hecken und Baumreihen an Feldrainen
       for (let k=0;k<90000 && hb<3200;k++){ const dd=rand()*L, side=rand()<0.5?1:-1, off=13+Math.pow(rand(),1.6)*420, pp=posAt(dd), hd=headingAt(dd), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
         const lu=landUse(x,z); if (lu.redge>1.3 || lu.t===6) continue; if ((Math.abs(lu.key)%100)/100>0.5) continue; if (sampleGrid(nearD,x,z)<12) continue; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
         const type=pickMix(hmix), set=sets[type]; if (!set) continue; const bush=type.startsWith('bush'); const sc=bush?0.9+rand()*0.7:0.7+rand()*0.5;
         q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc*(0.9+rand()*0.3),sc*(0.8+rand()*0.5),sc*(0.9+rand()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,s);
         const f=0.78+rand()*0.38; tcol.setRGB(f*(0.92+rand()*0.16), f, f*(0.85+rand()*0.2)); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; hb++; } }
+    if (!def.real && VILL){ const fruit=Object.keys(sets).filter(k=>!k.startsWith('bush') && !/spruce|pine|fichte|kiefer|palm/.test(k)), bushT=Object.keys(sets).filter(k=>k.startsWith('bush'));   // Hausgärten: Obstbäume hinterm Haus, Sträucher seitlich
+      VILL.hm.forEach(hmx=>{ const hx=hmx.elements[12], hz=hmx.elements[14], fx=hmx.elements[8], fz=hmx.elements[10], fl=Math.hypot(fx,fz)||1, bx=-fx/fl, bz=-fz/fl, sx=-bz, sz=bx;
+        const put=(type,x,z,sc)=>{ const set=sets[type]; if (!set || sampleGrid(nearD,x,z)<10 || inPond(x,z,2)) return; const h=terrainH(x,z); if (def.water && h<minY-1.2) return; q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc*(0.9+rand()*0.2),sc*(0.85+rand()*0.3),sc*(0.9+rand()*0.2)); p.set(x,h-0.1,z); m.compose(p,q,s); const f=0.85+rand()*0.25; tcol.setRGB(f*1.02,f,f*0.9); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; };
+        if (fruit.length) for (let k=0;k<3+(rand()*3|0);k++){ const bk=10+rand()*9, lt=(rand()-0.5)*18; put(fruit[(rand()*fruit.length)|0], hx+bx*bk+sx*lt, hz+bz*bk+sz*lt, 0.45+rand()*0.25); }
+        if (bushT.length) [-1,1].forEach(sg=>{ for (let k=0;k<2;k++){ const bk=-2+rand()*8; put(bushT[(rand()*bushT.length)|0], hx+bx*bk+sx*sg*(7+rand()*2), hz+bz*bk+sz*sg*(7+rand()*2), 0.7+rand()*0.4); } }); }); }
     if (def.real && REAL.extraTrees) REAL.extraTrees.forEach(([x,z,type,sc])=>{ const set=sets[type]; if (!set) return; q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc,sc*(0.95+rand()*0.1),sc); p.set(x,terrainH(x,z)-0.1,z); m.compose(p,q,s); set.mats.push(m.clone()); tcol.setRGB(0.95,1,0.95); set.cols.push(tcol.clone()); set.c++; });
     setupTreeLOD(sets, kit, worldGroup);
     // Felsen
@@ -6240,19 +6246,22 @@ const PROP_PLAN = {
            animals:[['kuh',0.6,4],['schaf',0.5,5]], fence:0.8 }
 };
 let critters=[];
+let VILL=null;
+// Weiler vorab planen (vor den Bäumen), damit Hofstellen Gärten mit Obstbäumen bekommen
+function planVillages(def){ VILL=null; const plan=PROP_PLAN[def.id]; if (!plan || !Object.keys(PROP_LIB).length) return null;
+  const km=L/1000, nV=Math.max(1,Math.round(plan.villages*km)), hm=[], mb=[];
+  window._vill=[]; for (let v=0; v<nV; v++){ const d0=(v+0.3+rand()*0.4)/nV*L, n=3+Math.floor(rand()*3); window._vill.push(d0);
+    for (let i=0;i<n;i++){ const d=d0+i*34+rand()*8, side=i%2?1:-1, off=17+rand()*7;
+      const m=roadside(d, side, off, 0.9+rand()*0.2, true); if(!m) continue; hm.push(m);
+      const b=roadside(d+4, side, 5.4, 1, true); if (b) mb.push(b); } }
+  hm.forEach(mm=>{ const e=mm.elements, fl=Math.hypot(e[8],e[10])||1; [0,8,15].forEach(k=>luClear(e[12]-e[8]/fl*k,e[14]-e[10]/fl*k)); }); VILL={hm,mb}; return VILL; }
 function addProps(def){
   critters=[];
   const plan=PROP_PLAN[def.id]; if (!plan || !Object.keys(PROP_LIB).length) return;
   const g=worldGroup, km=L/1000, cnt=x=>Math.max(1,Math.round(x*km));
   const add=(arr,m)=>{ if(m) arr.push(m); };
   // Weiler: 3-5 Häuser beidseitig, je ein Briefkasten vorn an der Straße
-  { const hm=[], mb=[], nV=cnt(plan.villages);
-    window._vill=[]; for (let v=0; v<nV; v++){ const d0=(v+0.3+rand()*0.4)/nV*L, n=3+Math.floor(rand()*3); window._vill.push(d0);
-      for (let i=0;i<n;i++){ const d=d0+i*34+rand()*8, side=i%2?1:-1, off=17+rand()*7;
-        const m=roadside(d, side, off, 0.9+rand()*0.2, true); if(!m) continue; hm.push(m);
-        add(mb, roadside(d+4, side, 5.4, 1, true)); } }
-    hm.forEach(mm=>luClear(mm.elements[12],mm.elements[14]));
-    placeInstanced(g,plan.houses,hm); placeInstanced(g,'briefkasten',mb); }
+  { const V=VILL||planVillages(def); if (V){ placeInstanced(g,plan.houses,V.hm); placeInstanced(g,'briefkasten',V.mb); } VILL=null; }
   // Sonstiges
   plan.extra.forEach(([name,pk,o0,o1])=>{ const mats=[], n=cnt(pk); for (let i=0;i<n;i++){ const fr=name==='bank'||name==='schild_holz';
     add(mats, roadside(rand()*L, rand()<0.5?1:-1, o0+rand()*(o1-o0), name.startsWith('baum')?0.8+rand()*0.6:0.85+rand()*0.3, fr)); } placeInstanced(g,name,mats); });
@@ -6468,7 +6477,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 51`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 52`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
