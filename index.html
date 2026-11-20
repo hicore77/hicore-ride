@@ -4248,12 +4248,14 @@ const _bloomT={}; function bloomTexture(kind){ if (_bloomT[kind]) return _bloomT
   const leaf=(x,y,l,a,col)=>{ g.save(); g.translate(x,y); g.rotate(a); g.fillStyle=col; g.beginPath(); g.moveTo(0,0); g.quadraticCurveTo(l*0.35,-l*0.28,l,0); g.quadraticCurveTo(l*0.35,l*0.28,0,0); g.fill(); g.strokeStyle='rgba(20,40,10,.35)'; g.lineWidth=1; g.beginPath(); g.moveTo(0,0); g.lineTo(l*0.9,0); g.stroke(); g.restore(); };
   const gc=()=>{ const v=70+R()*70|0; return `rgb(${v*0.42|0},${v},${v*0.3|0})`; };
   // Stängel und Laub
-  const nst=kind==='lavendel'?60:kind==='margerite'?34:22; const heads=[];
-  for (let i=0;i<nst;i++){ const x0=S/2+(R()-0.5)*S*0.5, h=S*(kind==='lavendel'?0.55+R()*0.4:kind==='margerite'?0.45+R()*0.45:0.3+R()*0.45), bx=(R()-0.5)*S*0.25; g.strokeStyle=gc(); g.lineWidth=kind==='lavendel'?1.6:2.4; g.beginPath(); g.moveTo(x0,S); g.quadraticCurveTo(x0+bx*0.3,S-h*0.6,x0+bx,S-h); g.stroke(); heads.push([x0+bx,S-h]); }
+  const nst=kind==='lavendel'?60:kind==='margerite'?34:kind==='mohn'||kind==='kornblume'?18:22; const heads=[];
+  for (let i=0;i<nst;i++){ const x0=S/2+(R()-0.5)*S*0.5, h=S*(kind==='lavendel'?0.55+R()*0.4:kind==='margerite'||kind==='mohn'||kind==='kornblume'?0.45+R()*0.45:0.3+R()*0.45), bx=(R()-0.5)*S*0.25; g.strokeStyle=gc(); g.lineWidth=kind==='lavendel'?1.6:2.4; g.beginPath(); g.moveTo(x0,S); g.quadraticCurveTo(x0+bx*0.3,S-h*0.6,x0+bx,S-h); g.stroke(); heads.push([x0+bx,S-h]); }
   const nl=kind==='lavendel'?50:kind==='geranie'?40:60; for (let i=0;i<nl;i++){ const x=S/2+(R()-0.5)*S*0.7, y=S*(0.62+R()*0.38); if (kind==='geranie'){ g.fillStyle=gc(); g.beginPath(); g.arc(x,y,9+R()*9,0,7); g.fill(); g.strokeStyle='rgba(60,40,10,.35)'; g.lineWidth=2; g.beginPath(); g.arc(x,y,5+R()*4,0,7); g.stroke(); } else leaf(x,y,(kind==='lavendel'?14:20)+R()*16,-Math.PI/2+(R()-0.5)*2.4,gc()); }
   heads.forEach(([x,y])=>{ if (kind==='lavendel'){ for (let k=0;k<9;k++){ g.fillStyle=`rgb(${110+R()*40|0},${80+R()*30|0},${170+R()*50|0})`; g.beginPath(); g.ellipse(x+(R()-0.5)*3,y+k*4,3.2,2.4,0,0,7); g.fill(); } }
     else if (kind==='geranie'){ for (let k=0;k<14;k++){ const a=R()*6.28, r=R()*11; g.fillStyle=`rgb(${200+R()*55|0},${20+R()*40|0},${30+R()*30|0})`; g.beginPath(); g.arc(x+Math.cos(a)*r,y+Math.sin(a)*r*0.8,3.5+R()*2,0,7); g.fill(); } }
     else if (kind==='margerite'){ const r=7+R()*4; g.fillStyle='#fbfbf6'; for (let k=0;k<14;k++){ const a=k/14*6.283; g.beginPath(); g.ellipse(x+Math.cos(a)*r*0.75,y+Math.sin(a)*r*0.45,r*0.55,r*0.18,a,0,7); g.fill(); } g.fillStyle='#e6b21c'; g.beginPath(); g.ellipse(x,y,r*0.32,r*0.24,0,0,7); g.fill(); }
+    else if (kind==='mohn'){ const r=8+R()*4; g.fillStyle=`rgb(${210+R()*40|0},${20+R()*30|0},${15+R()*20|0})`; for (let k=0;k<4;k++){ const a=k/4*6.283+R()*0.4; g.beginPath(); g.ellipse(x+Math.cos(a)*r*0.45,y+Math.sin(a)*r*0.3,r*0.62,r*0.48,a,0,7); g.fill(); } g.fillStyle='#1b1410'; g.beginPath(); g.arc(x,y,r*0.22,0,7); g.fill(); }
+    else if (kind==='kornblume'){ const r=6+R()*3; for (let k=0;k<10;k++){ const a=k/10*6.283; g.fillStyle=`rgb(${50+R()*30|0},${90+R()*40|0},${210+R()*40|0})`; g.beginPath(); g.moveTo(x,y); g.lineTo(x+Math.cos(a-0.25)*r,y+Math.sin(a-0.25)*r*0.6); g.lineTo(x+Math.cos(a+0.25)*r,y+Math.sin(a+0.25)*r*0.6); g.fill(); } g.fillStyle='#3b2a6a'; g.beginPath(); g.arc(x,y,r*0.25,0,7); g.fill(); }
     else if (kind==='tagetes'){ const r=7+R()*4; for (let k=0;k<3;k++){ g.fillStyle=['#e3640e','#f39a12','#f6c21a'][k]; g.beginPath(); g.arc(x,y,r*(1-k*0.3),0,7); g.fill(); } g.strokeStyle='rgba(120,40,0,.4)'; g.lineWidth=1; g.beginPath(); g.arc(x,y,r*0.75,0,7); g.stroke(); }
     else { const r=8+R()*5, col=['#c8162e','#e85a8a','#f2a2b8','#fff2e6'][(R()*4)|0]; g.fillStyle=col; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); g.strokeStyle='rgba(60,0,10,.45)'; g.lineWidth=1.4; for (let k=0;k<4;k++){ g.beginPath(); g.arc(x+(R()-0.5)*3,y+(R()-0.5)*3,r*(0.25+k*0.18),R()*6,R()*6+3.5); g.stroke(); } } });
   const t=new THREE.CanvasTexture(c); t.anisotropy=4; _bloomT[kind]=t; return t; }
@@ -4275,12 +4277,14 @@ function buildVerge(def, grp, W){
     const Wd=roadWAt(d), off=Wd/2+o, pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
     if (juncAt(d)>0.3) continue; if (CHASH){ const cc=courseNear(x,z,16); if (cc.d<(ROADW[cc.i]||Wd)/2+(SHW?SHW[cc.i]:S)-0.2) continue; } if (def.real && nearSideRoad(x,z,0.3)) continue; const h=profileH(d,side,off);
     q.setFromAxisAngle(UPV,rand()*6.28); const edge=o<Sd+0.9, sc=(edge?0.8:0.6)+rand()*0.9; s.set(sc,sc*(edge?1.2+rand()*1.0:0.7+rand()*0.7),sc); p.set(x,h-0.03,z); m.compose(p,q,s);
-    (rand()<0.16?flw:tufts).push(m.clone()); }
+    (rand()<(def.real?0.16:0.3)?flw:tufts).push(m.clone()); }
   for (let d=0; d<L; d+=1.2+rand()*2){ if (juncAt(d)>0.3) continue; const Sd=swAt(d); if (Sd<0.6) continue; const side=rand()<0.5?1:-1, off=roadWAt(d)/2+0.2+rand()*(Sd-0.3), pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
     q.setFromEuler(new THREE.Euler(rand()*3,rand()*3,rand()*3)); const sc=0.04+rand()*0.09; s.set(sc,sc*0.6,sc); p.set(x,profileH(d,side,off),z); m.compose(p,q,s); stones.push(m.clone()); }
   const mk=(geo,mat,arr,vary)=>{ const im=mkIM(geo,mat,Math.max(1,arr.length)); const col=new THREE.Color(); arr.forEach((mm,i)=>{ im.setMatrixAt(i,mm); if (vary){ const f=0.68+rand()*0.3; col.setRGB(f*(0.97+rand()*0.12),f*0.95,f*(0.8+rand()*0.2)); im.setColorAt(i,col); } }); im.count=arr.length; grp.add(im); return im; };
   const tm=windify(new THREE.MeshLambertMaterial({map:tuftTexture(false), alphaTest:0.45, side:THREE.DoubleSide}),0.07,0.35), fm=windify(new THREE.MeshLambertMaterial({map:tuftTexture(true), alphaTest:0.45, side:THREE.DoubleSide}),0.07,0.4);
-  mk(crossQuad(0.55,0.34),tm,tufts,true); mk(crossQuad(0.55,0.42),fm,flw,true);
+  mk(crossQuad(0.55,0.34),tm,tufts,true);
+  { const kinds=['tuft','margerite','mohn','kornblume']; const parts={tuft:[],margerite:[],mohn:[],kornblume:[]}; flw.forEach(mm=>{ const r=rand(); parts[r<0.4?'tuft':r<0.65?'margerite':r<0.85?'mohn':'kornblume'].push(mm); });
+    mk(crossQuad(0.55,0.42),fm,parts.tuft,true); kinds.slice(1).forEach(k=>{ if (parts[k].length) mk(crossQuad(0.55,0.62),windify(new THREE.MeshLambertMaterial({map:bloomTexture(k), alphaTest:0.4, side:THREE.DoubleSide}),0.07,0.45),parts[k],false); }); }
   mk(new THREE.DodecahedronGeometry(1,0),new THREE.MeshLambertMaterial({color:0x8d8475}),stones,true);
 }
 // ---------- Bäume: mehrere Arten mit Blattkarten, Rinde, Farbvariation ----------
@@ -6417,7 +6421,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 43`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 44`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
