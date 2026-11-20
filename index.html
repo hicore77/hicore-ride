@@ -4401,7 +4401,7 @@ function treeKit(def){
   const cards=(blobs, n, size)=>{ const list=[]; blobs.forEach(([cx,cy,cz,r,sy])=>{ const k=Math.round(n*r*r/4);
     for (let i=0;i<k;i++){ const u=R()*2-1, a=R()*6.283, sq=Math.sqrt(1-u*u), dir=new THREE.Vector3(sq*Math.cos(a),u,sq*Math.sin(a)); const rr=r*(0.62+R()*0.5);   // auch innen Blattbüschel -> Tiefe, Lücken zeigen Äste
       const pl=new THREE.PlaneGeometry(size*(0.8+R()*0.5),size*(0.8+R()*0.5)); pl.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),dir)));
-      pl.rotateY(0); pl.translate(cx+dir.x*rr, cy+dir.y*rr*(sy||1), cz+dir.z*rr); const sh=(0.6+0.4*clamp((u+1)/2,0,1)*(0.85+R()*0.3))*(0.8+0.2*clamp((rr/r-0.62)/0.5,0,1)); /* innen im Laub dunkler */ const cc=[]; for(let j=0;j<4;j++) cc.push(sh,sh,sh); pl.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); list.push(pl); } });
+      pl.rotateY(0); pl.translate(cx+dir.x*rr, cy+dir.y*rr*(sy||1), cz+dir.z*rr); const sh=(0.72+0.4*clamp((u+1)/2,0,1)*(0.85+R()*0.3))*(0.8+0.2*clamp((rr/r-0.62)/0.5,0,1)); /* innen im Laub dunkler */ const cc=[]; for(let j=0;j<4;j++) cc.push(sh,sh,sh); pl.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); list.push(pl); } });
     return mergeGeoC(list); };
   const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
   const decid=(trunkKind, trunk, branches, blobs, leafH, leafL, coreCol, cardN, cardS)=>()=>{
@@ -6550,7 +6550,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 59`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 60`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
