@@ -3918,6 +3918,7 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0xbfe0ff, 120, 1500);
 const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.3, 3000);
 const hemi=new THREE.HemisphereLight(0xdff2ff, 0x5c7a3a, 0.75); hemi.color.convertSRGBToLinear(); hemi.groundColor.convertSRGBToLinear(); scene.add(hemi);
+const SUN_DIR=new THREE.Vector3(95,42,60).normalize(); let SUN_SPR=null;   // Sonne ca. 20° über dem Horizont: lange Schatten, Sonne im Bild sichtbar
 const sun = new THREE.DirectionalLight(0xffe9c8, 0.98); sun.color.convertSRGBToLinear();
 sun.castShadow = true; sun.shadow.mapSize.set(1024,1024);
 const sc=sun.shadow.camera; sc.left=-30; sc.right=30; sc.top=30; sc.bottom=-30; sc.near=1; sc.far=300;   // enger = schärferer Fahrerschatten
@@ -4411,7 +4412,7 @@ function leafClusterTexture(shape, hue, light){ const S=512, c=document.createEl
 function treeKit(def){
   const R=rand; const lam=(o)=>new THREE.MeshLambertMaterial(o);
   const bark={oak:barkTexture('oak'), birch:barkTexture('birch'), beech:barkTexture('beech'), pine:barkTexture('pine')};
-  const trunkM={oak:lam({map:bark.oak}), birch:lam({map:bark.birch}), beech:lam({map:bark.beech}), pine:lam({map:bark.pine})};
+  const trunkM={oak:lam({map:bark.oak, color:0xb8b0a8}), birch:lam({map:bark.birch, color:0xe0ddd6}), beech:lam({map:bark.beech, color:0x9a978f}), pine:lam({map:bark.pine})};
   const leafM=(h,l,needles)=>windify(lam({map:leafTexture(h,l,needles), alphaTest:0.5, side:THREE.DoubleSide, vertexColors:true}),needles?0.025:0.05,3.0);
   const coreM=(col)=>lam({color:col, vertexColors:true});
   // Stamm/Äste: Zylinder zwischen Punkten
@@ -4469,9 +4470,47 @@ function treeKit(def){
       const fb=[[lean.x,cy,lean.z,p.CR*1.22,name==='birch'?1.5:p.lead?1.15:0.85]];   // ferne Krone mit wenigen großen Blattkarten (keine glatte Kugel mehr)
       return [[ft,bk],[fc,coreM(new THREE.Color().setHSL(p.hue,0.42,p.l*0.7)),'vary'],[cards(fb.concat([[fb[0][0]+fb[0][3]*0.4,fb[0][1]+fb[0][3]*0.3,fb[0][2]-fb[0][3]*0.3,fb[0][3]*0.7,1],[fb[0][0]-fb[0][3]*0.45,fb[0][1]-fb[0][3]*0.1,fb[0][2]+fb[0][3]*0.35,fb[0][3]*0.65,1]]),8,2.3),leafMC(p),'vary']]; };
     return near; };
+  // Baum mit echtem Astgerüst: Stamm teilt sich in Leitäste, die sich mehrfach gabeln; Blattbüschel an den Zweigenden (luftige Krone, Äste sichtbar)
+  const SP2={ oak:{H:2.6,r:0.4,main:4,spread:0.85,up:0.4,gnarl:0.45,len:3.3,depth:4,fork:0.62,decay:0.74,lead:false,leafR:0.75,leafN:10,cs:0.95},
+    beech:{H:3.2,r:0.34,main:4,spread:0.55,up:0.55,gnarl:0.25,len:3.4,depth:4,fork:0.5,decay:0.76,lead:true,leafR:0.75,leafN:10,cs:0.95},
+    birch:{H:4.2,r:0.17,main:5,spread:0.5,up:0.5,gnarl:0.2,len:2.8,depth:4,fork:0.5,decay:0.74,lead:true,leafR:0.6,leafN:8,cs:0.8,droop:0.5},
+    maple:{H:2.5,r:0.32,main:4,spread:0.75,up:0.35,gnarl:0.3,len:3.0,depth:4,fork:0.58,decay:0.74,lead:false,leafR:0.75,leafN:10,cs:0.95},
+    linden:{H:2.8,r:0.38,main:4,spread:0.6,up:0.5,gnarl:0.25,len:3.3,depth:4,fork:0.52,decay:0.76,lead:true,leafR:0.8,leafN:11,cs:0.95},
+    ash:{H:3.0,r:0.3,main:3,spread:0.6,up:0.5,gnarl:0.3,len:3.6,depth:4,fork:0.55,decay:0.74,lead:true,leafR:0.85,leafN:9,cs:1.0} };
+  const genTree2=(name, seed)=>()=>{ const p=SP[name], q=SP2[name]; let sd=seed*7919+104729; const r=()=>((sd=(sd*16807)%2147483647)/2147483647);
+    const limbs=[], leaves=[]; const ax=new THREE.Vector3();
+    const perp=(d)=>{ ax.set(r()-0.5,r()-0.5,r()-0.5).cross(d); if (ax.lengthSq()<1e-4) ax.set(1,0,0); return ax.normalize(); };
+    const grow=(p0, dir, len, rad, depth)=>{ let pos=p0.clone(), d=dir.clone(); const nseg=depth<=1?3:2; let rr=rad;
+      for (let s=0;s<nseg;s++){ d.addScaledVector(V3(r()-0.5,r()-0.5,r()-0.5),q.gnarl*0.6).normalize(); d.y+= (q.up*0.18) - (q.droop&&depth>=2?q.droop*0.25:0); d.normalize();
+        const p1=pos.clone().addScaledVector(d,len/nseg), r1=Math.max(0.012,rr*(1-0.18/nseg*nseg*0.5)); limbs.push(limb(pos,p1,rr,r1,depth<=1?7:depth===2?5:4)); pos=p1; rr=r1;
+        if (depth>=2 && s<nseg-1 && r()<0.6){ const sdv=d.clone().applyAxisAngle(perp(d),0.9+r()*0.4); const tw=pos.clone().addScaledVector(sdv,len*0.35); limbs.push(limb(pos,tw,rr*0.5,0.012,3)); leaves.push([tw,sdv]); } }   // Seitenzweig mit Laub
+      if (depth>=q.depth || rr<0.03){ leaves.push([pos,d.clone()]); if (r()<0.7) leaves.push([pos.clone().addScaledVector(d,-len*0.35),d.clone()]); return; }
+      const k=r()<q.fork*0.4?3:2; for (let i=0;i<k;i++){ const a=(i===0&&k===2?0.25:0.45)+r()*q.spread*0.7; const nd=d.clone().applyAxisAngle(perp(d),a*(i===0?1:1)).applyAxisAngle(d,i*2.1+r());
+        grow(pos, nd, len*q.decay*(0.85+r()*0.3), rr*(k===3?0.6:0.72), depth+1); } };
+    const lean=V3((r()-0.5)*0.35,0,(r()-0.5)*0.35); const T=V3(lean.x,q.H*(0.9+r()*0.2),lean.z);
+    limbs.push(limb(V3(0,-0.3,0),V3(lean.x*0.5,T.y*0.5,lean.z*0.5),q.r*1.12,q.r*0.9,10)); limbs.push(limb(V3(lean.x*0.5,T.y*0.5,lean.z*0.5),T,q.r*0.9,q.r*0.78,10));
+    for (let i=0;i<q.main;i++){ const a=i/q.main*6.283+r()*0.8, el=(q.lead&&i===0)?1.35:0.55+q.up*0.6+(r()-0.5)*0.3; const d=V3(Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el)).normalize();
+      const st=(q.lead&&i>0)?T.clone().add(V3(0,r()*q.len*0.5,0)):T; grow(st, d, q.len*(q.lead&&i===0?1.1:0.9+r()*0.25), q.r*(q.lead&&i===0?0.62:0.5), 1); }
+    // Kronenmitte und -radius aus den Blattpunkten
+    const C=V3(0,0,0); leaves.forEach(([pp])=>C.add(pp)); C.multiplyScalar(1/leaves.length); let CR=0; leaves.forEach(([pp])=>{ CR=Math.max(CR,Math.hypot(pp.x-C.x,(pp.y-C.y)*1.2,pp.z-C.z)); });
+    // Blattkarten um jeden Zweig-Endpunkt
+    const list=[];
+    for (const [pp,dd] of leaves){ const n=q.leafN+Math.floor(r()*3);
+      for (let i=0;i<n;i++){ const off=V3(r()-0.5,r()-0.5,r()-0.5).multiplyScalar(q.leafR*1.6).addScaledVector(dd,r()*q.leafR*0.6); const cpos=pp.clone().add(off); const out=cpos.clone().sub(C); const ol=out.length()||1; out.multiplyScalar(1/ol);
+        const nd=out.clone().add(V3(r()-0.5,r()-0.5,r()-0.5).multiplyScalar(1.3)).normalize(); const sz=q.cs*(0.8+r()*0.5);
+        const pl=new THREE.PlaneGeometry(sz,sz); pl.rotateZ(r()*6.283); pl.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(V3(0,0,1),nd))); pl.translate(cpos.x,cpos.y,cpos.z);
+        const rel=clamp(ol/CR,0,1.2), up=clamp((cpos.y-C.y)/CR*0.5+0.5,0,1); const sh=(0.6+0.45*up)*(0.72+0.3*clamp((rel-0.35)/0.6,0,1))*(0.9+r()*0.2); const w=r()-0.5, cc=[], nn=[];
+        for (let j=0;j<4;j++){ cc.push(sh*(1+w*0.2),sh*(1+w*0.07),sh*(1-w*0.24)); nn.push(out.x,out.y,out.z); } pl.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); pl.setAttribute('normal',new THREE.Float32BufferAttribute(nn,3)); list.push(pl); } }
+    const tg=mergeGeoC(limbs); const bk=trunkM[p.bark||name]||trunkM.oak;
+    const near=[[tg,bk],[mergeGeoC(list),leafMC(p),'vary']];
+    near.far=()=>{ const ft=limb(V3(0,-0.3,0),T,q.r,q.r*0.7,5); const sy=clamp(CR>0?1:1,0.8,1.4); const fc=mergeGeoC([blob(C.x,C.y,C.z,CR*0.78,1.0,seed,true), blob(C.x+CR*0.3,C.y+CR*0.25,C.z-CR*0.2,CR*0.5,1,seed+3,true)]);
+      const fb=[[C.x,C.y,C.z,CR*0.95,1]];
+      return [[ft,bk],[fc,coreM(new THREE.Color().setHSL(p.hue,0.42,p.l*0.72)),'vary'],[cards(fb.concat([[C.x+CR*0.4,C.y+CR*0.3,C.z-CR*0.3,CR*0.6,1],[C.x-CR*0.45,C.y-CR*0.1,C.z+CR*0.35,CR*0.55,1]]),8,2.3),leafMC(p),'vary']]; };
+    return near; };
+  const GT=window.OLD_TREES?genTree:genTree2;
   const TYPES={
-    oak:genTree('oak',1), oak2:genTree('oak',2), beech:genTree('beech',3), beech2:genTree('beech',4), birch:genTree('birch',5), birch2:genTree('birch',6),
-    maple:genTree('maple',7), linden:genTree('linden',8), linden2:genTree('linden',9), ash:genTree('ash',10),
+    oak:GT('oak',1), oak2:GT('oak',2), beech:GT('beech',3), beech2:GT('beech',4), birch:GT('birch',5), birch2:GT('birch',6),
+    maple:GT('maple',7), linden:GT('linden',8), linden2:GT('linden',9), ash:GT('ash',10),
     pine: decid('pine',[V3(0.15,9.6,0),0.25,0.12],[[V3(0.1,8.4,0),V3(1.1,9.1,0.4),0.07,0.03],[V3(0.12,8.8,0),V3(-0.9,9.3,-0.3),0.07,0.03]],
       [[0.1,9.9,0,1.8,0.55],[1.1,9.2,0.5,1.3,0.6],[-0.9,9.4,-0.4,1.4,0.6],[0.3,10.8,0.2,1.1,0.6]],0.33,0.24,0x1f3a1d,26,1.0),
     bushA: ()=>{ const bl=[[0,0.7,0,0.9,0.8],[0.7,0.6,0.3,0.7,0.8],[-0.6,0.6,-0.2,0.75,0.8],[0.1,1.1,-0.5,0.6,0.9]]; const tw=[0,1,2,3,4].map(k=>{ const a=k*1.26; return limb(V3(0,0,0),V3(Math.cos(a)*0.6,0.9,Math.sin(a)*0.6),0.045,0.015,4); }); return [[mergeGeoC(tw),trunkM.oak],[mergeGeoC(bl.map(([x,y,z,r,sy],i)=>blob(x,y,z,r*0.58,sy,i))),coreM(0x22451a),'vary'],[cards(bl,120,0.6),leafMC({leaf:'beech',hue:0.27,l:0.36}),'vary']]; },
@@ -5555,6 +5594,10 @@ function buildWorld(def){
     const skyG=new THREE.SphereGeometry(2800,24,12); const sc0=new THREE.Color(def.sky), top=sc0.clone().multiplyScalar(0.72), hor=new THREE.Color(def.fog); const cols=[];
     const sp=skyG.attributes.position; for (let i=0;i<sp.count;i++){ const t=clamp(sp.getY(i)/2800,0,1); const c=hor.clone().lerp(sc0,Math.min(1,t*3)).lerp(top,Math.max(0,t-0.3)); cols.push(c.r,c.g,c.b); }
     skyG.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+    { const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d'); const gr=g.createRadialGradient(128,128,0,128,128,128);
+      gr.addColorStop(0,'rgba(255,255,250,1)'); gr.addColorStop(0.06,'rgba(255,252,235,1)'); gr.addColorStop(0.1,'rgba(255,240,200,0.75)'); gr.addColorStop(0.25,'rgba(255,225,170,0.28)'); gr.addColorStop(0.55,'rgba(255,215,160,0.08)'); gr.addColorStop(1,'rgba(255,210,150,0)');
+      g.fillStyle=gr; g.fillRect(0,0,256,256); const t=new THREE.CanvasTexture(c);
+      SUN_SPR=new THREE.Sprite(new THREE.SpriteMaterial({map:t, transparent:true, depthWrite:false, fog:false, blending:THREE.CustomBlending, blendSrc:THREE.SrcAlphaFactor, blendDst:THREE.OneFactor, blendSrcAlpha:THREE.ZeroFactor, blendDstAlpha:THREE.OneFactor, toneMapped:false})); SUN_SPR.scale.set(860,860,1); SUN_SPR.renderOrder=10; worldGroup.add(SUN_SPR); }   // Sonne mit Hof, Laub davor verdeckt sie
     skyDome=new THREE.Mesh(skyG,new THREE.MeshBasicMaterial({vertexColors:true, side:THREE.BackSide, fog:false, depthWrite:false})); skyDome.renderOrder=-1; worldGroup.add(skyDome);
   }
   // Deko aus Blender
@@ -6704,7 +6747,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 65`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 67`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -6911,7 +6954,9 @@ function frame(now){
   animateCritters(dt);
   if (window.camAbs){ const o=window.camAbs; camera.position.set(o[0],o[1],o[2]); camera.lookAt(o[3],o[4],o[5]); } else
   if (window.camOverride){ const o=window.camOverride; me.g.localToWorld(camera.position.set(o[0],o[1],o[2])); camera.lookAt(me.g.localToWorld(tmp.set(o[3],o[4],o[5]))); }
-  sun.position.set(p.x+85, p.y+90, p.z+55); sun.target.position.copy(p); SUNU.value.set(85,90,55).normalize();   // tiefere Sonne: längere Schatten, mehr Tiefe
+  { camera.getWorldDirection(tmp); tmp.y=0; tmp.normalize(); const ex=sc.right*0.55; const cx=p.x+tmp.x*ex, cz=p.z+tmp.z*ex;   // Schattenbereich vor die Kamera legen
+    sun.position.set(cx+SUN_DIR.x*140, p.y+SUN_DIR.y*140, cz+SUN_DIR.z*140); sun.target.position.set(cx,p.y,cz); SUNU.value.copy(SUN_DIR);
+    if (SUN_SPR){ SUN_SPR.position.copy(camera.position).addScaledVector(SUN_DIR,2700); } }   // tiefere Sonne: längere Schatten, mehr Tiefe
 
   // HUD
   $('pw').textContent=Math.round(S.power); $('cad').textContent=Math.round(S.cadence); $('hr').textContent=S.hr?Math.round(S.hr):'--';
