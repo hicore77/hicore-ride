@@ -4317,7 +4317,7 @@ function buildVerge(def, grp, W){
     if (r<0.45) o=Sd-0.15+rand()*0.6; else if (r<0.75) o=Sd+0.4+rand()*2.6; else o=Sd+2.6+rand()*7;
     const Wd=roadWAt(d), off=Wd/2+o, pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
     if (juncAt(d)>0.3) continue; if (CHASH){ const cc=courseNear(x,z,16); if (cc.d<(ROADW[cc.i]||Wd)/2+(SHW?SHW[cc.i]:S)-0.2) continue; } if (def.real && nearSideRoad(x,z,0.3)) continue; const h=profileH(d,side,off);
-    q.setFromAxisAngle(UPV,rand()*6.28); const edge=o<Sd+0.9, sc=(edge?0.8:0.6)+rand()*0.9; s.set(sc,sc*(edge?1.2+rand()*1.0:0.7+rand()*0.7),sc); p.set(x,h-0.03,z); m.compose(p,q,s);
+    q.setFromAxisAngle(UPV,rand()*6.28); const edge=o<Sd+0.9, sc=(edge?0.8:0.6)+rand()*0.9; s.set(sc*1.15,sc*(edge?0.95+rand()*0.7:0.6+rand()*0.6),sc*1.15); p.set(x,h-0.03,z); m.compose(p,q,s);
     (rand()<(def.real?0.16:0.3)?flw:tufts).push(m.clone()); }
   for (let d=0; d<L; d+=1.2+rand()*2){ if (juncAt(d)>0.3) continue; const Sd=swAt(d); if (Sd<0.6) continue; const side=rand()<0.5?1:-1, off=roadWAt(d)/2+0.2+rand()*(Sd-0.3), pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
     q.setFromEuler(new THREE.Euler(rand()*3,rand()*3,rand()*3)); const sc=0.04+rand()*0.09; s.set(sc,sc*0.6,sc); p.set(x,profileH(d,side,off),z); m.compose(p,q,s); stones.push(m.clone()); }
@@ -6495,7 +6495,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 55`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 56`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
