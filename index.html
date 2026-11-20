@@ -4100,9 +4100,9 @@ function terrainHoleMaterial(mat, W){
   pts.forEach((p,i)=>{ const x=(p.x-OFF)/EXT*S, y=(p.z-OFF)/EXT*S; i?g.lineTo(x,y):g.moveTo(x,y); }); g.closePath(); g.stroke(); if (WORLD.real) streamMaskDraw(g,S);
   const t=freeCv(new THREE.CanvasTexture(c)); t.flipY=false; t.minFilter=THREE.LinearFilter; t.generateMipmaps=false;
   const oe=new THREE.Vector2(OFF,EXT);
-  mat.onBeforeCompile=(sh)=>{ sh.uniforms.roadMask={value:t}; sh.uniforms.maskOE={value:oe}; sh.uniforms.tileS={value:mat.map?mat.map.repeat.x/EXT:0.15}; const LT=mat.userData.lu||{}; sh.uniforms.luOn={value:LU&&LT.wz?1:0}; sh.uniforms.luTex={value:LU?LU.tex:null}; sh.uniforms.luCS={value:new THREE.Vector2(...(LU?LU.CS:[90,70]))}; sh.uniforms.luR={value:new THREE.Vector2(LU?LU.c:1,LU?LU.s:0)}; sh.uniforms.tWz={value:LT.wz||null}; sh.uniforms.tWb={value:LT.wb||null}; sh.uniforms.tBw={value:LT.bw||null}; sh.uniforms.tFw={value:LT.fw||null};
+  mat.onBeforeCompile=(sh)=>{ sh.uniforms.roadMask={value:t}; sh.uniforms.maskOE={value:oe}; sh.uniforms.tileS={value:mat.map?mat.map.repeat.x/EXT:0.15}; const LT=mat.userData.lu||{}; sh.uniforms.luOn={value:LU&&LT.wz?1:0}; sh.uniforms.luTex={value:LU?LU.tex:null}; sh.uniforms.luCS={value:new THREE.Vector2(...(LU?LU.CS:[90,70]))}; sh.uniforms.luR={value:new THREE.Vector2(LU?LU.c:1,LU?LU.s:0)}; sh.uniforms.tWz={value:LT.wz||null}; sh.uniforms.tWb={value:LT.wb||null}; sh.uniforms.tBw={value:LT.bw||null}; sh.uniforms.tFw={value:LT.fw||null}; sh.uniforms.wT=WIND.t;
     sh.vertexShader='varying vec2 vMaskP; attribute float luk; varying float vLuk;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\n  vMaskP=(modelMatrix*vec4(transformed,1.0)).xz; vLuk=luk;');
-    sh.fragmentShader='uniform sampler2D roadMask; uniform vec2 maskOE; uniform float tileS; uniform float luOn; uniform sampler2D luTex, tWz, tWb, tBw, tFw; uniform vec2 luCS, luR; varying float vLuk; varying vec2 vMaskP;\nfloat h21(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nfloat vnz(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x), mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x), f.y); }\n'
+    sh.fragmentShader='uniform sampler2D roadMask; uniform vec2 maskOE; uniform float tileS; uniform float luOn; uniform sampler2D luTex, tWz, tWb, tBw, tFw; uniform vec2 luCS, luR; uniform float wT; varying float vLuk; varying vec2 vMaskP;\nfloat h21(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }\nfloat vnz(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x), mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x), f.y); }\n'
       +sh.fragmentShader.replace('void main() {','void main() {\n  if (texture2D(roadMask,(vMaskP-vec2(maskOE.x))/maskOE.y).r>0.5) discard;\n  float luW=0.0;')
       .replace('#include <color_fragment>','#ifdef USE_COLOR\n  diffuseColor.rgb*=mix(vColor,vec3(1.0),luW);\n#endif')
       .replace('#include <map_fragment>',`#ifdef USE_MAP
@@ -4115,6 +4115,7 @@ function terrainHoleMaterial(mat, W){
     vec2 u2=vec2(w.x*luR.x-w.y*luR.y, w.x*luR.y+w.y*luR.x); vec2 cc=u2/luCS; vec2 ci=clamp(floor(cc),vec2(-32.0),vec2(31.0)); vec2 fr=fract(cc)*luCS; float edge=min(min(fr.x,luCS.x-fr.x),min(fr.y,luCS.y-fr.y));
     float t=floor(texture2D(luTex,(ci+32.5)/64.0).r*255.0+0.5); float k=smoothstep(1.2,3.2,edge+vnz(P*0.7)*1.2)*vLuk; vec3 lc=vec3(0.0);
     vec3 wz=mapTexelToLinear(texture2D(tWz,u2/2.4)).rgb; float wl=dot(wz,vec3(0.3,0.6,0.1));
+    float wv=sin(dot(P,vec2(0.11,0.065))-wT*1.7+vnz(P*0.025)*5.0)*smoothstep(0.25,0.75,vnz(P*0.018+vec2(wT*0.04,wT*0.025)));   // Windböen laufen übers Feld
     if (t<0.5) k=0.0;
     else if (t<1.5){ lc=mapTexelToLinear(texture2D(tBw,wq*0.9)).rgb*1.1; k*=smoothstep(0.3,0.6,vnz(P*0.025)+vnz(P*0.09)*0.3); }
     else if (t<2.5){ lc=wz*0.82; }
@@ -4122,6 +4123,7 @@ function terrainHoleMaterial(mat, W){
     else if (t<4.5){ float fl=vnz(u2*2.3)*0.6+vnz(u2*9.0)*0.4; lc=mix(wz, vec3(0.96,0.83,0.07)*(0.75+0.45*fl), 0.55+0.35*smoothstep(0.3,0.7,fl)); }
     else if (t<5.5){ float fu=0.5+0.5*sin(u2.y*8.3776); vec3 b=mapTexelToLinear(texture2D(tFw,u2/3.0)).rgb; float l=dot(b,vec3(0.3,0.6,0.1)); lc=vec3(0.36,0.29,0.22)*(0.55+0.9*l)*(0.72+0.4*fu)*(0.85+0.3*vnz(P*0.05)); }
     else { vec3 wb=mapTexelToLinear(texture2D(tWb,wq*0.8)).rgb; lc=mix(wb*0.7, vec3(0.20,0.27,0.13)*(0.8+0.4*vnz(P*0.3)), 0.45+0.25*vnz(P*0.05)); }
+    if (t>1.5 && t<4.5) lc*=1.0+0.16*wv; diffuseColor.rgb*=1.0+0.05*wv*(1.0-k);
     luW=k; lc=pow(max(lc,vec3(0.0)),vec3(1.9))*1.25; diffuseColor.rgb=mix(diffuseColor.rgb, lc*mix(vec3(1.0),tnt,0.5)*fine, luW); }
 #endif`); };
   mat.customProgramCacheKey=()=>'terrainHole2'; return mat; }
@@ -4155,12 +4157,12 @@ function decalAtlas(){
   const grain=(x0,w,a)=>{ for(let i=0;i<w*w*0.25;i++){ const v=60+R()*80|0; g.fillStyle=`rgba(${v},${v},${v+4},${a*R()})`; g.fillRect(x0+R()*w,R()*w,1.5,1.5);} };
   // 0: rechteckiger Flicken mit Vergussfuge
   g.save(); g.beginPath(); for (let k=0;k<20;k++){ const t=k/20*Math.PI*2, r=1+0.03*Math.sin(k*3.1); const x=128+Math.sign(Math.cos(t))*Math.pow(Math.abs(Math.cos(t)),0.3)*112*r, y=128+Math.sign(Math.sin(t))*Math.pow(Math.abs(Math.sin(t)),0.3)*112*r; k?g.lineTo(x,y):g.moveTo(x,y); } g.closePath();
-  g.fillStyle='rgba(40,42,46,0.78)'; g.fill(); g.lineWidth=5; g.strokeStyle='rgba(12,12,14,0.85)'; g.stroke(); g.clip(); grain(0,256,0.5); g.restore();
+  g.fillStyle='rgba(38,40,44,0.36)'; g.fill(); g.lineWidth=4; g.strokeStyle='rgba(12,12,14,0.55)'; g.stroke(); g.clip(); grain(0,256,0.35); g.restore();
   // 1: Rissnetz + Bitumenfugen
   g.lineCap='round'; for (let i=0;i<9;i++){ let x=256+20+R()*216, y=10+R()*30; g.lineWidth=1+R()*2.2; g.strokeStyle=i<3?'rgba(8,8,10,0.75)':'rgba(15,15,18,0.6)'; g.beginPath(); g.moveTo(x,y);
     for (let k=0;k<14;k++){ x+= (R()-0.5)*34; y+=10+R()*14; x=clamp(x,262,506); g.lineTo(x,y); if (R()<0.25){ g.stroke(); g.beginPath(); g.moveTo(x,y); } } g.stroke(); }
   // 2: runde Ausbesserung
-  g.save(); g.beginPath(); for (let k=0;k<24;k++){ const t=k/24*Math.PI*2, r=95+R()*22; const x=640+Math.cos(t)*r, y=128+Math.sin(t)*r; k?g.lineTo(x,y):g.moveTo(x,y); } g.closePath(); g.fillStyle='rgba(34,35,39,0.8)'; g.fill(); g.lineWidth=3; g.strokeStyle='rgba(10,10,12,0.6)'; g.stroke(); g.clip(); grain(512,256,0.6); g.restore();
+  g.save(); g.beginPath(); for (let k=0;k<24;k++){ const t=k/24*Math.PI*2, r=95+R()*22; const x=640+Math.cos(t)*r, y=128+Math.sin(t)*r; k?g.lineTo(x,y):g.moveTo(x,y); } g.closePath(); g.fillStyle='rgba(34,35,39,0.34)'; g.fill(); g.lineWidth=3; g.strokeStyle='rgba(10,10,12,0.45)'; g.stroke(); g.clip(); grain(512,256,0.35); g.restore();
   // 3: Kanaldeckel
   { const cx=896, cy=128; g.fillStyle='rgba(55,56,58,1)'; g.beginPath(); g.arc(cx,cy,118,0,7); g.fill(); g.fillStyle='#2b2c2e'; g.beginPath(); g.arc(cx,cy,104,0,7); g.fill();
     g.strokeStyle='#4a4b4e'; g.lineWidth=5; for (let r=20;r<100;r+=18){ g.beginPath(); g.arc(cx,cy,r,0,7); g.stroke(); } for (let a=0;a<12;a++){ g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.cos(a*0.5236)*100,cy+Math.sin(a*0.5236)*100); g.stroke(); }
@@ -4215,8 +4217,8 @@ function fineGrassTexture(){ const S=256, c=document.createElement('canvas'); c.
   const gr=g.createLinearGradient(0,S*0.6,0,S); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(10,25,5,.06)'); g.globalCompositeOperation='source-atop'; g.fillStyle=gr; g.fillRect(0,0,S,S);
   const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
 function buildGrassField(def, grp, waterY){ GF.cells.clear(); GF.kx=GF.kz=1e9; GF.im=null; if (def.real) return;
-  const N=GFX_TREE_R>=380?22000:GFX_TREE_R>=260?15000:GFX_TREE_R>=180?9000:0; if (!N) return;
-  GF.cs=6; GF.rad=4; GF.per=Math.floor(N/((2*GF.rad+1)**2)); GF.N=GF.per*(2*GF.rad+1)**2; GF.waterY=def.water?waterY:-1e9; GF.def=def;
+  const N=GFX_TREE_R>=380?30000:GFX_TREE_R>=260?22000:GFX_TREE_R>=180?12000:0; if (!N) return;
+  GF.cs=6; GF.rad=3; GF.per=Math.floor(N/((2*GF.rad+1)**2)); GF.N=GF.per*(2*GF.rad+1)**2; GF.waterY=def.water?waterY:-1e9; GF.def=def;
   const mat=windify(new THREE.MeshLambertMaterial({map:fineGrassTexture(), alphaTest:0.42, side:THREE.DoubleSide}),0.06,0.28); mat.alphaToCoverage=true;
   const im=new THREE.InstancedMesh(crossQuad(0.38,0.24),mat,GF.N); im.count=0; im.frustumCulled=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(GF.N*3),3); grp.add(im); GF.im=im; }
 function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) return c; let sd=(Math.abs(i*7919+j*104729)%2147483646)+1; const r=()=>(sd=(sd*16807)%2147483647)/2147483647;
@@ -4239,10 +4241,10 @@ function updateGrassField(pos){ const im=GF.im; if (!im) return; const kx=Math.f
 function tuftTexture(flowers){ const S=256, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'); const R=Math.random;
   // feine, spitz zulaufende Halme in mehreren Grüntönen, einige trocken
   for (let i=0;i<230;i++){ const u=(R()-0.5)*2*(0.35+0.65*R()), x0=S/2+u*S*0.2, dome=Math.pow(Math.max(0,1-Math.abs(u)),0.9), h=S*(0.12+R()*0.8*dome+0.1*dome), bend=u*S*0.32+(R()-0.5)*S*0.12, w=1.0+R()*2.0, dry=R()<0.12;
-    const gg=95+R()*100|0; g.fillStyle=dry?`rgb(${150+R()*40|0},${140+R()*30|0},${80+R()*20|0})`:`rgb(${gg*0.5|0},${gg},${gg*0.28|0})`;
+    const gg=120+R()*95|0; g.fillStyle=dry?`rgb(${160+R()*40|0},${150+R()*30|0},${90+R()*20|0})`:`rgb(${gg*0.56|0},${gg},${gg*0.3|0})`;
     const tx=x0+bend, ty=S-h; g.beginPath(); g.moveTo(x0-w,S); g.quadraticCurveTo(x0+bend*0.35-w*0.5,S-h*0.55,tx,ty); g.quadraticCurveTo(x0+bend*0.35+w*0.5,S-h*0.55,x0+w,S); g.closePath(); g.fill(); }
   // Schatten am Fuß
-  const gr=g.createLinearGradient(0,S*0.75,0,S); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(10,25,5,.45)'); g.globalCompositeOperation='source-atop'; g.fillStyle=gr; g.fillRect(0,0,S,S); g.globalCompositeOperation='source-over';
+  const gr=g.createLinearGradient(0,S*0.75,0,S); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(10,25,5,.25)'); g.globalCompositeOperation='source-atop'; g.fillStyle=gr; g.fillRect(0,0,S,S); g.globalCompositeOperation='source-over';
   if (flowers){ const cols=['#ffffff','#f4e04a','#ffffff','#c9a2e6','#f2f2c0','#e05050']; for (let i=0;i<18;i++){ const x=S*0.15+R()*S*0.7, y=S*0.12+R()*S*0.4, r=4+R()*5; g.fillStyle=cols[i%cols.length];
       for (let k=0;k<6;k++){ const a=k/6*6.283; g.beginPath(); g.ellipse(x+Math.cos(a)*r*0.6,y+Math.sin(a)*r*0.6,r*0.55,r*0.3,a,0,7); g.fill(); } g.fillStyle='#e8b830'; g.beginPath(); g.arc(x,y,r*0.32,0,7); g.fill(); } }
   const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
@@ -6430,7 +6432,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 46`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 47`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
