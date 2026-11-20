@@ -3904,16 +3904,17 @@ function headingAt(d){ const a=posAt(d-5), b=posAt(d+5); return Math.atan2(b.x-a
 const canvas = $('world');
 const IS_MOBILE=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Macintosh/.test(navigator.userAgent));
 const IS_PHONE=/iPhone|iPod|Android.*Mobile|Mobile.*Android/i.test(navigator.userAgent) || (IS_MOBILE && Math.min(screen.width,screen.height)<560);
-let LITE=(()=>{ try{ const v=localStorage.getItem('hicoreRide.gfx'); return v===null ? IS_PHONE : JSON.parse(v)==='0.35'; }catch(e){ return IS_PHONE; } })();   /* Smartphone-Stufe: alles Teure aus, Fahrer bleibt voll */
-let renderer; try{ renderer = new THREE.WebGLRenderer({canvas, antialias:!LITE, powerPreference:LITE?'low-power':'default'}); }catch(e){
-  const d=document.createElement('div'); d.style.cssText='position:fixed;left:8px;right:8px;top:30%;z-index:9999;background:#b3261e;color:#fff;font:15px system-ui;padding:14px;border-radius:10px';
-  d.textContent='Die 3D-Grafik konnte nicht starten (WebGL gesperrt). Bitte den Browser komplett schließen (auch aus der App-Übersicht wegwischen), neu öffnen und die Seite neu laden.'; document.body.appendChild(d);
-  try{ localStorage.setItem('hicoreRide.pbrSafe','1'); }catch(_){} throw e; }
+let LITE=(()=>{ try{ const v=localStorage.getItem('hicoreRide.gfx'); if (IS_PHONE && localStorage.getItem('hicoreRide.gfxUser')!=='1') return true; return v===null ? IS_PHONE : JSON.parse(v)==='0.35'; }catch(e){ return IS_PHONE; } })();   /* Smartphone-Stufe: alles Teure aus, Fahrer bleibt voll */
+let renderer; { let err=null; const tries=[{antialias:!LITE, powerPreference:LITE?'low-power':'default', stencil:false}, {antialias:false, stencil:false}, {antialias:false, stencil:false, precision:'mediump', failIfMajorPerformanceCaveat:false}];   /* Ausweich-Stufen, falls Chrome den ersten Versuch ablehnt */
+  for (const o of tries){ try{ renderer=new THREE.WebGLRenderer(Object.assign({canvas},o)); if (o!==tries[0]){ LITE=true; try{ localStorage.setItem('hicoreRide.gfx',JSON.stringify('0.35')); }catch(_){} } break; }catch(e){ err=e; } }
+  if (!renderer){ const d=document.createElement('div'); d.style.cssText='position:fixed;left:8px;right:8px;top:22%;z-index:9999;background:#b3261e;color:#fff;font:15px/1.4 system-ui;padding:14px;border-radius:10px';
+    d.innerHTML='<b>Die 3D-Grafik wurde vom Browser gesperrt.</b><br>Das passiert meist, nachdem eine Seite den Grafikspeicher überlastet hat. Chrome sperrt 3D dann, bis er ganz neu startet.<br><br>1. Chrome schließen und in der App-Übersicht wegwischen.<br>2. Chrome neu öffnen und die Seite laden. Das Spiel startet dann in der sparsamen Stufe „Smartphone“.<br><br><button id="errReload" style="font:inherit;padding:8px 14px;border-radius:8px;border:0;background:#fff;color:#b3261e;font-weight:700">Neu laden</button>';
+    document.body.appendChild(d); try{ localStorage.setItem('hicoreRide.pbrSafe','1'); localStorage.setItem('hicoreRide.gfx',JSON.stringify('0.35')); localStorage.removeItem('hicoreRide.gfxUser'); }catch(_){} document.getElementById('errReload').onclick=()=>location.reload(); throw err; } }
 renderer.setPixelRatio(IS_MOBILE?1:Math.min(devicePixelRatio,2)*0.7);
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 // Grafikspeicher voll -> Sparmodus merken und neu laden
-canvas.addEventListener('webglcontextlost',e=>{ e.preventDefault(); try{ localStorage.setItem('hicoreRide.pbrSafe','1'); localStorage.setItem('hicoreRide.gfx',JSON.stringify(LITE?'0.35':'0.5')); }catch(_){}
+canvas.addEventListener('webglcontextlost',e=>{ e.preventDefault(); try{ localStorage.setItem('hicoreRide.pbrSafe','1'); const g=JSON.parse(localStorage.getItem('hicoreRide.gfx')||'"0.7"'); localStorage.setItem('hicoreRide.gfx',JSON.stringify((IS_PHONE||LITE||+g<=0.5)?'0.35':'0.5')); localStorage.removeItem('hicoreRide.gfxUser'); }catch(_){}
   showErr('Grafikspeicher des Geräts voll. Starte im Sparmodus neu …'); setTimeout(()=>location.reload(),1500); });
 function showErr(t){ let d=document.getElementById('errbox'); if(!d){ d=document.createElement('div'); d.id='errbox'; d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#b3261e;color:#fff;font:13px system-ui;padding:8px 10px;border-radius:8px;white-space:pre-wrap'; document.body.appendChild(d); } d.textContent=t; }
 window.addEventListener('error',e=>showErr('Fehler: '+(e.message||e)+(e.lineno?' (Zeile '+e.lineno+')':'')));
@@ -4210,6 +4211,41 @@ function buildRoadDecals(def, grp, W){
     else add(d, lane*(0.7+rand()*0.4), 0.75, 0.75, 3, rand()*3); }
   const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(idx); geo.computeVertexNormals();
   const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({map:decalAtlas(), transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:0, polygonOffsetUnits:-8})); m.receiveShadow=true; m.renderOrder=1; grp.add(m);
+}
+// Straßenrand: Kies/Sand-Saum, Laub (dichter in Alleen), feuchte dunkle Stellen, Teerfugen
+function edgeAtlas(){ const c=document.createElement('canvas'); c.width=1024; c.height=256; const g=c.getContext('2d'); const R=Math.random;
+  const soft=(x0,f)=>{ for (let y=0;y<256;y+=2) for (let x=0;x<256;x+=2){ const a=f(x/256,y/256); if (a>0.003){ g.globalAlpha=Math.min(1,a); g.fillRect(x0+x,y,2,2); } } g.globalAlpha=1; };
+  // 0: Kies- und Sandsaum (v=0 Fahrbahnseite, v=1 Bankett)
+  for (let i=0;i<5200;i++){ const y=Math.pow(R(),0.55)*256, x=R()*256, k=y/256; if (R()>k*1.15) continue; const v=110+R()*90|0, s=1+R()*3.2*(0.4+k);
+    g.fillStyle=`rgba(${v},${v*0.95|0},${v*0.86|0},${0.55+R()*0.45})`; g.beginPath(); g.ellipse(x,y,s*0.3,s*(0.6+R()*0.4),0,0,7); g.fill(); }   /* in u gestaucht: Streifen ist ~3x länger als breit */
+  g.fillStyle='rgba(150,135,105,0.18)'; soft(0,(u,v)=>0.25*Math.pow(v,1.5)*(0.7+0.3*Math.sin(u*40)));
+  // 1: Laub
+  const pal=['#7a5a22','#9a6b24','#b8862c','#6b4a1e','#8c7a2a','#5e6a24','#a5502a'];
+  for (let i=0;i<300;i++){ const x=10+R()*236, y=10+R()*236, s=3+R()*5.5, a=R()*6.28; g.save(); g.translate(x,y); g.rotate(a); g.fillStyle=pal[(R()*pal.length)|0]; g.globalAlpha=0.75+R()*0.25;
+    g.beginPath(); g.moveTo(0,-s); g.bezierCurveTo(s*0.7,-s*0.4,s*0.6,s*0.5,0,s); g.bezierCurveTo(-s*0.6,s*0.5,-s*0.7,-s*0.4,0,-s); g.fill(); g.strokeStyle='rgba(40,25,10,.4)'; g.lineWidth=0.6; g.beginPath(); g.moveTo(0,-s); g.lineTo(0,s); g.stroke(); g.restore(); }
+  g.globalAlpha=1;
+  // 2: feuchte, dunklere Stelle
+  const n=[]; for (let k=0;k<7;k++) n.push([R()*6.28,1+R()*3,0.08+R()*0.1]);
+  g.fillStyle='rgb(12,13,16)'; soft(512,(u,v)=>{ const dx=u-0.5, dy=v-0.5, a=Math.atan2(dy,dx); let r=0.36; n.forEach(([p,f,m])=>r+=Math.sin(a*f+p)*m*0.3); const d=Math.hypot(dx,dy)/r; return d<1?0.42*Math.pow(1-d,0.6)*(0.8+0.2*Math.sin(u*90+v*70)):0; });
+  // 3: Teerfuge (geschwungener dunkler Strich)
+  g.strokeStyle='rgba(18,18,20,0.85)'; g.lineCap='round'; for (let k=0;k<2;k++){ g.lineWidth=k?3:7; g.globalAlpha=k?0.9:0.35; g.beginPath(); let x=800, y=6; g.moveTo(x,y); while (y<250){ y+=12; x=800+Math.sin(y*0.05)*18+(R()-0.5)*8; g.lineTo(x,y); } g.stroke(); } g.globalAlpha=1;
+  const t=new THREE.CanvasTexture(c); t.anisotropy=8; return t; }
+function buildEdgeDecals(def, grp){
+  const v=[], uv=[], idx=[]; let q=0; const AL=window._alleys||[];
+  const add=(d, lat, len, wid, cell, rot)=>{ const W=roadWAt(d); const p=posAt(d), hd=headingAt(d)+(rot||0), fx=Math.sin(hd), fz=Math.cos(hd), lx=Math.cos(hd), lz=-Math.sin(hd), sg=Math.sign(lat)||1;
+    const u0=cell/4+0.002, u1=(cell+1)/4-0.002;
+    [[-1,-1,u0,0],[1,-1,u1,0],[1,1,u1,1],[-1,1,u0,1]].forEach(([a,b,uu,vv])=>{ const ol=lat+a*wid/2, x=p.x+lx*ol+fx*b*len/2, z=p.z+lz*ol+fz*b*len/2; v.push(x,(Math.abs(ol)<W/2 ? p.y+roadCrown(clamp(0.5-ol/W,0,1)) : profileH(d,Math.sign(ol),Math.abs(ol)))+0.008,z); if (cell===0) uv.push(b<0?u0:u1, sg*a>0?1:0); else uv.push(uu, vv); });
+    idx.push(q,q+2,q+1, q,q+3,q+2); q+=4; };
+  const inAlley=d=>AL.some(a=>{ const r=((d-a)%L+L)%L; return r<400; });
+  for (let d=4; d<L-4; d+=4+rand()*5){ if (juncAt(d)>0.1) continue; const W=roadWAt(d), al=inAlley(d);
+    for (const side of [1,-1]){
+      if (rand()<0.6) add(d, side*(W/2+0.02), 1.8+rand()*1.0, 0.55+rand()*0.25, 0);
+      if (rand()<(al?0.75:0.07)) add(d+rand()*3, side*(W/2-0.5-rand()*(al?1.4:0.4)), 1.6+rand()*1.6, 1.3+rand()*1.2, 1, rand()*6); } }
+  for (let d=20+rand()*40; d<L-5; d+=(rand()<0.5?25:70)+rand()*60){ if (juncAt(d)>0.1) continue; const W=roadWAt(d), al=inAlley(d);
+    if (rand()<(al?0.8:0.35)) add(d, (rand()-0.5)*(W-2.5), 2+rand()*4, 1.4+rand()*1.8, 2, rand()*6);
+    if (rand()<0.3) add(d+8, (rand()-0.5)*(W-2), 3.5+rand()*2.5, 0.5, 3, (rand()-0.5)*0.4+(rand()<0.3?1.57:0)); }
+  const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(idx); geo.computeVertexNormals();
+  const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({map:edgeAtlas(), transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:0, polygonOffsetUnits:-10})); m.receiveShadow=true; m.renderOrder=2; grp.add(m);
 }
 // Wind für Gras, Sträucher und Blätter: leichtes Wehen + Fahrtwind des Fahrers (Gras wird beim Vorbeifahren weggedrückt und schwingt nach)
 const WIND={t:{value:0}, rp:{value:new THREE.Vector3(1e6,0,1e6)}, rv:{value:new THREE.Vector2(0,1)}, rs:{value:0}};
@@ -5595,6 +5631,7 @@ function buildWorld(def){ BUILT_R=GFX_BUILD_R; window._alleys=[]; window._alleyN
             const h=terrainMeshH(x,z); if (def.water && h<minY-1.2) continue; const sc=0.95+rand()*0.3; q.setFromEuler(new THREE.Euler((rand()-0.5)*0.05,rand()*6.28,(rand()-0.5)*0.05)); s.set(sc,sc*(1.0+rand()*0.2),sc); p.set(x,h-0.1,z); m.compose(p,q,s);
             const f=0.8+rand()*0.3; treeTint(tcol,f); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; window._alleyN=(window._alleyN||0)+1; } } } }
     setupTreeLOD(sets, kit, worldGroup);
+    if (!def.real) try{ buildEdgeDecals(def, worldGroup); }catch(e){ console.warn('Randdetails',e); }
     // Felsen
     const rockN = def.real?30:def.terrain==='mountains'?500:(def.terrain==='island'?120:300);
     const rocks=mkIM(new THREE.DodecahedronGeometry(1,0),lam(0x8a8a8a,true),rockN); let ri=0;
@@ -6725,8 +6762,8 @@ let builtWorld = null;
 // Smartphone/Tablet: Hoch und Ultra sperren, beim ersten Start Niedrig
 // Smartphone/Tablet: immer mit Niedrig starten; Hoch/Ultra erlaubt, aber mit Warnung
 if (IS_MOBILE){ [...$('gfx').options].forEach(o=>{ if (+o.value>0.7) o.textContent=o.textContent.split(' (')[0]+' (am Handy Absturzgefahr)'; });
-  const g0=store.get('gfx',null); const gv=(g0===null || +g0>0.7) ? (IS_PHONE?'0.35':'0.5') : String(g0); $('gfx').value=gv; store.set('gfx',gv);
-  $('gfx').addEventListener('change',()=>{ if (+$('gfx').value>0.7) toast('Achtung: Hoch/Ultra kann auf dem Handy abstürzen. Beim nächsten Öffnen startet es wieder auf Niedrig.'); }); }
+  const g0=store.get('gfx',null), usr=store.get('gfxUser',0)===1; const gv=(IS_PHONE && !usr) ? '0.35' : (g0===null || +g0>0.7) ? (IS_PHONE?'0.35':'0.5') : String(g0); $('gfx').value=gv; store.set('gfx',gv);
+  $('gfx').addEventListener('change',()=>{ store.set('gfxUser',1); if (+$('gfx').value>0.7) toast('Achtung: Hoch/Ultra kann auf dem Handy abstürzen. Beim nächsten Öffnen startet es wieder auf Niedrig.'); }); }
 // Trikot-Auswahl: tauscht die Farbtextur der Fahrerfigur
 function showJerseyThumb(){ const J=window.JERSEY_JPG||{}, id=$('jersey').value, im=$('jerseyThumb');
   if (J[id]&&J[id].thumb){ im.src='data:image/jpeg;base64,'+J[id].thumb; im.style.display=''; } else im.style.display='none'; }
@@ -6776,7 +6813,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 1.1`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 1.2`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
