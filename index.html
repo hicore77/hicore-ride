@@ -5385,6 +5385,20 @@ function shoulderTexture(){
   const gr=g.createLinearGradient(0,0,W,0); gr.addColorStop(0,'rgba(30,30,30,.35)'); gr.addColorStop(0.08,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,W,H);
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=renderer.capabilities.getMaxAnisotropy(); return t;
 }
+// Haufenwolke mit Volumen: flache Basis, blumenkohlartige Kuppen, Licht je nach Sonnenseite (L/R von der Seite, F von vorn, B Gegenlicht mit Silberrand)
+function cumulusTexture(seed, light){ const W=256, H=192, c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d'); let sd=seed*7777+13; const R=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  const base=H*0.8, blobs=[]; const n=38+Math.floor(R()*14);
+  for (let i=0;i<n;i++){ const t=R(), x=W*(0.1+0.8*t), dome=Math.pow(Math.sin(Math.PI*t),0.8), r=W*(0.035+0.075*dome*(0.5+R()*0.7)); const y=base-r*0.5-dome*H*0.42*Math.pow(R(),0.7); blobs.push([x,Math.min(y,base-r*0.3),r]); }
+  blobs.sort((a,b)=>b[1]-a[1]);   // untere zuerst, obere Kuppen davor
+  const lx=light==='L'?-0.6:light==='R'?0.6:0, ly=-0.75;
+  if (light==='B') for (const [x,y,r] of blobs){ const gr=g.createRadialGradient(x,y,r*0.5,x,y,r*1.18); gr.addColorStop(0,'rgba(255,247,228,0.8)'); gr.addColorStop(1,'rgba(255,247,228,0)'); g.fillStyle=gr; g.beginPath(); g.arc(x,y,r*1.18,0,7); g.fill(); }   /* Silberrand nur an der Außenkante */
+  for (const [x,y,r] of blobs){ const hx=x+lx*r*0.45, hy=y+ly*r*0.45; const gr=g.createRadialGradient(hx,hy,r*0.05,x,y,r);
+    if (light==='B'){ gr.addColorStop(0,'rgba(176,184,198,0.9)'); gr.addColorStop(0.6,'rgba(186,194,207,0.8)'); gr.addColorStop(0.9,'rgba(200,206,216,0.35)'); gr.addColorStop(1,'rgba(200,206,216,0)'); }
+    else { gr.addColorStop(0,'rgba(255,253,246,0.9)'); gr.addColorStop(0.4,light==='F'?'rgba(250,250,250,0.82)':'rgba(236,238,242,0.8)'); gr.addColorStop(0.72,light==='F'?'rgba(228,232,238,0.55)':'rgba(200,207,219,0.55)'); gr.addColorStop(1,'rgba(200,207,219,0)'); }
+    g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
+  g.globalCompositeOperation='source-atop'; const sh=g.createLinearGradient(0,base-H*0.25,0,base+4); sh.addColorStop(0,'rgba(120,132,152,0)'); sh.addColorStop(1,'rgba(120,132,152,.55)'); g.fillStyle=sh; g.fillRect(0,0,W,H);   // dunklere Unterseite
+  g.globalCompositeOperation='destination-out'; const cut=g.createLinearGradient(0,base-6,0,base+10); cut.addColorStop(0,'rgba(0,0,0,0)'); cut.addColorStop(1,'rgba(0,0,0,1)'); g.fillStyle=cut; g.fillRect(0,base-6,W,H);   // flache Basis
+  const t=new THREE.CanvasTexture(c); return t; }
 function puffTexture(){
   const S=128, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d');
   for (let i=0;i<14;i++){ const x=S/2+(Math.random()-0.5)*S*0.38, y=S/2+(Math.random()-0.5)*S*0.25, r=S*(0.16+Math.random()*0.18);
@@ -5581,10 +5595,12 @@ function buildWorld(def){
     // Wolken: weiche Billboards, je weiter weg desto blasser und dunstiger (bewegen sich mit der Kamera wie der Himmel)
     const puffs=[puffTexture(),puffTexture(),puffTexture(),puffTexture()];
     cloudLayer=new THREE.Group(); const hz=new THREE.Color(def.fog);
-    for (let c=0;c<70;c++){ const a=rand()*Math.PI*2, rr=500+rand()*2000, cx=Math.cos(a)*rr, cz=Math.sin(a)*rr, cy=320+rand()*260, big=90+rand()*120;
-      const far=clamp((rr-500)/2000,0,1); const op=0.95-far*0.6; const col=new THREE.Color(0xffffff).lerp(hz,far*0.55);
-      for (let j=0;j<4;j++){ const sm=new THREE.SpriteMaterial({map:puffs[(c+j)%4], color:col, transparent:true, opacity:op*(0.75+rand()*0.25), depthWrite:false, fog:false});
-        const sp=new THREE.Sprite(sm); const w=big*(0.8+rand()*0.6); sp.scale.set(w*1.6, w*0.7, 1); sp.position.set(cx+(j-1.5)*big*0.55, cy+(rand()-0.5)*big*0.15, cz+(rand()-0.5)*big*0.4); cloudLayer.add(sp); } }
+    const CU={}; ['L','R','F','B'].forEach(l=>{ CU[l]=[0,1,2].map(k=>cumulusTexture(k+1+l.charCodeAt(0),l)); }); const sa=Math.atan2(SUN_DIR.z,SUN_DIR.x);
+    for (let c=0;c<64;c++){ const a=rand()*Math.PI*2, rr=600+rand()*1900, cx=Math.cos(a)*rr, cz=Math.sin(a)*rr, cy=330+rand()*240, big=150+rand()*170;
+      const far=clamp((rr-600)/1900,0,1); const op=0.97-far*0.45; const col=new THREE.Color(0xffffff).lerp(hz,far*0.5);
+      let d=a-sa; d=Math.atan2(Math.sin(d),Math.cos(d)); const lt=Math.abs(d)<0.6?'B':Math.abs(d)>2.4?'F':(Math.sin(sa-a)>0?'R':'L');
+      for (let j=0;j<2;j++){ const sm=new THREE.SpriteMaterial({map:CU[lt][(c+j)%3], color:col, transparent:true, opacity:op*(j?0.85:1), depthWrite:false, fog:false});
+        const sp=new THREE.Sprite(sm); const w=big*(j?0.65:1)*(0.85+rand()*0.3); sp.scale.set(w*1.5, w*1.12, 1); sp.position.set(cx+(j?(rand()-0.5)*big*1.1:0), cy+(j?-big*0.08:0), cz+(j?(rand()-0.5)*big*0.5:0)); cloudLayer.add(sp); } }
     // Dunstschleier am Horizont
     { const hc=document.createElement('canvas'); hc.width=4; hc.height=128; const hg=hc.getContext('2d'); const gr=hg.createLinearGradient(0,0,0,128); const fc='#'+hz.getHexString();
       gr.addColorStop(0,'rgba(255,255,255,0)'); gr.addColorStop(0.55,fc+'88'); gr.addColorStop(0.8,fc+'ee'); gr.addColorStop(1,fc+'00'); hg.fillStyle=gr; hg.fillRect(0,0,4,128);
@@ -6748,7 +6764,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 68`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 69`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7013,7 +7029,8 @@ function frame(now){
   if (window.camOverride){ const o=window.camOverride; me.g.localToWorld(camera.position.set(o[0],o[1],o[2])); camera.lookAt(me.g.localToWorld(tmp.set(o[3],o[4],o[5]))); }
   { camera.getWorldDirection(tmp); tmp.y=0; tmp.normalize(); const ex=sc.right*0.55; const cx=p.x+tmp.x*ex, cz=p.z+tmp.z*ex;   // Schattenbereich vor die Kamera legen
     sun.position.set(cx+SUN_DIR.x*140, p.y+SUN_DIR.y*140, cz+SUN_DIR.z*140); sun.target.position.set(cx,p.y,cz); SUNU.value.copy(SUN_DIR);
-    if (SUN_SPR){ SUN_SPR.position.copy(camera.position).addScaledVector(SUN_DIR,2700); } }   // tiefere Sonne: längere Schatten, mehr Tiefe
+    if (SUN_SPR){ SUN_SPR.position.copy(camera.position).addScaledVector(SUN_DIR,2700); } }
+  if (skyDome) skyDome.position.copy(camera.position); if (cloudLayer) cloudLayer.position.set(camera.position.x, 0, camera.position.z);   // Himmel immer um die endgültige Kameraposition   // tiefere Sonne: längere Schatten, mehr Tiefe
 
   // HUD
   $('pw').textContent=Math.round(S.power); $('cad').textContent=Math.round(S.cadence); $('hr').textContent=S.hr?Math.round(S.hr):'--';
