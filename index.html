@@ -5248,7 +5248,7 @@ function asphaltTexture(mode){
   // Markierungen mit Abnutzung und Glasperlen-Glanz
   const paint=(x,w,y0,y1,col)=>{ g.fillStyle=col; g.fillRect(x,y0,w,y1-y0);
     for(let i=0;i<(y1-y0)*w*0.08;i++){ g.fillStyle=`rgba(80,82,88,${0.3+Math.random()*0.5})`; const s2=1+Math.random()*2.5; g.fillRect(x+Math.random()*w,y0+Math.random()*(y1-y0),s2,s2);} };
-  if (!mode){ paint(14,14,0,H,'#ecebe6'); paint(W-28,14,0,H,'#ecebe6'); paint(W/2-7,14,0,H/4,'#f2c63a'); /* Leitlinie: 6 m Strich, 18 m Lücke (Textur = 24 m) */ }
+  if (!mode){ paint(14,14,0,H,'#ecebe6'); paint(W-28,14,0,H,'#ecebe6'); paint(W/2-7,14,0,H/4,'#ecebe6'); /* Leitlinie: 6 m Strich, 18 m Lücke (Textur = 24 m) */ }
   else if (mode==='main'){ paint(10,11,0,H,'#e9e8e2'); paint(W-21,11,0,H,'#e9e8e2'); for (let k=0;k<2;k++) paint(W/2-6,12,k*H/2,k*H/2+H/6,'#eeede8'); }
   // Rand: leicht verschmutzt
   const gr=g.createLinearGradient(0,0,W,0); gr.addColorStop(0,'rgba(60,50,35,.45)'); gr.addColorStop(0.025,'rgba(0,0,0,0)'); gr.addColorStop(0.975,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(60,50,35,.45)'); g.fillStyle=gr; g.fillRect(0,0,W,H);
@@ -6495,7 +6495,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 54`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 55`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
