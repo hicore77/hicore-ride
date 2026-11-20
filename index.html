@@ -3913,7 +3913,7 @@ const PBR={std:!PBR_SAFE && !IS_MOBILE && PBR_Q0>=1, nm:{}, std2:new WeakMap(), 
 renderer.outputEncoding=THREE.sRGBEncoding; renderer.toneMapping=THREE.CustomToneMapping; renderer.toneMappingExposure=1.05;
 // Filmkurve auf der Helligkeit (Farbton und Sättigung bleiben, Lichter laufen weich aus statt hart abzuschneiden)
 THREE.ShaderChunk.tonemapping_pars_fragment=THREE.ShaderChunk.tonemapping_pars_fragment.replace('vec3 CustomToneMapping( vec3 color ) { return color; }',
- 'vec3 CustomToneMapping( vec3 color ) { color*=toneMappingExposure; float l=dot(color,vec3(0.2126,0.7152,0.0722)); color=mix(vec3(l),color,1.04); float lt=l*(1.0+l/2.6)/(1.0+l); return max(color*(lt/max(l,1e-4)),vec3(0.0)); }');
+ 'vec3 CustomToneMapping( vec3 color ) { color*=toneMappingExposure; float l=dot(color,vec3(0.2126,0.7152,0.0722)); color=mix(vec3(l),color,0.92); color*=vec3(1.02,1.0,0.97); float lt=l*(1.0+l/2.6)/(1.0+l); return max(color*(lt/max(l,1e-4)),vec3(0.0)); }');
 // Normal-Map aus der Helligkeit einer Canvas-Textur (Sobel), gecacht
 function pbrNormal(tex, str){ const img=tex&&tex.image; if (!img || !(img instanceof HTMLCanvasElement)) return null;
   const key=tex.uuid+'|'+str; if (PBR.nm[key]) return PBR.nm[key];
@@ -4401,7 +4401,7 @@ function treeKit(def){
   const cards=(blobs, n, size)=>{ const list=[]; blobs.forEach(([cx,cy,cz,r,sy])=>{ const k=Math.round(n*r*r/4);
     for (let i=0;i<k;i++){ const u=R()*2-1, a=R()*6.283, sq=Math.sqrt(1-u*u), dir=new THREE.Vector3(sq*Math.cos(a),u,sq*Math.sin(a)); const rr=r*(0.62+R()*0.5);   // auch innen Blattbüschel -> Tiefe, Lücken zeigen Äste
       const pl=new THREE.PlaneGeometry(size*(0.8+R()*0.5),size*(0.8+R()*0.5)); pl.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),dir)));
-      pl.rotateY(0); pl.translate(cx+dir.x*rr, cy+dir.y*rr*(sy||1), cz+dir.z*rr); const sh=0.6+0.4*clamp((u+1)/2,0,1)*(0.85+R()*0.3); const cc=[]; for(let j=0;j<4;j++) cc.push(sh,sh,sh); pl.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); list.push(pl); } });
+      pl.rotateY(0); pl.translate(cx+dir.x*rr, cy+dir.y*rr*(sy||1), cz+dir.z*rr); const sh=(0.6+0.4*clamp((u+1)/2,0,1)*(0.85+R()*0.3))*(0.8+0.2*clamp((rr/r-0.62)/0.5,0,1)); /* innen im Laub dunkler */ const cc=[]; for(let j=0;j<4;j++) cc.push(sh,sh,sh); pl.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); list.push(pl); } });
     return mergeGeoC(list); };
   const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
   const decid=(trunkKind, trunk, branches, blobs, leafH, leafL, coreCol, cardN, cardS)=>()=>{
@@ -4493,7 +4493,7 @@ function updateTreeLOD(cp, force){ const T=TREE_LOD; if (!T) return; if (!force 
 const LOD_B=45, LOD_M=30;
 const CAMP_GLSL='(-vec3(dot(viewMatrix[0].xyz,viewMatrix[3].xyz),dot(viewMatrix[1].xyz,viewMatrix[3].xyz),dot(viewMatrix[2].xyz,viewMatrix[3].xyz)))';
 const BAYER_GLSL='float bay2(vec2 a){ a=floor(a); return fract(a.x/2.0+a.y*a.y*0.75); }\nfloat bay8(vec2 a){ return bay2(0.25*a)*0.0625+bay2(0.5*a)*0.25+bay2(a); }\n';
-const DITH_MC=new WeakMap();
+const DITH_MC=new WeakMap(), SUNU={value:new THREE.Vector3(0.6,0.65,0.4).normalize()};
 // mode 'N'/'F': Baum-Detailstufen (Attribut iLodR); mode 'G': Einblenden ab Abstand a..b (Kamera), 'R': wie G, aber Abstand zum Fahrer (wRP)
 function ditherMat(mat, mode, a, b){ let c=DITH_MC.get(mat); if (!c){ c={}; DITH_MC.set(mat,c); } const ck=mode+(a||0)+'_'+(b||0); if (c[ck]) return c[ck];
   const base=mat.userData.pbrOrig||mat, P=THREE.Material.prototype.onBeforeCompile; const ob=base.userData.origOb||(base.userData.pbrPrep?null:base.onBeforeCompile), ok=base.userData.origKey||(base.userData.pbrPrep?null:base.customProgramCacheKey);
@@ -4505,7 +4505,8 @@ function ditherMat(mat, mode, a, b){ let c=DITH_MC.get(mat); if (!c){ c={}; DITH
     let vc; if (mode==='N'||mode==='F') vc='vLodF=smoothstep(iLodR-'+LOD_B.toFixed(1)+',iLodR,distance(lodP.xz,'+CAMP_GLSL+'.xz));';
     else if (mode==='R') vc='vLodF=smoothstep('+a.toFixed(1)+','+b.toFixed(1)+',distance(lodP.xz,wRP.xz));';
     else vc='vLodF=smoothstep('+a.toFixed(1)+','+b.toFixed(1)+',distance(lodP.xz,'+CAMP_GLSL+'.xz));';
-    sh.vertexShader=(mode==='N'||mode==='F'?'attribute float iLodR; ':'')+(mode==='R'&&!/uniform vec3 wRP/.test(sh.vertexShader)?'uniform vec3 wRP; ':'')+'varying float vLodF;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n#ifdef USE_INSTANCING\n  vec4 lodP=modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0);\n#else\n  vec4 lodP=modelMatrix*vec4(transformed,1.0);\n#endif\n  '+vc);
+    const glow=tree && hasMap; if (glow) sh.uniforms.sunU=SUNU;
+    sh.vertexShader=(glow?'varying vec3 vWPg; ':'')+(mode==='N'||mode==='F'?'attribute float iLodR; ':'')+(mode==='R'&&!/uniform vec3 wRP/.test(sh.vertexShader)?'uniform vec3 wRP; ':'')+'varying float vLodF;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n#ifdef USE_INSTANCING\n  vec4 lodP=modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0);'+(glow?' vWPg=(modelMatrix*instanceMatrix*vec4(transformed,1.0)).xyz;':'')+'\n#else\n  vec4 lodP=modelMatrix*vec4(transformed,1.0);'+(glow?' vWPg=lodP.xyz;':'')+'\n#endif\n  '+vc);
     if (mode==='R' && !sh.uniforms.wRP) sh.uniforms.wRP=WIND.rp;
     const keep=mode==='F'?'lh>=vLodF':'lh<vLodF';
     let fs='varying float vLodF;\n'+BAYER_GLSL+sh.fragmentShader;
@@ -4513,6 +4514,7 @@ function ditherMat(mat, mode, a, b){ let c=DITH_MC.get(mat); if (!c){ c={}; DITH
     let pre=''; if (gl2 && hasMap && tree) pre+='{ vec2 dd=max(abs(dFdx(vUv)),abs(dFdy(vUv)))*256.0; diffuseColor.a=clamp(diffuseColor.a*(1.0+0.18*max(0.0,log2(max(dd.x,dd.y)))),0.0,1.0); }\n';   /* Laub dünnt in der Ferne nicht aus */
     if (a2c){ pre+='diffuseColor.a*='+(mode==='F'?'vLodF':'(1.0-vLodF)')+';\n'; if (!hasMap) pre+='if (diffuseColor.a<0.004) discard;\n'; }
     if (pre) fs=fs.replace('#include <alphatest_fragment>',pre+'#include <alphatest_fragment>');
+    if (glow) fs='uniform vec3 sunU; varying vec3 vWPg;\n'+fs.replace('#include <output_fragment>','{ vec3 vd=normalize(vWPg-'+CAMP_GLSL+'); float bl=pow(max(0.0,dot(vd,sunU)),5.0); outgoingLight+=diffuseColor.rgb*vec3(0.75,0.85,0.3)*bl*0.9; }   /* Gegenlicht: Blätter leuchten durch */\n#include <output_fragment>');
     sh.fragmentShader=fs; };
   const okc=ok&&ok!==THREE.Material.prototype.customProgramCacheKey?ok:null; w.customProgramCacheKey=()=>(okc?okc.call(base):'')+'|dith'+ck+(a2c?'a':'');
   c[ck]=w; return w; }
@@ -6548,7 +6550,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 58`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 59`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -6753,7 +6755,7 @@ function frame(now){
   animateCritters(dt);
   if (window.camAbs){ const o=window.camAbs; camera.position.set(o[0],o[1],o[2]); camera.lookAt(o[3],o[4],o[5]); } else
   if (window.camOverride){ const o=window.camOverride; me.g.localToWorld(camera.position.set(o[0],o[1],o[2])); camera.lookAt(me.g.localToWorld(tmp.set(o[3],o[4],o[5]))); }
-  sun.position.set(p.x+85, p.y+90, p.z+55); sun.target.position.copy(p);   // tiefere Sonne: längere Schatten, mehr Tiefe
+  sun.position.set(p.x+85, p.y+90, p.z+55); sun.target.position.copy(p); SUNU.value.set(85,90,55).normalize();   // tiefere Sonne: längere Schatten, mehr Tiefe
 
   // HUD
   $('pw').textContent=Math.round(S.power); $('cad').textContent=Math.round(S.cadence); $('hr').textContent=S.hr?Math.round(S.hr):'--';
