@@ -4376,7 +4376,7 @@ function treeKit(def){
     const near=[[tg,bk],[cg,coreM(new THREE.Color(p.core).multiplyScalar(0.8)),'vary'],[cards(blobs,78,1.05),leafMC(p),'vary']];
     near.far=()=>{ const ft=limb(V3(0,-0.3,0),T,p.r,p.r*0.7,5); const cy=blobs.reduce((a,b)=>a+b[1],0)/blobs.length; const fc=mergeGeoC([blob(lean.x,cy,lean.z,p.CR*1.22,name==='birch'?1.5:p.lead?1.15:0.85,seed,true), blob(lean.x+p.CR*0.35,cy+p.CR*0.35,lean.z-p.CR*0.2,p.CR*0.7,1,seed+3,true)]);
       const fb=[[lean.x,cy,lean.z,p.CR*1.22,name==='birch'?1.5:p.lead?1.15:0.85]];   // ferne Krone mit wenigen großen Blattkarten (keine glatte Kugel mehr)
-      return [[ft,bk],[fc,coreM(new THREE.Color().setHSL(p.hue,0.42,p.l*0.7)),'vary'],[cards(fb,14,2.4),leafMC(p),'vary']]; };
+      return [[ft,bk],[fc,coreM(new THREE.Color().setHSL(p.hue,0.42,p.l*0.7)),'vary'],[cards(fb.concat([[fb[0][0]+fb[0][3]*0.4,fb[0][1]+fb[0][3]*0.3,fb[0][2]-fb[0][3]*0.3,fb[0][3]*0.7,1],[fb[0][0]-fb[0][3]*0.45,fb[0][1]-fb[0][3]*0.1,fb[0][2]+fb[0][3]*0.35,fb[0][3]*0.65,1]]),8,2.3),leafMC(p),'vary']]; };
     return near; };
   const TYPES={
     oak:genTree('oak',1), oak2:genTree('oak',2), beech:genTree('beech',3), beech2:genTree('beech',4), birch:genTree('birch',5), birch2:genTree('birch',6),
@@ -6421,7 +6421,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 44`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 45`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
