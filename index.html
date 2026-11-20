@@ -164,6 +164,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
       <div class="spage" id="sGfx" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Grafik &amp; Anzeige</h3>
       <div class="grid">
         <div><label>Grafikqualität</label><select id="gfx"><option value="1.25">Ultra (volle Auflösung, beste Schatten, weite Baumdetails)</option><option value="1">Hoch (volle Auflösung)</option><option value="0.7" selected>Mittel</option><option value="0.5">Niedrig (Handy/Laptop)</option></select></div>
+        <div><label>Leuchten heller Stellen (Bloom)</label><select id="bloom"><option value="1" selected>an</option><option value="0">aus</option></select></div>
         <div><label>Bilder pro Sekunde anzeigen</label><select id="fpsShow"><option value="0">aus</option><option value="1" selected>an</option></select></div>
       </div>
       </div>
@@ -6747,7 +6748,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 67`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 68`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -6883,6 +6884,61 @@ function applyGfx(q){ const dpr=Math.min(devicePixelRatio,2); renderer.setPixelR
   const ext=q>1.1?70:q>0.9?55:40; sc.left=-ext; sc.right=ext; sc.top=ext; sc.bottom=-ext; sc.updateProjectionMatrix();
   GFX_TREE_R=q>1.1?480:q>0.9?320:q>0.6?200:120; if (TREE_LOD){ TREE_LOD.R=GFX_TREE_R; updateTreeLOD(camera.position,true); } PBR.std=!PBR_SAFE && q>=1; hemi.intensity=PBR.std?0.45:0.75; pbrApply(scene); renderer.setSize(innerWidth, innerHeight); }
 let GFX_TREE_R=200, fpsAcc=0, fpsN=0, fpsT=0;
+// ---------- Wehende Blätter: lösen sich bei Böen von nahen Bäumen, trudeln, rutschen über die Straße ----------
+const LEAVES={ cols:[], im:null, n:90, L:[], acc:0, scanT:0, near:[], wind:new THREE.Vector3(),
+  groundH(x,z){ if (typeof CHASH!=='undefined' && CHASH){ const cn=courseNear(x,z,16); if (cn.i>=0 && cn.d<CORR.CW+0.5){ const d=cum[cn.i]+cn.t*(cum[cn.i+1]-cum[cn.i]), a=pts[cn.i], b=pts[(cn.i+1)%N], side=((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x))<0?1:-1; return profileH(d,side,cn.d); } } return terrainMeshH(x,z); },
+  init(){ const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'); g.translate(32,34);
+    g.beginPath(); g.moveTo(0,26); g.bezierCurveTo(20,14,18,-14,0,-28); g.bezierCurveTo(-18,-14,-20,14,0,26); g.fillStyle='#fff'; g.fill(); g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=1.6; g.beginPath(); g.moveTo(0,28); g.lineTo(0,-24); g.stroke();
+    for (let k=-2;k<=2;k++){ if(!k) continue; g.beginPath(); g.moveTo(0,k*7); g.lineTo(Math.sign(k)*12,k*7-8); g.moveTo(0,k*7); g.lineTo(-Math.sign(k)*12,k*7-8); g.stroke(); }
+    const t=new THREE.CanvasTexture(c); const m=new THREE.MeshLambertMaterial({map:t, alphaTest:0.5, side:THREE.DoubleSide});
+    this.im=new THREE.InstancedMesh(new THREE.PlaneGeometry(0.09,0.09),m,this.n); this.im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(this.n*3),3); this.im.count=0; this.im.frustumCulled=false; this.im.castShadow=false; scene.add(this.im);
+    const pal=[[0.42,0.55,0.18],[0.55,0.6,0.2],[0.78,0.62,0.18],[0.62,0.4,0.16],[0.48,0.33,0.15],[0.7,0.52,0.2]], col=new THREE.Color();
+    for (let i=0;i<this.n;i++){ const p=pal[i%pal.length]; col.setRGB(p[0]*(0.85+Math.random()*0.3),p[1]*(0.85+Math.random()*0.3),p[2]); this.cols.push(col.r,col.g,col.b); this.L.push({on:false}); } },
+  update(dt, active){ if (!this.im){ if (typeof me==='undefined') return; this.init(); }
+    const P=me.g.position, t=WIND.t.value; const gust=clamp(0.45+0.3*Math.sin(t*0.11)+0.2*Math.sin(t*0.31+1.3)+0.12*Math.sin(t*0.83+0.4),0,1);
+    const wa=0.6+0.4*Math.sin(t*0.02); this.wind.set(Math.cos(wa),0,Math.sin(wa)).multiplyScalar(0.6+3.2*gust*gust);
+    // nahe Bäume suchen (alle 0,5 s)
+    this.scanT-=dt; if (this.scanT<=0 && typeof TREE_LOD!=='undefined' && TREE_LOD){ this.scanT=0.5; this.near.length=0; const a=posAt(S.dist+18);
+      for (const ty of TREE_LOD.types){ if (ty.st.k.startsWith('bush')||ty.st.k==='spruce'||ty.st.k==='pine') continue; const ps=ty.pos; for (let i=0;i<ps.length;i+=2){ const dx=ps[i]-a.x, dz=ps[i+1]-a.z; if (dx*dx+dz*dz<30*30){ const e=ty.st.mats[i/2].elements; this.near.push([ps[i],ps[i+1],e[13],Math.hypot(e[4],e[5],e[6])]); if (this.near.length>40) break; } } } }
+    // neue Blätter (mehr bei Böen)
+    if (active && this.near.length){ this.acc+=dt*(0.4+4.5*Math.pow(gust,3))*Math.min(1,this.near.length/4); while (this.acc>=1){ this.acc-=1; const s=this.L.find(l=>!l.on); if (!s) break;
+      const tr=this.near[Math.floor(Math.random()*this.near.length)], R=Math.random; s.on=true; s.x=tr[0]+(R()-0.5)*6*tr[3]; s.z=tr[1]+(R()-0.5)*6*tr[3]; s.y=tr[2]+(3+R()*5)*tr[3]; s.vy=0; s.ph=R()*6.28; s.sp=2+R()*3; s.rx=R()*6; s.ry=R()*6; s.rz=R()*6; s.life=0; s.gy=this.groundH(s.x,s.z); s.gT=0; s.land=false; s.sz=0.8+R()*0.6; } }
+    // bewegen
+    const m=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), v=new THREE.Vector3(), sc=new THREE.Vector3(); let k=0;
+    for (let i=0;i<this.L.length;i++){ const l=this.L[i]; if (!l.on) continue; l.life+=dt;
+      if (!l.land){ l.ph+=dt*l.sp; const fl=Math.sin(l.ph); l.vy+=(-1.0-l.vy)*Math.min(1,dt*2.5); l.x+=(this.wind.x*0.9+Math.cos(l.ph*0.7)*0.6)*dt; l.z+=(this.wind.z*0.9+fl*0.6)*dt; l.y+=(l.vy+Math.abs(fl)*0.35)*dt;   // trudeln und pendeln
+        l.rx+=dt*l.sp*1.3; l.ry+=dt*0.9; l.rz+=dt*l.sp*0.7; l.gT-=dt; if (l.gT<=0){ l.gT=0.25; l.gy=this.groundH(l.x,l.z); } if (l.y<=l.gy+0.02){ l.y=l.gy+0.015; l.land=true; l.rx=-Math.PI/2+(Math.random()-0.5)*0.4; l.rz=0; } }
+      else { const push=Math.max(0,gust-0.55)*2.2; if (push>0){ l.x+=this.wind.x*push*0.5*dt; l.z+=this.wind.z*push*0.5*dt; l.ry+=dt*push*3; l.gT-=dt; if (l.gT<=0){ l.gT=0.3; l.y=this.groundH(l.x,l.z)+0.015; } } }   // bei Böen über den Asphalt rutschen
+      const dx=l.x-P.x, dz=l.z-P.z; if (l.life>40 || dx*dx+dz*dz>70*70){ l.on=false; continue; }
+      e.set(l.rx,l.ry,l.rz); q.setFromEuler(e); v.set(l.x,l.y,l.z); sc.setScalar(l.sz); m.compose(v,q,sc); this.im.setMatrixAt(k,m); const c=this.cols; this.im.instanceColor.setXYZ(k,c[i*3],c[i*3+1],c[i*3+2]); k++; }
+    this.im.instanceColor.needsUpdate=true;
+    this.im.count=k; this.im.instanceMatrix.needsUpdate=true; }
+};
+
+// ---------- Nachbearbeitung: Leuchten heller Stellen (Bloom), leichte Vignette ----------
+const POST={ on:true, ok:null, w:0, h:0,
+  setup(){ const gl2=renderer.capabilities.isWebGL2, ex=renderer.extensions; this.ok=gl2 && (ex.has('EXT_color_buffer_float')||ex.has('EXT_color_buffer_half_float')) && !!THREE.WebGLMultisampleRenderTarget; if (!this.ok) return;
+    const tri=new THREE.BufferGeometry(); tri.setAttribute('position',new THREE.Float32BufferAttribute([-1,-1,0, 3,-1,0, -1,3,0],3)); this.cam=new THREE.OrthographicCamera(-1,1,1,-1,0,1); this.scn=new THREE.Scene();
+    const VS='varying vec2 vUv; void main(){ vUv=position.xy*0.5+0.5; gl_Position=vec4(position.xy,0.0,1.0); }';
+    const mk=(fs,u)=>new THREE.ShaderMaterial({vertexShader:VS, fragmentShader:fs, uniforms:u, depthTest:false, depthWrite:false, toneMapped:false});
+    this.mBright=mk('uniform sampler2D t; uniform vec2 px; varying vec2 vUv; void main(){ vec3 c=(texture2D(t,vUv+px*vec2(-0.5,-0.5)).rgb+texture2D(t,vUv+px*vec2(0.5,-0.5)).rgb+texture2D(t,vUv+px*vec2(-0.5,0.5)).rgb+texture2D(t,vUv+px*vec2(0.5,0.5)).rgb)*0.25; c=mix(vec3(0.0),c,vec3(greaterThanEqual(c,vec3(0.0)))); c=min(c,vec3(1.15)); float l=max(c.r,max(c.g,c.b)); gl_FragColor=vec4(c*smoothstep(0.7,1.1,l),1.0); }',{t:{value:null},px:{value:new THREE.Vector2()}});
+    this.mBlur=mk('uniform sampler2D t; uniform vec2 d; varying vec2 vUv; void main(){ vec3 c=texture2D(t,vUv).rgb*0.227; c+=(texture2D(t,vUv+d*1.385).rgb+texture2D(t,vUv-d*1.385).rgb)*0.316; c+=(texture2D(t,vUv+d*3.231).rgb+texture2D(t,vUv-d*3.231).rgb)*0.07; gl_FragColor=vec4(c,1.0); }',{t:{value:null},d:{value:new THREE.Vector2()}});
+    this.mComp=mk('uniform sampler2D t; uniform sampler2D b1; uniform sampler2D b2; uniform float k; uniform vec2 px; varying vec2 vUv;\n vec3 toSRGB(vec3 c){ c=max(c,0.0); return mix(c*12.92, 1.055*pow(c,vec3(1.0/2.4))-0.055, step(0.0031308,c)); }\n vec3 sm(vec2 o){ vec3 c=texture2D(t,vUv+o*px).rgb; c=mix(vec3(0.0),c,vec3(greaterThanEqual(c,vec3(0.0)))); return min(c,vec3(1.0)); }\n void main(){ vec3 c=sm(vec2(0.0)); vec3 nb=(sm(vec2(1.0,0.0))+sm(vec2(-1.0,0.0))+sm(vec2(0.0,1.0))+sm(vec2(0.0,-1.0)))*0.25; float dl=dot(c-nb,vec3(0.3,0.5,0.2)); if (dl>0.22) c=nb;   /* einzelne Glitzerpixel entfernen */\n vec3 bl=texture2D(b1,vUv).rgb*0.55+texture2D(b2,vUv).rgb*0.75; c+=bl*k*vec3(1.0,0.97,0.9); vec2 q=vUv-0.5; c*=1.0-0.22*dot(q,q)*1.6; gl_FragColor=vec4(toSRGB(c),1.0); }',{t:{value:null},b1:{value:null},b2:{value:null},k:{value:0.26},px:{value:new THREE.Vector2()}});
+    this.quad=new THREE.Mesh(tri,this.mComp); this.quad.frustumCulled=false; this.scn.add(this.quad); },
+  size(){ const v=renderer.getDrawingBufferSize(new THREE.Vector2()); if (v.x===this.w && v.y===this.h) return; this.w=v.x; this.h=v.y; [this.rt,this.a,this.b,this.c,this.d].forEach(r=>r&&r.dispose());
+    const o={type:THREE.HalfFloatType, format:THREE.RGBAFormat}; this.rt=new THREE.WebGLMultisampleRenderTarget(v.x,v.y,Object.assign({samples:4},o)); this.rt.texture.encoding=THREE.LinearEncoding;
+    const h2=[Math.max(1,v.x>>1),Math.max(1,v.y>>1)], q4=[Math.max(1,v.x>>2),Math.max(1,v.y>>2)], e8=[Math.max(1,v.x>>3),Math.max(1,v.y>>3)];
+    this.a=new THREE.WebGLRenderTarget(h2[0],h2[1],o); this.b=new THREE.WebGLRenderTarget(q4[0],q4[1],o); this.c=new THREE.WebGLRenderTarget(q4[0],q4[1],o); this.d=new THREE.WebGLRenderTarget(e8[0],e8[1],o); this.e=new THREE.WebGLRenderTarget(e8[0],e8[1],o); },
+  pass(m,target){ this.quad.material=m; renderer.setRenderTarget(target); renderer.render(this.scn,this.cam); },
+  render(){ if (this.ok===null){ try{ this.setup(); }catch(e){ this.ok=false; } } if (!this.on || !this.ok || window.NOBLOOM){ renderer.render(scene,camera); return; }
+    try{ this.size(); renderer.setRenderTarget(this.rt); renderer.render(scene,camera);
+      this.mBright.uniforms.t.value=this.rt.texture; this.mBright.uniforms.px.value.set(1/this.w,1/this.h); this.pass(this.mBright,this.a);
+      const B=this.mBlur.uniforms; B.t.value=this.a.texture; B.d.value.set(1/this.b.width,0); this.pass(this.mBlur,this.b); B.t.value=this.b.texture; B.d.value.set(0,1/this.b.height); this.pass(this.mBlur,this.c);
+      B.t.value=this.c.texture; B.d.value.set(1/this.d.width,0); this.pass(this.mBlur,this.d); B.t.value=this.d.texture; B.d.value.set(0,1/this.d.height); this.pass(this.mBlur,this.e);
+      const C=this.mComp.uniforms; C.px.value.set(1/this.w,1/this.h); C.t.value=this.rt.texture; C.b1.value=this.c.texture; C.b2.value=this.e.texture; this.pass(this.mComp,null); }
+    catch(e){ console.warn('Nachbearbeitung aus',e); this.ok=false; renderer.setRenderTarget(null); renderer.render(scene,camera); } } };
+$('bloom').value=String(store.get('bloom',1)); POST.on=$('bloom').value==='1'; $('bloom').onchange=()=>{ POST.on=$('bloom').value==='1'; store.set('bloom',+$('bloom').value); };
+
 function frame(now){
   requestAnimationFrame(frame);
   const dt=Math.min(0.1,(now-last)/1000); last=now;
@@ -6919,6 +6975,7 @@ function frame(now){
     const b=window._blob, hb=headingAt(S.dist); b.position.set(me.g.position.x, me.g.position.y+0.03, me.g.position.z); b.rotation.y=hb; b.visible=!!S.running || true; }
   { WIND.t.value+=dt; const hw=headingAt(S.dist); WIND.rp.value.copy(me.g.position); updateGrassField(me.g.position); WIND.rv.value.set(Math.sin(hw),Math.cos(hw)); WIND.rs.value+=((active?Math.min(1,S.speed/9):0)-WIND.rs.value)*Math.min(1,dt*2); }
   AMB.update(dt, active, builtWorld||selWorld);
+  try{ LEAVES.update(dt, active); }catch(e){ if(!LEAVES.err){ LEAVES.err=1; console.warn('Blätter',e); } }
   animRider(me, active?S.cadence:0, active?S.speed:0, dt, active?S.power:0);
   for (const b of bots){ placeRider(b.r, b.d, b.lane); animRider(b.r, active?b.cad:0, active&&b.st?b.st.v:0, dt); }
 
@@ -6972,7 +7029,7 @@ function frame(now){
   drawProfile();
   if (ENV_Q.length || ENV_JOB) captureWaterEnv();
   updateTreeLOD(camera.position);
-  renderer.render(scene, camera);
+  POST.render();
   fpsN++; if (now-fpsT>1000){ const el=$('fps'); if (el){ el.textContent=Math.round(fpsN*1000/(now-fpsT))+' FPS'; el.style.display=$('fpsShow')&&$('fpsShow').value==='0'?'none':'block'; } fpsN=0; fpsT=now; }
 }
 addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); profImg=null; });
