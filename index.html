@@ -4144,7 +4144,7 @@ function buildCorridor(def, grp, W){
           if (gravel){ uv.push(j/(C-1), cum[i]/12); const b=0.92+0.08*Math.sin(cum[i]/23+side)+0.05*Math.sin(cum[i]/5.3); col.push(b,b,b); }
           else { uv.push((x-OFF)/EXT, 1-(z-OFF)/EXT); const t=clamp((h-minY+10)/90,0,1), wet=clamp((dd>0.12?1:0)*(1-Math.abs(o-(S+1.35))/0.9),0,1);
             const kk=clamp((7.5-o)/4,0,1), n=(0.5+0.5*Math.sin(x*0.37+z*0.21)*Math.sin(z*0.29-x*0.13))*kk;
-            c.setHSL(def.grass[0]-0.05*t+0.02*n-0.01*wet, def.grass[1]*(1-0.12*n), (0.30+0.12*t)*(1-0.2*wet)*(1-0.07*kk+0.1*n)); if (j===0) c.lerp(new THREE.Color(0x857a66),0.35); col.push(c.r,c.g,c.b); } }
+            c.setHSL(def.grass[0]-0.05*t+0.02*n-0.01*wet, def.grass[1]*(1-0.12*n), (0.30+0.12*t)*(1-0.2*wet)*(1-0.07*kk+0.1*n)); if (j===0) c.lerp(new THREE.Color(0x857a66),0.35); if (LU){ const lb=1+0.42*clamp((o-S-0.6)/3,0,1); c.r*=lb*1.06; c.g*=lb; c.b*=lb*0.88; } col.push(c.r,c.g,c.b); } }   /* Flurplan-Welten: Bankett heller, nahtlos zur Wiese */
         if (i<N){ const a=i*C; for (let j=0;j<C-1;j++){ const q=a+j; idx.push(q,q+C,q+1, q+1,q+C,q+C+1); } } }
       const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); geo.setIndex(idx); geo.computeVertexNormals();
       let cm=new THREE.MeshLambertMaterial({map:gravel?st:TERR_MAP, vertexColors:true, side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:gravel?-1:0, polygonOffsetUnits:gravel?-2:0}); if (def.real) cm=maskMaterial(cm,(g,S)=>streamMaskDraw(g,S,2.3),'streamHole');
@@ -6477,7 +6477,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 52`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 53`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
