@@ -4116,12 +4116,12 @@ function terrainHoleMaterial(mat, W){
     float t=floor(texture2D(luTex,(ci+32.5)/64.0).r*255.0+0.5); float k=smoothstep(1.2,3.2,edge+vnz(P*0.7)*1.2)*vLuk; vec3 lc=vec3(0.0);
     vec3 wz=mapTexelToLinear(texture2D(tWz,u2/2.4)).rgb; float wl=dot(wz,vec3(0.3,0.6,0.1));
     float wv=sin(dot(P,vec2(0.11,0.065))-wT*1.7+vnz(P*0.025)*5.0)*smoothstep(0.25,0.75,vnz(P*0.018+vec2(wT*0.04,wT*0.025)));   // Windböen laufen übers Feld
-    if (t<0.5){ k=0.0; diffuseColor.rgb*=mix(vec3(0.74,0.84,0.74), vec3(1.12,1.08,0.84), smoothstep(0.2,0.8,vnz(P*0.12)*0.6+vnz(P*0.55)*0.25+vnz(P*2.3)*0.15)); if (h21(ci+vec2(7.3,1.1))>0.3){ vec2 ur=vec2(P.x*luR.x-P.y*luR.y, P.x*luR.y+P.y*luR.x); float st=step(0.5,fract((h21(ci)>0.5?ur.x:ur.y)/5.0)); float mw=smoothstep(1.5,5.0,edge)*(1.0-smoothstep(90.0,230.0,length(P-cameraPosition.xz))); diffuseColor.rgb*=mix(vec3(1.0), st>0.5?vec3(1.12,1.1,0.88):vec3(0.88,0.93,0.9), mw); } }   /* gemähte Wiesen mit Mähstreifen */
+    if (t<0.5){ k=0.0; diffuseColor.rgb*=mix(vec3(0.74,0.84,0.74), vec3(1.12,1.08,0.84), smoothstep(0.2,0.8,vnz(P*0.12)*0.6+vnz(P*0.55)*0.25+vnz(P*2.3)*0.15)); if (h21(ci+vec2(7.3,1.1))>0.3){ vec2 ur=vec2(P.x*luR.x-P.y*luR.y, P.x*luR.y+P.y*luR.x); float st=step(0.5,fract((h21(ci)>0.5?ur.x:ur.y)/5.0)); float mw=smoothstep(1.5,5.0,edge)*(1.0-smoothstep(90.0,230.0,length(P-(-vec3(dot(viewMatrix[0].xyz,viewMatrix[3].xyz),dot(viewMatrix[1].xyz,viewMatrix[3].xyz),dot(viewMatrix[2].xyz,viewMatrix[3].xyz))).xz))); diffuseColor.rgb*=mix(vec3(1.0), st>0.5?vec3(1.12,1.1,0.88):vec3(0.88,0.93,0.9), mw); } }   /* gemähte Wiesen mit Mähstreifen */
     else if (t<1.5){ lc=mapTexelToLinear(texture2D(tBw,wq*0.9)).rgb*1.1; k*=smoothstep(0.3,0.6,vnz(P*0.025)+vnz(P*0.09)*0.3); }
     else if (t<2.5){ lc=wz*0.82; }
     else if (t<3.5){ lc=vec3(0.80,0.63,0.30)*(0.42+wl*1.2)*(0.9+0.2*vnz(u2*0.08)); }
     else if (t<4.5){ float fl=vnz(u2*2.3)*0.6+vnz(u2*9.0)*0.4; lc=mix(wz, vec3(0.96,0.83,0.07)*(0.75+0.45*fl), 0.55+0.35*smoothstep(0.3,0.7,fl)); }
-    else if (t<5.5){ vec2 ur=vec2(P.x*luR.x-P.y*luR.y, P.x*luR.y+P.y*luR.x); float fd=mod(ci.x+ci.y,2.0)<0.5?ur.y:ur.x; float fu=0.5+0.5*sin(fd*8.3776+vnz(P*0.4)*0.8); fu=mix(fu,vnz(P*3.1),0.25); fu=mix(fu,0.5,smoothstep(35.0,110.0,length(P-cameraPosition.xz))); /* Furchen in der Ferne ausblenden */ vec3 b=mapTexelToLinear(texture2D(tFw,u2/3.0)).rgb; float l=dot(b,vec3(0.3,0.6,0.1)); lc=vec3(0.36,0.29,0.22)*(0.55+0.9*l)*(0.72+0.4*fu)*(0.85+0.3*vnz(P*0.05)); }
+    else if (t<5.5){ vec2 ur=vec2(P.x*luR.x-P.y*luR.y, P.x*luR.y+P.y*luR.x); float fd=mod(ci.x+ci.y,2.0)<0.5?ur.y:ur.x; float fu=0.5+0.5*sin(fd*8.3776+vnz(P*0.4)*0.8); fu=mix(fu,vnz(P*3.1),0.25); fu=mix(fu,0.5,smoothstep(35.0,110.0,length(P-(-vec3(dot(viewMatrix[0].xyz,viewMatrix[3].xyz),dot(viewMatrix[1].xyz,viewMatrix[3].xyz),dot(viewMatrix[2].xyz,viewMatrix[3].xyz))).xz))); /* Furchen in der Ferne ausblenden */ vec3 b=mapTexelToLinear(texture2D(tFw,u2/3.0)).rgb; float l=dot(b,vec3(0.3,0.6,0.1)); lc=vec3(0.36,0.29,0.22)*(0.55+0.9*l)*(0.72+0.4*fu)*(0.85+0.3*vnz(P*0.05)); }
     else { vec3 wb=mapTexelToLinear(texture2D(tWb,wq*0.8)).rgb; lc=mix(wb*0.7, vec3(0.17,0.25,0.11)*(0.75+0.5*vnz(P*0.3)), 0.62+0.25*vnz(P*0.05)); }
     if (t>1.5 && t<4.5) lc*=1.0+0.16*wv; diffuseColor.rgb*=1.0+0.05*wv*(1.0-k);
     luW=k; lc=pow(max(lc,vec3(0.0)),vec3(1.9))*1.25; diffuseColor.rgb=mix(diffuseColor.rgb, lc*mix(vec3(1.0),tnt,0.5)*fine, luW); }
@@ -4454,16 +4454,28 @@ function treeKit(def){
 // Bäume: nahe = volle Blattkarten, ferne = einfache Kronen; wird beim Fahren neu verteilt
 let TREE_LOD=null;
 function setupTreeLOD(sets, kit, grp){
-  const types=Object.values(sets).filter(st=>st&&st.c>0).map(st=>{ const mkSet=(parts)=>parts.map(([geo,mat,vary])=>{ const im=mkIM(geo,mat,st.c); im.castShadow=!st.k.startsWith('bush'); im.userData.vary=!!vary; if (vary) im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(st.c*3).fill(1),3); im.count=0; grp.add(im); return im; });
+  const types=Object.values(sets).filter(st=>st&&st.c>0).map(st=>{ const mkSet=(parts,far)=>parts.map(([geo,mat,vary])=>{ if (geo.attributes.iLodR) geo=geo.clone(); geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(st.c),1)); const im=mkIM(geo,lodMat(mat,far),st.c); im.castShadow=!st.k.startsWith('bush'); im.userData.vary=!!vary; if (vary) im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(st.c*3).fill(1),3); im.count=0; grp.add(im); return im; });
     const pos=new Float32Array(st.c*2); st.mats.forEach((m,i)=>{ pos[i*2]=m.elements[12]; pos[i*2+1]=m.elements[14]; });
-    return {st, near:mkSet(kit.TYPES[st.k]()), far:mkSet(kit.FAR[st.k]()), pos}; });
+    return {st, near:mkSet(kit.TYPES[st.k](),false), far:mkSet(kit.FAR[st.k](),true), pos}; });
   TREE_LOD={types, last:null, R:GFX_TREE_R}; updateTreeLOD(new THREE.Vector3(1e9,0,1e9)); }
 function updateTreeLOD(cp, force){ const T=TREE_LOD; if (!T) return; if (!force && T.last && Math.hypot(cp.x-T.last.x,cp.z-T.last.z)<25) return; T.last={x:cp.x,z:cp.z}; const R2=T.R*T.R;
   for (const t of T.types){ let a=0, b=0; const st=t.st;
-    for (let i=0;i<st.c;i++){ const dx=t.pos[i*2]-cp.x, dz=t.pos[i*2+1]-cp.z, rf=st.rf&&st.rf[i]||1, nearOne=dx*dx+dz*dz<R2*rf; const set=nearOne?t.near:t.far, j=nearOne?a++:b++;
-      for (const im of set){ im.setMatrixAt(j,st.mats[i]); if (im.userData.vary) im.setColorAt(j,st.cols[i]); } }
-    t.near.forEach(im=>{ im.count=a; im.instanceMatrix.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
-    t.far.forEach(im=>{ im.count=b; im.instanceMatrix.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; }); } }
+    for (let i=0;i<st.c;i++){ const dx=t.pos[i*2]-cp.x, dz=t.pos[i*2+1]-cp.z, rf=st.rf&&st.rf[i]||1, Rt=T.R*Math.sqrt(rf), d=Math.sqrt(dx*dx+dz*dz);
+      const put=(set,j)=>{ for (const im of set){ im.setMatrixAt(j,st.mats[i]); im.geometry.attributes.iLodR.array[j]=Rt; if (im.userData.vary) im.setColorAt(j,st.cols[i]); } };
+      if (d<Rt+LOD_M) put(t.near,a++); if (d>Rt-LOD_B-LOD_M) put(t.far,b++); }   // im Übergangsband in beiden Stufen, der Shader blendet per Raster über
+    t.near.forEach(im=>{ im.count=a; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
+    t.far.forEach(im=>{ im.count=b; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; }); } }
+// Weicher Wechsel grob <-> fein: beide Stufen im Band LOD_B, pro Pixel per Zufallsraster ausgeblendet (kein Aufploppen)
+const LOD_B=28, LOD_M=30;
+const LOD_MC=new WeakMap();
+function lodMat(mat, far){ let c=LOD_MC.get(mat); if (!c){ c={}; LOD_MC.set(mat,c); } if (c[far]) return c[far];
+  const base=mat.userData.pbrOrig||mat, P=THREE.Material.prototype.onBeforeCompile; const ob=base.userData.origOb||(base.userData.pbrPrep?null:base.onBeforeCompile), ok=base.userData.origKey||(base.userData.pbrPrep?null:base.customProgramCacheKey);
+  const w=base.clone(); const u=base.userData; w.userData={lin:u.lin, worldAO:u.worldAO, pbr:u.pbr, noStd:u.noStd};
+  w.onBeforeCompile=(sh,r)=>{ if (ob && ob!==P) ob.call(w,sh,r);
+    sh.vertexShader='attribute float iLodR; varying float vLodF;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n#ifdef USE_INSTANCING\n  vec4 lodP=modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0); vLodF=smoothstep(iLodR-'+LOD_B.toFixed(1)+',iLodR,distance(lodP.xz,(-vec3(dot(viewMatrix[0].xyz,viewMatrix[3].xyz),dot(viewMatrix[1].xyz,viewMatrix[3].xyz),dot(viewMatrix[2].xyz,viewMatrix[3].xyz))).xz));\n#else\n  vLodF=0.0;\n#endif');
+    sh.fragmentShader='varying float vLodF;\n'+sh.fragmentShader.replace('void main() {','void main() {\n  { float lh=fract(sin(dot(floor(gl_FragCoord.xy),vec2(12.9898,78.233)))*43758.5453); if ('+(far?'lh>=vLodF':'lh<vLodF')+') discard; }'); };
+  const okc=ok&&ok!==THREE.Material.prototype.customProgramCacheKey?ok:null; w.customProgramCacheKey=()=>(okc?okc.call(base):'')+'|lod'+(far?'F':'N');
+  c[far]=w; return w; }
 function pickMix(mix){ let r=rand(); for (const [k,w] of mix){ if (r<w) return k; r-=w; } return mix[mix.length-1][0]; }
 // ---------- Zäune und Hecken (prozedural) ----------
 function buildFencesHedges(def, grp, W){
@@ -6495,7 +6507,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 56`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 57`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
