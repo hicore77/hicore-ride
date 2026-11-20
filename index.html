@@ -61,6 +61,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
 .live{font-size:13px;color:var(--mut);margin-top:8px}
 .chk{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mut);margin-top:6px}
 .chk input{width:auto}
+.snav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.snav button{display:grid;grid-template-columns:34px 1fr;grid-template-rows:auto auto;text-align:left;padding:10px 12px;background:#0d1117;column-gap:8px;align-items:center}.snav span{grid-row:1/3;font-size:22px}.snav small{color:var(--mut);font-size:11px;font-weight:400}.spage h3{margin:8px 0 4px;font-size:16px}.sback{padding:5px 10px;font-size:13px;background:none}@media(max-width:520px){.snav{grid-template-columns:1fr}}
 .sndbox{margin:12px 0;padding:10px;border:1px solid var(--line);border-radius:10px}.sndhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.sndhead button{padding:6px 12px}.sndgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:8px}.sndgrid label{font-size:12px;color:var(--mut);display:flex;justify-content:space-between}.card .sndgrid input[type=range]{padding:0;border:0;background:none;accent-color:#f0883e}@media(max-width:520px){.sndgrid{grid-template-columns:1fr}}
 .sumgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:14px 0}
 .export{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#0d1117;font-size:13px;color:var(--mut)}.export b{color:var(--txt)}
@@ -139,18 +140,39 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
     </div>
 
     <div class="pane" id="tSet" style="display:none">
+      <div class="snav" id="snav">
+        <button data-s="sFahrer"><span>🚴</span><b>Fahrer &amp; Rad</b><small>Gewicht, Trikot</small></button>
+        <button data-s="sTrain"><span>⚡</span><b>Training</b><small>Schwierigkeit, Watt, Mitfahrer</small></button>
+        <button data-s="sGfx"><span>🖥️</span><b>Grafik &amp; Anzeige</b><small>Qualität, Bilder pro Sekunde</small></button>
+        <button data-s="sTon"><span>🔊</span><b>Ton</b><small>Umgebungsgeräusche, Lautstärke</small></button>
+        <button data-s="sWelt"><span>🗺️</span><b>Welten</b><small>Freischaltung</small></button>
+      </div>
+      <div class="spage" id="sFahrer" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Fahrer &amp; Rad</h3>
       <div class="grid">
         <div><label>Gewicht Fahrer + Rad (kg)</label><input type="number" id="mass" value="88" min="40" max="160"></div>
-        <div><label>Trainer-Schwierigkeit (Steigungsgefühl)</label><select id="diff"><option value="0.25">25 % (sanft)</option><option value="0.5" selected>50 % (Standard)</option><option value="0.75">75 %</option><option value="1">100 % (echt)</option></select></div>
         <div><label>Trikot</label><div style="display:flex;gap:10px;align-items:center"><select id="jersey" style="flex:1"><option value="std" selected>Standard (Orange)</option><option value="eyb">E.Y.B. – Enjoy Your Bike</option><option value="petz">Petz Racing</option></select><img id="jerseyThumb" alt="" style="width:46px;height:46px;border-radius:6px;object-fit:contain;background:#161b22;display:none"></div></div>
+      </div>
+      </div>
+      <div class="spage" id="sTrain" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Training</h3>
+      <div class="grid">
+        <div><label>Trainer-Schwierigkeit (Steigungsgefühl)</label><select id="diff"><option value="0.25">25 % (sanft)</option><option value="0.5" selected>50 % (Standard)</option><option value="0.75">75 %</option><option value="1">100 % (echt)</option></select></div>
         <div><label>Watt-Glättung (wie Zwift)</label><select id="pwSmooth"><option value="0">aus (Rohwerte)</option><option value="1">1 Sekunde</option><option value="3" selected>3 Sekunden (Standard)</option><option value="5">5 Sekunden</option><option value="10">10 Sekunden</option></select></div>
         <div><label>Watt-Korrektur (z. B. einseitiger Powermeter)</label><select id="pwFac"><option value="0.9">−10 %</option><option value="0.95">−5 %</option><option value="1" selected>keine</option><option value="1.05">+5 %</option><option value="1.1">+10 %</option></select></div>
         <div><label>Mitfahrer (Bots)</label><select id="bots"><option value="0">keine</option><option value="3" selected>3 Bots</option><option value="6">6 Bots</option></select></div>
+      </div>
+      </div>
+      <div class="spage" id="sGfx" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Grafik &amp; Anzeige</h3>
+      <div class="grid">
         <div><label>Grafikqualität</label><select id="gfx"><option value="1.25">Ultra (volle Auflösung, beste Schatten, weite Baumdetails)</option><option value="1">Hoch (volle Auflösung)</option><option value="0.7" selected>Mittel</option><option value="0.5">Niedrig (Handy/Laptop)</option></select></div>
         <div><label>Bilder pro Sekunde anzeigen</label><select id="fpsShow"><option value="0">aus</option><option value="1" selected>an</option></select></div>
       </div>
-      <div class="sndbox"><div class="sndhead"><label class="chk" style="margin:0"><input type="checkbox" id="sndOn"> <b>Umgebungsgeräusche</b>&nbsp;(Wind, Vögel, Blätter, Meer, Fahrgeräusch)</label><button id="sndTest">Probehören</button></div><div class="sndgrid" id="sndGrid"></div></div>
+      </div>
+      <div class="spage" id="sTon" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Ton</h3>
+      <div class="sndbox" style="border:0;padding:0;margin:4px 0"><div class="sndhead"><label class="chk" style="margin:0"><input type="checkbox" id="sndOn"> <b>Umgebungsgeräusche</b>&nbsp;(Wind, Vögel, Blätter, Meer, Fahrgeräusch)</label><button id="sndTest">Probehören</button></div><div class="sndgrid" id="sndGrid"></div></div>
+      </div>
+      <div class="spage" id="sWelt" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Welten</h3>
       <label class="chk"><input type="checkbox" id="unlockAll"> Alle Welten freischalten (zum Ausprobieren)</label>
+      </div>
     </div>
 
     <div class="row2">
@@ -3896,7 +3918,7 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0xbfe0ff, 120, 1500);
 const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.3, 3000);
 const hemi=new THREE.HemisphereLight(0xdff2ff, 0x5c7a3a, 0.75); hemi.color.convertSRGBToLinear(); hemi.groundColor.convertSRGBToLinear(); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff4e0, 0.9); sun.color.convertSRGBToLinear();
+const sun = new THREE.DirectionalLight(0xffe9c8, 0.98); sun.color.convertSRGBToLinear();
 sun.castShadow = true; sun.shadow.mapSize.set(1024,1024);
 const sc=sun.shadow.camera; sc.left=-30; sc.right=30; sc.top=30; sc.bottom=-30; sc.near=1; sc.far=300;   // enger = schärferer Fahrerschatten
 scene.add(sun); scene.add(sun.target);
@@ -4278,9 +4300,10 @@ function buildFauna(def, grp){ if (!LU || def.real || GFX_TREE_R<180) return;
 // Grasbüschel, Blumen, Steinchen am Rand
 function tuftTexture(flowers){ const S=256, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'); const R=Math.random;
   // feine, spitz zulaufende Halme in mehreren Grüntönen, einige trocken
-  for (let i=0;i<230;i++){ const u=(R()-0.5)*2*(0.35+0.65*R()), x0=S/2+u*S*0.2, dome=Math.pow(Math.max(0,1-Math.abs(u)),0.9), h=S*(0.12+R()*0.8*dome+0.1*dome), bend=u*S*0.32+(R()-0.5)*S*0.12, w=1.0+R()*2.0, dry=R()<0.12;
-    const gg=120+R()*95|0; g.fillStyle=dry?`rgb(${160+R()*40|0},${150+R()*30|0},${90+R()*20|0})`:`rgb(${gg*0.56|0},${gg},${gg*0.3|0})`;
+  const gold=flowers==='gold'; for (let i=0;i<230;i++){ const u=(R()-0.5)*2*(0.35+0.65*R()), x0=S/2+u*S*0.2, dome=Math.pow(Math.max(0,1-Math.abs(u)),gold?0.4:0.9), h=S*(0.12+R()*0.8*dome+0.1*dome), bend=u*S*(gold?0.22:0.32)+(R()-0.5)*S*0.12, w=1.0+R()*2.0, dry=R()<(gold?0.7:0.12);
+    const gg=120+R()*95|0; if (gold && dry){ const v=0.75+R()*0.3; g.fillStyle=`rgb(${215*v|0},${178*v|0},${82*v|0})`; } else g.fillStyle=dry?`rgb(${160+R()*40|0},${150+R()*30|0},${90+R()*20|0})`:`rgb(${gg*0.56|0},${gg},${gg*0.3|0})`;
     const tx=x0+bend, ty=S-h; g.beginPath(); g.moveTo(x0-w,S); g.quadraticCurveTo(x0+bend*0.35-w*0.5,S-h*0.55,tx,ty); g.quadraticCurveTo(x0+bend*0.35+w*0.5,S-h*0.55,x0+w,S); g.closePath(); g.fill(); }
+  if (gold) for (let i=0;i<26;i++){ const x=S*0.25+R()*S*0.5, y=S*0.04+R()*S*0.3, a=(R()-0.5)*0.6; g.save(); g.translate(x,y); g.rotate(a); g.fillStyle=`rgb(${200+R()*40|0},${165+R()*30|0},${80+R()*30|0})`; g.beginPath(); g.ellipse(0,0,2.2,9+R()*6,0,0,7); g.fill(); g.restore(); }   /* Rispen */
   // Schatten am Fuß
   const gr=g.createLinearGradient(0,S*0.75,0,S); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(10,25,5,.25)'); g.globalCompositeOperation='source-atop'; g.fillStyle=gr; g.fillRect(0,0,S,S); g.globalCompositeOperation='source-over';
   if (flowers){ const cols=['#ffffff','#f4e04a','#ffffff','#c9a2e6','#f2f2c0','#e05050']; for (let i=0;i<18;i++){ const x=S*0.15+R()*S*0.7, y=S*0.12+R()*S*0.4, r=4+R()*5; g.fillStyle=cols[i%cols.length];
@@ -4325,7 +4348,7 @@ function buildVerge(def, grp, W){
     q.setFromEuler(new THREE.Euler(rand()*3,rand()*3,rand()*3)); const sc=0.04+rand()*0.09; s.set(sc,sc*0.6,sc); p.set(x,profileH(d,side,off),z); m.compose(p,q,s); stones.push(m.clone()); }
   const mk=(geo,mat,arr,vary)=>{ const im=mkIM(geo,ditherMat(mat,'G',48,66),Math.max(1,arr.length)); const col=new THREE.Color(); arr.forEach((mm,i)=>{ im.setMatrixAt(i,mm); if (vary){ const f=0.68+rand()*0.3; col.setRGB(f*(0.97+rand()*0.12),f*0.95,f*(0.8+rand()*0.2)); im.setColorAt(i,col); } }); im.count=arr.length; grp.add(im); return im; };
   const tm=windify(new THREE.MeshLambertMaterial({map:tuftTexture(false), alphaTest:0.45, side:THREE.DoubleSide}),0.07,0.35), fm=windify(new THREE.MeshLambertMaterial({map:tuftTexture(true), alphaTest:0.45, side:THREE.DoubleSide}),0.07,0.4);
-  mk(crossQuad(0.55,0.34),tm,tufts,true);
+  { const gt=[], nt=[]; tufts.forEach(mm=>(rand()<0.28?gt:nt).push(mm)); mk(crossQuad(0.55,0.34),tm,nt,true); if (gt.length) mk(crossQuad(0.5,0.72),windify(new THREE.MeshLambertMaterial({map:tuftTexture('gold'), alphaTest:0.45, side:THREE.DoubleSide}),0.09,0.35),gt,true); }   /* hohe goldgelbe Grasbüschel */
   { const kinds=['tuft','margerite','mohn','kornblume']; const parts={tuft:[],margerite:[],mohn:[],kornblume:[]}; flw.forEach(mm=>{ const r=rand(); parts[r<0.4?'tuft':r<0.65?'margerite':r<0.85?'mohn':'kornblume'].push(mm); });
     mk(crossQuad(0.55,0.42),fm,parts.tuft,true); kinds.slice(1).forEach(k=>{ if (parts[k].length) mk(crossQuad(0.55,0.62),windify(new THREE.MeshLambertMaterial({map:bloomTexture(k), alphaTest:0.4, side:THREE.DoubleSide}),0.07,0.45),parts[k],false); }); }
   mk(new THREE.DodecahedronGeometry(1,0),new THREE.MeshLambertMaterial({color:0x8d8475}),stones,true);
@@ -4400,8 +4423,9 @@ function treeKit(def){
       const sh=0.55+0.45*clamp((y/r+1)/2,0,1); col.push(sh,sh,sh); }
     g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.computeVertexNormals(); return g; };
   // Blattkarten auf der Kronenoberfläche
-  const cards=(blobs, n, size)=>{ const list=[]; blobs.forEach(([cx,cy,cz,r,sy])=>{ const k=Math.round(n*r*r/4);
-    for (let i=0;i<k;i++){ const u=R()*2-1, a=R()*6.283, sq=Math.sqrt(1-u*u), dir=new THREE.Vector3(sq*Math.cos(a),u,sq*Math.sin(a)); const rr=r*(0.62+R()*0.5);   // auch innen Blattbüschel -> Tiefe, Lücken zeigen Äste
+  const cards=(blobs, n, size, clump)=>{ const list=[]; blobs.forEach(([cx,cy,cz,r,sy])=>{ const k=Math.round(n*r*r/4);
+    const subs=[]; const ns=clump?Math.max(3,Math.round(r*2.6)):0; for (let j=0;j<ns;j++){ const u=R()*1.6-0.6, a=R()*6.283, sq=Math.sqrt(1-u*u); subs.push(new THREE.Vector3(sq*Math.cos(a),u,sq*Math.sin(a))); }   /* Laub in Büscheln mit Lücken dazwischen */
+    for (let i=0;i<k;i++){ const u0=R()*2-1, a=R()*6.283, sq=Math.sqrt(1-u0*u0); let dir=new THREE.Vector3(sq*Math.cos(a),u0,sq*Math.sin(a)); if (ns){ dir=subs[i%ns].clone().addScaledVector(dir,0.55).normalize(); } const u=dir.y; const rr=r*(0.62+R()*0.5);   // auch innen Blattbüschel -> Tiefe, Lücken zeigen Äste
       const pl=new THREE.PlaneGeometry(size*(0.8+R()*0.5),size*(0.8+R()*0.5)); pl.rotateZ(R()*6.283); const nd=dir.clone().add(new THREE.Vector3(R()-0.5,R()-0.5,R()-0.5).multiplyScalar(1.1)).normalize(); pl.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),nd)));   /* zufällig gedreht und gekippt: kein Wirbelmuster */
       pl.rotateY(0); pl.translate(cx+dir.x*rr, cy+dir.y*rr*(sy||1), cz+dir.z*rr); const sh=(0.72+0.4*clamp((u+1)/2,0,1)*(0.85+R()*0.3))*(0.8+0.2*clamp((rr/r-0.62)/0.5,0,1)); /* innen im Laub dunkler */ const w=R()-0.5, cc=[], nn=[]; for(let j=0;j<4;j++){ cc.push(sh*(1+w*0.2),sh*(1+w*0.07),sh*(1-w*0.24)); nn.push(dir.x,dir.y,dir.z); } pl.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); pl.setAttribute('normal',new THREE.Float32BufferAttribute(nn,3)); list.push(pl); } });   /* Normalen nach außen: Krone wird als Volumen beleuchtet */
     return mergeGeoC(list); };
@@ -4425,7 +4449,7 @@ function treeKit(def){
       for (let d=0; d<L; d+=dens){ const px=x0+ux*d, py=y0+uy*d, f=1-d/L*0.5; [-1,1].forEach(sg=>{ const nl=(6+R()*5)*f, a=Math.atan2(uy,ux)+sg*(0.9+R()*0.4); const l=(0.16+R()*0.14+0.2*(d/L))*100; g.strokeStyle=`hsl(${130+R()*25},${35+R()*20}%,${l*0.32}%)`; g.lineWidth=1.3; g.beginPath(); g.moveTo(px,py); g.lineTo(px+Math.cos(a)*nl,py+Math.sin(a)*nl); g.stroke(); }); } };
     twig(2,H/2,W-6,H/2+4,1.6,3); for (let k=0;k<9;k++){ const x=20+k*25+R()*8, sg=k%2?1:-1, len=(H*0.42)*(1-k/12); twig(x,H/2+x/W*4,x+len*0.8,H/2+sg*len*0.75,2.0,1.6); }
     const t=new THREE.CanvasTexture(c); t.anisotropy=4; _sprB=windify(lam({map:t, alphaTest:0.4, side:THREE.DoubleSide, vertexColors:true}),0.02,6.0); return _sprB; };
-  const leafTexC={}; const leafMC=(p)=>{ const k=p.leaf; if (!leafTexC[k]) leafTexC[k]=windify(lam({map:leafClusterTexture(k,p.hue+0.01,p.l*1.02), alphaTest:0.45, side:THREE.DoubleSide, vertexColors:true}),0.06,6.0); return leafTexC[k]; };
+  const leafTexC={}; const leafMC=(p)=>{ const k=p.leaf; if (!leafTexC[k]) leafTexC[k]=windify(lam({map:leafClusterTexture(k,p.hue-0.005,p.l*1.16), alphaTest:0.45, side:THREE.DoubleSide, vertexColors:true}),0.06,6.0); return leafTexC[k]; };
   const genTree=(name, seed)=>()=>{ const p=SP[name]; let sd=seed*9301+49297; const r=()=>((sd=(sd*16807)%2147483647)/2147483647);
     const limbs=[], blobs=[]; const lean=V3((r()-0.5)*0.4,0,(r()-0.5)*0.4);
     const T=V3(lean.x,p.H,lean.z); limbs.push(limb(V3(0,-0.3,0),T,p.r,p.r*0.72,10));
@@ -4439,8 +4463,8 @@ function treeKit(def){
       const ns=2+(r()<0.5?1:0); for (let j=0;j<ns;j++){ const f=0.45+r()*0.4, b0=st.clone().lerp(end,f), sa=a+(j%2?1:-1)*(0.6+r()*0.5), stl=tl+0.25+r()*0.3, sl=len*(0.35+r()*0.2);
         const b1=b0.clone().add(V3(Math.cos(sa)*Math.cos(stl)*sl,Math.sin(stl)*sl,Math.sin(sa)*Math.cos(stl)*sl)); limbs.push(limb(b0,b1,rb*0.35,rb*0.12,4)); blobs.push([b1.x,b1.y,b1.z,p.CR*(0.32+r()*0.1),0.9]); } }
     const tg=mergeGeoC(limbs); const bk=trunkM[p.bark||name]||trunkM.oak;
-    const cg=mergeGeoC(blobs.filter(b=>b[3]>=p.CR*0.36).map(([x,y,z,rr,sy],i)=>blob(x,y,z,rr*0.45,sy,i*1.3+seed,true)));
-    const near=[[tg,bk],[cg,coreM(new THREE.Color(p.core).multiplyScalar(0.8)),'vary'],[cards(blobs,150,0.85),leafMC(p),'vary']];
+    const cg=mergeGeoC(blobs.filter(b=>b[3]>=p.CR*0.36).map(([x,y,z,rr,sy],i)=>blob(x,y,z,rr*0.3,sy,i*1.3+seed,true)));
+    const near=[[tg,bk],[cg,coreM(new THREE.Color(p.core).multiplyScalar(0.8)),'vary'],[cards(blobs,150,0.85,true),leafMC(p),'vary']];
     near.far=()=>{ const ft=limb(V3(0,-0.3,0),T,p.r,p.r*0.7,5); const cy=blobs.reduce((a,b)=>a+b[1],0)/blobs.length; const fc=mergeGeoC([blob(lean.x,cy,lean.z,p.CR*1.22,name==='birch'?1.5:p.lead?1.15:0.85,seed,true), blob(lean.x+p.CR*0.35,cy+p.CR*0.35,lean.z-p.CR*0.2,p.CR*0.7,1,seed+3,true)]);
       const fb=[[lean.x,cy,lean.z,p.CR*1.22,name==='birch'?1.5:p.lead?1.15:0.85]];   // ferne Krone mit wenigen großen Blattkarten (keine glatte Kugel mehr)
       return [[ft,bk],[fc,coreM(new THREE.Color().setHSL(p.hue,0.42,p.l*0.7)),'vary'],[cards(fb.concat([[fb[0][0]+fb[0][3]*0.4,fb[0][1]+fb[0][3]*0.3,fb[0][2]-fb[0][3]*0.3,fb[0][3]*0.7,1],[fb[0][0]-fb[0][3]*0.45,fb[0][1]-fb[0][3]*0.1,fb[0][2]+fb[0][3]*0.35,fb[0][3]*0.65,1]]),8,2.3),leafMC(p),'vary']]; };
@@ -4477,6 +4501,7 @@ function treeKit(def){
   const forest = def.trees==='conifer' ? [['spruce',0.6],['pine',0.2],['beech',0.12],['birch',0.08]] : [['beech',0.13],['beech2',0.12],['spruce',0.24],['oak',0.08],['oak2',0.07],['birch',0.06],['birch2',0.05],['pine',0.08],['maple',0.05],['linden2',0.06],['ash',0.06]];
   const FAR={}; Object.keys(TYPES).forEach(k=>{ FAR[k]=()=>{ const nr=TYPES[k](); if (nr.far) return nr.far(); return nr.filter(pp=>!(pp[1].alphaTest>0)); }; });
   return {TYPES, FAR, mix, forest}; }
+function treeTint(c,f){ const r=rand(); if (r<0.55) c.setRGB(f*(0.92+rand()*0.12),f*(0.97+rand()*0.06),f*(0.85+rand()*0.15)); else if (r<0.77) c.setRGB(f*1.12,f*1.07,f*0.72); else if (r<0.95) c.setRGB(f*1.0,f*0.92,f*0.64); else c.setRGB(f*1.15,f*0.92,f*0.62); return c; }   // Farbvielfalt: grün, gelbgrün, oliv, bronze
 // Bäume: nahe = volle Blattkarten, ferne = einfache Kronen; wird beim Fahren neu verteilt
 let TREE_LOD=null;
 function setupTreeLOD(sets, kit, grp){
@@ -4516,7 +4541,7 @@ function ditherMat(mat, mode, a, b){ let c=DITH_MC.get(mat); if (!c){ c={}; DITH
     let pre=''; if (gl2 && hasMap && tree) pre+='{ vec2 dd=max(abs(dFdx(vUv)),abs(dFdy(vUv)))*256.0; diffuseColor.a=clamp(diffuseColor.a*(1.0+0.18*max(0.0,log2(max(dd.x,dd.y)))),0.0,1.0); }\n';   /* Laub dünnt in der Ferne nicht aus */
     if (a2c){ pre+='diffuseColor.a*='+(mode==='F'?'vLodF':'(1.0-vLodF)')+';\n'; if (!hasMap) pre+='if (diffuseColor.a<0.004) discard;\n'; }
     if (pre) fs=fs.replace('#include <alphatest_fragment>',pre+'#include <alphatest_fragment>');
-    if (glow) fs='uniform vec3 sunU; varying vec3 vWPg;\n'+fs.replace('#include <output_fragment>','{ vec3 vd=normalize(vWPg-'+CAMP_GLSL+'); float bl=pow(max(0.0,dot(vd,sunU)),5.0); outgoingLight+=diffuseColor.rgb*vec3(0.75,0.85,0.3)*bl*0.9; }   /* Gegenlicht: Blätter leuchten durch */\n#include <output_fragment>');
+    if (glow) fs='uniform vec3 sunU; varying vec3 vWPg;\n'+fs.replace('#include <output_fragment>','{ vec3 vd=normalize(vWPg-'+CAMP_GLSL+'); float bl=pow(max(0.0,dot(vd,sunU)),5.0); outgoingLight+=diffuseColor.rgb*vec3(0.8,0.9,0.3)*bl*1.4; }   /* Gegenlicht: Blätter leuchten durch */\n#include <output_fragment>');
     sh.fragmentShader=fs; };
   const okc=ok&&ok!==THREE.Material.prototype.customProgramCacheKey?ok:null; w.customProgramCacheKey=()=>(okc?okc.call(base):'')+'|dith'+ck+(a2c?'a':'');
   c[ck]=w; return w; }
@@ -5485,7 +5510,7 @@ function buildWorld(def){
       let type=pickMix(inForest?kit.forest:mix);
       const set=sets[type]; if (set.c>=n) continue;
       const sc=(inForest?1.0+rand()*0.6:0.65+rand()*0.75)*(type.startsWith('bush')?0.8+rand()*0.6:1); q.setFromEuler(new THREE.Euler((rand()-0.5)*0.06,rand()*6.28,(rand()-0.5)*0.06)); s.set(sc*(0.85+rand()*0.3),sc*(0.8+rand()*0.4),sc*(0.85+rand()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,s);
-      const f=0.78+rand()*0.38, hs=rand(); tcol.setRGB(f*(0.92+hs*0.16), f*(0.97+rand()*0.06), f*(0.85+(1-hs)*0.2));
+      const f=0.78+rand()*0.38; treeTint(tcol,f);
       set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; placed++;
     }
     if (LU){ let wf=0; const step=7.5, cap=Math.round(GFX_TREE_R>=260?3200:2200);   // geschlossene Waldstücke
@@ -5493,13 +5518,13 @@ function buildWorld(def){
       cand.sort((a,b)=>a[0]-b[0]);   // straßennahe Waldstücke zuerst voll bestocken
       for (const [dd,x,z] of cand){ if (wf>=cap) break; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
         const type=pickMix(kit.forest), set=sets[type]; if (!set) continue; const sc=0.95+rand()*0.6; q.setFromEuler(new THREE.Euler((rand()-0.5)*0.05,rand()*6.28,(rand()-0.5)*0.05)); s.set(sc*(0.85+rand()*0.3),sc*(0.9+rand()*0.35),sc*(0.85+rand()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,s);
-        const f=0.72+rand()*0.35; tcol.setRGB(f*(0.9+rand()*0.15), f, f*(0.85+rand()*0.2)); set.mats.push(m.clone()); set.cols.push(tcol.clone()); (set.rf=set.rf||{})[set.c]=dd<40?0.36:0.16; set.c++; wf++; } }   // Waldbäume: Detailstufe nur nah (Waldrand), innen Fernstufe
+        const f=0.72+rand()*0.35; treeTint(tcol,f); set.mats.push(m.clone()); set.cols.push(tcol.clone()); (set.rf=set.rf||{})[set.c]=dd<40?0.36:0.16; set.c++; wf++; } }   // Waldbäume: Detailstufe nur nah (Waldrand), innen Fernstufe
     if (LU){ let hb=0; const hmix=[['bushA',0.42],['bushB',0.38],['oak',0.05],['maple',0.04],['linden',0.03],['ash',0.04],['birch',0.04]];   // Hecken und Baumreihen an Feldrainen
       for (let k=0;k<90000 && hb<3200;k++){ const dd=rand()*L, side=rand()<0.5?1:-1, off=13+Math.pow(rand(),1.6)*420, pp=posAt(dd), hd=headingAt(dd), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
         const lu=landUse(x,z); if (lu.redge>1.3 || lu.t===6) continue; if ((Math.abs(lu.key)%100)/100>0.5) continue; if (sampleGrid(nearD,x,z)<12) continue; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
         const type=pickMix(hmix), set=sets[type]; if (!set) continue; const bush=type.startsWith('bush'); const sc=bush?0.9+rand()*0.7:0.7+rand()*0.5;
         q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc*(0.9+rand()*0.3),sc*(0.8+rand()*0.5),sc*(0.9+rand()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,s);
-        const f=0.78+rand()*0.38; tcol.setRGB(f*(0.92+rand()*0.16), f, f*(0.85+rand()*0.2)); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; hb++; } }
+        const f=0.78+rand()*0.38; treeTint(tcol,f); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; hb++; } }
     if (!def.real && VILL){ const fruit=Object.keys(sets).filter(k=>!k.startsWith('bush') && !/spruce|pine|fichte|kiefer|palm/.test(k)), bushT=Object.keys(sets).filter(k=>k.startsWith('bush'));   // Hausgärten: Obstbäume hinterm Haus, Sträucher seitlich
       VILL.hm.forEach(hmx=>{ const hx=hmx.elements[12], hz=hmx.elements[14], fx=hmx.elements[8], fz=hmx.elements[10], fl=Math.hypot(fx,fz)||1, bx=-fx/fl, bz=-fz/fl, sx=-bz, sz=bx;
         const put=(type,x,z,sc)=>{ const set=sets[type]; if (!set || sampleGrid(nearD,x,z)<10 || inPond(x,z,2)) return; const h=terrainH(x,z); if (def.water && h<minY-1.2) return; q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc*(0.9+rand()*0.2),sc*(0.85+rand()*0.3),sc*(0.9+rand()*0.2)); p.set(x,h-0.1,z); m.compose(p,q,s); const f=0.85+rand()*0.25; tcol.setRGB(f*1.02,f,f*0.9); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; };
@@ -6330,13 +6355,13 @@ function gardenFences(hm, grp, def){ const pk=[], rl=[], m=new THREE.Matrix4(), 
   const mat=new THREE.MeshLambertMaterial({color:0xf2efe6});
   if (pk.length){ const im=mkIM(lat,mat,pk.length); pk.forEach((mm,i)=>im.setMatrixAt(i,mm)); im.castShadow=true; im.receiveShadow=true; grp.add(im); }
   if (rl.length){ const im=mkIM(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0xd9d4c6}),rl.length); rl.forEach((mm,i)=>im.setMatrixAt(i,mm)); im.castShadow=true; grp.add(im); } }
-function addProps(def){
+function addProps(def){ window.HOUSE_PTS=[];
   critters=[];
   const plan=PROP_PLAN[def.id]; if (!plan || !Object.keys(PROP_LIB).length) return;
   const g=worldGroup, km=L/1000, cnt=x=>Math.max(1,Math.round(x*km));
   const add=(arr,m)=>{ if(m) arr.push(m); };
   // Weiler: 3-5 Häuser beidseitig, je ein Briefkasten vorn an der Straße
-  { const V=VILL||planVillages(def); if (V){ placeInstanced(g,plan.houses,V.hm); placeInstanced(g,'briefkasten',V.mb); if (LU) gardenFences(V.hm, g, def); } VILL=null; }
+  { const V=VILL||planVillages(def); window.HOUSE_PTS=V?V.hm.map(m=>[m.elements[12],m.elements[14]]):[]; if (V){ placeInstanced(g,plan.houses,V.hm); placeInstanced(g,'briefkasten',V.mb); if (LU) gardenFences(V.hm, g, def); } VILL=null; }
   // Sonstiges
   plan.extra.forEach(([name,pk,o0,o1])=>{ const mats=[], n=cnt(pk); for (let i=0;i<n;i++){ const fr=name==='bank'||name==='schild_holz';
     add(mats, roadside(rand()*L, rand()<0.5?1:-1, o0+rand()*(o1-o0), name.startsWith('baum')?0.8+rand()*0.6:0.85+rand()*0.3, fr)); } placeInstanced(g,name,mats); });
@@ -6503,7 +6528,7 @@ function downloadImage(){
 
 // ================= UI wiring =================
 // ================= Umgebungsgeräusche (komplett im Browser erzeugt, keine Audiodateien) =================
-const SND_KEYS=[['sndMaster','Gesamtlautstärke',0.7],['sndWind','Wind',0.6],['sndLeaf','Blätterrauschen',0.5],['sndBird','Vögel',0.6],['sndWater','Meer und Wasser',0.4],['sndRide','Fahrgeräusch (Reifen, Freilauf)',0.5]];
+const SND_KEYS=[['sndMaster','Gesamtlautstärke',0.7],['sndWind','Wind',0.6],['sndLeaf','Blätterrauschen',0.5],['sndBird','Vögel',0.6],['sndAnimal','Tiere (Kühe, Schafe, Möwen)',0.55],['sndVillage','Dorf (Stimmen, Hunde, Hühner)',0.45],['sndWater','Wasser (Meer, See, Bach)',0.5],['sndRide','Fahrgeräusch (Reifen, Freilauf)',0.5]];
 const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g:{},
   init(){ if (this.ctx){ if (this.ctx.state!=='running') this.ctx.resume().catch(()=>{}); return; }
     const AC=window.AudioContext||window.webkitAudioContext; if (!AC) return; let c; try{ c=new AC(); }catch(e){ return; } this.ctx=c;
@@ -6519,11 +6544,13 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
     this.wind=chain(1,'lowpass',380,0.6); this.wind2=chain(0.83,'bandpass',900,1.4);         // tiefes Wehen + Pfeifen in Böen
     this.leaf=chain(1.1,'bandpass',3200,0.7); this.leaf2=chain(0.95,'highpass',5200,0.5);    // Laub
     this.sea=chain(0.9,'lowpass',520,0.5);                                                      // Brandung in der Ferne
+    this.lake=chain(0.8,'bandpass',520,0.8); this.brook=chain(1.3,'bandpass',2200,1.6); this.brook2=chain(1.1,'bandpass',1200,2.2);   // See plätschert, Bach murmelt
     this.tyre=chain(1,'bandpass',650,0.9); this.air=chain(1.2,'highpass',180,0.5);              // Reifen, Fahrtwind
     // Vögel und Klicken laufen über eigene Busse
     this.birdBus=c.createGain(); this.birdBus.connect(m); const rv=c.createConvolver(); const ir=c.createBuffer(2,c.sampleRate*1.6,c.sampleRate);
     for (let ch=0; ch<2; ch++){ const d=ir.getChannelData(ch); for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3)*0.5; }
     rv.buffer=ir; const rg=c.createGain(); rg.gain.value=0.25; this.birdBus.connect(rv); rv.connect(rg); rg.connect(m);
+    this.animBus=c.createGain(); this.animBus.connect(m); this.animBus.connect(rv);
     this.clickBus=c.createGain(); this.clickBus.connect(m);
     const cb=c.createBuffer(1,Math.round(c.sampleRate*0.012),c.sampleRate), cd=cb.getChannelData(0); for (let i=0;i<cd.length;i++) cd[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.0012)); this.clickBuf=cb;
     document.addEventListener('visibilitychange',()=>{ if (!this.ctx) return; if (document.hidden) this.ctx.suspend().catch(()=>{}); else this.ctx.resume().catch(()=>{}); });
@@ -6555,10 +6582,62 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
     this.set(this.wind.g.gain, V('sndWind')*wf*(0.35+0.65*gust)*0.9, 0.5); this.set(this.wind.f.frequency, 260+380*gust, 0.6);
     this.set(this.wind2.g.gain, V('sndWind')*wf*Math.pow(gust,3)*0.25, 0.6); this.set(this.wind2.f.frequency, 700+500*gust, 0.8);
     this.set(this.leaf.g.gain, V('sndLeaf')*lf*(0.12+0.55*gust*gust)*0.55, 0.35); this.set(this.leaf2.g.gain, V('sndLeaf')*lf*gust*gust*0.18, 0.35);
-    const sw=0.5+0.5*Math.sin(t*0.7)*Math.sin(t*0.23+0.5); this.set(this.sea.g.gain, world==='insel'?V('sndWater')*(0.15+0.45*sw):0, 0.8);
+    const sw=0.5+0.5*Math.sin(t*0.7)*Math.sin(t*0.23+0.5); this.set(this.sea.g.gain, world==='insel'?V('sndWater')*(0.1+0.3*sw):0, 0.8);
+    this.near(world,V,t);
     const sv=clamp(v/13,0,1.4); this.set(this.tyre.g.gain, V('sndRide')*Math.pow(sv,1.5)*0.35, 0.2); this.set(this.tyre.f.frequency, 380+520*sv, 0.3);
     this.set(this.air.g.gain, V('sndRide')*sv*sv*0.12, 0.3);
   },
+  prep(world){ this.pw=world+'|'+builtWorld; this.wpts=[]; this.spts=[]; this.houses=[]; const def=WORLDS.find(w=>w.id===world)||{};
+    let hs=1; const hr=()=>((hs=(hs*16807)%2147483647)/2147483647); const addH=(x,z)=>{ const r=hr(); this.houses.push({x,z,dog:r<0.28,ppl:hr()<0.4,hen:r>0.78,cd:5+hr()*20}); };
+    if (!def.real && window.HOUSE_PTS) HOUSE_PTS.forEach(([x,z])=>addH(x,z));
+    if (def.real){ try{ const D=realData(); if (D){ (D.water||[]).forEach(poly=>poly.forEach(([x,z],i)=>{ if (i%2===0) this.wpts.push(x,z); })); streamPaths().forEach(P=>P.forEach(([x,z],i)=>{ if (i%2===0) this.spts.push(x,z); })); (D.b||[]).forEach(bd=>{ if (bd.p&&bd.p.length>2){ let x=0,z=0; bd.p.forEach(q=>{x+=q[0];z+=q[1];}); addH(x/bd.p.length,z/bd.p.length); } }); } }catch(e){} } },
+  near(world,V,t){ if (typeof me==='undefined') return; if (this.pw!==world+'|'+builtWorld) this.prep(world); const P=me.g.position, c=this.ctx;
+    // Wasser in der Nähe: Abstand zu Teichen, Seeufern, Bachläufen
+    let dl=1e9; for (const p of ponds){ dl=Math.min(dl,Math.hypot(P.x-p.x,P.z-p.z)-p.r); } const w=this.wpts; for (let i=0;i<w.length;i+=2){ const dx=w[i]-P.x, dz=w[i+1]-P.z; const d=dx*dx+dz*dz; if (d<dl*dl) dl=Math.sqrt(d); }
+    let ds=1e9; const sp=this.spts; for (let i=0;i<sp.length;i+=2){ const dx=sp[i]-P.x, dz=sp[i+1]-P.z, d=dx*dx+dz*dz; if (d<ds) ds=d; } ds=Math.sqrt(ds);
+    const lv=Math.pow(clamp(1-dl/45,0,1),2), bv=Math.pow(clamp(1-ds/35,0,1),2), R=Math.random;
+    this.set(this.lake.g.gain, V('sndWater')*lv*(0.15+0.35*Math.max(0,Math.sin(t*1.9)*Math.sin(t*0.7+R()*0.3)))*0.8, 0.12); this.set(this.lake.f.frequency, 380+R()*420, 0.1);
+    this.set(this.brook.g.gain, V('sndWater')*bv*(0.25+R()*0.2)*0.55, 0.06); this.set(this.brook.f.frequency, 1500+R()*1900, 0.05); this.set(this.brook2.g.gain, V('sndWater')*bv*(0.2+R()*0.25)*0.45, 0.06); this.set(this.brook2.f.frequency, 800+R()*900, 0.05);
+    // Tiere: ab und zu ein Ruf, je näher desto lauter, links/rechts richtig
+    const a=posAt(S.dist), b=posAt(S.dist+2), fx=b.x-a.x, fz=b.z-a.z, fl=Math.hypot(fx,fz)||1; const panOf=(dx,dz,d)=>clamp((dx*(-fz)+dz*fx)/fl/Math.max(d,1),-1,1);
+    if (V('sndVillage')>0.01) for (const h of this.houses){ const dx=h.x-P.x, dz=h.z-P.z; if (Math.abs(dx)>45||Math.abs(dz)>45) continue; const d=Math.hypot(dx,dz); if (d>45) continue;
+      h.cd-=0.1; if (h.cd>0) continue; const kinds=[]; if (h.dog) kinds.push('dog'); if (h.ppl) kinds.push('talk'); if (h.hen) kinds.push('hen'); if (!kinds.length){ h.cd=1e9; continue; }
+      const k=kinds[Math.floor(R()*kinds.length)]; h.cd=k==='dog'?25+R()*40:k==='talk'?20+R()*40:12+R()*20; if (R()<0.35) continue;   // nicht jedes Mal
+      this.village(k, V('sndVillage')*Math.pow(1-d/45,1.5), panOf(dx,dz,d), d/45); }
+    if (V('sndAnimal')<0.01 || typeof critters==='undefined') return;
+    for (const cr of critters){ if (cr.kind==='hase') continue; const o=cr.o.position, dx=o.x-P.x, dz=o.z-P.z, d=Math.hypot(dx,dz), maxD=cr.kind==='moewe'?90:60; if (d>maxD) continue;
+      cr.cd=(cr.cd||3+R()*10)-0.1; if (cr.cd>0) continue; cr.cd=cr.kind==='moewe'?6+R()*14:10+R()*30;
+      const vol=V('sndAnimal')*Math.pow(1-d/maxD,1.6), pan=clamp((dx*(-fz)+dz*fx)/fl/Math.max(d,1),-1,1);
+      this.call(cr.kind, vol, pan, d/maxD); } },
+  village(kind, vol, pan, far){ const c=this.ctx, R=Math.random, t=c.currentTime+0.03; const out=c.createGain(), lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3000*(1-far*0.6); out.connect(lp);
+    const p=c.createStereoPanner?c.createStereoPanner():null; if (p){ p.pan.value=pan; lp.connect(p); p.connect(this.animBus); } else lp.connect(this.animBus);
+    if (kind==='dog'){ const big=R()<0.5, n=1+Math.floor(R()*4); let tt=t; for (let i=0;i<n;i++){ const o=c.createOscillator(), g=c.createGain(), bp=c.createBiquadFilter(); o.type='sawtooth'; const f0=(big?170:330)*(0.9+R()*0.2);
+        o.frequency.setValueAtTime(f0*1.3,tt); o.frequency.exponentialRampToValueAtTime(f0*0.75,tt+0.16); bp.type='bandpass'; bp.frequency.value=big?700:1300; bp.Q.value=1.2; o.connect(bp); bp.connect(g); g.connect(out);
+        const nz=c.createBufferSource(); nz.buffer=this.noise; const ng=c.createGain(); nz.connect(ng); ng.connect(bp); ng.gain.setValueAtTime(0,tt); ng.gain.linearRampToValueAtTime(vol*0.5,tt+0.01); ng.gain.linearRampToValueAtTime(0,tt+0.08);   // Wuff: rauer Anfang
+        g.gain.setValueAtTime(0,tt); g.gain.linearRampToValueAtTime(vol*0.32,tt+0.015); g.gain.exponentialRampToValueAtTime(0.0005,tt+0.2); o.start(tt); o.stop(tt+0.24); nz.start(tt,R()*4); nz.stop(tt+0.1); tt+=0.28+R()*0.35; } }
+    else if (kind==='hen'){ const n=3+Math.floor(R()*5); let tt=t; for (let i=0;i<n;i++){ const o=c.createOscillator(), g=c.createGain(), bp=c.createBiquadFilter(); o.type='square'; const f0=420+R()*120; const last=i===n-1&&R()<0.6;
+        o.frequency.setValueAtTime(f0,tt); o.frequency.linearRampToValueAtTime(last?f0*1.6:f0*0.9,tt+(last?0.3:0.07)); bp.type='bandpass'; bp.frequency.value=1100; bp.Q.value=2; o.connect(bp); bp.connect(g); g.connect(out);
+        g.gain.setValueAtTime(0,tt); g.gain.linearRampToValueAtTime(vol*0.12,tt+0.01); g.gain.linearRampToValueAtTime(0,tt+(last?0.32:0.08)); o.start(tt); o.stop(tt+0.4); tt+=(last?0.4:0.13+R()*0.12); } }
+    else { // leises Gespräch: zwei Stimmen, Silben mit wechselnden Vokalfiltern (keine echten Wörter)
+      const dur=3+R()*4, f1=c.createBiquadFilter(), f2=c.createBiquadFilter(), g=c.createGain(); f1.type=f2.type='bandpass'; f1.Q.value=4; f2.Q.value=6; f1.connect(g); f2.connect(g); g.connect(out); g.gain.value=0;
+      const voices=[[100+R()*30],[180+R()*50]]; const o=c.createOscillator(); o.type='sawtooth'; o.connect(f1); o.connect(f2); const nz=c.createBufferSource(); nz.buffer=this.noise; const ng=c.createGain(); ng.gain.value=0.25; nz.connect(ng); ng.connect(f2);
+      let tt=t, sp=0, f0=voices[0][0]; while (tt<t+dur){ if (R()<0.12){ sp=1-sp; f0=voices[sp][0]; tt+=0.25+R()*0.4; } const sl=0.11+R()*0.16, vw=[[300,870],[400,2000],[650,1100],[500,1700],[300,2300]][Math.floor(R()*5)];
+        o.frequency.setTargetAtTime(f0*(0.85+R()*0.35),tt,0.04); f1.frequency.setTargetAtTime(vw[0],tt,0.02); f2.frequency.setTargetAtTime(vw[1],tt,0.02);
+        g.gain.setTargetAtTime(vol*0.1*(0.6+R()*0.4),tt,0.025); g.gain.setTargetAtTime(0,tt+sl*0.75,0.03); tt+=sl+(R()<0.15?0.2+R()*0.3:0.02); }
+      o.start(t); o.stop(tt+0.2); nz.start(t,R()*4); nz.stop(tt+0.2); } },
+  call(kind, vol, pan, far){ const c=this.ctx, R=Math.random, t=c.currentTime+0.02; const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter(), p=c.createStereoPanner?c.createStereoPanner():null;
+    o.type='sawtooth'; f.type='lowpass'; f.frequency.value=2400*(1-far*0.6); f.Q.value=0.7; o.connect(f); f.connect(g); if (p){ p.pan.value=pan; g.connect(p); p.connect(this.animBus); } else g.connect(this.animBus);
+    const env=(a,h,dur,v)=>{ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v,t+a); g.gain.setValueAtTime(v,t+h); g.gain.linearRampToValueAtTime(0,t+dur); };
+    if (kind==='kuh'){ const f0=95+R()*35, dur=1.1+R()*0.8; o.frequency.setValueAtTime(f0*0.85,t); o.frequency.linearRampToValueAtTime(f0*1.12,t+dur*0.3); o.frequency.linearRampToValueAtTime(f0*0.8,t+dur);
+      const f2=c.createBiquadFilter(); f2.type='bandpass'; f2.frequency.setValueAtTime(350,t); f2.frequency.linearRampToValueAtTime(800,t+dur*0.35); f2.frequency.linearRampToValueAtTime(450,t+dur); f2.Q.value=1.6; f.disconnect(); f.connect(f2); f2.connect(g);   // Muuuh: Maul öffnet sich
+      env(0.25,dur*0.6,dur,vol*0.5); o.start(t); o.stop(t+dur+0.05); }
+    else if (kind==='schaf'){ const f0=260+R()*120, dur=0.6+R()*0.5; o.frequency.setValueAtTime(f0,t); o.frequency.linearRampToValueAtTime(f0*0.9,t+dur);
+      const l=c.createOscillator(), lg=c.createGain(); l.frequency.value=7+R()*3; lg.gain.value=vol*0.18; l.connect(lg); lg.connect(g.gain); l.start(t); l.stop(t+dur+0.05);   // Mähähä: Zittern in der Stimme
+      const f2=c.createBiquadFilter(); f2.type='bandpass'; f2.frequency.value=1100+R()*300; f2.Q.value=2.2; f.disconnect(); f.connect(f2); f2.connect(g);
+      env(0.06,dur*0.7,dur,vol*0.3); o.start(t); o.stop(t+dur+0.05); }
+    else { const n=2+Math.floor(R()*3); let tt=t; o.frequency.setValueAtTime(1500,t); g.gain.setValueAtTime(0,t); f.frequency.value=3200*(1-far*0.5);   // Möwe: kiä kiä
+      for (let i=0;i<n;i++){ o.frequency.setValueAtTime(1700+R()*300,tt); o.frequency.exponentialRampToValueAtTime(950,tt+0.32); g.gain.setValueAtTime(0,tt); g.gain.linearRampToValueAtTime(vol*0.12,tt+0.03); g.gain.linearRampToValueAtTime(0,tt+0.34); tt+=0.42+R()*0.12; }
+      o.start(t); o.stop(tt+0.05); } },
   birds(dt,world,V){ this.birdBus.gain.value=V('sndBird')*({spk:0.8,pass:0.6}[world]??1); this.nextBird-=dt; if (this.nextBird<=0){ if (V('sndBird')>0.01) this.song(world); this.nextBird=1.8+Math.random()*5.5; } },
   clicks(dt,V){ const v=this.preview>0?0:(S.speed||0); if (!(v>1.5 && S.power<8)) { this.clickAcc=0; return; }
     this.clickAcc+=dt*v*5.2; let n=0; const c=this.ctx; while (this.clickAcc>=1 && n<8){ this.clickAcc-=1; n++; const s=c.createBufferSource(); s.buffer=this.clickBuf; s.playbackRate.value=0.9+Math.random()*0.2; const g=c.createGain(); g.gain.value=V('sndRide')*0.22; s.connect(g); g.connect(this.clickBus); s.start(c.currentTime+n*0.004); } }
@@ -6591,9 +6670,14 @@ $('sndGrid').style.opacity=AMB.on?1:0.45;
 $('sndTest').onclick=()=>{ AMB.init(); if (!AMB.on){ AMB.on=true; $('sndOn').checked=true; store.set('sndOn',true); $('sndGrid').style.opacity=1; } AMB.preview=10; AMB.nextBird=0.3; toast('Probehören: 10 Sekunden'); };
 const isUnlocked = w => $('unlockAll').checked || totalKm >= w.unlockKm;
 
+
+// Einstellungen: Unterseiten
+const showSub=id=>{ $('snav').style.display=id?'none':'grid'; document.querySelectorAll('.spage').forEach(p=>p.style.display=p.id===id?'block':'none'); };
+document.querySelectorAll('#snav button').forEach(b=>b.onclick=()=>showSub(b.dataset.s)); document.querySelectorAll('.sback').forEach(b=>b.onclick=()=>showSub(null));
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('act',x===t));
   document.querySelectorAll('.pane').forEach(p=>p.style.display = p.id===t.dataset.t ? '' : 'none');
+  if (t.dataset.t==='tSet') showSub(null);
 });
 
 function worldThumb(cv, def){
@@ -6620,7 +6704,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 61`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 65`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
