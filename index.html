@@ -4217,9 +4217,9 @@ function fineGrassTexture(){ const S=256, c=document.createElement('canvas'); c.
   const gr=g.createLinearGradient(0,S*0.6,0,S); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(10,25,5,.06)'); g.globalCompositeOperation='source-atop'; g.fillStyle=gr; g.fillRect(0,0,S,S);
   const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
 function buildGrassField(def, grp, waterY){ GF.cells.clear(); GF.kx=GF.kz=1e9; GF.im=null; if (def.real) return;
-  const N=GFX_TREE_R>=380?30000:GFX_TREE_R>=260?22000:GFX_TREE_R>=180?12000:0; if (!N) return;
-  GF.cs=6; GF.rad=3; GF.per=Math.floor(N/((2*GF.rad+1)**2)); GF.N=GF.per*(2*GF.rad+1)**2; GF.waterY=def.water?waterY:-1e9; GF.def=def;
-  const mat=windify(new THREE.MeshLambertMaterial({map:fineGrassTexture(), alphaTest:0.42, side:THREE.DoubleSide}),0.06,0.28); mat.alphaToCoverage=true;
+  const N=GFX_TREE_R>=380?52000:GFX_TREE_R>=260?40000:GFX_TREE_R>=180?22000:0; if (!N) return;
+  GF.cs=6; GF.rad=4; GF.per=Math.floor(N/((2*GF.rad+1)**2)); GF.N=GF.per*(2*GF.rad+1)**2; GF.waterY=def.water?waterY:-1e9; GF.def=def;
+  const mat0=windify(new THREE.MeshLambertMaterial({map:fineGrassTexture(), alphaTest:0.42, side:THREE.DoubleSide}),0.06,0.28); mat0.alphaToCoverage=true; const mat=ditherMat(mat0,'R',GF.rad*GF.cs-11,GF.rad*GF.cs-4);   // weich ausblenden um den Fahrer
   const im=new THREE.InstancedMesh(crossQuad(0.38,0.24),mat,GF.N); im.count=0; im.frustumCulled=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(GF.N*3),3); grp.add(im); GF.im=im; }
 function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) return c; let sd=(Math.abs(i*7919+j*104729)%2147483646)+1; const r=()=>(sd=(sd*16807)%2147483647)/2147483647;
   const M=new Float32Array(GF.per*16), C=new Float32Array(GF.per*3), P=new Float32Array(GF.per*2); let n=0; const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), p=new THREE.Vector3(), col=new THREE.Color(); const gh=GF.def.grass;
@@ -4233,7 +4233,7 @@ function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) retu
 function updateGrassField(pos){ const im=GF.im; if (!im) return; const kx=Math.floor(pos.x/GF.cs), kz=Math.floor(pos.z/GF.cs); if (kx===GF.kx && kz===GF.kz) return; GF.kx=kx; GF.kz=kz;
   const A=im.instanceMatrix.array, CA=im.instanceColor.array, Rm=GF.rad*GF.cs, cx=(kx+0.5)*GF.cs, cz=(kz+0.5)*GF.cs; let n=0;
   for (let a=-GF.rad;a<=GF.rad;a++) for (let b=-GF.rad;b<=GF.rad;b++){ const c=gfCell(kx+a,kz+b);
-    for (let k=0;k<c.n;k++){ const dx=c.P[k*2]-cx, dz=c.P[k*2+1]-cz, dist=Math.sqrt(dx*dx+dz*dz); const f=clamp((Rm-dist)/(GF.cs*1.6),0,1); if (f<=0.02) continue;
+    for (let k=0;k<c.n;k++){ const dx=c.P[k*2]-cx, dz=c.P[k*2+1]-cz, dist=Math.sqrt(dx*dx+dz*dz); if (dist>Rm) continue; const f=1;
       const o=n*16, src=k*16; for (let e=0;e<16;e++) A[o+e]=c.M[src+e]; if (f<1){ for (const e of [0,1,2,4,5,6,8,9,10]) A[o+e]*=f; }
       CA[n*3]=c.C[k*3]; CA[n*3+1]=c.C[k*3+1]; CA[n*3+2]=c.C[k*3+2]; n++; } }
   im.count=n; im.instanceMatrix.needsUpdate=true; im.instanceColor.needsUpdate=true; }
@@ -4321,7 +4321,7 @@ function buildVerge(def, grp, W){
     (rand()<(def.real?0.16:0.3)?flw:tufts).push(m.clone()); }
   for (let d=0; d<L; d+=1.2+rand()*2){ if (juncAt(d)>0.3) continue; const Sd=swAt(d); if (Sd<0.6) continue; const side=rand()<0.5?1:-1, off=roadWAt(d)/2+0.2+rand()*(Sd-0.3), pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
     q.setFromEuler(new THREE.Euler(rand()*3,rand()*3,rand()*3)); const sc=0.04+rand()*0.09; s.set(sc,sc*0.6,sc); p.set(x,profileH(d,side,off),z); m.compose(p,q,s); stones.push(m.clone()); }
-  const mk=(geo,mat,arr,vary)=>{ const im=mkIM(geo,mat,Math.max(1,arr.length)); const col=new THREE.Color(); arr.forEach((mm,i)=>{ im.setMatrixAt(i,mm); if (vary){ const f=0.68+rand()*0.3; col.setRGB(f*(0.97+rand()*0.12),f*0.95,f*(0.8+rand()*0.2)); im.setColorAt(i,col); } }); im.count=arr.length; grp.add(im); return im; };
+  const mk=(geo,mat,arr,vary)=>{ const im=mkIM(geo,ditherMat(mat,'G',48,66),Math.max(1,arr.length)); const col=new THREE.Color(); arr.forEach((mm,i)=>{ im.setMatrixAt(i,mm); if (vary){ const f=0.68+rand()*0.3; col.setRGB(f*(0.97+rand()*0.12),f*0.95,f*(0.8+rand()*0.2)); im.setColorAt(i,col); } }); im.count=arr.length; grp.add(im); return im; };
   const tm=windify(new THREE.MeshLambertMaterial({map:tuftTexture(false), alphaTest:0.45, side:THREE.DoubleSide}),0.07,0.35), fm=windify(new THREE.MeshLambertMaterial({map:tuftTexture(true), alphaTest:0.45, side:THREE.DoubleSide}),0.07,0.4);
   mk(crossQuad(0.55,0.34),tm,tufts,true);
   { const kinds=['tuft','margerite','mohn','kornblume']; const parts={tuft:[],margerite:[],mohn:[],kornblume:[]}; flw.forEach(mm=>{ const r=rand(); parts[r<0.4?'tuft':r<0.65?'margerite':r<0.85?'mohn':'kornblume'].push(mm); });
@@ -4336,29 +4336,53 @@ function barkTexture(kind){ { const pt=photoTex({oak:'eiche',birch:'birke',beech
   else if (kind==='pine'){ const gr=g.createLinearGradient(0,256,0,0); gr.addColorStop(0,'#4d3a2a'); gr.addColorStop(0.5,'#7a4b2c'); gr.addColorStop(1,'#b8703f'); g.fillStyle=gr; g.fillRect(0,0,64,256); for(let i=0;i<120;i++){ g.fillStyle='rgba(40,25,15,.35)'; g.fillRect(R()*64,R()*256,4+R()*10,1.5); } }
   else { g.fillStyle='#5a4532'; g.fillRect(0,0,64,256); for(let x=0;x<64;x+=3+R()*4){ g.strokeStyle=`rgba(${25+R()*30|0},${18+R()*20|0},10,.7)`; g.lineWidth=1+R()*2; g.beginPath(); g.moveTo(x,0); for(let y=0;y<256;y+=16) g.lineTo(x+(R()-0.5)*4,y); g.stroke(); } }
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
-function leafTexture(hue, light, needles){ const c=document.createElement('canvas'); c.width=128; c.height=128; const g=c.getContext('2d'); const R=Math.random;
-  for (let i=0;i<(needles?260:150);i++){ const x=10+R()*108, y=10+R()*108, dx=x-64, dy=y-64; if (dx*dx+dy*dy>58*58) continue; const l=(light+(R()-0.5)*0.16)*100;
-    g.fillStyle=`hsl(${hue*360+(R()-0.5)*14},${45+R()*20}%,${l}%)`; g.save(); g.translate(x,y); g.rotate(R()*6.28);
-    if (needles){ g.fillRect(-5,-0.8,10,1.6); } else { g.beginPath(); g.ellipse(0,0,5+R()*3,2.6+R()*1.6,0,0,7); g.fill(); } g.restore(); }
+function leafTexture(hue, light, needles){ const S=256, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'); const R=Math.random;
+  for (let i=0;i<(needles?620:240);i++){ const x=16+R()*(S-32), y=16+R()*(S-32), dx=x-S/2, dy=y-S/2; if (dx*dx+dy*dy>(S*0.45)**2) continue; const dep=i/(needles?620:240), l=(light+(R()-0.5)*0.14)*100*(0.75+0.35*dep), hh=hue*360+(R()-0.5)*12, sa=32+R()*14;
+    g.save(); g.translate(x,y); g.rotate(R()*6.28);
+    if (needles){ g.fillStyle=`hsl(${hh},${sa}%,${l}%)`; g.fillRect(-10,-1,20,2); }
+    else { const L=12+R()*6, W=L*0.42; g.beginPath(); g.moveTo(0,L*0.5); g.bezierCurveTo(W*1.2,L*0.2,W*0.9,-L*0.35,0,-L*0.5); g.bezierCurveTo(-W*0.9,-L*0.35,-W*1.2,L*0.2,0,L*0.5); const gr=g.createLinearGradient(-W,0,W,0); gr.addColorStop(0,`hsl(${hh},${sa}%,${l*0.8}%)`); gr.addColorStop(0.5,`hsl(${hh},${sa}%,${l*1.1}%)`); gr.addColorStop(1,`hsl(${hh},${sa}%,${l*0.88}%)`); g.fillStyle=gr; g.fill();
+      g.strokeStyle=`hsla(${hh},20%,${Math.min(85,l*1.4)}%,.7)`; g.lineWidth=0.7; g.beginPath(); g.moveTo(0,L*0.5); g.lineTo(0,-L*0.42); g.stroke(); }
+    g.restore(); }
   const t=new THREE.CanvasTexture(c); return t; }
 // Zweig mit Blättern (Blattkarte), artspezifische Blattform
-function leafClusterTexture(shape, hue, light){ const S=256, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'); let sd=hue*1e4+light*777; const R=()=>((sd=(sd*16807)%2147483647)/2147483647);
-  const leafPath=(L,W)=>{ g.beginPath();
-    if (shape==='oak'){ g.moveTo(0,0); for (let k=0;k<=8;k++){ const t=k/8, y=-L*t, w=W*Math.sin(Math.PI*t)*(k%2?1:0.62); g.lineTo(w,y); } for (let k=8;k>=0;k--){ const t=k/8, y=-L*t, w=W*Math.sin(Math.PI*t)*(k%2?1:0.62); g.lineTo(-w,y); } }
-    else if (shape==='maple'){ for (let k=0;k<=10;k++){ const a=-Math.PI/2+(k/10-0.5)*Math.PI*1.5, r=(k%2?0.45:1)*L*0.62; g.lineTo(Math.cos(a)*r, -L*0.35+Math.sin(a)*r); } g.lineTo(0,0); }
-    else if (shape==='linden'){ g.moveTo(0,0); g.bezierCurveTo(W*1.3,-L*0.05,W*1.1,-L*0.8,0,-L); g.bezierCurveTo(-W*1.1,-L*0.8,-W*1.3,-L*0.05,0,0); }
-    else if (shape==='birch'){ g.moveTo(0,0); g.lineTo(W,-L*0.35); g.lineTo(0,-L); g.lineTo(-W,-L*0.35); }
-    else { g.moveTo(0,0); g.quadraticCurveTo(W*1.15,-L*0.45,0,-L); g.quadraticCurveTo(-W*1.15,-L*0.45,0,0); }
-    g.closePath(); };
-  const size={oak:[30,11],maple:[34,12],linden:[30,13],birch:[19,9],beech:[27,9],ash:[24,6]}[shape]||[26,9];
-  for (let tw=0; tw<5; tw++){ const x0=S/2+(R()-0.5)*S*0.3, y0=S*0.98, a=-Math.PI/2+(R()-0.5)*1.5, len=S*(0.45+R()*0.35); const x1=x0+Math.cos(a)*len, y1=y0+Math.sin(a)*len;
-    g.strokeStyle='rgba(70,52,34,.9)'; g.lineWidth=2.2; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke();
-    const n=shape==='ash'?11:7; for (let k=1;k<=n;k++){ const t=k/n, px=x0+(x1-x0)*t, py=y0+(y1-y0)*t; [-1,1].forEach(sd2=>{ if (k===n && sd2>0) return;
-      const la=a+sd2*(0.7+R()*0.5)+(k===n?0:0), sc=0.75+R()*0.5, L=size[0]*sc, W=size[1]*sc;
-      g.save(); g.translate(px,py); g.rotate(la+Math.PI/2); const l=(light+(R()-0.5)*0.12)*100, hh=hue*360+(R()-0.5)*16;
-      const gr=g.createLinearGradient(-W,0,W,0); gr.addColorStop(0,`hsl(${hh},${48+R()*15}%,${l*0.82}%)`); gr.addColorStop(0.5,`hsl(${hh},${50+R()*15}%,${l*1.12}%)`); gr.addColorStop(1,`hsl(${hh},${48+R()*15}%,${l*0.9}%)`);
-      leafPath(L,W); g.fillStyle=gr; g.fill(); g.strokeStyle=`hsla(${hh},40%,${l*0.6}%,.7)`; g.lineWidth=0.9; g.beginPath(); g.moveTo(0,0); g.lineTo(0,-L*0.9); g.stroke(); g.restore(); }); } }
-  const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
+function leafClusterTexture(shape, hue, light){ const S=512, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'); let sd=Math.floor(hue*1e4+light*777)+shape.length*31; const R=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  // Blattumriss je Art (Spitze bei y=-L, Stielansatz bei 0)
+  const serr=(x0,y0,x1,y1,n,amp)=>{ for (let k=1;k<=n;k++){ const t=k/n, x=x0+(x1-x0)*t, y=y0+(y1-y0)*t, nx=-(y1-y0), ny=(x1-x0), nl=Math.hypot(nx,ny)||1; const o=(k%2?amp:0); g.lineTo(x+nx/nl*o, y+ny/nl*o); } };
+  const outline=(L,W)=>{ const pts=[];
+    if (shape==='oak'){ const lob=[0.12,0.3,0.48,0.66,0.82]; pts.push([0,0]); lob.forEach((t,i)=>{ const w=W*(0.55+0.45*Math.sin(Math.PI*Math.min(1,t*1.15))); pts.push([w*0.55,-L*(t-0.07)],[w,-L*t]); }); pts.push([W*0.25,-L*0.95],[0,-L]); return pts; }
+    if (shape==='maple'){ const a=[[0.0,-1],[0.28,-0.62],[0.62,-0.78],[0.55,-0.42],[0.95,-0.3],[0.62,-0.1],[0.45,0.02],[0.15,-0.05]]; return [[0,0],...a.slice().reverse().map(([x,y])=>[x*W*1.7,y*L*0.95]).reverse()]; }
+    const prof={beech:[0.75,0.45],linden:[1.05,0.2],birch:[0.9,0.32],ash:[0.55,0.5]}[shape]||[0.8,0.45];
+    for (let k=0;k<=12;k++){ const t=k/12; const w=W*Math.pow(Math.sin(Math.PI*Math.pow(t,prof[1]+0.35)),0.9)*(shape==='linden'&&t<0.25?1.15:1); pts.push([w,-L*t]); } return pts; };
+  const toothy={birch:[9,1.6],linden:[10,1.2],ash:[7,0.9],beech:[6,0.6]}[shape];
+  const leaf=(L,W,col,under)=>{ const pts=outline(L,W); g.beginPath(); g.moveTo(0,0);
+    if (shape==='oak'){ const sn=[0.04,0.22,0.4,0.58,0.75,0.9], tp=[0.13,0.31,0.49,0.67,0.83]; for (const sg of [1,-1]){ if (sg<0) g.moveTo(0,0); for (let i=0;i<5;i++){ const wl=W*(0.6+0.4*Math.sin(Math.PI*Math.min(1,tp[i]*1.1))), ws=wl*0.45; g.lineTo(sg*ws,-L*sn[i]); g.bezierCurveTo(sg*wl*1.25,-L*(sn[i]-0.02),sg*wl*1.25,-L*(sn[i+1]+0.02),sg*ws*0.95,-L*sn[i+1]); } g.quadraticCurveTo(sg*W*0.45,-L*1.0,0,-L); } }
+    else { for (let i=1;i<pts.length;i++){ const [x,y]=pts[i], [px,py]=pts[i-1]; if (toothy && i>1 && i<pts.length-1) serr(px,py,x,y,2,toothy[1]); else g.lineTo(x,y); }
+    for (let i=pts.length-2;i>=0;i--){ const [x,y]=pts[i], [px,py]=pts[i+1]; if (toothy && i>0 && i<pts.length-2) serr(-px,py,-x,y,2,-toothy[1]); else g.lineTo(-x,y); } }
+    g.closePath(); const [h,sa,l]=col; const gr=g.createLinearGradient(-W,-L*0.2,W,-L*0.8);
+    gr.addColorStop(0,`hsl(${h},${sa}%,${l*0.78}%)`); gr.addColorStop(0.45,`hsl(${h},${sa+4}%,${l*(under?1.18:1.08)}%)`); gr.addColorStop(1,`hsl(${h},${sa}%,${l*0.86}%)`); g.fillStyle=gr; g.fill();
+    g.strokeStyle=`hsla(${h},${sa}%,${l*0.55}%,.55)`; g.lineWidth=0.8; g.stroke();
+    // Mittelrippe + Seitennerven
+    g.strokeStyle=`hsla(${h-8},${sa-10}%,${Math.min(85,l*1.45)}%,.75)`; g.lineWidth=1.1; g.beginPath(); g.moveTo(0,0); g.lineTo(0,-L*0.93); g.stroke();
+    if (shape==='maple'){ g.lineWidth=0.8; [[0.62,-0.78],[0.95,-0.3],[-0.62,-0.78],[-0.95,-0.3]].forEach(([x,y])=>{ g.beginPath(); g.moveTo(0,-L*0.08); g.lineTo(x*W*1.4,y*L*0.8); g.stroke(); }); }
+    else { g.lineWidth=0.55; const nv=shape==='beech'?8:shape==='oak'?5:6; for (let k=1;k<=nv;k++){ const y=-L*(0.1+0.78*k/(nv+1)); const wl=W*0.8*Math.sin(Math.PI*(0.1+0.8*k/(nv+1))); [-1,1].forEach(sg=>{ g.beginPath(); g.moveTo(0,y); g.lineTo(sg*wl,y-L*0.09); g.stroke(); }); } }
+    // Glanzlicht
+    const sp=g.createRadialGradient(-W*0.25,-L*0.55,1,-W*0.25,-L*0.55,W*0.9); sp.addColorStop(0,'rgba(255,255,230,'+(under?0.05:0.16)+')'); sp.addColorStop(1,'rgba(255,255,230,0)'); g.fillStyle=sp; g.save(); g.clip(); g.fillRect(-W*2,-L*1.1,W*4,L*1.2); g.restore(); };
+  const size={oak:[46,19],maple:[42,18],linden:[40,17],birch:[28,13],beech:[40,15],ash:[30,8]}[shape]||[38,15];
+  const nTw=shape==='birch'?9:7;
+  // Zweige von hinten nach vorn: hintere Blätter dunkler (Tiefe im Laub)
+  for (let tw=0; tw<nTw; tw++){ const depth=tw/(nTw-1); const x0=S/2+(R()-0.5)*S*0.25, y0=S*0.99, a=-Math.PI/2+(R()-0.5)*1.1; let len=S*(0.45+R()*0.35); len=Math.min(len,(Math.cos(a)>0?(S*0.86-x0):(x0-S*0.14))/Math.max(0.05,Math.abs(Math.cos(a))), S*0.8); const x1=x0+Math.cos(a)*len, y1=y0+Math.sin(a)*len;
+    const bend=(R()-0.5)*S*0.12; g.strokeStyle='rgba(78,60,40,.95)'; g.lineCap='round'; g.lineWidth=3.6; g.beginPath(); g.moveTo(x0,y0); g.quadraticCurveTo((x0+x1)/2+bend,(y0+y1)/2,x1,y1); g.stroke();
+    const n=shape==='ash'?7:shape==='birch'?9:8;
+    for (let k=1;k<=n;k++){ const t=k/n, px=(1-t)*(1-t)*x0+2*(1-t)*t*((x0+x1)/2+bend)+t*t*x1, py=(1-t)*(1-t)*y0+2*(1-t)*t*((y0+y1)/2)+t*t*y1;
+      [-1,1].forEach(sd2=>{ if (k===n && sd2>0) return; const la=a+(k===n?0:sd2*(0.55+R()*0.6)), sc=(0.7+R()*0.45)*(1-0.25*t), under=R()<0.18;
+        const l=(light*100)*(0.7+0.42*depth)*(0.92+R()*0.16)*(under?1.12:1), hh=hue*360+(R()-0.5)*12+(under?-6:0), sa=under?24:32+R()*12;
+        g.save(); g.translate(px,py); g.rotate(la+Math.PI/2);
+        if (shape==='ash'){ // gefiedertes Blatt: Spindel mit Fiederblättchen
+          const Ls=size[0]*sc*2.2; g.strokeStyle='rgba(90,90,40,.9)'; g.lineWidth=1.2; g.beginPath(); g.moveTo(0,0); g.lineTo(0,-Ls); g.stroke();
+          for (let f=0; f<5; f++){ const yy=-Ls*(0.2+f*0.18); [-1,1].forEach(s3=>{ g.save(); g.translate(0,yy); g.rotate(s3*1.1); leaf(size[0]*sc*0.75,size[1]*sc,[hh,sa,l],under); g.restore(); }); } g.save(); g.translate(0,-Ls); leaf(size[0]*sc*0.8,size[1]*sc,[hh,sa,l],under); g.restore(); }
+        else { g.strokeStyle='rgba(80,70,40,.9)'; g.lineWidth=1.3; g.beginPath(); g.moveTo(0,0); g.lineTo(0,-6); g.stroke(); g.translate(0,-5); leaf(size[0]*sc,size[1]*sc,[hh,sa,l],under); }
+        g.restore(); }); } }
+  const t=new THREE.CanvasTexture(c); t.anisotropy=8; return t; }
 function treeKit(def){
   const R=rand; const lam=(o)=>new THREE.MeshLambertMaterial(o);
   const bark={oak:barkTexture('oak'), birch:barkTexture('birch'), beech:barkTexture('beech'), pine:barkTexture('pine')};
@@ -4399,7 +4423,7 @@ function treeKit(def){
       for (let d=0; d<L; d+=dens){ const px=x0+ux*d, py=y0+uy*d, f=1-d/L*0.5; [-1,1].forEach(sg=>{ const nl=(6+R()*5)*f, a=Math.atan2(uy,ux)+sg*(0.9+R()*0.4); const l=(0.16+R()*0.14+0.2*(d/L))*100; g.strokeStyle=`hsl(${130+R()*25},${35+R()*20}%,${l*0.32}%)`; g.lineWidth=1.3; g.beginPath(); g.moveTo(px,py); g.lineTo(px+Math.cos(a)*nl,py+Math.sin(a)*nl); g.stroke(); }); } };
     twig(2,H/2,W-6,H/2+4,1.6,3); for (let k=0;k<9;k++){ const x=20+k*25+R()*8, sg=k%2?1:-1, len=(H*0.42)*(1-k/12); twig(x,H/2+x/W*4,x+len*0.8,H/2+sg*len*0.75,2.0,1.6); }
     const t=new THREE.CanvasTexture(c); t.anisotropy=4; _sprB=windify(lam({map:t, alphaTest:0.4, side:THREE.DoubleSide, vertexColors:true}),0.02,6.0); return _sprB; };
-  const leafTexC={}; const leafMC=(p)=>{ const k=p.leaf; if (!leafTexC[k]) leafTexC[k]=windify(lam({map:leafClusterTexture(k,p.hue+0.01,p.l*0.86), alphaTest:0.45, side:THREE.DoubleSide, vertexColors:true}),0.06,6.0); return leafTexC[k]; };
+  const leafTexC={}; const leafMC=(p)=>{ const k=p.leaf; if (!leafTexC[k]) leafTexC[k]=windify(lam({map:leafClusterTexture(k,p.hue+0.01,p.l*1.02), alphaTest:0.45, side:THREE.DoubleSide, vertexColors:true}),0.06,6.0); return leafTexC[k]; };
   const genTree=(name, seed)=>()=>{ const p=SP[name]; let sd=seed*9301+49297; const r=()=>((sd=(sd*16807)%2147483647)/2147483647);
     const limbs=[], blobs=[]; const lean=V3((r()-0.5)*0.4,0,(r()-0.5)*0.4);
     const T=V3(lean.x,p.H,lean.z); limbs.push(limb(V3(0,-0.3,0),T,p.r,p.r*0.72,10));
@@ -4409,12 +4433,12 @@ function treeKit(def){
       const len=p.CR*(p.lead?(1.05-t*0.55):0.95)*(0.8+r()*0.35); const dir=V3(Math.cos(a)*ct,Math.sin(tl),Math.sin(a)*ct);
       const mid=st.clone().addScaledVector(dir,len*0.55).add(V3(0,len*0.12,0)), end=st.clone().addScaledVector(dir,len).add(V3(0,len*(name==='birch'?-0.05:0.18),0));
       const rb=p.r*(p.lead?0.32:0.5)*(0.8+r()*0.3); limbs.push(limb(st,mid,rb,rb*0.6,6)); limbs.push(limb(mid,end,rb*0.6,rb*0.25,5));
-      blobs.push([end.x,end.y,end.z,p.CR*(0.42+r()*0.12),0.85]);
+      blobs.push([end.x,end.y,end.z,p.CR*(0.42+r()*0.12),1.0]); blobs.push([mid.x,mid.y-len*0.05,mid.z,p.CR*(0.28+r()*0.08),0.9]);   // Krone auch weiter innen/unten belaubt
       const ns=2+(r()<0.5?1:0); for (let j=0;j<ns;j++){ const f=0.45+r()*0.4, b0=st.clone().lerp(end,f), sa=a+(j%2?1:-1)*(0.6+r()*0.5), stl=tl+0.25+r()*0.3, sl=len*(0.35+r()*0.2);
         const b1=b0.clone().add(V3(Math.cos(sa)*Math.cos(stl)*sl,Math.sin(stl)*sl,Math.sin(sa)*Math.cos(stl)*sl)); limbs.push(limb(b0,b1,rb*0.35,rb*0.12,4)); blobs.push([b1.x,b1.y,b1.z,p.CR*(0.32+r()*0.1),0.9]); } }
     const tg=mergeGeoC(limbs); const bk=trunkM[p.bark||name]||trunkM.oak;
-    const cg=mergeGeoC(blobs.filter(b=>b[3]>=p.CR*0.36).map(([x,y,z,rr,sy],i)=>blob(x,y,z,rr*0.55,sy,i*1.3+seed,true)));
-    const near=[[tg,bk],[cg,coreM(new THREE.Color(p.core).multiplyScalar(0.8)),'vary'],[cards(blobs,78,1.05),leafMC(p),'vary']];
+    const cg=mergeGeoC(blobs.filter(b=>b[3]>=p.CR*0.36).map(([x,y,z,rr,sy],i)=>blob(x,y,z,rr*0.45,sy,i*1.3+seed,true)));
+    const near=[[tg,bk],[cg,coreM(new THREE.Color(p.core).multiplyScalar(0.8)),'vary'],[cards(blobs,104,0.98),leafMC(p),'vary']];
     near.far=()=>{ const ft=limb(V3(0,-0.3,0),T,p.r,p.r*0.7,5); const cy=blobs.reduce((a,b)=>a+b[1],0)/blobs.length; const fc=mergeGeoC([blob(lean.x,cy,lean.z,p.CR*1.22,name==='birch'?1.5:p.lead?1.15:0.85,seed,true), blob(lean.x+p.CR*0.35,cy+p.CR*0.35,lean.z-p.CR*0.2,p.CR*0.7,1,seed+3,true)]);
       const fb=[[lean.x,cy,lean.z,p.CR*1.22,name==='birch'?1.5:p.lead?1.15:0.85]];   // ferne Krone mit wenigen großen Blattkarten (keine glatte Kugel mehr)
       return [[ft,bk],[fc,coreM(new THREE.Color().setHSL(p.hue,0.42,p.l*0.7)),'vary'],[cards(fb.concat([[fb[0][0]+fb[0][3]*0.4,fb[0][1]+fb[0][3]*0.3,fb[0][2]-fb[0][3]*0.3,fb[0][3]*0.7,1],[fb[0][0]-fb[0][3]*0.45,fb[0][1]-fb[0][3]*0.1,fb[0][2]+fb[0][3]*0.35,fb[0][3]*0.65,1]]),8,2.3),leafMC(p),'vary']]; };
@@ -4465,17 +4489,34 @@ function updateTreeLOD(cp, force){ const T=TREE_LOD; if (!T) return; if (!force 
       if (d<Rt+LOD_M) put(t.near,a++); if (d>Rt-LOD_B-LOD_M) put(t.far,b++); }   // im Übergangsband in beiden Stufen, der Shader blendet per Raster über
     t.near.forEach(im=>{ im.count=a; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
     t.far.forEach(im=>{ im.count=b; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; }); } }
-// Weicher Wechsel grob <-> fein: beide Stufen im Band LOD_B, pro Pixel per Zufallsraster ausgeblendet (kein Aufploppen)
-const LOD_B=28, LOD_M=30;
-const LOD_MC=new WeakMap();
-function lodMat(mat, far){ let c=LOD_MC.get(mat); if (!c){ c={}; LOD_MC.set(mat,c); } if (c[far]) return c[far];
+// Weicher Wechsel grob <-> fein: beide Stufen im Band LOD_B, pro Pixel per geordnetem Raster (Bayer 8x8) überblendet
+const LOD_B=45, LOD_M=30;
+const CAMP_GLSL='(-vec3(dot(viewMatrix[0].xyz,viewMatrix[3].xyz),dot(viewMatrix[1].xyz,viewMatrix[3].xyz),dot(viewMatrix[2].xyz,viewMatrix[3].xyz)))';
+const BAYER_GLSL='float bay2(vec2 a){ a=floor(a); return fract(a.x/2.0+a.y*a.y*0.75); }\nfloat bay8(vec2 a){ return bay2(0.25*a)*0.0625+bay2(0.5*a)*0.25+bay2(a); }\n';
+const DITH_MC=new WeakMap();
+// mode 'N'/'F': Baum-Detailstufen (Attribut iLodR); mode 'G': Einblenden ab Abstand a..b (Kamera), 'R': wie G, aber Abstand zum Fahrer (wRP)
+function ditherMat(mat, mode, a, b){ let c=DITH_MC.get(mat); if (!c){ c={}; DITH_MC.set(mat,c); } const ck=mode+(a||0)+'_'+(b||0); if (c[ck]) return c[ck];
   const base=mat.userData.pbrOrig||mat, P=THREE.Material.prototype.onBeforeCompile; const ob=base.userData.origOb||(base.userData.pbrPrep?null:base.onBeforeCompile), ok=base.userData.origKey||(base.userData.pbrPrep?null:base.customProgramCacheKey);
   const w=base.clone(); const u=base.userData; w.userData={lin:u.lin, worldAO:u.worldAO, pbr:u.pbr, noStd:u.noStd};
+  const gl2=renderer.capabilities.isWebGL2, hasMap=!!base.map && base.alphaTest>0, tree=mode==='N'||mode==='F';
+  let a2c=false; try{ a2c=gl2 && !!(renderer.getContext().getContextAttributes()||{}).antialias && !window.NO_A2C; }catch(e){}
+  if (a2c){ w.alphaToCoverage=true; if (base.alphaTest>0) w.alphaTest=Math.min(base.alphaTest,0.12); }   // MSAA: weiche Überblendung über Abdeckung statt Raster
   w.onBeforeCompile=(sh,r)=>{ if (ob && ob!==P) ob.call(w,sh,r);
-    sh.vertexShader='attribute float iLodR; varying float vLodF;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n#ifdef USE_INSTANCING\n  vec4 lodP=modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0); vLodF=smoothstep(iLodR-'+LOD_B.toFixed(1)+',iLodR,distance(lodP.xz,(-vec3(dot(viewMatrix[0].xyz,viewMatrix[3].xyz),dot(viewMatrix[1].xyz,viewMatrix[3].xyz),dot(viewMatrix[2].xyz,viewMatrix[3].xyz))).xz));\n#else\n  vLodF=0.0;\n#endif');
-    sh.fragmentShader='varying float vLodF;\n'+sh.fragmentShader.replace('void main() {','void main() {\n  { float lh=fract(sin(dot(floor(gl_FragCoord.xy),vec2(12.9898,78.233)))*43758.5453); if ('+(far?'lh>=vLodF':'lh<vLodF')+') discard; }'); };
-  const okc=ok&&ok!==THREE.Material.prototype.customProgramCacheKey?ok:null; w.customProgramCacheKey=()=>(okc?okc.call(base):'')+'|lod'+(far?'F':'N');
-  c[far]=w; return w; }
+    let vc; if (mode==='N'||mode==='F') vc='vLodF=smoothstep(iLodR-'+LOD_B.toFixed(1)+',iLodR,distance(lodP.xz,'+CAMP_GLSL+'.xz));';
+    else if (mode==='R') vc='vLodF=smoothstep('+a.toFixed(1)+','+b.toFixed(1)+',distance(lodP.xz,wRP.xz));';
+    else vc='vLodF=smoothstep('+a.toFixed(1)+','+b.toFixed(1)+',distance(lodP.xz,'+CAMP_GLSL+'.xz));';
+    sh.vertexShader=(mode==='N'||mode==='F'?'attribute float iLodR; ':'')+(mode==='R'&&!/uniform vec3 wRP/.test(sh.vertexShader)?'uniform vec3 wRP; ':'')+'varying float vLodF;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n#ifdef USE_INSTANCING\n  vec4 lodP=modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0);\n#else\n  vec4 lodP=modelMatrix*vec4(transformed,1.0);\n#endif\n  '+vc);
+    if (mode==='R' && !sh.uniforms.wRP) sh.uniforms.wRP=WIND.rp;
+    const keep=mode==='F'?'lh>=vLodF':'lh<vLodF';
+    let fs='varying float vLodF;\n'+BAYER_GLSL+sh.fragmentShader;
+    if (!a2c) fs=fs.replace('void main() {','void main() {\n  { float lh=bay8(gl_FragCoord.xy); if ('+keep+') discard; }');
+    let pre=''; if (gl2 && hasMap && tree) pre+='{ vec2 dd=max(abs(dFdx(vUv)),abs(dFdy(vUv)))*256.0; diffuseColor.a=clamp(diffuseColor.a*(1.0+0.18*max(0.0,log2(max(dd.x,dd.y)))),0.0,1.0); }\n';   /* Laub dünnt in der Ferne nicht aus */
+    if (a2c){ pre+='diffuseColor.a*='+(mode==='F'?'vLodF':'(1.0-vLodF)')+';\n'; if (!hasMap) pre+='if (diffuseColor.a<0.004) discard;\n'; }
+    if (pre) fs=fs.replace('#include <alphatest_fragment>',pre+'#include <alphatest_fragment>');
+    sh.fragmentShader=fs; };
+  const okc=ok&&ok!==THREE.Material.prototype.customProgramCacheKey?ok:null; w.customProgramCacheKey=()=>(okc?okc.call(base):'')+'|dith'+ck+(a2c?'a':'');
+  c[ck]=w; return w; }
+function lodMat(mat, far){ return ditherMat(mat, far?'F':'N'); }
 function pickMix(mix){ let r=rand(); for (const [k,w] of mix){ if (r<w) return k; r-=w; } return mix[mix.length-1][0]; }
 // ---------- Zäune und Hecken (prozedural) ----------
 function buildFencesHedges(def, grp, W){
@@ -6507,7 +6548,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 57`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 58`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -6640,7 +6681,7 @@ function placeRider(r, d, lane){
 function applyGfx(q){ const dpr=Math.min(devicePixelRatio,2); renderer.setPixelRatio(dpr*Math.min(1,q)); renderer.shadowMap.enabled=q>0.5;
   const sm=q>1.1?4096:q>0.9?2048:1024; if (sun.shadow.mapSize.x!==sm){ sun.shadow.mapSize.set(sm,sm); if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map=null; } }
   const ext=q>1.1?70:q>0.9?55:40; sc.left=-ext; sc.right=ext; sc.top=ext; sc.bottom=-ext; sc.updateProjectionMatrix();
-  GFX_TREE_R=q>1.1?380:q>0.9?260:q>0.6?180:110; if (TREE_LOD){ TREE_LOD.R=GFX_TREE_R; updateTreeLOD(camera.position,true); } PBR.std=!PBR_SAFE && q>=1; hemi.intensity=PBR.std?0.45:0.75; pbrApply(scene); renderer.setSize(innerWidth, innerHeight); }
+  GFX_TREE_R=q>1.1?480:q>0.9?320:q>0.6?200:120; if (TREE_LOD){ TREE_LOD.R=GFX_TREE_R; updateTreeLOD(camera.position,true); } PBR.std=!PBR_SAFE && q>=1; hemi.intensity=PBR.std?0.45:0.75; pbrApply(scene); renderer.setSize(innerWidth, innerHeight); }
 let GFX_TREE_R=200, fpsAcc=0, fpsN=0, fpsT=0;
 function frame(now){
   requestAnimationFrame(frame);
