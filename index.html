@@ -6255,13 +6255,31 @@ function planVillages(def){ VILL=null; const plan=PROP_PLAN[def.id]; if (!plan |
       const m=roadside(d, side, off, 0.9+rand()*0.2, true); if(!m) continue; hm.push(m);
       const b=roadside(d+4, side, 5.4, 1, true); if (b) mb.push(b); } }
   hm.forEach(mm=>{ const e=mm.elements, fl=Math.hypot(e[8],e[10])||1; [0,8,15].forEach(k=>luClear(e[12]-e[8]/fl*k,e[14]-e[10]/fl*k)); }); VILL={hm,mb}; return VILL; }
+// Lattenzaun um die Vorgärten der Höfe (weiß oder Holz), Pforte zur Straße
+function gardenFences(hm, grp, def){ const pk=[], rl=[], m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), p=new THREE.Vector3(); const lim=(def.roadW||7)/2+4.5;
+  const gh=(x,z)=>{ const cn=courseNear(x,z,16); if (cn.i>=0 && cn.d<CORR.CW+0.5){ const d=cum[cn.i]+cn.t*(cum[cn.i+1]-cum[cn.i]), a=pts[cn.i], b=pts[(cn.i+1)%N], side=((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x))<0?1:-1; return profileH(d,side,cn.d); } return terrainMeshH(x,z); };
+  hm.forEach((hmx,hi)=>{ const e=hmx.elements, fl=Math.hypot(e[8],e[10])||1, fx=e[8]/fl, fz=e[10]/fl, sx=fz, sz=-fx, hx=e[12], hz=e[14];
+    const seg=(ax,az,bx,bz,gate)=>{ const len=Math.hypot(bx-ax,bz-az), n=Math.floor(len/0.16), yaw=Math.atan2(bx-ax,bz-az); let lastOk=false, run=null;
+      const flush=()=>{ if (run && run.n>1){ const mx=(run.x0+run.x1)/2, mz=(run.z0+run.z1)/2, l=Math.hypot(run.x1-run.x0,run.z1-run.z0); q.setFromAxisAngle(UPV,yaw); [0.28,0.72].forEach(y=>{ s.set(0.035,0.06,l); p.set(mx,(run.h0+run.h1)/2+y,mz); m.compose(p,q,s); rl.push(m.clone()); }); } run=null; };
+      for (let i=0;i<=n;i++){ const t=i/n, x=ax+(bx-ax)*t, z=az+(bz-az)*t; if (gate && Math.abs(t-0.5)<0.05){ flush(); continue; } if (sampleGrid(nearD,x,z)<lim || inPond(x,z,1)){ flush(); continue; }
+        const h=gh(x,z); q.setFromAxisAngle(UPV,yaw); s.set(1,0.92+((i&1)?0.08:0),1); p.set(x,h-0.05,z); m.compose(p,q,s); pk.push(m.clone());
+        if (!run) run={x0:x,z0:z,h0:h,n:0}; run.x1=x; run.z1=z; run.h1=h; run.n++; }
+      flush(); };
+    const F=6.5, B=-9, W=8;   // vorn 6,5 m zur Straße, seitlich 8 m
+    const P=(a,b)=>[hx+fx*a+sx*b, hz+fz*a+sz*b];
+    const [a1,a2]=P(F,-W), [b1,b2]=P(F,W), [c1,c2]=P(B,-W), [d1,d2]=P(B,W);
+    seg(a1,a2,b1,b2,true); seg(c1,c2,a1,a2,false); seg(d1,d2,b1,b2,false); });
+  const lat=new THREE.BoxGeometry(0.022,1,0.09).translate(0,0.5,0); { const pa=lat.attributes.position; for (let i=0;i<pa.count;i++){ if (pa.getY(i)>0.9) pa.setZ(i,pa.getZ(i)*0.4); } }   // spitzer Kopf
+  const mat=new THREE.MeshLambertMaterial({color:0xf2efe6});
+  if (pk.length){ const im=mkIM(lat,mat,pk.length); pk.forEach((mm,i)=>im.setMatrixAt(i,mm)); im.castShadow=true; im.receiveShadow=true; grp.add(im); }
+  if (rl.length){ const im=mkIM(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0xd9d4c6}),rl.length); rl.forEach((mm,i)=>im.setMatrixAt(i,mm)); im.castShadow=true; grp.add(im); } }
 function addProps(def){
   critters=[];
   const plan=PROP_PLAN[def.id]; if (!plan || !Object.keys(PROP_LIB).length) return;
   const g=worldGroup, km=L/1000, cnt=x=>Math.max(1,Math.round(x*km));
   const add=(arr,m)=>{ if(m) arr.push(m); };
   // Weiler: 3-5 Häuser beidseitig, je ein Briefkasten vorn an der Straße
-  { const V=VILL||planVillages(def); if (V){ placeInstanced(g,plan.houses,V.hm); placeInstanced(g,'briefkasten',V.mb); } VILL=null; }
+  { const V=VILL||planVillages(def); if (V){ placeInstanced(g,plan.houses,V.hm); placeInstanced(g,'briefkasten',V.mb); if (LU) gardenFences(V.hm, g, def); } VILL=null; }
   // Sonstiges
   plan.extra.forEach(([name,pk,o0,o1])=>{ const mats=[], n=cnt(pk); for (let i=0;i<n;i++){ const fr=name==='bank'||name==='schild_holz';
     add(mats, roadside(rand()*L, rand()<0.5?1:-1, o0+rand()*(o1-o0), name.startsWith('baum')?0.8+rand()*0.6:0.85+rand()*0.3, fr)); } placeInstanced(g,name,mats); });
@@ -6477,7 +6495,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 53`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 54`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
