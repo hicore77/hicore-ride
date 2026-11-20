@@ -4060,9 +4060,12 @@ function buildLandUse(def){ LU=null; if (def.real || def.trees==='palm' || def.t
   const data=new Uint8Array(n*n*4); for (let i=0;i<n*n;i++){ data[i*4]=types[i]; data[i*4+3]=255; }
   const tex=new THREE.DataTexture(data,n,n,THREE.RGBAFormat); tex.magFilter=tex.minFilter=THREE.NearestFilter; tex.generateMipmaps=false; tex.needsUpdate=true;
   LU={n,types,c:Math.cos(a),s:Math.sin(a),CS,tex}; }
+function luClear(x,z){ if (!LU) return; const lu=landUse(x,z); if (lu.t<2 || lu.t>5) return; const iu=Math.floor(lu.u/LU.CS[0])+32, iv=Math.floor(lu.v/LU.CS[1])+32; if (iu<0||iv<0||iu>63||iv>63) return; const i=iv*64+iu; LU.types[i]=0; LU.tex.image.data[i*4]=0; LU.tex.needsUpdate=true; }   // Hofstelle/Weide: Wiese statt Acker
 function landUse(x,z){ if (!LU) return {t:0,edge:99,key:0}; const [wx,wz]=luWarp(x,z); const u=wx*LU.c-wz*LU.s, v=wx*LU.s+wz*LU.c; const cu=u/LU.CS[0], cv=v/LU.CS[1]; const iu=Math.floor(cu), iv=Math.floor(cv);
   const fu=(cu-iu)*LU.CS[0], fv=(cv-iv)*LU.CS[1]; const eu=Math.min(fu,LU.CS[0]-fu), ev=Math.min(fv,LU.CS[1]-fv); const gx=clamp(iu+32,0,63), gy=clamp(iv+32,0,63);
-  const key=eu<ev?(Math.round(cu)*7919+iv*104729):(iu*7919+Math.round(cv)*104729+55); return {t:LU.types[gy*64+gx], edge:Math.min(eu,ev), key, u, v}; }          // Geländehöhen wie gerendert + Gras-Detailtextur
+  const key=eu<ev?(Math.round(cu)*7919+iv*104729):(iu*7919+Math.round(cv)*104729+55); const t=LU.types[gy*64+gx];
+  const nx=eu<ev?clamp(gx+(fu<LU.CS[0]/2?-1:1),0,63):gx, ny=eu<ev?gy:clamp(gy+(fv<LU.CS[1]/2?-1:1),0,63), nt=LU.types[ny*64+nx];
+  return {t, nt, edge:Math.min(eu,ev), redge:nt!==t?Math.min(eu,ev):99, key, u, v}; }          // Geländehöhen wie gerendert + Gras-Detailtextur
 const CORR={SW:1.4, CW:13, HOLE:8.5};   // Bankett, Breite Randstreifen, Loch im Gelände (ab Straßenrand)
 function terrainMeshH(x,z){ if(!TERR) return terrainH(x,z);
   const gx=clamp((x-OFF)/CELL,0,G-0.0001), gz=clamp((z-OFF)/CELL,0,G-0.0001); const ix=gx|0, iz=gz|0, fx=gx-ix, fz=gz-iz, W=G+1;
@@ -4118,7 +4121,7 @@ function terrainHoleMaterial(mat, W){
     else if (t<3.5){ lc=vec3(0.80,0.63,0.30)*(0.42+wl*1.2)*(0.9+0.2*vnz(u2*0.08)); }
     else if (t<4.5){ float fl=vnz(u2*2.3)*0.6+vnz(u2*9.0)*0.4; lc=mix(wz, vec3(0.96,0.83,0.07)*(0.75+0.45*fl), 0.55+0.35*smoothstep(0.3,0.7,fl)); }
     else if (t<5.5){ float fu=0.5+0.5*sin(u2.y*8.3776); vec3 b=mapTexelToLinear(texture2D(tFw,u2/3.0)).rgb; float l=dot(b,vec3(0.3,0.6,0.1)); lc=vec3(0.36,0.29,0.22)*(0.55+0.9*l)*(0.72+0.4*fu)*(0.85+0.3*vnz(P*0.05)); }
-    else { lc=mapTexelToLinear(texture2D(tWb,wq*0.8)).rgb*0.85; }
+    else { vec3 wb=mapTexelToLinear(texture2D(tWb,wq*0.8)).rgb; lc=mix(wb*0.7, vec3(0.20,0.27,0.13)*(0.8+0.4*vnz(P*0.3)), 0.45+0.25*vnz(P*0.05)); }
     luW=k; lc=pow(max(lc,vec3(0.0)),vec3(1.9))*1.25; diffuseColor.rgb=mix(diffuseColor.rgb, lc*mix(vec3(1.0),tnt,0.5)*fine, luW); }
 #endif`); };
   mat.customProgramCacheKey=()=>'terrainHole2'; return mat; }
@@ -5380,7 +5383,7 @@ function buildWorld(def){
       const d=sampleGrid(nearD,x,z); let inForest=false;
       if (d<(def.roadW||7)/2+7.8) continue;
       if (def.real){ const ok=realTreeOK(x,z); if (!ok || (ok===1 && rand()<0.93) || (ok===3 && rand()<0.45)) continue; inForest=ok===2; if (inForest && fPlaced>=7500) continue; if (inForest) fPlaced++; }
-      else if (LU){ if (d<11) continue; const lu=landUse(x,z); if (lu.t===6){ if (lu.edge<1.5) continue; inForest=true; } else if (lu.t>=2 && lu.edge>2.5) continue; else if (!inCl && (d>200 && rand()<0.8 || rand()<0.5)) continue; }
+      else if (LU){ if (d<11) continue; const lu=landUse(x,z); if (lu.t===6) continue; else if (lu.t>=2 && lu.redge>2.5) continue; else if (!inCl && (d>200 && rand()<0.8 || rand()<0.5)) continue; }
       else if (!inCl && (d<11 || (d>260 && rand()<0.7))) continue;
       if (inCl) inForest=true;
       const h=d<(def.roadW||7)/2+CORR.CW+2?terrainMeshH(x,z):terrainH(x,z); if (def.water && h<minY-1.5) continue; if (def.terrain==='mountains' && h>maxY+40) continue; if (inPond(x,z,3)) continue;
@@ -5390,9 +5393,14 @@ function buildWorld(def){
       const f=0.78+rand()*0.38, hs=rand(); tcol.setRGB(f*(0.92+hs*0.16), f*(0.97+rand()*0.06), f*(0.85+(1-hs)*0.2));
       set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; placed++;
     }
+    if (LU){ let wf=0; const step=7.5, cap=Math.round(GFX_TREE_R>=260?3200:2200);   // geschlossene Waldstücke
+      for (let gx=OFF; gx<OFF+EXT && wf<cap; gx+=step) for (let gz=OFF; gz<OFF+EXT && wf<cap; gz+=step){ const x=gx+(rand()-0.5)*step*0.9, z=gz+(rand()-0.5)*step*0.9; const lu=landUse(x,z); if (lu.t!==6 || lu.edge<1.2) continue;
+        if (sampleGrid(nearD,x,z)<12) continue; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
+        const type=pickMix(kit.forest), set=sets[type]; if (!set) continue; const sc=0.95+rand()*0.6; q.setFromEuler(new THREE.Euler((rand()-0.5)*0.05,rand()*6.28,(rand()-0.5)*0.05)); s.set(sc*(0.85+rand()*0.3),sc*(0.9+rand()*0.35),sc*(0.85+rand()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,s);
+        const f=0.72+rand()*0.35; tcol.setRGB(f*(0.9+rand()*0.15), f, f*(0.85+rand()*0.2)); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; wf++; } }
     if (LU){ let hb=0; const hmix=[['bushA',0.42],['bushB',0.38],['oak',0.05],['maple',0.04],['linden',0.03],['ash',0.04],['birch',0.04]];   // Hecken und Baumreihen an Feldrainen
       for (let k=0;k<90000 && hb<3200;k++){ const dd=rand()*L, side=rand()<0.5?1:-1, off=13+Math.pow(rand(),1.6)*420, pp=posAt(dd), hd=headingAt(dd), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
-        const lu=landUse(x,z); if (lu.edge>1.3 || lu.t===6) continue; if ((Math.abs(lu.key)%100)/100>0.5) continue; if (sampleGrid(nearD,x,z)<12) continue; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
+        const lu=landUse(x,z); if (lu.redge>1.3 || lu.t===6) continue; if ((Math.abs(lu.key)%100)/100>0.5) continue; if (sampleGrid(nearD,x,z)<12) continue; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
         const type=pickMix(hmix), set=sets[type]; if (!set) continue; const bush=type.startsWith('bush'); const sc=bush?0.9+rand()*0.7:0.7+rand()*0.5;
         q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc*(0.9+rand()*0.3),sc*(0.8+rand()*0.5),sc*(0.9+rand()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,s);
         const f=0.78+rand()*0.38; tcol.setRGB(f*(0.92+rand()*0.16), f, f*(0.85+rand()*0.2)); set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; hb++; } }
@@ -6205,6 +6213,7 @@ function addProps(def){
       for (let i=0;i<n;i++){ const d=d0+i*34+rand()*8, side=i%2?1:-1, off=17+rand()*7;
         const m=roadside(d, side, off, 0.9+rand()*0.2, true); if(!m) continue; hm.push(m);
         add(mb, roadside(d+4, side, 5.4, 1, true)); } }
+    hm.forEach(mm=>luClear(mm.elements[12],mm.elements[14]));
     placeInstanced(g,plan.houses,hm); placeInstanced(g,'briefkasten',mb); }
   // Sonstiges
   plan.extra.forEach(([name,pk,o0,o1])=>{ const mats=[], n=cnt(pk); for (let i=0;i<n;i++){ const fr=name==='bank'||name==='schild_holz';
@@ -6226,7 +6235,7 @@ function addProps(def){
       const dC=pa?pa.d:rand()*L, side=pa?pa.side:(rand()<0.5?1:-1), offC=graze?16+rand()*10:(name==='hase'?9:12)+rand()*20;
       for (let i=0;i<grp && critters.length<90;i++){
         const m=roadside(dC+(rand()-0.5)*(graze?30:14), side, offC+(rand()-0.5)*(graze?10:6), 1, false); if(!m) continue;
-        const o=propObject(name); if(!o) return; m.decompose(o.position,o.quaternion,o.scale); g.add(o);
+        const o=propObject(name); if(!o) return; m.decompose(o.position,o.quaternion,o.scale); g.add(o); if (graze) luClear(o.position.x,o.position.z);
         critters.push({o, kind:name, base:o.position.clone(), yaw:Math.random()*6.28, t:Math.random()*10, phase:Math.random()*6.28}); } } });
 }
 function animateCritters(dt){
@@ -6421,7 +6430,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 45`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 46`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
