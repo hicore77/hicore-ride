@@ -3881,6 +3881,10 @@ const WORLDS = [
   { id:'spk', name:'Spitzkunnersdorf', unlockKm:0, real:true,
     desc:'Dein Heimatdorf nach echten Kartendaten: alle Straßen, alle Häuser, echtes Gelände. Runde ca. 19 km über fast jede Dorfstraße.',
     R:1550, roadW:5.5, terrain:'real', sky:0x9fcff5, fog:0xc8dcec, grass:[0.26,0.42], trees:'mixed', water:false },
+  { id:'elbe', name:'Elbsandstein', unlockKm:0,
+    desc:'Sächsische Schweiz: an der Elbe entlang, dann durch Kiefernwald hinauf zu Felsnadeln und Tafelbergen. Runde ca. 10 km.',
+    R:1560, shape:[0.16,0.13,120,90], elev:t=> 118*Math.pow((1-Math.cos(t-1.2))/2,1.5)+3*Math.sin(4*t+0.5)+1.5*Math.sin(9*t),
+    terrain:'sandstone', sky:0x9cc6e8, fog:0xc9d6df, grass:[0.25,0.40], trees:'sandstone', water:true },
   { id:'huegel', name:'Hügelland', unlockKm:15,
     desc:'Wellige Runde durch Wälder und Wiesen mit kurzen, knackigen Anstiegen.',
     R:1250, shape:[0.22,0.18,140,90], elev:t=> 26*Math.sin(t)+17*Math.sin(3*t+1.2)+7*Math.sin(7*t+0.4)+4*Math.sin(11*t),
@@ -4059,6 +4063,10 @@ function baseH(x,z){
   if (WORLD.terrain==='real'){ const b2=clamp((d-4.5)/28,0,1), sm=b2*b2*(3-2*b2); return (ry-0.45)*(1-sm)+demH(x,z)*sm; }
   if (WORLD.terrain==='island') return ry-0.7 + bl*(noise(x,z)*0.15+2.5) - Math.max(0,d-110)*0.09;
   if (WORLD.terrain==='mountains') return ry-0.7 + bl*bl*(noise(x,z)*2.2 + 70*bl);
+  if (WORLD.terrain==='sandstone'){ let h=ry-0.7 + bl*bl*((noise(x,z)+31)*0.42 + 15*bl);
+    if (riverD){ const r=sampleGrid(riverD,x,z); if (r<200){ const tgt=WORLD._rY-2.6+Math.max(0,r-46)*0.42, w=clamp((d-14)/24,0,1), k=5, hh=clamp(0.5+0.5*(tgt-h)/k,0,1), sm=tgt*(1-hh)+h*hh-k*hh*(1-hh); h=h*(1-w)+Math.min(h,sm)*w; } }
+    for (const t of SANDT){ const dd=Math.hypot(x-t.x,z-t.z), R0=t.r*1.08; if (dd<R0+t.H*1.15){ const hb=t.top-t.H*0.5-Math.max(0,dd-R0)*0.45+noise(x,z)*0.06; if (hb>h) h=hb; } }   /* bewaldeter Sockel unter dem Tafelberg */
+    return h; }
   return ry-0.7 + bl*bl*(noise(x,z)+12*bl);
 }
 function terrainH(x,z){
@@ -4066,7 +4074,58 @@ function terrainH(x,z){
   for (const p of ponds){ const dx=x-p.x, dz=z-p.z, dd=dx*dx+dz*dz; if (dd<p.ro*p.ro){ const t=Math.sqrt(dd)/p.ro, k=clamp((t-0.55)/0.45,0,1), sm=k*k*(3-2*k); h=(p.y-2.2)*(1-sm)+Math.min(h,p.y+0.15+(h-p.y)*k)*sm; } }
   return h;
 }
-function inPond(x,z,m){ for (const p of ponds){ const dx=x-p.x, dz=z-p.z; if (dx*dx+dz*dz<(p.r+(m||2))*(p.r+(m||2))) return true; } return false; }
+function inPond(x,z,m){ for (const p of ponds){ const dx=x-p.x, dz=z-p.z; if (dx*dx+dz*dz<(p.r+(m||2))*(p.r+(m||2))) return true; } return SANDR.length>0 && sandHit(x,z,m||2); }
+/* ---------- Elbsandstein: Elbe und Sandsteinfelsen ---------- */
+let riverD=null, RIVER=null, SANDR=[], SANDT=[];
+function sandHit(x,z,m){ for (const r of SANDR){ const R=r.r*1.36*(r.e||1)+m, dx=x-r.x, dz=z-r.z; if (dx>R||dx<-R||dz>R||dz<-R) continue; if (dx*dx+dz*dz<R*R) return true; } return false; }
+function buildRiver(def){ riverD=null; RIVER=null; if (def.terrain!=='sandstone') return; def._rY=minY-4;
+  const i0=Math.round(0.42/(2*Math.PI)*N), i1=Math.round(1.98/(2*Math.PI)*N); let cx=0,cz=0; pts.forEach(p=>{cx+=p.x;cz+=p.z;}); cx/=N; cz/=N;
+  const P=[]; for (let i=i0;i<=i1;i+=4){ const p=pts[i], q=pts[(i+3)%N], o=pts[(i-3+N)%N]; const hx=q.x-o.x, hz=q.z-o.z, l=Math.hypot(hx,hz)||1; let nx=-hz/l, nz=hx/l; if ((p.x-cx)*nx+(p.z-cz)*nz<0){ nx=-nx; nz=-nz; } P.push([p.x+nx*90, p.z+nz*90]); }
+  for (let k=0;k<12;k++) for (let i=1;i<P.length-1;i++) P[i]=[(P[i-1][0]+2*P[i][0]+P[i+1][0])/4,(P[i-1][1]+2*P[i][1]+P[i+1][1])/4];
+  const ext=(a,b)=>{ const dx=a[0]-b[0], dz=a[1]-b[1], l=Math.hypot(dx,dz)||1, o=[]; for (let s=20;s<=3600;s+=20) o.push([a[0]+dx/l*s, a[1]+dz/l*s]); return o; };
+  RIVER=[...ext(P[0],P[4]).reverse(), ...P, ...ext(P[P.length-1],P[P.length-5])];
+  riverD=new Float32Array((G+1)*(G+1)); const W=G+1;
+  for (let gz=0; gz<=G; gz++) for (let gx=0; gx<=G; gx++){ const x=OFF+gx*CELL, z=OFF+gz*CELL; let b=1e12; for (let i=0;i<RIVER.length;i++){ const dx=RIVER[i][0]-x, dz=RIVER[i][1]-z, dd=dx*dx+dz*dz; if (dd<b) b=dd; } riverD[gz*W+gx]=Math.sqrt(b); } }
+function planSandstone(def){ SANDR=[]; SANDT=[]; if (def.terrain!=='sandstone') return; const R=rand;
+  const ok=(x,z,r,dmin)=>{ if (Math.abs(x)>EXT/2-r-80 || Math.abs(z)>EXT/2-r-80) return false; if (sampleGrid(nearD,x,z)<dmin) return false; if (riverD && sampleGrid(riverD,x,z)<r*1.4+75) return false; if (ponds.some(p=>Math.hypot(p.x-x,p.z-z)<p.r+r*1.4+8)) return false; return SANDR.every(q=>Math.hypot(q.x-x,q.z-z)>q.r*1.36*q.e+r*1.36+5); };
+  const add=(x,z,r,H,kind,e,hd)=>{ const b=terrainH(x,z), o={x,z,r,H,kind,e:e||1,hd:hd||0,top:b+H,p:[R()*6,R()*6,R()*6,R()*6],k:3+Math.floor(r/2.4)}; SANDR.push(o); if (kind==='tafel') SANDT.push(o); };
+  for (let k=0;k<1500 && SANDR.filter(q=>q.kind==='tafel').length<6;k++){ const x=OFF+R()*EXT, z=OFF+R()*EXT, r=55+R()*70, H=80+R()*45; if (ok(x,z,r+H*0.9,r*1.1+H*1.15+40)) add(x,z,r,H,'tafel'); }
+  for (let g=0; g<26; g++){ let cx=0,cz=0,t=0; for (;t<60;t++){ const d=R()*L, sd=R()<0.5?1:-1, off=(g%2?45:70)+R()*(g%2?110:300), p=posAt(d), hd=headingAt(d); cx=p.x+Math.cos(hd)*off*sd; cz=p.z-Math.sin(hd)*off*sd; if (ok(cx,cz,18,40)) break; } if (t>=60) continue;
+    const n=3+Math.floor(R()*5); for (let i=0;i<n;i++){ const a=R()*6.28, rr=i?8+R()*26:0, x=cx+Math.cos(a)*rr, z=cz+Math.sin(a)*rr, r=4+R()*8; if (ok(x,z,r,r*1.36+22)) add(x,z,r,18+R()*40,'nadel'); } }
+  /* „Gründe“: Abschnitte, in denen die Straße zwischen Sandsteinwänden durch eine Schlucht führt */
+  const tryWall=(d,sd,r,e,offAdd,H)=>{ const off=r*1.36+offAdd, p=posAt(d), hd=headingAt(d), x=p.x+Math.cos(hd)*off*sd, z=p.z-Math.sin(hd)*off*sd; if (riverD && sampleGrid(riverD,x,z)<150) return false;
+    const ex=Math.sin(hd)*r*1.36*e, ez=Math.cos(hd)*r*1.36*e; if (sampleGrid(nearD,x+ex,z+ez)<r*1.36+3 || sampleGrid(nearD,x-ex,z-ez)<r*1.36+3) return false; if (!ok(x,z,r,r*1.36+3)) return false; add(x,z,r,H,'wand',e,hd); return true; };
+  let gN=0; for (let k=0;k<60 && gN<4;k++){ const d0=R()*L, t=(idxAt(d0)[0]/N)*Math.PI*2; if (Math.abs(Math.atan2(Math.sin(t-1.2),Math.cos(t-1.2)))<1.1) continue; if (window._grund && window._grund.some(g=>Math.abs(g-d0)<900)) continue;
+    (window._grund=window._grund||[]).push(d0); gN++; for (let dd=0; dd<380; dd+=26+R()*14) for (const sd of [1,-1]){ if (R()<0.25) continue; tryWall(d0+dd, sd, 5+R()*5, 1.3+R()*0.7, 4.5+R()*3, 12+R()*22); } }
+  window.GRUND=window._grund||[]; window._grund=null;
+  for (let k=0;k<1500 && SANDR.filter(q=>q.kind==='wand').length<70;k++){ const d=R()*L, sd=R()<0.5?1:-1, r=6+R()*8, e=1.4+R()*0.9, off=r*1.36+10+R()*14, p=posAt(d), hd=headingAt(d), x=p.x+Math.cos(hd)*off*sd, z=p.z-Math.sin(hd)*off*sd;
+    if (riverD && sampleGrid(riverD,x,z)<170) continue; const ex=Math.sin(hd)*r*1.36*e, ez=Math.cos(hd)*r*1.36*e;
+    if (sampleGrid(nearD,x+ex,z+ez)<r*1.36+8 || sampleGrid(nearD,x-ex,z-ez)<r*1.36+8) continue; if (ok(x,z,r,r*1.36+9)) add(x,z,r,10+R()*20,'wand',e,hd); } window.GRUND_N=gN; }
+let SAND_TEX=null;
+function sandstoneTexture(){ if (SAND_TEX) return SAND_TEX; const S=512, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'); let sd=7; const R=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  g.fillStyle='#bdb19a'; g.fillRect(0,0,S,S);
+  for (let i=0;i<14000;i++){ const v=R(); g.fillStyle=v<0.5?'rgba(90,84,72,0.12)':'rgba(235,226,205,0.14)'; g.fillRect(R()*S,R()*S,1+R()*4,1+R()*2); }
+  for (let y=0;y<S;){ const h=10+R()*40, l=R(); g.fillStyle=l<0.35?'rgba(120,110,92,0.14)':l<0.7?'rgba(225,214,188,0.14)':'rgba(160,150,130,0.12)'; g.fillRect(0,y,S,h); g.fillStyle='rgba(70,64,54,0.28)'; g.fillRect(0,y+h-1.5,S,1+R()*2); y+=h; }   /* Schichtung, dezent */
+  for (let i=0;i<34;i++){ const x=R()*S, w=3+R()*20, y0=R()*S*0.7, h=50+R()*320, gr=g.createLinearGradient(0,y0,0,y0+h); gr.addColorStop(0,'rgba(58,56,52,0.5)'); gr.addColorStop(0.6,'rgba(70,68,62,0.28)'); gr.addColorStop(1,'rgba(70,68,62,0)'); g.fillStyle=gr; g.fillRect(x,y0,w,h); }   /* graue Patina-Streifen */
+  for (let i=0;i<5;i++){ const x=R()*S; g.strokeStyle='rgba(40,38,34,0.45)'; g.lineWidth=1.2+R()*1.5; g.beginPath(); g.moveTo(x,0); for (let y=0;y<=S;y+=64) g.lineTo(x+(R()-0.5)*3,y); g.stroke(); g.strokeStyle='rgba(30,28,25,0.25)'; g.lineWidth=7; g.stroke(); }   /* senkrechte Klüfte */
+  for (let i=0;i<20;i++){ g.fillStyle='rgba(215,198,160,0.4)'; g.beginPath(); g.ellipse(R()*S,R()*S,8+R()*28,5+R()*16,0,0,7); g.fill(); }   /* frische, helle Abbruchstellen */
+  for (let i=0;i<60;i++){ g.fillStyle=R()<0.5?'rgba(110,125,80,0.22)':'rgba(160,165,120,0.2)'; g.beginPath(); g.ellipse(R()*S,R()*S,4+R()*14,2+R()*6,0,0,7); g.fill(); }   /* Flechten und Moos */
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return (SAND_TEX=t); }   /* keine sRGB-Kennung: pbrPrep wandelt selbst um */
+function buildSandstone(def, grp){ if (!SANDR.length) return; const R=rand;
+  const W={p:[],u:[],i:[]}, C={p:[],u:[],i:[]};
+  for (const r of SANDR){ const nA=r.kind==='tafel'?(LITE?64:128):r.kind==='wand'?48:36, nL=Math.max(5,Math.round(r.H/(r.kind==='tafel'?3.4:2.4)));
+    let lo=1e9; for (let a=0;a<16;a++) lo=Math.min(lo, terrainH(r.x+Math.cos(a*0.3927)*r.r*1.3*r.e, r.z+Math.sin(a*0.3927)*r.r*1.3*r.e)); const y0=lo-3, y1=r.top; if (r.kind==='tafel') r._nL=0;
+    const prof=[]; for (let l=0;l<=nL;l++){ const f=l/nL; let sc=r.kind==='nadel'?1-0.25*f+0.09*Math.sin(f*5+r.p[0]):1-0.07*f; if (f<0.12) sc*=1+(0.12-f)*1.6; if (f>0.8 && f<0.95 && r.kind!=='tafel') sc*=1.06; if (l>0 && l<nL-1 && R()<0.3) sc*=0.88+R()*0.06; sc*=1+0.04*(R()-0.5); if (l===nL) sc*=0.93; prof.push(sc); }
+    const rad=a=>r.r*(1+0.17*Math.sin(2*a+r.p[0])+0.1*Math.sin(3*a+r.p[1])+0.07*Math.sin(4*a+r.p[3])+0.04*Math.sin(7*a+r.p[2]))*(1-0.09*Math.pow(Math.abs(Math.cos(a*r.k*0.5+r.p[3])),16));   /* Klüfte: schmale, tiefe Einschnitte */
+    const base=W.p.length/3, per=nA+1;
+    for (let l=0;l<=nL;l++){ const y=y0+(y1-y0)*(l/nL); let arc=0, px=0, pz=0;
+      const ux=Math.sin(r.hd), uz=Math.cos(r.hd), vx=uz, vz=-ux; for (let j=0;j<=nA;j++){ const a=j/nA*Math.PI*2, rr=rad(a)*prof[l], lx=Math.cos(a)*rr*r.e, lz=Math.sin(a)*rr, x=r.x+ux*lx+vx*lz, z=r.z+uz*lx+vz*lz; if (j) arc+=Math.hypot(x-px,z-pz); px=x; pz=z; W.p.push(x,y,z); W.u.push(arc/16, y/16); } }
+    for (let l=0;l<nL;l++) for (let j=0;j<nA;j++){ const a=base+l*per+j, b=a+per; W.i.push(a,b,a+1, a+1,b,b+1); }
+    const top=base+nL*per; if (r.kind==='nadel'){ const ci=W.p.length/3; W.p.push(r.x,y1+r.r*0.35,r.z); W.u.push(0,(y1+r.r*0.35)/16); for (let j=0;j<nA;j++) W.i.push(ci,top+j+1,top+j); }
+    else { const cb=C.p.length/3; C.p.push(r.x,y1+0.5,r.z); C.u.push(r.x/6,r.z/6); for (let j=0;j<=nA;j++){ const k=top+j; const x=W.p[k*3], z=W.p[k*3+2]; C.p.push(x,y1+0.05,z); C.u.push(x/6,z/6); } for (let j=0;j<nA;j++) C.i.push(cb, cb+2+j, cb+1+j); } }
+  const mk=(B,mat)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(B.p,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(B.u,2)); g.setIndex(B.i); g.computeVertexNormals(); const m=new THREE.Mesh(g,mat); m.castShadow=true; m.receiveShadow=true; grp.add(m); return m; };
+  const rm=new THREE.MeshLambertMaterial({map:sandstoneTexture()}); rm.userData.pbr={n:0.6, r:0.95};
+  mk(W, rm); if (C.i.length){ const gt=grassDetailTexture().clone(); gt.needsUpdate=true; mk(C, new THREE.MeshLambertMaterial({map:gt, color:0x8a8a62})); } }
 // Wasser mit bewegter Oberfläche (prozedurale Normal-Map)
 let waterNormal=null;
 function waterNormalTexture(){
@@ -4112,7 +4171,7 @@ let LU=null;
 function luWarp(x,z){ return [x+14*Math.sin(z*0.011+1.3)+6*Math.sin(x*0.027), z+14*Math.sin(x*0.012+0.4)+6*Math.sin(z*0.023)]; }
 function buildLandUse(def){ LU=null; if (def.real || def.trees==='palm' || def.terrain==='mountains') return; const n=64, types=new Uint8Array(n*n);
   const a=0.3+rand()*0.7, CS=[90+rand()*20, 62+rand()*16];
-  const P=def.terrain==='island'?[[0,0.36],[1,0.14],[2,0.12],[3,0.11],[4,0.07],[5,0.08],[6,0.12]]:[[0,0.32],[1,0.1],[2,0.12],[3,0.1],[4,0.06],[5,0.08],[6,0.22]];
+  const P=def.terrain==='island'?[[0,0.36],[1,0.14],[2,0.12],[3,0.11],[4,0.07],[5,0.08],[6,0.12]]:def.terrain==='sandstone'?[[0,0.22],[1,0.08],[2,0.05],[3,0.05],[4,0.02],[5,0.03],[6,0.55]]:[[0,0.32],[1,0.1],[2,0.12],[3,0.1],[4,0.06],[5,0.08],[6,0.22]];
   for (let i=0;i<n*n;i++){ let r=rand(), t=0; for (const [k,w] of P){ if (r<w){ t=k; break; } r-=w; } types[i]=t; }
   // Waldstücke zusammenhängend: Nachbarn eines Waldes werden öfter Wald
   for (let i=0;i<n*n;i++){ if (types[i]!==6) continue; [1,-1,n,-n].forEach(o=>{ const j=i+o; if (j>=0 && j<n*n && types[j]<2 && rand()<0.35) types[j]=7; }); } for (let i=0;i<n*n;i++) if (types[i]===7) types[i]=6;
@@ -4616,8 +4675,9 @@ function treeKit(def){
   };
   const mix = def.trees==='palm' ? [['palm',0.72],['bushA',0.18],['bushB',0.1]]
     : def.trees==='conifer' ? [['spruce',0.55],['pine',0.18],['birch',0.08],['beech',0.07],['bushA',0.12]]
+    : def.trees==='sandstone' ? [['pine',0.3],['spruce',0.2],['birch',0.12],['beech',0.15],['oak',0.05],['bushA',0.1],['bushB',0.08]]
     : [['oak',0.08],['oak2',0.07],['beech',0.07],['linden',0.08],['birch',0.07],['birch2',0.06],['maple',0.1],['ash',0.06],['spruce',0.1],['pine',0.04],['bushA',0.15],['bushB',0.12]];
-  const forest = def.trees==='conifer' ? [['spruce',0.6],['pine',0.2],['beech',0.12],['birch',0.08]] : [['beech',0.13],['beech2',0.12],['spruce',0.24],['oak',0.08],['oak2',0.07],['birch',0.06],['birch2',0.05],['pine',0.08],['maple',0.05],['linden2',0.06],['ash',0.06]];
+  const forest = def.trees==='conifer' ? [['spruce',0.6],['pine',0.2],['beech',0.12],['birch',0.08]] : def.trees==='sandstone' ? [['pine',0.32],['spruce',0.28],['beech',0.24],['birch',0.1],['oak',0.06]] : [['beech',0.13],['beech2',0.12],['spruce',0.24],['oak',0.08],['oak2',0.07],['birch',0.06],['birch2',0.05],['pine',0.08],['maple',0.05],['linden2',0.06],['ash',0.06]];
   const FAR={}; Object.keys(TYPES).forEach(k=>{ FAR[k]=()=>{ const nr=TYPES[k](); if (nr.far) return nr.far(); return nr.filter(pp=>!(pp[1].alphaTest>0)); }; });
   return {TYPES, FAR, mix, forest}; }
 function treeTint(c,f){ const r=rand(); if (r<0.55) c.setRGB(f*(0.92+rand()*0.12),f*(0.97+rand()*0.06),f*(0.85+rand()*0.15)); else if (r<0.77) c.setRGB(f*1.12,f*1.07,f*0.72); else if (r<0.95) c.setRGB(f*1.0,f*0.92,f*0.64); else c.setRGB(f*1.15,f*0.92,f*0.62); return c; }   // Farbvielfalt: grün, gelbgrün, oliv, bronze
@@ -5542,7 +5602,8 @@ function buildWorld(def){ STG('Weltaufbau '+def.id+(window._bw?' (2.)':'')); win
     for (let i=0;i<N;i+=step){ const p=pts[i]; const dx=p.x-x, dz=p.z-z; const dd=dx*dx+dz*dz; if(dd<best){best=dd;by=p.y;} }
     nearD[gz*(G+1)+gx]=Math.sqrt(best); nearY[gz*(G+1)+gx]=by;
   }
-  const waterY = def.terrain==='island' ? minY-2.2 : minY-14;
+  buildRiver(def);
+  const waterY = def.terrain==='island' ? minY-2.2 : def.terrain==='sandstone' ? minY-4 : minY-14;
   // Teiche und kleine Seen neben der Straße
   ponds=[]; animated.length=0; ENV_Q.length=0; ENV_JOB=null;
   { const want=def.real?0:({insel:2, huegel:7, pass:3}[def.id]||3);
@@ -5553,6 +5614,7 @@ function buildWorld(def){ STG('Weltaufbau '+def.id+(window._bw?' (2.)':'')); win
       let lo=1e9, hi=-1e9, ok=true; for (let a=0;a<12;a++){ const xx=x+Math.cos(a*0.524)*r*1.15, zz=z+Math.sin(a*0.524)*r*1.15; if (sampleGrid(nearD,xx,zz)<10){ ok=false; break; } const h=baseH(xx,zz); lo=Math.min(lo,h); hi=Math.max(hi,h); }
       if (!ok || hi-lo>(def.id==='pass'?16:5)) continue; if (def.water && lo<waterY+2) continue;
       ponds.push({x, z, r, ro:r*1.55, y:lo-0.35}); } }
+  planSandstone(def);
   // Gelände
   {
     const geo = new THREE.PlaneGeometry(EXT, EXT, G, G); geo.rotateX(-Math.PI/2);
@@ -5571,7 +5633,7 @@ function buildWorld(def){ STG('Weltaufbau '+def.id+(window._bw?' (2.)':'')); win
     const m = new THREE.Mesh(geo, terrainHoleMaterial(tmat, def.roadW||7)); m.material.userData.worldAO=true; m.material.userData.pbr={n:1.2, r:0.95, e:0.7}; m.receiveShadow = true; worldGroup.add(m);
     if (def.real){ const fill=new THREE.Mesh(geo, new THREE.MeshLambertMaterial({vertexColors:true, map:gt})); fill.position.y=-0.3; fill.receiveShadow=true; worldGroup.add(fill); }   // Unterboden: füllt Lücken in engen Kurven
     if (def.water){ let ep=null; for (let d=0; d<L && !ep; d+=60) for (let o=40; o<500 && !ep; o+=20) for (const sd of [1,-1]){ const pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*o*sd, z=pp.z-Math.sin(hd)*o*sd; if (terrainH(x,z)<waterY-0.6){ ep=new THREE.Vector3(x,waterY+2.5,z); break; } }
-      const w = new THREE.Mesh(new THREE.PlaneGeometry(12000,12000), waterMaterial(0x0f3550, 600, ep));
+      const w = new THREE.Mesh(new THREE.PlaneGeometry(12000,12000), waterMaterial(def.terrain==='sandstone'?0x2a4644:0x0f3550, def.terrain==='sandstone'?260:600, ep));
       w.rotation.x=-Math.PI/2; w.position.y=waterY; worldGroup.add(w); }
   }
   // Teiche: Wasserfläche mit unregelmäßigem Ufer, Schilf, Seerosen
@@ -5616,6 +5678,7 @@ function buildWorld(def){ STG('Weltaufbau '+def.id+(window._bw?' (2.)':'')); win
     posts.count=pi2; posts.castShadow=true; worldGroup.add(posts);
   }
   if (def.real) buildRealWorld(def, worldGroup);
+  try{ buildSandstone(def, worldGroup); }catch(e){ console.warn('Sandstein',e); }
   // Bäume (mehrteilig, instanziert), Felsen, Wolken, Himmel
   {
     const lam=(c,flat)=>new THREE.MeshLambertMaterial({color:c, flatShading:!!flat});
@@ -5646,7 +5709,10 @@ function buildWorld(def){ STG('Weltaufbau '+def.id+(window._bw?' (2.)':'')); win
       const f=0.78+rand()*0.38; treeTint(tcol,f);
       set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; placed++;
     }
-    if (LU){ let wf=0; const step=7.5, cap=Math.round(GFX_BUILD_R>=260?3200:GFX_BUILD_R>=180?2200:800);   // geschlossene Waldstücke
+    for (const s0 of SANDR){ if (s0.kind==='nadel') continue; const nT=Math.round(s0.r*s0.r*(s0.kind==='tafel'?0.018:0.03));
+      for (let i=0;i<nT;i++){ const a=rand()*6.283, rr=Math.sqrt(rand())*s0.r*0.72, lx=Math.cos(a)*rr*(s0.e||1), lz=Math.sin(a)*rr, x=s0.x+Math.sin(s0.hd||0)*lx+Math.cos(s0.hd||0)*lz, z=s0.z+Math.cos(s0.hd||0)*lx-Math.sin(s0.hd||0)*lz; const rt=rand(), type=rt<0.6?'pine':rt<0.82?'birch':'spruce', set=sets[type]; if (!set) continue;
+        const sc=0.7+rand()*0.5; q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc,sc*(0.9+rand()*0.3),sc); p.set(x,s0.top+0.3,z); m.compose(p,q,s); treeTint(tcol,0.72+rand()*0.3); set.mats.push(m.clone()); set.cols.push(tcol.clone()); (set.rf=set.rf||{})[set.c]=0.2; set.c++; } }
+    if (LU){ let wf=0; const step=7.5, cap=Math.round((GFX_BUILD_R>=260?3200:GFX_BUILD_R>=180?2200:800)*(def.terrain==='sandstone'?1.4:1));   // geschlossene Waldstücke
       const cand=[]; for (let gx=OFF; gx<OFF+EXT; gx+=step) for (let gz=OFF; gz<OFF+EXT; gz+=step){ const x=gx+(rand()-0.5)*step*0.9, z=gz+(rand()-0.5)*step*0.9; const lu=landUse(x,z); if (lu.t!==6 || lu.edge<1.2) continue; const dd=sampleGrid(nearD,x,z); if (dd<12) continue; cand.push([dd+rand()*25,x,z]); }
       cand.sort((a,b)=>a[0]-b[0]);   // straßennahe Waldstücke zuerst voll bestocken
       for (const [dd,x,z] of cand){ if (wf>=cap) break; const h=terrainH(x,z); if (def.water && h<minY-1.0) continue; if (inPond(x,z,3)) continue;
@@ -6582,6 +6648,8 @@ const PROP_PLAN = {
            animals:[['kuh',0.8,5],['schaf',0.8,6],['pferd',0.4,3],['hase',2.5,3],['moewe',1.5,2]], fence:1.4, tractor:0.25 },
   huegel:{ houses:'haus_cottage', villages:0.45, extra:[['busch_blumen',8,9,40],['heuballen',5,10,40],['fels_2',3,10,80],['bank',1.2,6,6],['schild_holz',0.8,6,6]],
            animals:[['kuh',0.8,5],['schaf',0.9,6],['pferd',0.4,3],['hase',1.5,2]], fence:1.8, tractor:0.25 },
+  elbe:  { houses:'haus_cottage', villages:0.4, extra:[['busch_blumen',4,9,40],['fels_2',2,10,60],['bank',1.5,6,6],['schild_holz',1.2,6,6],['heuballen',2,14,50]],
+           animals:[['kuh',0.5,4],['schaf',0.5,5],['pferd',0.3,3],['hase',1.5,2]], fence:1.0, tractor:0.15, goats:0.2 },
   pass:  { houses:'haus_chalet', villages:0.3, extra:[['fels_1',5,9,90],['fels_2',5,9,90],['fels_3',4,9,90],['bank',0.8,6,6],['schild_holz',0.5,6,6]],
            animals:[['kuh',0.6,4],['schaf',0.5,5]], fence:0.8, marmot:1.0, goats:0.35 }
 };
@@ -7102,7 +7170,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 2.7 · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 2.8 · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
