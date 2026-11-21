@@ -3927,13 +3927,17 @@ const canvas = $('world');
 const IS_MOBILE=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Macintosh/.test(navigator.userAgent));
 const IS_PHONE=/iPhone|iPod|Android.*Mobile|Mobile.*Android/i.test(navigator.userAgent) || (IS_MOBILE && Math.min(screen.width,screen.height)<560);
 let LITE=(()=>{ try{ const v=localStorage.getItem('hicoreRide.gfx'); if (IS_PHONE && localStorage.getItem('hicoreRide.gfxUser')!=='1') return true; return v===null ? IS_PHONE : JSON.parse(v)==='0.35'; }catch(e){ return IS_PHONE; } })();   /* Smartphone-Stufe: alles Teure aus, Fahrer bleibt voll */
+const STG=t=>{ try{ localStorage.setItem('hicoreRide.stage',t); }catch(e){} };   /* Diagnose: letzter erreichter Schritt */
+let PREV_STAGE=null, PREV_GPU=''; try{ const ps=localStorage.getItem('hicoreRide.stage'); if (ps && ps!=='ok') PREV_STAGE=ps; PREV_GPU=localStorage.getItem('hicoreRide.gpu')||''; }catch(e){}
+STG('Start');
 let MINI=false; try{ const n=+(localStorage.getItem('hicoreRide.bootN')||0); const q=location.search; if (/[?&]normal\b/.test(q)) localStorage.removeItem('hicoreRide.mini'); MINI=/[?&]mini\b/.test(q) || (IS_MOBILE && !/[?&]normal\b/.test(q) && (localStorage.getItem('hicoreRide.mini')==='1' || n>=1));
-  if (MINI){ localStorage.setItem('hicoreRide.mini','1'); LITE=true; } localStorage.setItem('hicoreRide.bootN',String(n+1)); setTimeout(()=>{ try{ localStorage.setItem('hicoreRide.bootN','0'); }catch(_){} },20000); }catch(e){}   /* Notfall-Sparmodus nach Absturz */
+  if (MINI){ localStorage.setItem('hicoreRide.mini','1'); LITE=true; } localStorage.setItem('hicoreRide.bootN',String(n+1)); setTimeout(()=>{ try{ localStorage.setItem('hicoreRide.bootN','0'); }catch(_){} },20000); setTimeout(()=>STG('ok'),25000); }catch(e){}   /* Notfall-Sparmodus nach Absturz */
 let renderer; { let err=null; const tries=[{antialias:!LITE, powerPreference:LITE?'low-power':'default', stencil:false}, {antialias:false, stencil:false}, {antialias:false, stencil:false, precision:'mediump', failIfMajorPerformanceCaveat:false}];   /* Ausweich-Stufen, falls Chrome den ersten Versuch ablehnt */
   for (const o of tries){ try{ renderer=new THREE.WebGLRenderer(Object.assign({canvas},o)); if (o!==tries[0]){ LITE=true; try{ localStorage.setItem('hicoreRide.gfx',JSON.stringify('0.35')); }catch(_){} } break; }catch(e){ err=e; } }
   if (!renderer){ const d=document.createElement('div'); d.style.cssText='position:fixed;left:8px;right:8px;top:22%;z-index:9999;background:#b3261e;color:#fff;font:15px/1.4 system-ui;padding:14px;border-radius:10px';
-    d.innerHTML='<b>Die 3D-Grafik wurde vom Browser gesperrt.</b><br>Das passiert meist, nachdem eine Seite den Grafikspeicher überlastet hat. Chrome sperrt 3D dann, bis er ganz neu startet.<br><br>1. Chrome schließen und in der App-Übersicht wegwischen.<br>2. Chrome neu öffnen und die Seite laden. Das Spiel startet dann in der sparsamen Stufe „Smartphone“.<br><br><button id="errReload" style="font:inherit;padding:8px 14px;border-radius:8px;border:0;background:#fff;color:#b3261e;font-weight:700">Neu laden</button>';
-    document.body.appendChild(d); try{ localStorage.setItem('hicoreRide.pbrSafe','1'); localStorage.setItem('hicoreRide.gfx',JSON.stringify('0.35')); localStorage.removeItem('hicoreRide.gfxUser'); }catch(_){} document.getElementById('errReload').onclick=()=>location.reload(); throw err; } }
+    d.innerHTML='<b>Die 3D-Grafik wurde vom Browser gesperrt.</b><br>Das passiert meist, nachdem eine Seite den Grafikspeicher überlastet hat. Chrome sperrt 3D dann, bis er ganz neu startet.<br><br>1. Chrome schließen und in der App-Übersicht wegwischen.<br>2. Chrome neu öffnen und die Seite laden. Das Spiel startet dann in der sparsamen Stufe „Smartphone“.<br><br>'+(PREV_STAGE?'<small>Letzter Abbruch bei: '+PREV_STAGE+'<br>'+PREV_GPU+'</small><br><br>':'')+'<button id="errReload" style="font:inherit;padding:8px 14px;border-radius:8px;border:0;background:#fff;color:#b3261e;font-weight:700">Neu laden</button>';
+    document.body.appendChild(d); try{ localStorage.setItem('hicoreRide.pbrSafe','1'); localStorage.setItem('hicoreRide.gfx',JSON.stringify('0.35')); localStorage.removeItem('hicoreRide.gfxUser'); }catch(_){} document.getElementById('errReload').onclick=()=>location.reload(); STG(PREV_STAGE||'3D gesperrt'); throw err; } }
+STG('Renderer erstellt'); try{ const gl=renderer.getContext(), ex=gl.getExtension('WEBGL_debug_renderer_info'); localStorage.setItem('hicoreRide.gpu', (ex?gl.getParameter(ex.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER))+' / WebGL'+(renderer.capabilities.isWebGL2?2:1)); }catch(e){}
 renderer.setPixelRatio(IS_MOBILE?1:Math.min(devicePixelRatio,2)*0.7);
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -3942,6 +3946,7 @@ canvas.addEventListener('webglcontextlost',e=>{ e.preventDefault(); try{ localSt
   showErr('Grafikspeicher des Geräts voll. Starte im Sparmodus neu …'); setTimeout(()=>location.reload(),1500); });
 function showErr(t){ let d=document.getElementById('errbox'); if(!d){ d=document.createElement('div'); d.id='errbox'; d.style.cssText='position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#b3261e;color:#fff;font:13px system-ui;padding:8px 10px;border-radius:8px;white-space:pre-wrap'; document.body.appendChild(d); } d.textContent=t; }
 window.addEventListener('error',e=>showErr('Fehler: '+(e.message||e)+(e.lineno?' (Zeile '+e.lineno+')':'')));
+if (PREV_STAGE) setTimeout(()=>{ const d=document.createElement('div'); d.style.cssText='position:fixed;left:8px;right:8px;top:8px;z-index:9998;background:#f0b400;color:#111;font:13px/1.35 system-ui;padding:8px 10px;border-radius:8px'; d.innerHTML='<b>Diagnose:</b> letzter Start brach ab bei „'+PREV_STAGE+'“<br>'+PREV_GPU+' · '+(MINI?'Notfallmodus':'normal')+' <button style="float:right;border:0;border-radius:6px;padding:2px 8px" onclick="this.parentNode.remove()">OK</button>'; document.body.appendChild(d); },300);
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0xbfe0ff, 120, 1500);
 const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.3, 3000);
@@ -5521,7 +5526,7 @@ function addLighthouse(group, x, z){
 
 function disposeGroup(g){ g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(m.map) m.map.dispose(); m.dispose(); }); } }); }
 
-function buildWorld(def){ BUILT_R=GFX_BUILD_R; window._alleys=[]; window._alleyN=0;
+function buildWorld(def){ STG('Weltaufbau '+def.id+(window._bw?' (2.)':'')); window._bw=1; BUILT_R=GFX_BUILD_R; window._alleys=[]; window._alleyN=0;
   WORLD=def; rnd=12345;
   if (worldGroup){ scene.remove(worldGroup); disposeGroup(worldGroup); }
   pbrReset();
@@ -5720,7 +5725,7 @@ function buildWorld(def){ BUILT_R=GFX_BUILD_R; window._alleys=[]; window._alleyN
     const grp=new THREE.Group(); sign.position.y=1.9; pole.position.y=0.8; grp.add(sign,pole);
     grp.position.set(pp.x+Math.cos(hd)*5, pp.y, pp.z-Math.sin(hd)*5); grp.rotation.y=hd; worldGroup.add(grp); }
   try{ SEG.build(def); }catch(e){ console.warn('Segmente',e); }
-  try{ pbrWorldAO(def); pbrEnv(def); pbrApply(scene); }catch(e){ console.warn('pbr',e); }
+  STG('Materialien'); try{ pbrWorldAO(def); if (!MINI) pbrEnv(def); else scene.environment=null; pbrApply(scene); }catch(e){ console.warn('pbr',e); } STG('Welt fertig');
   profImg=null; snapCam=true; try{ POST.hn=0; }catch(e){}
   try{ ATMO.capture(); ATMO.apply(); }catch(e){ console.warn('Wetter',e); }
 }
@@ -7044,7 +7049,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 2.4 · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 2.5 · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7240,8 +7245,10 @@ const POST={ on:true, ok:null, w:0, h:0,
     catch(e){ console.warn('Nachbearbeitung aus',e); this.ok=false; renderer.setRenderTarget(null); renderer.render(scene,camera); } } };
 $('bloom').value=String(store.get('bloom',1)); POST.on=$('bloom').value==='1'; $('bloom').onchange=()=>{ POST.on=$('bloom').value==='1'; store.set('bloom',+$('bloom').value); };
 
+let FRN=0;
 function frame(now){
   requestAnimationFrame(frame);
+  if (FRN<=60){ FRN++; if (FRN===1||FRN===2||FRN===10||FRN===60) STG('Bild '+FRN+(window.glbRiderReady?' mit Fahrer':'')); }
   const dt=Math.min(0.1,(now-last)/1000); last=now;
   const active = S.running && !S.paused;
 
@@ -7340,7 +7347,13 @@ addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.upd
 // Hintergrund im Menü: erste Welt zeigen
 try{ applyGfx(+$('gfx').value); }catch(e){}
 buildWorld(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]); builtWorld=WORLD.id;
-loadProps().then(()=>{ if (Object.keys(PROP_LIB).length && !S.running){ buildWorld(WORLD); } });
+function stageCompile(){ if (!IS_MOBILE) return; try{ const items=[]; scene.children.forEach(c=>{ if (c===worldGroup) worldGroup.children.forEach(w=>items.push(w)); else items.push(c); });
+  const vis=items.map(o=>o.visible); const tag=o=>{ let m=null; o.traverse(x=>{ if (!m && x.material) m=Array.isArray(x.material)?x.material[0]:x.material; }); return (o.name||o.type)+(m?' '+m.type+(m.onBeforeCompile&&m.onBeforeCompile.toString().length>20?'*':''):''); };
+  items.forEach(o=>o.visible=false);
+  items.forEach((o,i)=>{ if (!vis[i]) return; o.visible=true; STG('Shader '+i+'/'+items.length+': '+tag(o)); renderer.compile(scene,camera); o.visible=false; });
+  items.forEach((o,i)=>o.visible=vis[i]); STG('Shader fertig'); }catch(e){ console.warn('compile',e); } }
+stageCompile();
+loadProps().then(()=>{ if (Object.keys(PROP_LIB).length && !S.running){ buildWorld(WORLD); stageCompile(); } });
 requestAnimationFrame(frame);
 </script>
 </body>
