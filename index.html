@@ -3927,7 +3927,7 @@ const canvas = $('world');
 const IS_MOBILE=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Macintosh/.test(navigator.userAgent));
 const IS_PHONE=/iPhone|iPod|Android.*Mobile|Mobile.*Android/i.test(navigator.userAgent) || (IS_MOBILE && Math.min(screen.width,screen.height)<560);
 let LITE=(()=>{ try{ const v=localStorage.getItem('hicoreRide.gfx'); if (IS_PHONE && localStorage.getItem('hicoreRide.gfxUser')!=='1') return true; return v===null ? IS_PHONE : JSON.parse(v)==='0.35'; }catch(e){ return IS_PHONE; } })();   /* Smartphone-Stufe: alles Teure aus, Fahrer bleibt voll */
-let MINI=false; try{ const n=+(localStorage.getItem('hicoreRide.bootN')||0); MINI=IS_MOBILE && (localStorage.getItem('hicoreRide.mini')==='1' || n>=1);
+let MINI=false; try{ const n=+(localStorage.getItem('hicoreRide.bootN')||0); const q=location.search; if (/[?&]normal\b/.test(q)) localStorage.removeItem('hicoreRide.mini'); MINI=/[?&]mini\b/.test(q) || (IS_MOBILE && !/[?&]normal\b/.test(q) && (localStorage.getItem('hicoreRide.mini')==='1' || n>=1));
   if (MINI){ localStorage.setItem('hicoreRide.mini','1'); LITE=true; } localStorage.setItem('hicoreRide.bootN',String(n+1)); setTimeout(()=>{ try{ localStorage.setItem('hicoreRide.bootN','0'); }catch(_){} },20000); }catch(e){}   /* Notfall-Sparmodus nach Absturz */
 let renderer; { let err=null; const tries=[{antialias:!LITE, powerPreference:LITE?'low-power':'default', stencil:false}, {antialias:false, stencil:false}, {antialias:false, stencil:false, precision:'mediump', failIfMajorPerformanceCaveat:false}];   /* Ausweich-Stufen, falls Chrome den ersten Versuch ablehnt */
   for (const o of tries){ try{ renderer=new THREE.WebGLRenderer(Object.assign({canvas},o)); if (o!==tries[0]){ LITE=true; try{ localStorage.setItem('hicoreRide.gfx',JSON.stringify('0.35')); }catch(_){} } break; }catch(e){ err=e; } }
@@ -6942,6 +6942,7 @@ let builtWorld = null;
 ['mass','diff','bots','gfx','fpsShow','jersey','pwSmooth','pwFac'].forEach(k=>{ const v=store.get(k,null); if(v!==null) $(k).value=v; $(k).onchange=()=>store.set(k,$(k).value); });
 // Smartphone/Tablet: Hoch und Ultra sperren, beim ersten Start Niedrig
 // Smartphone/Tablet: immer mit Niedrig starten; Hoch/Ultra erlaubt, aber mit Warnung
+if (MINI && !IS_MOBILE) $('gfx').value='0.35';   /* ?mini erzwingt kleinste Stufe auch am Rechner */
 if (IS_MOBILE){ [...$('gfx').options].forEach(o=>{ if (+o.value>0.7) o.textContent=o.textContent.split(' (')[0]+' (am Handy Absturzgefahr)'; });
   const g0=store.get('gfx',null), usr=store.get('gfxUser',0)===1; const gv=(MINI || (IS_PHONE && !usr)) ? '0.35' : (g0===null || +g0>0.7) ? (IS_PHONE?'0.35':'0.5') : String(g0); $('gfx').value=gv; store.set('gfx',gv);
   $('gfx').addEventListener('change',()=>{ store.set('gfxUser',1); try{ localStorage.removeItem('hicoreRide.mini'); }catch(e){} MINI=false; if (+$('gfx').value>0.7) toast('Achtung: Hoch/Ultra kann auf dem Handy abstürzen. Beim nächsten Öffnen startet es wieder auf Niedrig.'); }); }
@@ -7043,7 +7044,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 2.3 · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 2.4 · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
