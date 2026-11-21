@@ -8333,7 +8333,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -8390,9 +8390,9 @@ async function start(){
     if (builtWorld!==def.id || BUILT_R!==GFX_BUILD_R){ const lb=$('loadbox'); $('loadname').textContent=def.name; $('loadstep').textContent='Modelle werden vorbereitet …'; lb.style.display='flex'; $('menu').style.display='none';
       const paint=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
       try{ await paint(); await (window.PROPS_READY||Promise.resolve()); $('loadstep').textContent='Gelände, Straße, Bäume und Felsen werden gebaut …'; await paint();
-        const tB0=performance.now(); buildWorld(def); gpuFixInst(scene); builtWorld=def.id; window.LOADT={b:performance.now()-tB0, t0:tB0}; $('loadstep').textContent='Grafik wird vorbereitet …'; await paint();
-        if (window.GPU_MODE){ const tC0=performance.now(); try{ await GPU_INIT; await renderer.compileAsync(scene,camera); }catch(e){ console.warn('compile',e); } if (window.LOADT){ LOADT.c=performance.now()-tC0; LOADT.ff=1; } } else try{ stageCompile(); renderer.compile(scene,camera); }catch(e){} $('world').style.visibility='visible'; await paint(); }
-      finally{ lb.style.display='none'; } }
+        window.LOADING=!!window.GPU_MODE; const tB0=performance.now(); buildWorld(def); gpuFixInst(scene); builtWorld=def.id; window.LOADT={b:performance.now()-tB0, t0:tB0}; $('loadstep').textContent='Grafik wird vorbereitet …'; await paint();
+        if (window.GPU_MODE){ const tC0=performance.now(); try{ await GPU_INIT; await renderer.compileAsync(scene,camera); }catch(e){ console.warn('compile',e); } if (window.LOADT){ LOADT.c=performance.now()-tC0; } const tW0=performance.now(); try{ POST.render(); }catch(e){} await paint(); if (window.LOADT){ LOADT.w=performance.now()-tW0; LOADT.ff=1; } } else try{ stageCompile(); renderer.compile(scene,camera); }catch(e){} $('world').style.visibility='visible'; await paint(); }
+      finally{ lb.style.display='none'; window.LOADING=false; } }
     resetRide(); setupBots(+$('bots').value);
   }
   $('menu').style.display='none'; $('simbox').style.display=S.sim?'flex':'none';
@@ -8553,8 +8553,8 @@ $('bloom').value=String(store.get('bloom',1)); POST.on=$('bloom').value==='1'; $
 let FRN=0;
 function frame(now){
   requestAnimationFrame(frame);
-  if (!builtWorld){ last=now; return; }
-  if (window.LOADT && LOADT.ff && FRN>=3){ const L=LOADT; L.ff=0; const tot=(performance.now()-L.t0)/1000; try{ toast('Geladen in '+tot.toFixed(1)+' s (Welt '+(L.b/1000).toFixed(1)+' s, Grafik '+((L.c||0)/1000).toFixed(1)+' s)'); }catch(e){} }
+  if (!builtWorld || window.LOADING){ last=now; return; }   /* WebGPU: während des Ladens nicht zeichnen, Shader werden parallel vorbereitet */
+  if (window.LOADT && LOADT.ff){ const L=LOADT; L.ff=0; const tot=(performance.now()-L.t0)/1000; try{ toast('Geladen in '+tot.toFixed(1)+' s (Welt '+(L.b/1000).toFixed(1)+' s, Shader '+((L.c||0)/1000).toFixed(1)+' s, erstes Bild '+((L.w||0)/1000).toFixed(1)+' s)'); }catch(e){} }
   if (FRN<=60){ FRN++; if (FRN===1||FRN===2||FRN===10||FRN===60) STG('Bild '+FRN+(window.glbRiderReady?' mit Fahrer':'')); }
   const dt=Math.min(0.1,(now-last)/1000); last=now;
   const active = S.running && !S.paused;
