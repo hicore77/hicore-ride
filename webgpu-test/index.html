@@ -55,7 +55,7 @@
     <option value="gl">Renderer: WebGL 2</option>
   </select>
   <select id="fpsc"><option value="auto">Bildrate: Auto</option><option value="0">Bildrate: frei</option><option value="60">Bildrate: 60</option><option value="30">Bildrate: 30 (gleichmäßig)</option></select>
-  <button id="cam">Kamera: Fahrt</button>
+  <button id="cam">Kamera: Verfolger</button>
   <button id="snd">🔇 Ton aus</button>
   <button id="bench">Benchmark (20 s)</button>
   <label>Sonnenstand <input id="sun" type="range" min="3" max="60" value="24"></label>
@@ -79,6 +79,7 @@ import { vertexColor } from 'three/tsl';
 import { SkyMesh } from 'three/addons/objects/SkyMesh.js';
 import { WaterMesh } from 'three/addons/objects/WaterMesh.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { SimplexNoise } from 'three/addons/math/SimplexNoise.js';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { ao } from 'three/addons/tsl/display/GTAONode.js';
@@ -553,17 +554,44 @@ async function main() {
   /* Kamera */
   const controls = new OrbitControls(camera, renderer.domElement); controls.enabled = false; controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.495;
   let ride = true, u = START_U, speed = 10.5; // m/s
-  $('cam').onclick = () => { ride = !ride; controls.enabled = !ride; $('cam').textContent = 'Kamera: ' + (ride ? 'Fahrt' : 'Frei'); $('cam').classList.toggle('on', !ride); if (!ride) { controls.target.copy(camera.position).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(20)); } };
+  /* Kamera-Modi wie im Spiel: Verfolger hinter dem Fahrer, frei um den Fahrer drehen (folgt ihm), Ego-Sicht, frei fliegen */
+  const CAMN = ['Verfolger', 'Um den Fahrer', 'Ego', 'Frei'];
+  let camMode = 0, camHd = null; const RID = { pos: new THREE.Vector3(), prev: new THREE.Vector3(), hd: 0, gr: 0 }; let rider = null, RK = null;
+  function setCam(m) { camMode = m; ride = m !== 3; controls.enabled = m === 1 || m === 3; $('cam').textContent = 'Kamera: ' + CAMN[m]; $('cam').classList.toggle('on', m > 0);
+    if (rider) rider.g.visible = m !== 2;
+    if (m === 1) { controls.minDistance = 2; controls.maxDistance = 25; controls.target.copy(RID.pos).add(new THREE.Vector3(0, 1.1, 0)); camera.position.copy(RID.pos).add(new THREE.Vector3(Math.sin(RID.hd + 2.3) * 4.5, 1.8, Math.cos(RID.hd + 2.3) * 4.5)); controls.update(); }
+    else { controls.minDistance = 0; controls.maxDistance = Infinity; }
+    if (m === 3) controls.target.copy(camera.position).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(20)); }
+  $('cam').onclick = () => setCam((camMode + 1) % 4);
   const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpC = new THREE.Vector3();
   function placeCam(dt) {
     u = (u + dt * speed / LEN) % 1;
     const i = Math.floor(u * NS) % NS, f = u * NS - Math.floor(u * NS), j = (i + 1) % NS;
-    tmpA.copy(RP[i]).lerp(RP[j], f); const t = RT[i];
+    tmpA.copy(RP[i]).lerp(RP[j], f); const t = RT[i], t2 = RT[j], tx = t.x + (t2.x - t.x) * f, tz = t.z + (t2.z - t.z) * f;
     const y = RH[i] + (RH[j] - RH[i]) * f;
-    camera.position.set(tmpA.x - t.z * 1.2, y + 1.55, tmpA.z + t.x * 1.2);
-    const la = (i + 14) % NS, lb = (la + 1) % NS; tmpB.set(RP[la].x - RT[la].z * 1.2, RH[la] + 1.25, RP[la].z + RT[la].x * 1.2); tmpC.set(RP[lb].x - RT[lb].z * 1.2, RH[lb] + 1.25, RP[lb].z + RT[lb].x * 1.2); tmpB.lerp(tmpC, f);
-    camera.lookAt(tmpB);
+    RID.prev.copy(RID.pos); RID.pos.set(tmpA.x - tz * 1.2, y, tmpA.z + tx * 1.2); RID.hd = Math.atan2(tx, tz); RID.gr = (RH[j] - RH[i]) / Math.max(0.1, RP[i].distanceTo(RP[j]));
+    if (rider) { rider.g.position.copy(RID.pos); rider.g.rotation.set(0, RID.hd, 0); rider.g.rotateX(-Math.atan(RID.gr)); try { RK.animRider(rider, 88, speed, dt, 230); } catch (e) {} }
+    if (camHd === null || dt === 0) camHd = RID.hd; let dh = RID.hd - camHd; while (dh > Math.PI) dh -= Math.PI * 2; while (dh < -Math.PI) dh += Math.PI * 2; camHd += dh * Math.min(1, dt * 2.5);
+    const p = RID.pos;
+    if (camMode === 0 && rider) { camera.position.set(p.x - Math.sin(camHd) * 4.6, p.y + 2.0, p.z - Math.cos(camHd) * 4.6); camera.position.y = Math.max(camera.position.y, H(camera.position.x, camera.position.z) + 1.2); camera.lookAt(p.x + Math.sin(camHd) * 10, p.y + 1.2, p.z + Math.cos(camHd) * 10); }
+    else if (camMode === 1) { camera.position.add(tmpC.subVectors(RID.pos, RID.prev)); controls.target.copy(RID.pos); controls.target.y += 1.1; controls.update(); camera.position.y = Math.max(camera.position.y, H(camera.position.x, camera.position.z) + 0.4); }
+    else if (camMode === 3) controls.update();
+    else { camera.position.set(p.x, y + 1.55, p.z);
+      const la = (i + 14) % NS, lb = (la + 1) % NS; tmpB.set(RP[la].x - RT[la].z * 1.2, RH[la] + 1.25, RP[la].z + RT[la].x * 1.2); tmpC.set(RP[lb].x - RT[lb].z * 1.2, RH[lb] + 1.25, RP[lb].z + RT[lb].x * 1.2); tmpB.lerp(tmpC, f);
+      camera.lookAt(tmpB); }
   }
+  /* Fahrer + Rennrad aus Hicore Ride (gleiche Figur, gleiches Rad, gleiche Tretbewegung) */
+  setLoad(0.9, 'Lade Fahrer und Rad…'); await tick();
+  try {
+    const ls = src => new Promise((res, rej) => { const e = document.createElement('script'); e.src = src; e.onload = res; e.onerror = rej; document.head.appendChild(e); });
+    window.THREE = Object.assign({}, THREE, { GLTFLoader }); window.renderer = renderer;
+    await ls('rider-data.js'); await ls('rider.js'); RK = window.RIDERKIT;
+    const r = RK.makeRider({ jersey: 0xff7a1a, accent: 0x15171c, frame: 0x15171c, frameAccent: 0xff7a1a, helmet: 0xffffff, num: '1' });
+    await new Promise(res => new GLTFLoader().parse(RK.b64ToBuf(window.RIDER_GLB_B64), '', gltf => { try { RK.pbrMarkLin(gltf.scene); const R = RK.makeGLBRider(gltf);
+      if (R) { r.g.add(R.holder); r.glb = R; r.body.visible = false; const st = r.seat, up = RK.RIG.SEAT_UP; st.saddle.position.y += up; st.nose.position.y += up; const sp2 = st.SP.clone(); sp2.y += up; RK.stretch(st.post, st.ST, sp2); RK.poseRider(r, 0); } } catch (e) { console.warn('Fahrer', e); } res(); }, e => { console.warn('Fahrer', e); res(); }));
+    r.g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; const m = o.material; for (const mm of (Array.isArray(m) ? m : [m])) if (mm && mm.map && mm.map.isCanvasTexture) mm.map.colorSpace = THREE.SRGBColorSpace; } });
+    scene.add(r.g); rider = r;
+  } catch (e) { console.warn('Fahrer nicht geladen', e); camMode = 2; }
 
   /* Umgebungston: Fluss (nach Abstand), Laub/Wind, Fahrtwind (nach Tempo), Vögel nur nahe Bäumen */
   const AUD = { ctx: null, on: false, buf: {}, loops: {} };
@@ -614,7 +642,7 @@ async function main() {
     if (cap && now0 - last < 1000 / cap - 3) return;
     const now = now0, dtms = now - last; last = now;
     if (fpsMode === 'auto' && !bench) { rawAcc += dtms; rawN++; if (now > capCheck) { const f = rawN * 1000 / rawAcc; if (!autoCap && f < 52 && f > 24) autoCap = 30; else if (autoCap && f >= 29.5) { /* bleibt bei 30 */ } rawAcc = rawN = 0; capCheck = now + 4000; } } const dt = Math.min(0.1, dtms / 1000);
-    if (ride) placeCam(dt); else controls.update();
+    placeCam(dt);
     audioStep(dt);
     sunL.position.copy(camera.position).addScaledVector(sunDir, 300); sunL.target.position.copy(camera.position); sunL.target.updateMatrixWorld();
     if (pipeline) pipeline.render(); else renderer.render(scene, camera);
@@ -625,7 +653,7 @@ async function main() {
       const inf = renderer.info.render; $('tri').textContent = fmt(inf.triangles); $('dc').textContent = inf.drawCalls ?? inf.calls ?? '–'; acc = 0; frames = 0; }
   });
   const fmt = n => n > 1e6 ? (n / 1e6).toFixed(2) + ' Mio' : n > 1e3 ? (n / 1e3).toFixed(0) + ' Tsd' : n;
-  $('bench').onclick = () => { if (bench) return; ride = true; controls.enabled = false; $('cam').textContent = 'Kamera: Fahrt'; $('cam').classList.remove('on'); u = 0.02; bench = { t: [], end: performance.now() + 20000 }; $('bm').style.display = 'block'; };
+  $('bench').onclick = () => { if (bench) return; setCam(rider ? 0 : 2); u = 0.02; bench = { t: [], end: performance.now() + 20000 }; $('bm').style.display = 'block'; };
   function finishBench() {
     const t = bench.t.slice(5).sort((a, b) => a - b); bench = null; $('bm').style.display = 'none';
     const avg = t.reduce((a, b) => a + b, 0) / t.length, p99 = t[Math.floor(t.length * 0.99)], med = t[Math.floor(t.length / 2)];
@@ -645,7 +673,7 @@ async function main() {
   }
   $('rclose').onclick = () => $('res').style.display = 'none';
   $('rcopy').onclick = async () => { try { await navigator.clipboard.writeText($('rtext').textContent); $('rcopy').textContent = 'Kopiert ✓'; } catch (e) { $('rcopy').textContent = 'Kopieren ging nicht'; } };
-  window.__look = (a, b) => { ride = false; controls.enabled = true; camera.position.set(...a); controls.target.set(...b); controls.update(); };
+  window.__look = (a, b) => { setCam(3); camera.position.set(...a); controls.target.set(...b); controls.update(); };
   window.__STATE = () => ({ isGPU, q: QN, tris: renderer.info.render.triangles, trees: TREES.length, grass: grass.count, pipeline: !!pipeline });
 }
 main().catch(e => { console.error(e); $('lmsg').textContent = 'Fehler: ' + (e && e.message || e); $('lmsg').style.color = '#ff8080'; });
