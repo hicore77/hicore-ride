@@ -5116,7 +5116,7 @@ function waterNormalTexture(){
 // Spiegelung: je Gewässer einmal eine Würfel-Umgebungskarte vom Ufer aus (Himmel, Wolken, Bäume am Ufer)
 const ENV_Q=[];
 let ENV_JOB=null;   // eine Würfelseite pro Bild rendern -> kein Ruckeln beim Weltstart
-function captureWaterEnv(){ if (!ENV_JOB){ ENV_JOB={list:ENV_Q.splice(0,3), rest:ENV_Q.splice(0), i:0, f:0, done:[]}; } const J=ENV_JOB;
+function captureWaterEnv(){ if (window.GPU_MODE){ ENV_Q.length=0; ENV_JOB=null; return; } if (!ENV_JOB){ ENV_JOB={list:ENV_Q.splice(0,3), rest:ENV_Q.splice(0), i:0, f:0, done:[]}; } const J=ENV_JOB;
   if (J.i>=J.list.length){ J.rest.forEach(e=>{ let best=null, bd=1e18; J.done.forEach(d=>{ const dd=d.p.distanceToSquared(e.p); if (dd<bd){ bd=dd; best=d; } }); if (best){ e.m.envMap=best.m.envMap; e.m.needsUpdate=true; } }); ENV_JOB=null; return; }
   const e=J.list[J.i];
   try{ if (!e.rt){ e.rt=new THREE.WebGLCubeRenderTarget(GFX_BUILD_R>=260?256:LITE?32:128,{generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter}); e.cc=new THREE.CubeCamera(0.5,5000,e.rt); e.cc.position.copy(e.p); e.cc.updateMatrixWorld(true); }
@@ -5339,7 +5339,21 @@ function gpuHelpers(){ if (_gpuH) return _gpuH; const T=TSL, {Fn,vec2,vec3,float
   const bay8=Fn(([a])=>bay2(a.mul(0.25)).mul(0.0625).add(bay2(a.mul(0.5)).mul(0.25)).add(bay2(a)));
   return (_gpuH={h21,vnz,bay8}); }
 const toLin=c=>TSL.pow(TSL.max(c,TSL.vec3(0.0)),TSL.vec3(2.2));
-function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; const lin=!!u.lin, prep=!!u.pbrPrep, gam=prep && !lin, ao=!!u.worldAO;
+const WSKY={hor:GU(new THREE.Color(0xbfe0ff))};
+function gpuWater(nm, m){ const T=TSL, nt=m.normalMap; if (!nt) return; const {vec2,vec3,vec4,float,texture,positionWorld,cameraPosition,normalize,dot,max,pow,mix,smoothstep,clamp,length}=T;
+  const P=positionWorld.xz, t=WIND.t, smp=(k,o)=>texture(nt, P.mul(k).add(o)).xyz.mul(2.0).sub(1.0);
+  const s1=smp(0.045,vec2(t.mul(0.010),t.mul(0.006))), s2=smp(0.11,vec2(t.mul(-0.017),t.mul(0.011))), s3=smp(0.33,vec2(t.mul(0.03),t.mul(-0.021)));
+  const camD=length(P.sub(cameraPosition.xz)), fade=smoothstep(25.0,420.0,camD);
+  const nxz=s1.xy.mul(0.5).add(s2.xy.mul(0.35)).add(s3.xy.mul(float(0.25).mul(float(1.0).sub(fade)))).mul(mix(float(1.4),float(0.45),fade));
+  const N=normalize(vec3(nxz.x,1.0,nxz.y)), V=normalize(cameraPosition.sub(positionWorld)), R=T.reflect(V.negate(),N);
+  const cosT=clamp(dot(V,N),0.0,1.0), F=float(0.02).add(pow(float(1.0).sub(cosT),5.0).mul(0.98));
+  const hor=WSKY.hor, zen=hor.mul(vec3(0.5,0.66,0.95)), sky=mix(hor.mul(vec3(0.78,0.86,0.94)),zen,smoothstep(0.0,0.35,max(R.y,0.0)));
+  const sd=max(dot(R,SUNU),0.0), glint=pow(sd,600.0).mul(9.0).add(pow(sd,60.0).mul(0.35));
+  const deep=T.materialReference('color','color').mul(0.32);
+  nm.normalMap=null; nm.clearcoat=0; nm.clearcoatNormalMap=null; nm.roughness=0.85; nm.envMap=null; nm.envMapIntensity=0.15;
+  nm.colorNode=vec4(deep, T.materialReference('opacity','float'));
+  nm.emissiveNode=sky.mul(F.mul(0.8)).add(vec3(1.0,0.92,0.75).mul(glint)); }
+function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater){ gpuWater(nm,m); return; } const lin=!!u.lin, prep=!!u.pbrPrep, gam=prep && !lin, ao=!!u.worldAO;
   const {vec2,vec3,vec4,float,texture,positionWorld,positionGeometry,positionLocal,cameraPosition,smoothstep,mix,clamp,length,normalize,dot,max,pow,Discard,If,screenCoordinate,modelWorldMatrixInverse}=T;
   const need=gam||ao||fx.mask||fx.terrain||fx.wind||fx.dith; if (!need) return;
   const H=gpuHelpers();
@@ -8302,7 +8316,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -8502,7 +8516,7 @@ const POST={ on:true, ok:null, w:0, h:0,
   pass(m,target){ this.quad.material=m; renderer.setRenderTarget(target); renderer.render(this.scn,this.cam); },
   gpuRender(){ if (!GPU_READY) return; if (!this.on || window.NOBLOOM || LITE){ renderer.render(scene,camera); return; }
     if (this.pipe===undefined){ try{ const T=TSL; const P=new THREE.RenderPipeline(renderer); const sp=T.pass(scene,camera); const col=sp.getTextureNode('output');
-        const bl=T.bloom(col, 0.22, 0.25, 0.85); const q=T.screenUV.sub(0.5); const vig=T.float(1.0).sub(T.dot(q,q).mul(0.35));
+        const bl=T.bloom(T.min(col,T.vec4(1.2)), 0.2, 0.25, 0.92); bl.smoothWidth.value=0.35; const q=T.screenUV.sub(0.5); const vig=T.float(1.0).sub(T.dot(q,q).mul(0.35));
         P.outputNode=T.vec4(col.rgb.add(bl.rgb.mul(T.vec3(1.0,0.97,0.9))).mul(vig),1.0); P.outputColorTransform=true; this.pipe=P; }
       catch(e){ console.warn('Nachbearbeitung (WebGPU) aus',e); this.pipe=null; } }
     if (this.pipe){ try{ this.pipe.render(); return; }catch(e){ console.warn('Nachbearbeitung (WebGPU) aus',e); this.pipe=null; } }
@@ -8559,7 +8573,7 @@ function frame(now){
   { if (!window._blob){ const c=document.createElement('canvas'); c.width=64; c.height=128; const g=c.getContext('2d'); g.setTransform(1,0,0,2,0,0); const gr=g.createRadialGradient(32,32,1,32,32,31); gr.addColorStop(0,'rgba(0,0,0,0.5)'); gr.addColorStop(0.5,'rgba(0,0,0,0.22)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,64,64);   /* elliptisch, Ränder ganz weich */
       const m=new THREE.Mesh(new THREE.PlaneGeometry(0.9,2.3).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4})); m.renderOrder=2; m.userData.noStd=true; scene.add(m); window._blob=m; }
     const b=window._blob, hb=headingAt(S.dist); b.position.set(me.g.position.x, me.g.position.y+0.03, me.g.position.z); b.rotation.y=hb; b.visible=!!S.running || true; }
-  { WIND.t.value+=dt; const hw=headingAt(S.dist)+((S.dir||1)<0?Math.PI:0); WIND.rp.value.copy(me.g.position); updateGrassField(me.g.position); WIND.rv.value.set(Math.sin(hw),Math.cos(hw)); WIND.rs.value+=((active?Math.min(1,S.speed/9):0)-WIND.rs.value)*Math.min(1,dt*2); }
+  { if (window.GPU_MODE && scene.fog) WSKY.hor.value.copy(scene.fog.color); WIND.t.value+=dt; const hw=headingAt(S.dist)+((S.dir||1)<0?Math.PI:0); WIND.rp.value.copy(me.g.position); updateGrassField(me.g.position); WIND.rv.value.set(Math.sin(hw),Math.cos(hw)); WIND.rs.value+=((active?Math.min(1,S.speed/9):0)-WIND.rs.value)*Math.min(1,dt*2); }
   AMB.update(dt, active, builtWorld||selWorld);
   try{ if (!LITE || (LEAVES.im && LEAVES.im.count)) LEAVES.update(dt, active && !LITE); }catch(e){ if(!LEAVES.err){ LEAVES.err=1; console.warn('Blätter',e); } }
   animRider(me, active?S.cadence:0, active?S.speed:0, dt, active?S.power:0);
