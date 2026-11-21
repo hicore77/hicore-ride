@@ -18,6 +18,8 @@ canvas#world{display:block;width:100vw;height:100vh;touch-action:none}
 .tile .l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
 .tile.big .v{font-size:40px;color:var(--acc)}
 .tile.hr .v{color:var(--hr)}
+body.hHud .hud,body.hSide .side,body.hProf .prof,body.hBoard .board,body.hCtrl .ctrl,body.hPure #fps{display:none!important}
+#bHud{position:fixed;right:12px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bHud:hover{opacity:1}
 #junc{display:none;position:fixed;left:50%;top:128px;transform:translateX(-50%);z-index:6;background:rgba(13,17,23,.88);border:1px solid #2b3440;border-radius:14px;padding:10px 12px;color:#fff;text-align:center;min-width:300px}#junc .jt{font-weight:700;font-size:16px;margin-bottom:8px}#junc .jb{display:flex;gap:8px;justify-content:center}#junc button{flex:1;padding:10px 12px;font-size:17px;font-weight:700;border-radius:10px;border:2px solid #3a4656;background:#1b232d;color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px}#junc button small{font-size:11px;font-weight:400;opacity:.75}#junc button.on{border-color:#ff7a1a;background:#3a2414}
 .side{position:fixed;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .side .tile{min-width:120px;text-align:left}
@@ -143,6 +145,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
 
 <div class="prof"><canvas id="profile"></canvas></div>
 <div class="toast" id="toast"></div>
+<button id="bHud" title="Anzeige umschalten (H): alles · nur oben · nur Fahrer">👁 Anzeige</button>
 
 <div class="overlay" id="menu">
   <div class="card">
@@ -201,7 +204,13 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
         <div><label>Grafikqualität</label><select id="gfx"><option value="1.25">Ultra (volle Auflösung, beste Schatten, weite Baumdetails)</option><option value="1">Hoch (volle Auflösung)</option><option value="0.7" selected>Mittel</option><option value="0.5">Niedrig (Tablet/Laptop)</option><option value="0.35">Smartphone (minimal, läuft auf fast jedem Handy)</option></select></div>
         <div><label>Leuchten heller Stellen (Bloom)</label><select id="bloom"><option value="1" selected>an</option><option value="0">aus</option></select></div>
         <div><label>Bilder pro Sekunde anzeigen</label><select id="fpsShow"><option value="0">aus</option><option value="1" selected>an</option></select></div>
+        <div><label>Werte oben (Watt, Kadenz, Puls, Tempo)</label><select id="vHud"><option value="1" selected>an</option><option value="0">aus</option></select></div>
+        <div><label>Werte links (Steigung, Distanz, Zeit …)</label><select id="vSide"><option value="1" selected>an</option><option value="0">aus</option></select></div>
+        <div><label>Höhenprofil unten</label><select id="vProf"><option value="1" selected>an</option><option value="0">aus</option></select></div>
+        <div><label>Fahrerliste rechts</label><select id="vBoard"><option value="1" selected>an</option><option value="0">aus</option></select></div>
+        <div><label>Knöpfe (Kamera, Pause, Menü …)</label><select id="vCtrl"><option value="1" selected>an</option><option value="0">aus</option></select></div>
       </div>
+      <p style="font-size:12px;opacity:.75;margin:6px 0 0">Schnell umschalten im Spiel: Knopf „👁 Anzeige“ oben rechts oder Taste H (alles · nur Werte oben · nur Fahrer).</p>
       </div>
       <div class="spage" id="sTon" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Ton</h3>
       <div class="sndbox" style="border:0;padding:0;margin:4px 0"><div class="sndhead"><label class="chk" style="margin:0"><input type="checkbox" id="sndOn"> <b>Umgebungsgeräusche</b>&nbsp;(Wind, Vögel, Blätter, Meer, Fahrgeräusch)</label><button id="sndTest">Probehören</button></div><div class="sndgrid" id="sndGrid"></div></div>
@@ -5325,9 +5334,14 @@ function gpuFixInst(root){ if (!window.GPU_MODE || !root) return; root.traverse(
     if (!((u.pbrPrep||b.pbrPrep) && !u.lin)) return; const a=o.instanceColor.array; for (let i=0;i<a.length;i++) a[i]=Math.pow(Math.max(0,a[i]),2.2); o.instanceColor.needsUpdate=true; o._icPow=true; }); }
 if (window.GPU_MODE) try{ const sc=THREE.InstancedMesh.prototype.setColorAt; THREE.InstancedMesh.prototype.setColorAt=function(i,c){ sc.call(this,i,c); if (this._icPow){ const a=this.instanceColor.array; for (let k=i*3;k<i*3+3;k++) a[k]=Math.pow(Math.max(0,a[k]),2.2); } }; }catch(e){}
 function gpuSetup(){ const lib=renderer.library, orig=lib.fromMaterial.bind(lib);
+  /* 0.4.8: WebGPU bildet den Pipeline-Schlüssel aus den Material-Eigenschaften (Funktionen nur als Quelltext). gpuFx baut Texturen fest ein,
+     daher teilten z. B. Wertungs-Torbögen die Pipeline samt Start-Tor-Textur. Texturen als Text-Eigenschaft in den Schlüssel bringen. */
+  if (!Object.getOwnPropertyDescriptor(THREE.Material.prototype,'gpuTexKey')) Object.defineProperty(THREE.Material.prototype,'gpuTexKey',{enumerable:true, configurable:true, set(v){},
+    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); return k; } });
   /* Farben wie im alten Spiel roh lassen (ColorManagement aus), aber sRGB-Texturen und Bildausgabe trotzdem richtig umrechnen */
   const CSN=THREE.ColorSpaceNode; if (CSN && !CSN._hp){ CSN._hp=1; const o=CSN.prototype.setup; CSN.prototype.setup=function(b){ const CM=THREE.ColorManagement, e=CM.enabled; CM.enabled=true; try{ return o.call(this,b); } finally{ CM.enabled=e; } }; }
-  lib.fromMaterial=m=>{ const nm=orig(m); if (nm && !m.isNodeMaterial) try{ gpuFx(nm, m); }catch(e){ console.warn('GPU-Material',e); } return nm; };
+  lib.fromMaterial=m=>{ const nm=orig(m); if (nm && !m.isNodeMaterial){ try{ gpuFx(nm, m); }catch(e){ console.warn('GPU-Material',e); } }
+    return nm; };
   try{ const {Fn,vec3,dot,mix,max,float}=TSL;
     const custom=Fn(([c,ex])=>{ const col=c.mul(ex); const l=dot(col,vec3(0.2126,0.7152,0.0722)); const cc=mix(vec3(l),col,0.92).mul(vec3(1.02,1.0,0.97)); const lt=l.mul(l.div(2.6).add(1.0)).div(l.add(1.0)); return max(cc.mul(lt.div(max(l,1e-4))),vec3(0.0)); });
     lib.addToneMapping(custom, THREE.CustomToneMapping); }catch(e){ console.warn('Tonemapping',e); } }
@@ -5482,7 +5496,7 @@ function fineGrassTexture(){ const S=256, c=document.createElement('canvas'); c.
   for (let i=0;i<10;i++){ const x=S*0.1+R()*S*0.8, y=S*0.25+R()*S*0.5; g.strokeStyle='rgba(120,110,60,.9)'; g.lineWidth=1; g.beginPath(); g.moveTo(x,S); g.lineTo(x+(R()-0.5)*8,y); g.stroke(); g.fillStyle=`rgba(${150+R()*40|0},${130+R()*30|0},70,1)`; g.beginPath(); g.ellipse(x,y,1.6,5,0,0,7); g.fill(); }   // Rispen
   const gr=g.createLinearGradient(0,S*0.6,0,S); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(10,25,5,.06)'); g.globalCompositeOperation='source-atop'; g.fillStyle=gr; g.fillRect(0,0,S,S);
   const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t; }
-function buildGrassField(def, grp, waterY){ GF.cells.clear(); GF.kx=GF.kz=1e9; GF.im=null; if (def.real) return;
+function buildGrassField(def, grp, waterY){ GF.cells.clear(); GF.kx=GF.kz=1e9; GF.im=null; GF.slot=null; if (def.real) return;
   const N=GFX_BUILD_R>=380?52000:GFX_BUILD_R>=260?40000:GFX_BUILD_R>=180?22000:0; if (!N) return;
   GF.cs=6; GF.rad=4; GF.per=Math.floor(N/((2*GF.rad+1)**2)); GF.N=GF.per*(2*GF.rad+1)**2; GF.waterY=def.water?waterY:-1e9; GF.def=def;
   const mat0=windify(new THREE.MeshLambertMaterial({map:fineGrassTexture(), alphaTest:0.42, side:THREE.DoubleSide}),0.06,0.28); mat0.alphaToCoverage=true; const mat=ditherMat(mat0,'R',GF.rad*GF.cs-11,GF.rad*GF.cs-4);   // weich ausblenden um den Fahrer
@@ -5495,14 +5509,20 @@ function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) retu
     if (h<GF.waterY+1.3 || inPond(x,z,1.5)) continue; const lu=LU?landUse(x,z):{t:0,edge:99}; const inF=lu.edge>2; if (inF && (lu.t===5 || (lu.t===6 && r()<0.6))) continue; const crop=inF && lu.t>=2 && lu.t<=4;
     q.setFromAxisAngle(UPV,r()*6.28); const sc=crop?0.9+r()*0.4:0.7+r()*0.8; s.set(sc,sc*(crop?(lu.t===3?3.2:lu.t===4?3.6:1.8)+r()*0.5:0.7+r()*0.8),sc); p.set(x,h-0.02,z); m.compose(p,q,s); M.set(m.elements,n*16);
     const f=0.75+r()*0.35; col.setHSL(gh[0]-0.02+r()*0.05, gh[1]*(0.75+r()*0.25), 0.5); col.multiplyScalar(f*1.02); if (crop){ if (lu.t===3) col.setRGB(1.25*f,1.0*f,0.45*f); else if (lu.t===4) col.setRGB(1.2*f,1.15*f,0.25*f); } C.set([col.r,col.g,col.b],n*3); P[n*2]=x; P[n*2+1]=z; n++; }
-  c={M,C,P,n}; GF.cells.set(key,c); if (GF.cells.size>900){ const it=GF.cells.keys(); for (let k=0;k<300;k++) GF.cells.delete(it.next().value); } return c; }
-function updateGrassField(pos){ const im=GF.im; if (!im) return; const kx=Math.floor(pos.x/GF.cs), kz=Math.floor(pos.z/GF.cs); if (kx===GF.kx && kz===GF.kz) return; GF.kx=kx; GF.kz=kz;
-  const A=im.instanceMatrix.array, CA=im.instanceColor.array, Rm=GF.rad*GF.cs, cx=(kx+0.5)*GF.cs, cz=(kz+0.5)*GF.cs; let n=0;
-  for (let a=-GF.rad;a<=GF.rad;a++) for (let b=-GF.rad;b<=GF.rad;b++){ const c=gfCell(kx+a,kz+b);
-    for (let k=0;k<c.n;k++){ const dx=c.P[k*2]-cx, dz=c.P[k*2+1]-cz, dist=Math.sqrt(dx*dx+dz*dz); if (dist>Rm) continue; const f=1;
-      const o=n*16, src=k*16; for (let e=0;e<16;e++) A[o+e]=c.M[src+e]; if (f<1){ for (const e of [0,1,2,4,5,6,8,9,10]) A[o+e]*=f; }
-      CA[n*3]=c.C[k*3]; CA[n*3+1]=c.C[k*3+1]; CA[n*3+2]=c.C[k*3+2]; n++; } }
-  im.count=n; im.instanceMatrix.needsUpdate=true; im.instanceColor.needsUpdate=true; }
+  c={M,C,P,n}; GF.cells.set(key,c); if (GF.cells.size>1400){ const it=GF.cells.keys(); for (let k=0;k<300;k++) GF.cells.delete(it.next().value); } return c; }
+/* Feste Plätze je Zelle (Ringpuffer 9x9): beim Weiterfahren werden nur die neuen Zellen geschrieben und hochgeladen, nicht mehr alle ~50.000 Halme (das gab alle ~6 m einen Hänger) */
+function updateGrassField(pos){ const im=GF.im; if (!im) return; const kx=Math.floor(pos.x/GF.cs), kz=Math.floor(pos.z/GF.cs);
+  /* Vorausberechnen: pro Bild höchstens eine noch fehlende Zelle im Ring R+1, damit beim Zellwechsel alles schon fertig ist */
+  if (GF.slot){ const R1=GF.rad+1; let done=false; for (let r=GF.rad; r<=R1 && !done; r++) for (let a=-r;a<=r && !done;a++) for (let b=-r;b<=r && !done;b++){ if (Math.max(Math.abs(a),Math.abs(b))!==r) continue; const i=kx+a, j=kz+b; if (!GF.cells.has(i*100003+j)){ gfCell(i,j); done=true; } } }
+  if (kx===GF.kx && kz===GF.kz) return;
+  const R=GF.rad, Sz=2*R+1, per=GF.per, A=im.instanceMatrix.array, CA=im.instanceColor.array, full=!GF.slot; if (full) GF.slot=new Array(Sz*Sz).fill(null);
+  const dirty=[];
+  for (let a=-R;a<=R;a++) for (let b=-R;b<=R;b++){ const i=kx+a, j=kz+b, key=i*100003+j, sl=(((i%Sz)+Sz)%Sz)*Sz+(((j%Sz)+Sz)%Sz); if (GF.slot[sl]===key) continue; GF.slot[sl]=key;
+    const c=gfCell(i,j), o0=sl*per; A.set(c.M.subarray(0,c.n*16), o0*16); A.fill(0, (o0+c.n)*16, (o0+per)*16); CA.set(c.C.subarray(0,c.n*3), o0*3); dirty.push(sl); }
+  GF.kx=kx; GF.kz=kz; im.count=GF.N;
+  if (dirty.length){ const ia=im.instanceMatrix, ic=im.instanceColor; if (ia.clearUpdateRanges){ ia.clearUpdateRanges(); ic.clearUpdateRanges(); }
+    if (!full && ia.addUpdateRange && dirty.length<Sz*Sz){ dirty.sort((x,y)=>x-y); dirty.forEach(sl=>{ ia.addUpdateRange(sl*per*16, per*16); ic.addUpdateRange(sl*per*3, per*3); }); }
+    ia.needsUpdate=true; ic.needsUpdate=true; } }
 // Schmetterlinge am Wegrand und ein Starenschwarm über den Feldern (nur Landschaftswelten mit Flurplan)
 function wingTexture(kind){ const S=64, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d');
   const base={weiss:'#f4f3ea', zitrone:'#f2e04a', pfau:'#b8361f', blau:'#6f8fe0'}[kind];
@@ -5904,7 +5924,7 @@ function xrNear(x,z,R){ let best={d:1e9,y:0,k:-1}; if (!XH) return best; R=R||24
     for (const [k,i] of l){ const P=XR[k].P, p=P[i], q=P[i+1]; const dx=q.x-p.x, dz=q.z-p.z, ll=dx*dx+dz*dz||1, t=clamp(((x-p.x)*dx+(z-p.z)*dz)/ll,0,1), d=Math.hypot(x-p.x-dx*t,z-p.z-dz*t); if (d<best.d) best={d,y:p.y+(q.y-p.y)*t,k}; } }
   return best; }
 function planCross(def){ NET=null; XR=[]; XH=null; if (!def.cross) return;
-  const main={pts,cum,L,segs:[{s0:0,s1:L,r0:0}],main:true};
+  const main={pts,cum,L,segs:[{s0:0,s1:L,r0:0}],main:true,key:''};
   def.cross.forEach(([f1,f2,name],k)=>{ const d1=f1*L, d2=f2*L, A=posAt(d1), B=posAt(d2);
     const inw=d=>{ const p=posAt(d), hd=headingAt(d); let nx=Math.cos(hd), nz=-Math.sin(hd); const sg=(nx*-p.x+nz*-p.z)>0?1:-1; return [nx*sg,nz*sg,sg]; };
     const [n1x,n1z,sg1]=inw(d1), [n2x,n2z]=inw(d2), K=0.33*Math.hypot(B.x-A.x,B.z-A.z);
@@ -5921,8 +5941,11 @@ function planCross(def){ NET=null; XR=[]; XH=null; if (!def.cross) return;
     for (let x=x0;x<=x1;x++) for (let z=z0;z<=z1;z++){ const kk=hashKey(x,z); let l=h.get(kk); if(!l) h.set(kk,l=[]); l.push([k,i]); } } }); XH={C,h};
   /* Hauptstraße: an den Einmündungen keine Leitpfosten/Deko */
   if (JUNC){ XR.forEach(r=>[r.d1,r.d2].forEach(d=>{ const ci=idxAt(d)[0], k=Math.ceil((XW/2+6)/(L/N)); for (let o=-k;o<=k;o++) JUNC[(ci+o+N)%N]=1; })); smoothArr(JUNC,2,2); }
-  NET={main, cur:main, junc:XR, pick:null, pend:null, appl:new Set()}; }
+  NET={main, cur:main, junc:XR, pick:null, pend:null, appl:new Set(), rc:{'':main}}; }
 function useCourse(c){ pts=c.pts; cum=c.cum; L=c.L; }
+function withCourse(c,fn){ if (!NET || !c || (c===NET.cur && !NET._in)) return fn(); const sv=[pts,cum,L], was=NET._in; NET._in=true; useCourse(c); try{ return fn(); } finally{ pts=sv[0]; cum=sv[1]; L=sv[2]; NET._in=was; } }
+/* Strecke eines Mitfahrers aus seinem Schlüssel (genommene Querwege dieser Runde) nachbauen, damit man ihm auf den Querweg folgen kann */
+function routeOfKey(key){ if (!NET) return null; key=key||''; if (NET.rc[key]) return NET.rc[key]; let cur=NET.main; try{ withCourse(NET.main,()=>{ for (const ks of key.split(',')){ const j=XR[+ks]; if (!j) break; const rd=routeD(cur,j.d1); if (rd==null) break; cur=buildRoute(cur,rd,j); } }); }catch(e){ cur=NET.main; } return (NET.rc[key]=cur); }
 function withMain(fn){ if (!NET || NET._in || NET.cur===NET.main) return fn(); const c=NET.cur; NET._in=true; useCourse(NET.main); try{ return fn(); } finally{ useCourse(c); NET._in=false; } }
 function routeD(rt,dm){ for (const s of rt.segs) if (s.s0!=null && dm>=s.s0-0.01 && dm<=s.s1+0.01) return s.r0+(dm-s.s0); return null; }
 /* neue Strecke: bisherige Strecke bis zur Kreuzung + Querweg + Hauptrunde ab Einmündung bis zum Ziel */
@@ -5939,7 +5962,7 @@ function buildRoute(cur, rd, j){ const M=NET.main, dense=[];
   let ie=0, be=1e9; for (let i=0;i<N;i++){ const dd=Math.hypot(np[i].x-j.B.x,np[i].z-j.B.z); if (dd<be){ be=dd; ie=i; } }
   const segs=cur.segs.filter(s=>s.s0!=null ? s.r0<rd : s.r0<rd).map(s=>Object.assign({},s)); const last=segs[segs.length-1]; if (last && last.s0!=null && last.r0+(last.s1-last.s0)>rd) last.s1=last.s0+(rd-last.r0);
   segs.push({k:j.k, r0:rd, len:c2[ie]-rd}); segs.push({s0:j.d2, s1:M.L, r0:c2[ie]});
-  return {pts:np, cum:c2, L:c2[N], segs}; }
+  return {pts:np, cum:c2, L:c2[N], segs, key:(cur.key?cur.key+',':'')+j.k}; }
 function buildCrossRoads(grp, tex, rmat){ if (!XR.length) return;
   const v=[], uv=[], idx=[], col=[], sv=[], suv=[], sidx=[], US=[0,0.25,0.5,0.75,1]; const scol=new THREE.Color().setHSL(WORLD.grass[0]-0.02, WORLD.grass[1]*0.8, 0.46);
   XR.forEach(r=>{ const P=r.P; let acc=0, first=true, base=0, sb=0, n=0;
@@ -8352,6 +8375,16 @@ const store = { get(k,d){ try{ const v=localStorage.getItem('hicoreRide.'+k); re
 let totalKm = store.get('totalKm', 0);
 let selWorld = store.get('world', 'insel');
 let builtWorld = null;
+
+// ---------- Anzeige ausblenden (0.4.8): einzelne Teile per Einstellung, schnell per H / 👁: 0 alles, 1 nur oben, 2 nur Fahrer ----------
+const HUDK={vHud:'hHud',vSide:'hSide',vProf:'hProf',vBoard:'hBoard',vCtrl:'hCtrl'}; let hudMode=+store.get('hudMode',0)||0;
+function applyHud(){ const b=document.body; for (const k in HUDK){ const off=$(k).value==='0' || hudMode===2 || (hudMode===1 && k!=='vHud'); b.classList.toggle(HUDK[k],off); }
+  b.classList.toggle('hPure',hudMode===2); $('bHud').textContent=hudMode===0?'👁 Anzeige':hudMode===1?'👁 nur oben':'👁'; }
+function cycleHud(){ hudMode=(hudMode+1)%3; store.set('hudMode',hudMode); applyHud(); toast(hudMode===0?'Anzeige: alles':hudMode===1?'Anzeige: nur Werte oben':'Anzeige: nur Fahrer (H oder 👁 holt sie zurück)'); }
+Object.keys(HUDK).forEach(k=>{ const v=store.get(k,null); if (v!==null) $(k).value=v; $(k).onchange=()=>{ store.set(k,$(k).value); applyHud(); }; });
+$('bHud').onclick=e=>{ e.stopPropagation(); cycleHud(); $('bHud').blur(); };
+addEventListener('keydown',e=>{ if ((e.key==='h'||e.key==='H') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) cycleHud(); });
+applyHud();
 // gespeicherte Einstellungen laden
 ['mass','diff','bots','gfx','fpsShow','jersey','pwSmooth','pwFac'].forEach(k=>{ const v=store.get(k,null); if(v!==null) $(k).value=v; $(k).onchange=()=>store.set(k,$(k).value); });
 // Smartphone/Tablet: Hoch und Ultra sperren, beim ersten Start Niedrig
@@ -8389,7 +8422,7 @@ const MP={ URL:'https://snpmmskruuzqrvvsdztz.supabase.co', KEY:'sb_publishable_a
     this.stat(this.on ? ('Verbunden mit Raum '+this.room+' · '+(all.length? (same+' weitere'+(same===1?'r Fahrer':' Fahrer')+' in deiner Welt'+(other?' · '+other+' in anderer Welt ('+[...new Set(all.filter(p=>p.wd!==wd).map(p=>wn(p.wd)))].join(', ')+')':'')) : 'noch allein im Raum')+' · '+this.nTx+'/'+this.nRx+' Nachr.') : 'Verbinde …', this.on?'on':''); },
   rx(p){ if (!p || p.id===this.id || typeof p.d!=='number') return; this.nRx++; let q=this.peers.get(p.id); const now=performance.now();
     if (!q){ q={id:p.id, n:String(p.n||'?').slice(0,16), c:p.c|0, r:null, d:p.d, v:0, lane:0, w:0, cd:0}; this.peers.set(p.id,q); const used=new Set([...this.peers.values()].map(x=>x.lane)); q.lane=[1.1,-1.2,1.8,-1.9,0.5,2.4,-2.5].find(l=>!used.has(l))||0.9; this.sync(); }
-    Object.assign(q,{n:String(p.n||q.n).slice(0,16), j:String(p.j||'std').slice(0,16), wd:p.wd, rd:p.d, rv:+p.v||0, bk:!!p.bk, w:p.w|0, cd:p.cd|0, run:!!p.run, rt:now});
+    Object.assign(q,{n:String(p.n||q.n).slice(0,16), j:String(p.j||'std').slice(0,16), wd:p.wd, rk:(typeof p.rt==='string' && /^[0-9,]{0,24}$/.test(p.rt))?p.rt:'', rd:p.d, rv:+p.v||0, bk:!!p.bk, w:p.w|0, cd:p.cd|0, run:!!p.run, rt:now});
     if (q.wd===(builtWorld||selWorld) && !q.r){ const col=q.c||0x888888; q.r=makeRider({jersey:col, accent:0xffffff, frame:0x1b1d22, frameAccent:col, helmet:0xffffff, num:''}); q.r.g.add(label(q.n,'#ffe08a')); scene.add(q.r.g); q.d=p.d; q.v=q.rv;
       const nG=[...this.peers.values()].filter(x=>x.r&&x.r.glbWant).length; if (!LITE && nG<4){ q.r.glbWant=true; const r=q.r; attachGLB(r, ()=>applyJersey(LEAD.jerseyFor(q.id,q.j), r)); } }
     if (q.r && q.r.glb){ const jj=LEAD.jerseyFor(p.id,q.j); if (q.r.jer!==jj) applyJersey(jj, q.r); } },
@@ -8397,12 +8430,12 @@ const MP={ URL:'https://snpmmskruuzqrvvsdztz.supabase.co', KEY:'sb_publishable_a
   wrap(x){ return ((x%L)+L*1.5)%L-L/2; },
   frame(dt, now, active){ const wd=builtWorld||selWorld;
     if (this.on && this.ch && S.running){ this.sendT-=dt; if (this.sendT<=0){ this.sendT=1.0; this.nTx++;
-      this.ch.send({type:'broadcast', event:'p', payload:{id:this.id, n:this.name, c:this.col(), j:$('jersey').value, wd, bk:(S.dir||1)<0?1:0, d:+S.dist.toFixed(1), v:+((active?S.speed:0)*(S.dir||1)).toFixed(2), w:Math.round(active?S.power:0), cd:Math.round(active?S.cadence:0), run:active}}).catch(()=>{});
+      this.ch.send({type:'broadcast', event:'p', payload:{id:this.id, n:this.name, c:this.col(), j:$('jersey').value, wd, bk:(S.dir||1)<0?1:0, rt:NET?NET.cur.key:'', d:+S.dist.toFixed(1), v:+((active?S.speed:0)*(S.dir||1)).toFixed(2), w:Math.round(active?S.power:0), cd:Math.round(active?S.cadence:0), run:active}}).catch(()=>{});
       if ((this.nTx%5)===0) this.sync(); } }
     const t=performance.now();
     for (const q of this.peers.values()){ if (!q.r) continue; const age=(t-q.rt)/1000; const vis=q.wd===wd && age<8; q.r.g.visible=vis; if (!vis){ if (age>40) this.drop(q.id); continue; }
-      const est=q.rd+q.rv*Math.min(age,3); q.v+=(q.rv-q.v)*Math.min(1,dt*1.5); q.d+=q.v*dt; const e=this.wrap(est-q.d); if (Math.abs(e)>60) q.d=est; else q.d+=e*Math.min(1,dt*1.2);
-      placeRider(q.r, q.d, q.lane, q.bk); animRider(q.r, q.run?q.cd:0, q.run?Math.abs(q.v):0, dt); } },
+      withCourse(NET?routeOfKey(q.rk):null, ()=>{ const est=q.rd+q.rv*Math.min(age,3); q.v+=(q.rv-q.v)*Math.min(1,dt*1.5); q.d+=q.v*dt; const e=this.wrap(est-q.d); if (Math.abs(e)>60) q.d=est; else q.d+=e*Math.min(1,dt*1.2);
+      placeRider(q.r, q.d, q.lane, q.bk); animRider(q.r, q.run?q.cd:0, q.run?Math.abs(q.v):0, dt); }); } },
   list(){ const wd=builtWorld||selWorld, out=[]; for (const q of this.peers.values()) if (q.r && q.r.g.visible && q.wd===wd) out.push(q); return out; }
 };
 $('mpName').value=store.get('mpName',''); $('mpRoom').value=store.get('mpRoom','');
@@ -8472,7 +8505,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.7 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.8 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -8690,9 +8723,16 @@ const POST={ on:true, ok:null, w:0, h:0,
 $('bloom').value=String(store.get('bloom',1)); POST.on=$('bloom').value==='1'; $('bloom').onchange=()=>{ POST.on=$('bloom').value==='1'; store.set('bloom',+$('bloom').value); };
 
 let FRN=0;
+const FCAP={cap:false, probe:false, ld:0, n:0, t0:0, next:0, off:/[?&]fps=60/.test(location.search)};
 function frame(now){
   requestAnimationFrame(frame);
   if (!builtWorld || window.LOADING){ last=now; return; }   /* WebGPU: während des Ladens nicht zeichnen, Shader werden parallel vorbereitet */
+  /* Gleichmäßiger Bildtakt: schafft das Gerät keine ~55 Bilder/s, wird fest auf 30 begrenzt (jedes 2. Bild). 40-50 fps mit wechselnden Abständen ruckeln sichtbar, 30 gleichmäßige nicht. ?fps=60 schaltet das ab. */
+  { const F=FCAP; if (F.cap && now-F.ld < 1000/30-6) return; F.ld=now; F.n++; if (!F.t0) F.t0=now;
+    if (now-F.t0>=2000){ const fps=F.n*1000/(now-F.t0); F.n=0; F.t0=now; if (S.running && !F.off){
+      if (!F.cap && !F.probe && fps<54 && fps>18){ F.cap=true; F.next=now+45000; }
+      else if (F.cap && now>F.next){ F.cap=false; F.probe=true; }
+      else if (F.probe){ F.probe=false; if (fps<54){ F.cap=true; F.next=now+90000; } } } } }
   if (window.LOADT && LOADT.ff){ const L=LOADT; L.ff=0; const tot=(performance.now()-L.t0)/1000; try{ toast('Geladen in '+tot.toFixed(1)+' s (Welt '+(L.b/1000).toFixed(1)+' s, Shader '+((L.c||0)/1000).toFixed(1)+' s, erstes Bild '+((L.w||0)/1000).toFixed(1)+' s)'); }catch(e){} }
   if (FRN<=60){ FRN++; if (FRN===1||FRN===2||FRN===10||FRN===60) STG('Bild '+FRN+(window.glbRiderReady?' mit Fahrer':'')); }
   const dt=Math.min(0.1,(now-last)/1000); last=now;
