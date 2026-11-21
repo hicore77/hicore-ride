@@ -4746,13 +4746,15 @@ const canvas = $('world');
 const IS_MOBILE=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Macintosh/.test(navigator.userAgent));
 const IS_PHONE=/iPhone|iPod|Android.*Mobile|Mobile.*Android/i.test(navigator.userAgent) || (IS_MOBILE && Math.min(screen.width,screen.height)<560);
 let LITE=(()=>{ try{ const v=localStorage.getItem('hicoreRide.gfx'); if (IS_PHONE && localStorage.getItem('hicoreRide.gfxUser')!=='1') return true; return v===null ? IS_PHONE : JSON.parse(v)==='0.35'; }catch(e){ return IS_PHONE; } })();   /* Smartphone-Stufe: alles Teure aus, Fahrer bleibt voll */
+if (window.GPU_MODE) try{ const DK=/^hicoreRide\.(bootN|mini|stage|gpu|pbrSafe)$/, SP=Storage.prototype, g=SP.getItem, st=SP.setItem, rm=SP.removeItem, mk=k=>(typeof k==='string'&&DK.test(k))?k.replace('hicoreRide.','hicoreRideGPU.'):k;   /* Beta: eigene Absturz-/Grafik-Merker, damit sich altes Spiel und Beta nicht gegenseitig in den Notfallmodus schicken */
+  SP.getItem=function(k){ return g.call(this,mk(k)); }; SP.setItem=function(k,v){ return st.call(this,mk(k),v); }; SP.removeItem=function(k){ return rm.call(this,mk(k)); }; }catch(e){}
 const STG=t=>{ try{ localStorage.setItem('hicoreRide.stage',t); }catch(e){} };   /* Diagnose: letzter erreichter Schritt */
 let PREV_STAGE=null, PREV_GPU=''; try{ const ps=localStorage.getItem('hicoreRide.stage'); if (ps && ps!=='ok') PREV_STAGE=ps; PREV_GPU=localStorage.getItem('hicoreRide.gpu')||''; }catch(e){}
 STG('Start');
-let MINI=false; try{ const n=+(localStorage.getItem('hicoreRide.bootN')||0); const q=location.search; if (/[?&]normal\b/.test(q)) localStorage.removeItem('hicoreRide.mini'); MINI=/[?&]mini\b/.test(q) || (IS_MOBILE && !/[?&]normal\b/.test(q) && (localStorage.getItem('hicoreRide.mini')==='1' || n>=1));
+let MINI=false; try{ const n=+(localStorage.getItem('hicoreRide.bootN')||0); const q=location.search; if (/[?&]normal\b/.test(q)) localStorage.removeItem('hicoreRide.mini'); MINI=/[?&]mini\b/.test(q) || (!window.GPU_MODE && IS_MOBILE && !/[?&]normal\b/.test(q) && (localStorage.getItem('hicoreRide.mini')==='1' || n>=1));
   if (MINI){ localStorage.setItem('hicoreRide.mini','1'); LITE=true; } localStorage.setItem('hicoreRide.bootN',String(n+1)); setTimeout(()=>{ try{ localStorage.setItem('hicoreRide.bootN','0'); }catch(_){} },20000); setTimeout(()=>STG('ok'),25000); }catch(e){}   /* Notfall-Sparmodus nach Absturz */
 let renderer, GPU_INIT=null, GPU_READY=false; { let err=null; const tries=[{antialias:!LITE, powerPreference:LITE?'low-power':'default', stencil:false}, {antialias:false, stencil:false}, {antialias:false, stencil:false, precision:'mediump', failIfMajorPerformanceCaveat:false}];   /* Ausweich-Stufen, falls Chrome den ersten Versuch ablehnt */
-  if (window.GPU_MODE){ try{ renderer=new THREE.WebGPURenderer({canvas, antialias:!LITE, powerPreference:'high-performance', forceWebGL:/[?&]gl=1/.test(location.search)||!navigator.gpu}); GPU_INIT=renderer.init().then(()=>{ GPU_READY=true; try{ const bk=renderer.backend; window.GPU_BACKEND=bk&&bk.isWebGPUBackend?'WebGPU':'WebGL2'; const dv=bk&&bk.device; if (dv){ dv.lost.then(i=>{ console.warn('GPU-Gerät verloren',i.reason,i.message); try{ STG('GPU verloren: '+i.message); }catch(e){} }); dv.addEventListener('uncapturederror',ev=>{ if ((window._gpuE=(window._gpuE||0)+1)<6) console.warn('GPU-Fehler',ev.error&&ev.error.message); }); } }catch(e){} }).catch(e=>console.warn('WebGPU init',e));
+  if (window.GPU_MODE){ try{ renderer=new THREE.WebGPURenderer({canvas, antialias:!LITE, powerPreference:'high-performance', forceWebGL:/[?&]gl=1/.test(location.search)||!navigator.gpu}); GPU_INIT=renderer.init().then(()=>{ GPU_READY=true; try{ const bk=renderer.backend; window.GPU_BACKEND=bk&&bk.isWebGPUBackend?'WebGPU':'WebGL2'; try{ localStorage.setItem('hicoreRide.gpu',window.GPU_BACKEND==='WebGPU'?'WebGPU':'WebGL2 (Rückfall)'); }catch(e){} try{ renderWorlds(); }catch(e){} const dv=bk&&bk.device; if (dv){ dv.lost.then(i=>{ console.warn('GPU-Gerät verloren',i.reason,i.message); try{ STG('GPU verloren: '+i.message); }catch(e){} }); dv.addEventListener('uncapturederror',ev=>{ if ((window._gpuE=(window._gpuE||0)+1)<6) console.warn('GPU-Fehler',ev.error&&ev.error.message); }); } }catch(e){} }).catch(e=>console.warn('WebGPU init',e));
       renderer.capabilities={ isWebGL2:true, getMaxAnisotropy:()=>16 }; renderer.extensions={ has:()=>true }; gpuSetup(); }catch(e){ err=e; renderer=null; } }
   else for (const o of tries){ try{ renderer=new THREE.WebGLRenderer(Object.assign({canvas},o)); if (o!==tries[0]){ LITE=true; try{ localStorage.setItem('hicoreRide.gfx',JSON.stringify('0.35')); }catch(_){} } break; }catch(e){ err=e; } }
   if (!renderer){ const d=document.createElement('div'); d.style.cssText='position:fixed;left:8px;right:8px;top:22%;z-index:9999;background:#b3261e;color:#fff;font:15px/1.4 system-ui;padding:14px;border-radius:10px';
@@ -4774,7 +4776,7 @@ const camera = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.3, 3000
 const hemi=new THREE.HemisphereLight(0xdff2ff, 0x5c7a3a, 0.75); hemi.color.convertSRGBToLinear(); hemi.groundColor.convertSRGBToLinear(); scene.add(hemi);
 const SUN_DIR=new THREE.Vector3(95,42,60).normalize(); let SUN_SPR=null;   // Sonne ca. 20° über dem Horizont: lange Schatten, Sonne im Bild sichtbar
 const sun = new THREE.DirectionalLight(0xffe9c8, 0.98); sun.color.convertSRGBToLinear();
-sun.castShadow = true; sun.shadow.mapSize.set(1024,1024);
+sun.castShadow = true; sun.shadow.mapSize.set(1024,1024); if (window.GPU_MODE){ sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.04; }   /* WebGPU: keine Selbstverschattung an Hängen */
 const sc=sun.shadow.camera; sc.left=-30; sc.right=30; sc.top=30; sc.bottom=-30; sc.near=1; sc.far=300;   // enger = schärferer Fahrerschatten
 scene.add(sun); scene.add(sun.target);
 const AZ0=Math.atan2(SUN_DIR.z,SUN_DIR.x);
@@ -5318,6 +5320,9 @@ function buildEdgeDecals(def, grp){
    Beim Erzeugen der Node-Materialien (renderer.library.fromMaterial) werden daraus TSL-Knoten gebaut. */
 function GU(v){ return window.GPU_MODE ? TSL.uniform(v) : {value:v}; }
 function GUT(){ if (!window.GPU_MODE) return {value:null}; const d=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1); d.needsUpdate=true; const n=TSL.texture(d); const proxy={ get value(){ return n.value===d?null:n.value; }, set value(t){ n.value=t||d; }, node:n }; return proxy; }
+function gpuFixInst(root){ if (!window.GPU_MODE || !root) return; root.traverse(o=>{ if (!o.isInstancedMesh || !o.instanceColor || o._icPow) return; const m=Array.isArray(o.material)?o.material[0]:o.material; const u=(m&&m.userData)||{}, b=(u.pbrOrig&&u.pbrOrig.userData)||{};
+    if (!((u.pbrPrep||b.pbrPrep) && !u.lin)) return; const a=o.instanceColor.array; for (let i=0;i<a.length;i++) a[i]=Math.pow(Math.max(0,a[i]),2.2); o.instanceColor.needsUpdate=true; o._icPow=true; }); }
+if (window.GPU_MODE) try{ const sc=THREE.InstancedMesh.prototype.setColorAt; THREE.InstancedMesh.prototype.setColorAt=function(i,c){ sc.call(this,i,c); if (this._icPow){ const a=this.instanceColor.array; for (let k=i*3;k<i*3+3;k++) a[k]=Math.pow(Math.max(0,a[k]),2.2); } }; }catch(e){}
 function gpuSetup(){ const lib=renderer.library, orig=lib.fromMaterial.bind(lib);
   /* Farben wie im alten Spiel roh lassen (ColorManagement aus), aber sRGB-Texturen und Bildausgabe trotzdem richtig umrechnen */
   const CSN=THREE.ColorSpaceNode; if (CSN && !CSN._hp){ CSN._hp=1; const o=CSN.prototype.setup; CSN.prototype.setup=function(b){ const CM=THREE.ColorManagement, e=CM.enabled; CM.enabled=true; try{ return o.call(this,b); } finally{ CM.enabled=e; } }; }
@@ -5396,7 +5401,7 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; const lin=!!u
     if (m.vertexColors){ nm.vertexColors=false; c=c.mul(mix(T.vertexColor().rgb,vec3(1.0),luW)); }
     col=vec4(c, tex.a.mul(T.materialReference('opacity','float')));
   }
-  if (!col && (gam||ao||fx.dith)){ let c=vec4(T.materialReference('color','color'), T.materialReference('opacity','float')); if (m.map) c=c.mul(texture(m.map)); if (m.vertexColors){ nm.vertexColors=false; c=vec4(c.rgb.mul(T.vertexColor().rgb), c.a); } col=c; }
+  if (!col && (gam||ao||fx.dith)){ let c=vec4(T.materialReference('color','color'), T.materialReference('opacity','float')); if (m.map && m.alphaTest>0){ if (!m.map.premultiplyAlpha){ m.map.premultiplyAlpha=true; m.map.needsUpdate=true; } const tx=texture(m.map); c=c.mul(vec4(tx.rgb.div(max(tx.a,float(0.004))),tx.a)); } else if (m.map) c=c.mul(texture(m.map)); if (m.vertexColors){ nm.vertexColors=false; c=vec4(c.rgb.mul(T.vertexColor().rgb), c.a); } col=c; }
   if (col){ let rgb=col.rgb; if (gam) rgb=toLin(rgb); if (ao){ const aoS=PBR.aoU.node.sample(positionWorld.xz.sub(vec2(PBR.aoOE.x)).div(PBR.aoOE.y)).r; rgb=rgb.mul(mix(float(1.0),aoS,PBR.aoOn)); } col=vec4(rgb,col.a); }
   if (fx.mask){ const t=fx.mask; nm.maskNode=texture(t.t, P.sub(vec2(t.oe.x)).div(t.oe.y)).r.lessThan(0.5); }
   /* Wind: Wehen + Fahrtwind (Gras weicht dem Fahrer aus) */
@@ -8297,7 +8302,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.0 Beta · Grafik: ${window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -8354,7 +8359,7 @@ async function start(){
     if (builtWorld!==def.id || BUILT_R!==GFX_BUILD_R){ const lb=$('loadbox'); $('loadname').textContent=def.name; $('loadstep').textContent='Modelle werden vorbereitet …'; lb.style.display='flex'; $('menu').style.display='none';
       const paint=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
       try{ await paint(); await (window.PROPS_READY||Promise.resolve()); $('loadstep').textContent='Gelände, Straße, Bäume und Felsen werden gebaut …'; await paint();
-        buildWorld(def); builtWorld=def.id; $('loadstep').textContent='Grafik wird vorbereitet …'; await paint();
+        buildWorld(def); gpuFixInst(scene); builtWorld=def.id; $('loadstep').textContent='Grafik wird vorbereitet …'; await paint();
         if (window.GPU_MODE){ try{ await GPU_INIT; await renderer.compileAsync(scene,camera); }catch(e){ console.warn('compile',e); } } else try{ stageCompile(); renderer.compile(scene,camera); }catch(e){} $('world').style.visibility='visible'; await paint(); }
       finally{ lb.style.display='none'; } }
     resetRide(); setupBots(+$('bots').value);
