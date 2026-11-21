@@ -54,6 +54,7 @@
     <option value="gpu">Renderer: WebGPU</option>
     <option value="gl">Renderer: WebGL 2</option>
   </select>
+  <select id="fpsc"><option value="auto">Bildrate: Auto</option><option value="0">Bildrate: frei</option><option value="60">Bildrate: 60</option><option value="30">Bildrate: 30 (gleichmäßig)</option></select>
   <button id="cam">Kamera: Fahrt</button>
   <button id="snd">🔇 Ton aus</button>
   <button id="bench">Benchmark (20 s)</button>
@@ -73,7 +74,7 @@
 <script type="module">
 import * as THREE from 'three/webgpu';
 import { texture, positionWorld, positionLocal, uv, mix, smoothstep, vec2, vec3, vec4, float, normalWorld, time, sin, cos, instanceIndex, hash,
-  normalMap, fract, abs, step, max, min, triplanarTexture, pass, mrt, output, screenUV, normalView, packNormalToRGB, unpackRGBToNormal, sample, renderOutput, uniform, clamp, pow } from 'three/tsl';
+  normalMap, fract, abs, step, max, min, triplanarTexture, pass, mrt, output, screenUV, normalView, packNormalToRGB, unpackRGBToNormal, sample, renderOutput, uniform, clamp, pow, cameraPosition, floor, distance, dot, normalize, instancedBufferAttribute } from 'three/tsl';
 import { vertexColor } from 'three/tsl';
 import { SkyMesh } from 'three/addons/objects/SkyMesh.js';
 import { WaterMesh } from 'three/addons/objects/WaterMesh.js';
@@ -185,7 +186,7 @@ async function main() {
   sky.turbidity.value = 3.2; sky.rayleigh.value = 1.6; sky.mieCoefficient.value = 0.004; sky.mieDirectionalG.value = 0.82;
   sky.cloudCoverage.value = 0.38; sky.cloudDensity.value = 0.45; sky.cloudElevation.value = 0.55;
   scene.add(sky);
-  const sunDir = new THREE.Vector3();
+  const sunDir = new THREE.Vector3(); const sunU = uniform(new THREE.Vector3(0, 1, 0)), backU = uniform(0.5);
   const sunL = new THREE.DirectionalLight(0xfff1dc, 3.2); sunL.castShadow = true;
   sunL.shadow.mapSize.set(Q.shadow, Q.shadow); const SC = 70;
   Object.assign(sunL.shadow.camera, { left: -SC, right: SC, top: SC, bottom: -SC, near: 1, far: 600 });
@@ -197,7 +198,7 @@ async function main() {
   function setSun(elev) {
     const phi = THREE.MathUtils.degToRad(90 - elev), th = THREE.MathUtils.degToRad(215);
     sunDir.setFromSphericalCoords(1, phi, th);
-    sky.sunPosition.value.copy(sunDir); envSky.sunPosition.value.copy(sunDir);
+    sunU.value.copy(sunDir); backU.value = 0.35 + 0.45 * smooth(4, 30, elev); sky.sunPosition.value.copy(sunDir); envSky.sunPosition.value.copy(sunDir);
     for (const k of ['turbidity', 'rayleigh', 'mieCoefficient', 'mieDirectionalG']) envSky[k].value = sky[k].value;
     const warm = smooth(4, 30, elev);
     sunL.color.setRGB(1, 0.72 + 0.26 * warm, 0.5 + 0.42 * warm); sunL.intensity = 2.2 + 3.4 * warm;
@@ -415,8 +416,9 @@ async function main() {
         for (let i = 0; i < k; i++) { const a = (i / k + L * 0.37 + R() * 0.1) * Math.PI * 2, droop = -0.25 - R() * 0.25;
           const dU = new V(Math.cos(a), droop * 0.35, Math.sin(a)).normalize(); const dV = new V(-Math.sin(a), 0.25 * (R() - 0.5), Math.cos(a)).normalize();
           const N = new V(Math.cos(a) * 0.6, 0.8, Math.sin(a) * 0.6).normalize();
-          card(pos, nor, uvs, col, idx, new V(0, y, 0), dU, dV, r * 0.62 + 0.08, r * 1.08, N, 0.5 + 0.5 * y);
-          const dV2 = new V().crossVectors(dU, dV).normalize(); card(pos, nor, uvs, col, idx, new V(0, y + 0.01, 0), dU, dV2, (r * 0.62 + 0.08) * 0.55, r * 0.95, N, 0.45 + 0.5 * y); } }
+          if (R() < 0.12) continue; const lr = r * (0.7 + R() * 0.55), yy = y + (R() - 0.5) * 0.035;
+          card(pos, nor, uvs, col, idx, new V(0, yy, 0), dU, dV, lr * 0.62 + 0.08, lr * 1.08, N, 0.5 + 0.5 * y);
+          const dV2 = new V().crossVectors(dU, dV).normalize(); card(pos, nor, uvs, col, idx, new V(0, yy + 0.01, 0), dU, dV2, (lr * 0.62 + 0.08) * 0.55, lr * 0.95, N, 0.45 + 0.5 * y); } }
     } else { // Laubbaum: Zweig-Karten in Ellipsoid, nach außen zeigend
       for (let i = 0; i < nCards; i++) { const th = R() * Math.PI * 2, ph = Math.acos(1 - 2 * Math.pow(R(), 0.8)), rr = 0.35 + 0.65 * Math.cbrt(R());
         const dir = new V(Math.sin(ph) * Math.cos(th), Math.cos(ph) * 0.9, Math.sin(ph) * Math.sin(th)); const C = new V(0, 0.55, 0).addScaledVector(dir, 0.48 * rr);
@@ -434,6 +436,7 @@ async function main() {
     const tx = texture(map);
     m.colorNode = tx.rgb.mul(mix(tintA, tintB, lh)).mul(vertexColor());
     m.opacityNode = tx.a;
+    m.emissiveNode = m.colorNode.mul(pow(max(dot(normalize(positionWorld.sub(cameraPosition)), sunU), 0.0), 3.0).mul(backU).mul(1.4));
     m.positionNode = positionLocal.add(vec3(sway, 0, sway.mul(0.6)));
     return m;
   }
@@ -446,16 +449,17 @@ async function main() {
   }
   const nCards = { niedrig: [36, 26], mittel: [54, 40], hoch: [72, 56], ultra: [96, 80] }[QN];
   for (const kind of [0, 1]) {
-    const L = TREES.filter(t => t.kind === kind), cg = crownGeo(kind, nCards[kind]);
+    const L = TREES.filter(t => t.kind === kind), NV = QN === 'niedrig' ? 1 : 3, CG = Array.from({ length: NV }, () => crownGeo(kind, nCards[kind]));
     const fm = kind ? foliageMat(twigL, vec3(0.58, 0.68, 0.36), vec3(0.86, 0.82, 0.42)) : foliageMat(twigN, vec3(0.44, 0.54, 0.30), vec3(0.56, 0.62, 0.36));
-    const trunks = new THREE.InstancedMesh(trunkG, kind ? barkE : barkM, L.length), crowns = new THREE.InstancedMesh(cg, fm, L.length);
+    const trunks = new THREE.InstancedMesh(trunkG, kind ? barkE : barkM, L.length), CR = CG.map((cg, v) => new THREE.InstancedMesh(cg, fm, Math.ceil(L.length / NV)));
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3();
     L.forEach((t, i) => { q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), t.r);
       m.compose(new THREE.Vector3(t.x, t.y - 0.3, t.z), q, s.set(t.hgt * 0.028, kind ? t.hgt * 0.62 : t.hgt * 0.92, t.hgt * 0.028)); trunks.setMatrixAt(i, m);
       if (kind) m.compose(new THREE.Vector3(t.x, t.y + t.hgt - t.w * 1.15 * 1.05, t.z), q, s.set(t.w, t.w * 1.15, t.w));
       else m.compose(new THREE.Vector3(t.x, t.y + t.hgt * 0.3, t.z), q, s.set(t.w, t.hgt * 0.72, t.w));
-      crowns.setMatrixAt(i, m); });
-    trunks.castShadow = crowns.castShadow = true; trunks.receiveShadow = crowns.receiveShadow = true; scene.add(trunks, crowns);
+      CR[i % NV].setMatrixAt(Math.floor(i / NV), m); });
+    CR.forEach((c, v) => { c.count = Math.floor((L.length - 1 - v) / NV) + 1; c.castShadow = c.receiveShadow = true; scene.add(c); });
+    trunks.castShadow = true; trunks.receiveShadow = true; scene.add(trunks);
   }
 
   /* Gras */
@@ -466,18 +470,38 @@ async function main() {
         for (const sd of [-1, 1]) { pos.push(cx + Math.cos(a) * ww * sd, t * h, cz + Math.sin(a) * ww * sd); uvs.push((sd + 1) / 2, t); nor.push(Math.cos(a + 1.57) * 0.35, 1, Math.sin(a + 1.57) * 0.35); } }
       for (let s = 0; s < 3; s++) { const q = base + s * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.normalizeNormals(); g.setIndex(idx); return g; })();
-  const grassM = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide, roughness: 0.75 });
-  const gh = hash(instanceIndex.add(17)), gy = uv().y;
-  const gw = positionWorld.xz;
-  const wind = sin(time.mul(1.9).add(gw.x.mul(0.21)).add(gw.y.mul(0.13))).add(sin(time.mul(3.1).add(gw.x.mul(0.6))).mul(0.35)).mul(gy.mul(gy)).mul(0.09);
-  grassM.positionNode = positionLocal.add(vec3(wind, 0, wind.mul(0.5)));
-  grassM.colorNode = mix(vec3(0.03, 0.07, 0.015), mix(vec3(0.17, 0.27, 0.06), vec3(0.36, 0.38, 0.13), gh.mul(gh)), gy).mul(texture(tex.wiese, gw.mul(0.043)).rgb.mul(1.3).add(0.35));
-  const grass = new THREE.InstancedMesh(bladeG, grassM, Q.grass);
-  { const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(); let k = 0;
-    for (let n = 0; k < Q.grass && n < Q.grass * 3; n++) { const i = Math.floor(R() * NS), side = R() < 0.5 ? -1 : 1, off = RW / 2 + 1.7 + R() ** 2.4 * 32; const x = RP[i].x + RT[i].z * side * off + (R() - 0.5) * 1.5, z = RP[i].z - RT[i].x * side * off + (R() - 0.5) * 1.5;
-      const y = H(x, z); if (y < WATER_Y + 0.6) continue; const sc = 0.65 + R() * 0.55; q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), R() * 6.28); m.compose(new THREE.Vector3(x, y - 0.05, z), q, s.set(sc, sc * (0.8 + R() * 0.6), sc)); grass.setMatrixAt(k++, m); }
-    grass.count = k; }
-  grass.receiveShadow = true; grass.frustumCulled = false; scene.add(grass);
+  /* Gras-Feld wandert mit der Kamera: Kachel-Wrap um die Kamera, Höhe aus Gelände-Textur, Straße/Wasser per Maske */
+  const HN = TN + 1; let hmin = 1e9; for (let i = 0; i < tp.count; i++) hmin = Math.min(hmin, tp.getY(i));
+  const hData = new Uint16Array(HN * HN);
+  for (let i = 0; i < tp.count; i++) { const c = Math.round((tp.getX(i) + TS / 2) / TS * TN), r = Math.round((tp.getZ(i) + TS / 2) / TS * TN); hData[r * HN + c] = THREE.DataUtils.toHalfFloat(tp.getY(i) - hmin); }
+  const hTex = new THREE.DataTexture(hData, HN, HN, THREE.RedFormat, THREE.HalfFloatType); hTex.magFilter = hTex.minFilter = THREE.LinearFilter; hTex.needsUpdate = true;
+  const MS = 2048, mc = document.createElement('canvas'); mc.width = mc.height = MS; { const x = mc.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, MS, MS); x.strokeStyle = '#000'; x.lineJoin = x.lineCap = 'round'; x.lineWidth = (RW + 3.0) / TS * MS; x.beginPath();
+    for (let i = 0; i <= NS; i++) { const P = RP[i % NS]; const px = (P.x + TS / 2) / TS * MS, pz = (P.z + TS / 2) / TS * MS; i ? x.lineTo(px, pz) : x.moveTo(px, pz); } x.stroke(); }
+  const mTex = new THREE.CanvasTexture(mc); mTex.flipY = false; mTex.colorSpace = THREE.NoColorSpace; mTex.generateMipmaps = false; mTex.minFilter = THREE.LinearFilter;
+  const GF = { niedrig: [[9000, 26]], mittel: [[26000, 34], [12000, 84]], hoch: [[42000, 38], [24000, 96]], ultra: [[62000, 42], [38000, 110]] }[QN];
+  const grassMs = [];
+  function grassField(N, S, big) {
+    const offs = new Float32Array(N * 4); for (let i = 0; i < N; i++) offs.set([R() * S, R() * S, R() * 6.283, (0.65 + R() * 0.55) * big], i * 4);
+    const o = instancedBufferAttribute(new THREE.InstancedBufferAttribute(offs, 4));
+    const cam = cameraPosition.xz;
+    const wx = o.x.add(floor(cam.x.sub(o.x).div(S).add(0.5)).mul(S)), wz = o.y.add(floor(cam.y.sub(o.y).div(S).add(0.5)).mul(S));
+    const wp = vec2(wx, wz);
+    const hh = texture(hTex, wp.add(TS / 2).div(TS).mul(TN).add(0.5).div(HN)).level(0).r.add(hmin);
+    const mk = texture(mTex, wp.add(TS / 2).div(TS)).level(0).r;
+    const gi = hash(instanceIndex.add(17));
+    const sc = o.w.mul(smoothstep(S * 0.5, S * 0.36, distance(wp, cam))).mul(step(0.55, mk)).mul(step(WATER_Y + 0.6, hh));
+    const cs = cos(o.z), sn = sin(o.z), lp = positionLocal, gy = uv().y;
+    const rx = lp.x.mul(cs).sub(lp.z.mul(sn)), rz = lp.x.mul(sn).add(lp.z.mul(cs));
+    const wind = sin(time.mul(1.9).add(wx.mul(0.21)).add(wz.mul(0.13))).add(sin(time.mul(3.1).add(wx.mul(0.6))).mul(0.35)).mul(gy.mul(gy)).mul(0.09);
+    const m = new THREE.MeshStandardNodeMaterial({ side: THREE.DoubleSide, roughness: 0.92 });
+    m.positionNode = vec3(wx.add(rx.mul(sc)).add(wind), hh.add(lp.y.mul(sc).mul(gi.mul(0.6).add(0.8))).sub(0.05), wz.add(rz.mul(sc)).add(wind.mul(0.5)));
+    const gw = vec2(wx, wz);
+    m.colorNode = mix(vec3(0.03, 0.07, 0.015), mix(vec3(0.17, 0.27, 0.06), vec3(0.36, 0.38, 0.13), gi.mul(gi)), gy).mul(texture(tex.wiese, gw.mul(0.043)).rgb.mul(1.3).add(0.35)).mul(mix(vec3(1.0), vec3(1.18, 1.05, 0.6), smoothstep(0.35, 0.7, texture(tex.wiese, gw.mul(0.0017)).r).mul(0.45)));
+    m.emissiveNode = m.colorNode.mul(vec3(0.9, 1.1, 0.5)).mul(pow(max(dot(normalize(positionWorld.sub(cameraPosition)), sunU), 0.0), 4.0).mul(backU).mul(gy).mul(0.45));
+    const g = new THREE.InstancedMesh(bladeG, m, N); g.receiveShadow = true; g.frustumCulled = false; scene.add(g); grassMs.push(g); return g;
+  }
+  for (const [N, S] of GF) grassField(N, S, S > 60 ? 1.25 : 1);
+  const grass = { count: GF.reduce((a, b) => a + b[0], 0) };
   /* Wiesenblumen in Gruppen: Margerite, Hahnenfuß, Flockenblume, Kornblume, Klee */
   { const st = new THREE.CylinderGeometry(0.006, 0.009, 1, 3, 1, true); st.translate(0, 0.5, 0);
     const hd = new THREE.CylinderGeometry(0.075, 0.03, 0.025, 8); hd.translate(0, 1.0, 0);
@@ -498,7 +522,7 @@ async function main() {
       const flowers = FL[Math.floor(R() * FL.length)], cnt = 6 + Math.floor(R() * 26); if (flowers.k >= NF) continue;
       for (let j = 0; j < cnt && flowers.k < NF; j++) { const a = R() * 6.28, rr = R() ** 0.7 * 3.5, x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr;
         if (nearRoad(x, z, 12).d < RW / 2 + 1.8) continue; const y = H(x, z); if (y < WATER_Y + 0.8) continue;
-        const h = 0.25 + R() * 0.45, w = 0.8 + R() * 0.6; q.setFromEuler(new THREE.Euler((R() - 0.5) * 0.35, R() * 6.28, (R() - 0.5) * 0.35)); m.compose(new THREE.Vector3(x, y - 0.02, z), q, sc3.set(w, h, w));
+        const h = 0.42 + R() * 0.4, w = 0.9 + R() * 0.6; q.setFromEuler(new THREE.Euler((R() - 0.5) * 0.35, R() * 6.28, (R() - 0.5) * 0.35)); m.compose(new THREE.Vector3(x, y - 0.02, z), q, sc3.set(w, h, w));
         flowers.setMatrixAt(flowers.k++, m); } }
     for (const flowers of FL) { flowers.count = flowers.k; flowers.receiveShadow = true; flowers.frustumCulled = false; scene.add(flowers); } }
 
@@ -530,14 +554,14 @@ async function main() {
   const controls = new OrbitControls(camera, renderer.domElement); controls.enabled = false; controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.495;
   let ride = true, u = START_U, speed = 10.5; // m/s
   $('cam').onclick = () => { ride = !ride; controls.enabled = !ride; $('cam').textContent = 'Kamera: ' + (ride ? 'Fahrt' : 'Frei'); $('cam').classList.toggle('on', !ride); if (!ride) { controls.target.copy(camera.position).add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(20)); } };
-  const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3();
+  const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpC = new THREE.Vector3();
   function placeCam(dt) {
     u = (u + dt * speed / LEN) % 1;
     const i = Math.floor(u * NS) % NS, f = u * NS - Math.floor(u * NS), j = (i + 1) % NS;
     tmpA.copy(RP[i]).lerp(RP[j], f); const t = RT[i];
     const y = RH[i] + (RH[j] - RH[i]) * f;
     camera.position.set(tmpA.x - t.z * 1.2, y + 1.55, tmpA.z + t.x * 1.2);
-    const la = (i + 14) % NS; tmpB.set(RP[la].x - RT[la].z * 1.2, RH[la] + 1.25, RP[la].z + RT[la].x * 1.2);
+    const la = (i + 14) % NS, lb = (la + 1) % NS; tmpB.set(RP[la].x - RT[la].z * 1.2, RH[la] + 1.25, RP[la].z + RT[la].x * 1.2); tmpC.set(RP[lb].x - RT[lb].z * 1.2, RH[lb] + 1.25, RP[lb].z + RT[lb].x * 1.2); tmpB.lerp(tmpC, f);
     camera.lookAt(tmpB);
   }
 
@@ -580,8 +604,16 @@ async function main() {
   let last = performance.now(), acc = 0, frames = 0, first = true;
   const FT = []; let bench = null;
   const clock = new THREE.Timer ? null : null;
+  /* Gleichmäßige Bildrate: bei 31-52 fps auf 60-Hz-Displays wechseln Bilder zwischen 1 und 2 Bildschirmtakten -> wirkt ruckelig. Auto begrenzt dann auf 30. */
+  let fpsMode = 'auto'; try { fpsMode = localStorage.getItem('wg_fps') || 'auto'; } catch (e) {} $('fpsc').value = fpsMode;
+  $('fpsc').onchange = () => { fpsMode = $('fpsc').value; try { localStorage.setItem('wg_fps', fpsMode); } catch (e) {} autoCap = 0; };
+  let autoCap = 0, rawAcc = 0, rawN = 0, capCheck = performance.now() + 3000;
   renderer.setAnimationLoop(() => {
-    const now = performance.now(), dtms = now - last; last = now; const dt = Math.min(0.1, dtms / 1000);
+    const now0 = performance.now();
+    const cap = bench ? 0 : fpsMode === 'auto' ? autoCap : +fpsMode;
+    if (cap && now0 - last < 1000 / cap - 3) return;
+    const now = now0, dtms = now - last; last = now;
+    if (fpsMode === 'auto' && !bench) { rawAcc += dtms; rawN++; if (now > capCheck) { const f = rawN * 1000 / rawAcc; if (!autoCap && f < 52 && f > 24) autoCap = 30; else if (autoCap && f >= 29.5) { /* bleibt bei 30 */ } rawAcc = rawN = 0; capCheck = now + 4000; } } const dt = Math.min(0.1, dtms / 1000);
     if (ride) placeCam(dt); else controls.update();
     audioStep(dt);
     sunL.position.copy(camera.position).addScaledVector(sunDir, 300); sunL.target.position.copy(camera.position); sunL.target.updateMatrixWorld();
