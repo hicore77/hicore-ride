@@ -18,6 +18,7 @@ canvas#world{display:block;width:100vw;height:100vh;touch-action:none}
 .tile .l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
 .tile.big .v{font-size:40px;color:var(--acc)}
 .tile.hr .v{color:var(--hr)}
+#junc{display:none;position:fixed;left:50%;top:128px;transform:translateX(-50%);z-index:6;background:rgba(13,17,23,.88);border:1px solid #2b3440;border-radius:14px;padding:10px 12px;color:#fff;text-align:center;min-width:300px}#junc .jt{font-weight:700;font-size:16px;margin-bottom:8px}#junc .jb{display:flex;gap:8px;justify-content:center}#junc button{flex:1;padding:10px 12px;font-size:17px;font-weight:700;border-radius:10px;border:2px solid #3a4656;background:#1b232d;color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px}#junc button small{font-size:11px;font-weight:400;opacity:.75}#junc button.on{border-color:#ff7a1a;background:#3a2414}
 .side{position:fixed;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .side .tile{min-width:120px;text-align:left}
 .side .tile .v{font-size:20px}
@@ -4692,7 +4693,7 @@ const WORLDS = [
   { id:'insel', name:'Sonneninsel', unlockKm:0,
     desc:'Kleine, flache Runde an der Küste. Ideal zum Einrollen und Testen.',
     R:430, shape:[0.15,0.12,30,20], elev:t=> 4*Math.sin(t)+3*Math.sin(3*t+1)+1.5*Math.sin(6*t),
-    terrain:'island', lighthouse:0.28, sky:0x8fd0ff, fog:0xcfeaff, grass:[0.27,0.42], trees:'mixed', water:true },
+    terrain:'island', lighthouse:0.28, cross:[[0.08,0.47,'Querweg Nord'],[0.58,0.95,'Querweg Süd']], sky:0x8fd0ff, fog:0xcfeaff, grass:[0.27,0.42], trees:'mixed', water:true },
   { id:'spk', name:'Spitzkunnersdorf', unlockKm:0, real:true,
     desc:'Dein Heimatdorf nach echten Kartendaten: alle Straßen, alle Häuser, echtes Gelände. Runde ca. 19 km über fast jede Dorfstraße.',
     R:1550, roadW:5.5, terrain:'real', sky:0x9fcff5, fog:0xc8dcec, grass:[0.26,0.42], trees:'mixed', water:false },
@@ -4879,7 +4880,7 @@ function sampleGrid(arr,x,z){ const gx=clamp((x-OFF)/CELL,0,G-0.001), gz=clamp((
 /* zwischen Straße und Elbe? (Gradienten von Straßen- und Flussabstand zeigen gegeneinander) -> dort kaum Bäume, freier Blick aufs Wasser */
 function elbeView(x,z){ if (!riverD) return false; const r=sampleGrid(riverD,x,z); if (r>240) return false; const e=8; const ax=sampleGrid(nearD,x+e,z)-sampleGrid(nearD,x-e,z), az=sampleGrid(nearD,x,z+e)-sampleGrid(nearD,x,z-e), bx=sampleGrid(riverD,x+e,z)-sampleGrid(riverD,x-e,z), bz=sampleGrid(riverD,x,z+e)-sampleGrid(riverD,x,z-e); return ax*bx+az*bz<0; }
 function elbeSkip(x,z){ if (!elbeView(x,z)) return false; const h=Math.abs(Math.sin(x*12.9898+z*78.233)*43758.5453)%1; return h<0.9; }
-function roadD(x,z){ const g=sampleGrid(nearD,x,z); if (g>70 || !CHASH) return g; const c=courseNear(x,z,g+18); return Math.min(g,c.d); }
+function roadD(x,z){ const g=sampleGrid(nearD,x,z); if (g>70 || !CHASH) return g; const c=withMain(()=>courseNear(x,z,g+18)); let r=Math.min(g,c.d); if (XH) r=Math.min(r, xrNear(x,z,g+18).d); return r; }
 let ponds=[];
 function baseH(x,z){
   const d=sampleGrid(nearD,x,z), ry=sampleGrid(nearY,x,z), bl=clamp((d-9)/70,0,1);
@@ -5486,9 +5487,9 @@ function buildGrassField(def, grp, waterY){ GF.cells.clear(); GF.kx=GF.kz=1e9; G
   GF.cs=6; GF.rad=4; GF.per=Math.floor(N/((2*GF.rad+1)**2)); GF.N=GF.per*(2*GF.rad+1)**2; GF.waterY=def.water?waterY:-1e9; GF.def=def;
   const mat0=windify(new THREE.MeshLambertMaterial({map:fineGrassTexture(), alphaTest:0.42, side:THREE.DoubleSide}),0.06,0.28); mat0.alphaToCoverage=true; const mat=ditherMat(mat0,'R',GF.rad*GF.cs-11,GF.rad*GF.cs-4);   // weich ausblenden um den Fahrer
   const im=new THREE.InstancedMesh(crossQuad(0.38,0.24),mat,GF.N); im.count=0; im.frustumCulled=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(GF.N*3),3); grp.add(im); GF.im=im; }
-function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) return c; let sd=(Math.abs(i*7919+j*104729)%2147483646)+1; const r=()=>(sd=(sd*16807)%2147483647)/2147483647;
+function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) return c; if (NET && !NET._in && NET.cur!==NET.main) return withMain(()=>gfCell(i,j)); let sd=(Math.abs(i*7919+j*104729)%2147483646)+1; const r=()=>(sd=(sd*16807)%2147483647)/2147483647;
   const M=new Float32Array(GF.per*16), C=new Float32Array(GF.per*3), P=new Float32Array(GF.per*2); let n=0; const m=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), p=new THREE.Vector3(), col=new THREE.Color(); const gh=GF.def.grass;
-  for (let k=0;k<GF.per;k++){ const x=(i+r())*GF.cs, z=(j+r())*GF.cs; let h; const cn=courseNear(x,z,16);
+  for (let k=0;k<GF.per;k++){ const x=(i+r())*GF.cs, z=(j+r())*GF.cs; let h; if (XH && xrNear(x,z,8).d<XW/2+0.4) continue; const cn=courseNear(x,z,16);
     if (cn.i>=0 && cn.d<CORR.CW+0.5){ const d=cum[cn.i]+cn.t*(cum[cn.i+1]-cum[cn.i]), Wd=roadWAt(d); if (cn.d<Wd/2+swAt(d)-0.05) continue; const a=pts[cn.i], b=pts[(cn.i+1)%N], side=((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x))<0?1:-1; h=profileH(d,side,cn.d); }
     else h=terrainMeshH(x,z);
     if (h<GF.waterY+1.3 || inPond(x,z,1.5)) continue; const lu=LU?landUse(x,z):{t:0,edge:99}; const inF=lu.edge>2; if (inF && (lu.t===5 || (lu.t===6 && r()<0.6))) continue; const crop=inF && lu.t>=2 && lu.t<=4;
@@ -5896,6 +5897,94 @@ function arrAt(arr,d){ const [i,f]=idxAt(d); return arr[i]+(arr[(i+1)%N]-arr[i])
 function roadWAt(d){ return ROADW?arrAt(ROADW,d):(WORLD.roadW||7); }
 function ruralAt(d){ return RURAL?arrAt(RURAL,d):1; }
 function juncAt(d){ return JUNC?arrAt(JUNC,d):0; }
+/* ---------- Straßennetz mit Abzweigungen (wie Zwift): Querstraßen, Abbiegehinweis, Strecke wird zur Laufzeit neu zusammengesetzt ---------- */
+let NET=null, XR=[], XH=null; const XW=6;
+function xrNear(x,z,R){ let best={d:1e9,y:0,k:-1}; if (!XH) return best; R=R||24; const C=XH.C, r=Math.ceil(R/C), cx=Math.floor(x/C), cz=Math.floor(z/C);
+  for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const l=XH.h.get(hashKey(cx+a,cz+b)); if(!l) continue;
+    for (const [k,i] of l){ const P=XR[k].P, p=P[i], q=P[i+1]; const dx=q.x-p.x, dz=q.z-p.z, ll=dx*dx+dz*dz||1, t=clamp(((x-p.x)*dx+(z-p.z)*dz)/ll,0,1), d=Math.hypot(x-p.x-dx*t,z-p.z-dz*t); if (d<best.d) best={d,y:p.y+(q.y-p.y)*t,k}; } }
+  return best; }
+function planCross(def){ NET=null; XR=[]; XH=null; if (!def.cross) return;
+  const main={pts,cum,L,segs:[{s0:0,s1:L,r0:0}],main:true};
+  def.cross.forEach(([f1,f2,name],k)=>{ const d1=f1*L, d2=f2*L, A=posAt(d1), B=posAt(d2);
+    const inw=d=>{ const p=posAt(d), hd=headingAt(d); let nx=Math.cos(hd), nz=-Math.sin(hd); const sg=(nx*-p.x+nz*-p.z)>0?1:-1; return [nx*sg,nz*sg,sg]; };
+    const [n1x,n1z,sg1]=inw(d1), [n2x,n2z]=inw(d2), K=0.33*Math.hypot(B.x-A.x,B.z-A.z);
+    const bz=(t,a,b,c,d)=>{ const u=1-t; return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d; };
+    const raw=[]; for (let t=0;t<=1.00001;t+=0.0025){ let x=bz(t,A.x,A.x+n1x*K,B.x+n2x*K,B.x), z=bz(t,A.z,A.z+n1z*K,B.z+n2z*K,B.z);
+      const tx=bz(Math.min(1,t+0.003),A.x,A.x+n1x*K,B.x+n2x*K,B.x)-x, tz=bz(Math.min(1,t+0.003),A.z,A.z+n1z*K,B.z+n2z*K,B.z)-z, tl=Math.hypot(tx,tz)||1, w=16*Math.sin(2*Math.PI*t)*Math.pow(Math.sin(Math.PI*t),2);
+      x+=-tz/tl*w; z+=tx/tl*w; raw.push([x,z,t]); }
+    const P=[]; let acc=0; P.push(new THREE.Vector3(raw[0][0],0,raw[0][1])); for (let i=1;i<raw.length;i++){ const q=P[P.length-1], dl=Math.hypot(raw[i][0]-q.x,raw[i][1]-q.z); if (dl>=2 || i===raw.length-1){ acc+=dl; P.push(new THREE.Vector3(raw[i][0],0,raw[i][1])); } }
+    let len=0; const sl=[0]; for (let i=1;i<P.length;i++){ len+=Math.hypot(P[i].x-P[i-1].x,P[i].z-P[i-1].z); sl.push(len); }
+    P.forEach((p,i)=>{ const t=sl[i]/len; p.y=A.y+(B.y-A.y)*t+(2.6*Math.sin(Math.PI*t)+1.1*Math.sin(3*Math.PI*t+0.6)*Math.sin(Math.PI*t))*Math.min(1,len/400); });
+    const hd1=headingAt(d1), fx=Math.sin(hd1), fz=Math.cos(hd1); const turn=(fx*n1z-fz*n1x)<0?'links':'rechts';
+    XR.push({k,name:name||('Querweg '+(k+1)),d1,d2,P,len,turn,A,B}); });
+  const C=16, h=new Map(); XR.forEach((r,k)=>{ for (let i=0;i<r.P.length-1;i++){ const a=r.P[i], b=r.P[i+1]; const x0=Math.floor(Math.min(a.x,b.x)/C), x1=Math.floor(Math.max(a.x,b.x)/C), z0=Math.floor(Math.min(a.z,b.z)/C), z1=Math.floor(Math.max(a.z,b.z)/C);
+    for (let x=x0;x<=x1;x++) for (let z=z0;z<=z1;z++){ const kk=hashKey(x,z); let l=h.get(kk); if(!l) h.set(kk,l=[]); l.push([k,i]); } } }); XH={C,h};
+  /* Hauptstraße: an den Einmündungen keine Leitpfosten/Deko */
+  if (JUNC){ XR.forEach(r=>[r.d1,r.d2].forEach(d=>{ const ci=idxAt(d)[0], k=Math.ceil((XW/2+6)/(L/N)); for (let o=-k;o<=k;o++) JUNC[(ci+o+N)%N]=1; })); smoothArr(JUNC,2,2); }
+  NET={main, cur:main, junc:XR, pick:null, pend:null, appl:new Set()}; }
+function useCourse(c){ pts=c.pts; cum=c.cum; L=c.L; }
+function withMain(fn){ if (!NET || NET._in || NET.cur===NET.main) return fn(); const c=NET.cur; NET._in=true; useCourse(NET.main); try{ return fn(); } finally{ useCourse(c); NET._in=false; } }
+function routeD(rt,dm){ for (const s of rt.segs) if (s.s0!=null && dm>=s.s0-0.01 && dm<=s.s1+0.01) return s.r0+(dm-s.s0); return null; }
+/* neue Strecke: bisherige Strecke bis zur Kreuzung + Querweg + Hauptrunde ab Einmündung bis zum Ziel */
+function buildRoute(cur, rd, j){ const M=NET.main, dense=[];
+  for (let i=0;i<N && cur.cum[i]<rd-0.5;i++) dense.push(cur.pts[i].clone());
+  j.P.forEach(p=>dense.push(p.clone()));
+  for (let i=0;i<N;i++) if (M.cum[i]>j.d2+0.5) dense.push(M.pts[i].clone());
+  const dl=[0]; for (let i=1;i<dense.length;i++) dl.push(dl[i-1]+Math.hypot(dense[i].x-dense[i-1].x,dense[i].z-dense[i-1].z));
+  const T=dl[dl.length-1]+Math.hypot(dense[0].x-dense[dense.length-1].x,dense[0].z-dense[dense.length-1].z), np=[]; let a=0;
+  for (let i=0;i<N;i++){ const s=i/N*T; while (a<dense.length-2 && dl[a+1]<s) a++; if (s>dl[dense.length-1]){ const p=dense[dense.length-1], q=dense[0], f=(s-dl[dense.length-1])/Math.max(1e-6,T-dl[dense.length-1]); np.push(p.clone().lerp(q,f)); continue; } const f=(s-dl[a])/Math.max(1e-6,dl[a+1]-dl[a]); np.push(dense[a].clone().lerp(dense[a+1],clamp(f,0,1))); }
+  /* Ecken an den Kreuzungen etwas runden (Kurvenradius ca. 10 m) */
+  const sp=T/N, w=Math.ceil(9/sp); [rd, rd+j.len].forEach(dc=>{ const ic=Math.round(dc/sp); for (let it=0;it<6;it++){ const o=np.map(p=>p.clone()); for (let q=-w;q<=w;q++){ const i=(ic+q+N)%N, a2=o[(i-1+N)%N], b2=o[(i+1)%N]; np[i].x=(a2.x+2*o[i].x+b2.x)/4; np[i].z=(a2.z+2*o[i].z+b2.z)/4; } } });
+  const c2=new Float64Array(N+1); for (let i=1;i<=N;i++){ const p=np[i-1], q=np[i%N]; c2[i]=c2[i-1]+Math.hypot(q.x-p.x,q.z-p.z); }
+  let ie=0, be=1e9; for (let i=0;i<N;i++){ const dd=Math.hypot(np[i].x-j.B.x,np[i].z-j.B.z); if (dd<be){ be=dd; ie=i; } }
+  const segs=cur.segs.filter(s=>s.s0!=null ? s.r0<rd : s.r0<rd).map(s=>Object.assign({},s)); const last=segs[segs.length-1]; if (last && last.s0!=null && last.r0+(last.s1-last.s0)>rd) last.s1=last.s0+(rd-last.r0);
+  segs.push({k:j.k, r0:rd, len:c2[ie]-rd}); segs.push({s0:j.d2, s1:M.L, r0:c2[ie]});
+  return {pts:np, cum:c2, L:c2[N], segs}; }
+function buildCrossRoads(grp, tex, rmat){ if (!XR.length) return;
+  const v=[], uv=[], idx=[], col=[], sv=[], suv=[], sidx=[], US=[0,0.25,0.5,0.75,1]; const scol=new THREE.Color().setHSL(WORLD.grass[0]-0.02, WORLD.grass[1]*0.8, 0.46);
+  XR.forEach(r=>{ const P=r.P; let acc=0, first=true, base=0, sb=0, n=0;
+    for (let i=0;i<P.length;i++){ const p=P[i]; if (i) acc+=Math.hypot(p.x-P[i-1].x,p.z-P[i-1].z);
+      const dE=Math.min(Math.hypot(p.x-r.A.x,p.z-r.A.z), Math.hypot(p.x-r.B.x,p.z-r.B.z)); if (dE<(WORLD.roadW||7)/2-0.3) continue;   /* beginnt am Rand der Hauptstraße */
+      const q=P[Math.min(i+1,P.length-1)], o=P[Math.max(i-1,0)], dx=q.x-o.x, dz=q.z-o.z, l=Math.hypot(dx,dz)||1, nx=dz/l, nz=-dx/l;
+      if (first){ base=v.length/3; sb=sv.length/3; first=false; }
+      US.forEach(u=>{ const off=(0.5-u)*XW; v.push(p.x+nx*off, p.y+roadCrown(u)*0.8+0.03, p.z+nz*off); uv.push(u*0.86+0.07, acc/24); const b=0.97+0.04*Math.sin(acc/23+u*4); col.push(b,b,b); });
+      [-1,1].forEach(sg=>{ const o1=XW/2*sg, o2=(XW/2+3.2)*sg; const x1=p.x+nx*o1, z1=p.z+nz*o1, x2=p.x+nx*o2, z2=p.z+nz*o2; sv.push(x1,p.y+0.01,z1, x2,Math.min(p.y-0.05,terrainMeshH(x2,z2)+0.02),z2); suv.push(0,acc/5, 0.6,acc/5); });
+      if (n>0){ const a=base+(n-1)*5; for (let k=0;k<4;k++){ const q2=a+k; idx.push(q2,q2+5,q2+1, q2+1,q2+5,q2+6); }
+        const c0=sb+(n-1)*4; [[0,1],[2,3]].forEach(([a1,b1])=>{ const A0=c0+a1, B0=c0+b1, A1=A0+4, B1=B0+4; sidx.push(A0,B0,A1, B0,B1,A1); }); }
+      n++; }
+  });
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
+  const m=new THREE.Mesh(g, rmat(tex)); m.receiveShadow=true; grp.add(m);
+  const g2=new THREE.BufferGeometry(); g2.setAttribute('position',new THREE.Float32BufferAttribute(sv,3)); g2.setAttribute('uv',new THREE.Float32BufferAttribute(suv,2)); g2.setIndex(sidx); g2.computeVertexNormals();
+  const sm=new THREE.Mesh(g2, new THREE.MeshLambertMaterial({color:scol, map:grassDetailTexture(), side:THREE.DoubleSide})); sm.receiveShadow=true; grp.add(sm);
+  /* Wegweiser an jeder Kreuzung (gelb, wie in Deutschland) */
+  XR.forEach(r=>{ const c=document.createElement('canvas'); c.width=512; c.height=128; const x2=c.getContext('2d'); x2.fillStyle='#f6c400'; x2.fillRect(0,0,512,128); x2.strokeStyle='#111'; x2.lineWidth=8; x2.strokeRect(6,6,500,116);
+    x2.fillStyle='#111'; x2.font='bold 54px system-ui'; x2.textAlign='center'; x2.fillText(r.name+'  '+(r.len/1000).toFixed(1).replace('.',',')+' km',256,84);
+    const t=new THREE.CanvasTexture(c); const hd=headingAt(r.d1), sg=r.turn==='links'?1:-1, d0=r.d1-14, p=posAt(d0), off=(WORLD.roadW||7)/2+1.6;
+    const x=p.x+Math.cos(hd)*off*sg, z=p.z-Math.sin(hd)*off*sg, y=terrainMeshH(x,z);
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.6,8), new THREE.MeshLambertMaterial({color:0x9aa0a6})); post.position.set(x,y+1.3,z); grp.add(post);
+    const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.4), new THREE.MeshLambertMaterial({map:t, side:THREE.DoubleSide})); sign.position.set(x,y+2.3,z); sign.rotation.y=hd+Math.PI; grp.add(sign); });
+}
+function setRoute(r){ useCourse(r); NET.cur=r; profImg=null; try{ SEG.prev=null; SEG.act.length=0; }catch(e){} }
+function netStep(){ if (!NET) return; const C=NET;
+  if (S.dist>=L){ S.dist-=L; if ((S.dir||1)>0){ lastLapDist=S.odo||0; S.lap++; toast('Runde '+(S.lap-1)+' geschafft!'); } C.appl.clear(); if (C.cur!==C.main) setRoute(C.main); }
+  if ((S.dir||1)<0 || S.ut || !S.running){ junUI(null); return; }
+  let best=null; for (const j of C.junc){ if (C.appl.has(j.k)) continue; const rd=routeD(C.cur,j.d1); if (rd==null) continue; const ah=rd-S.dist; if (ah>-2 && (!best || ah<best.ah)) best={j,ah,rd}; }
+  const lead=Math.max(140, S.speed*12);
+  if (!best || best.ah>lead){ junUI(null); C.pend=null; return; }
+  if (C.pend!==best.j){ C.pend=best.j; C.pick='gerade'; }
+  if (best.ah<10){ C.appl.add(best.j.k); if (C.pick==='turn'){ setRoute(buildRoute(C.cur,best.rd,best.j)); toast('Abgebogen: '+best.j.name); } junUI(null); C.pend=null; return; }
+  junUI(best.j, best.ah); }
+function junPick(v){ if (!NET || !NET.pend) return; NET.pick=v; const j=NET.pend; junUI(j, null); }
+function junUI(j, ah){ let el=$('junc'); if (!el){ el=document.createElement('div'); el.id='junc'; document.body.appendChild(el);
+    el.innerHTML='<div class="jt"></div><div class="jb"><button data-v="turn"></button><button data-v="gerade">⬆ Geradeaus<small>Küstenrunde</small></button></div>';
+    el.querySelectorAll('button').forEach(b=>b.onclick=()=>junPick(b.dataset.v)); }
+  if (!j){ el.style.display='none'; return; } el.style.display='block';
+  const bt=el.querySelector('[data-v=turn]'), left=j.turn==='links'; bt.innerHTML=(left?'⬅ Links':'Rechts ➡')+'<small>'+j.name+' · '+(j.len/1000).toFixed(1).replace('.',',')+' km</small>';
+  el.querySelector('.jb').style.flexDirection=left?'row':'row-reverse';
+  if (ah!=null) el.querySelector('.jt').textContent='Kreuzung in '+Math.max(0,Math.round(ah))+' m';
+  el.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.v===NET.pick)); }
+addEventListener('keydown',e=>{ if (!NET || !NET.pend || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return; if (e.key==='ArrowLeft'||e.key==='ArrowRight'){ const side=e.key==='ArrowLeft'?'links':'rechts'; junPick(NET.pend.turn===side?'turn':'gerade'); e.preventDefault(); } });
 const SIDE_W={0:6.0,1:4.0,2:3.0};
 function smoothArr(a, r, it){ for (let k=0;k<it;k++){ const b=Float32Array.from(a); for (let i=0;i<N;i++){ let s=0; for (let o=-r;o<=r;o++) s+=b[(i+o+N)%N]; a[i]=s/(2*r+1); } } return a; }
 // Straßennetz vorbereiten (vor dem Gelände): Breiten/Markierung je Kurspunkt, Nebenstraßen kappen, Kreuzungszonen
@@ -6707,12 +6796,13 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   buildCourse(def);
   scene.background=new THREE.Color(def.sky); scene.fog.color.set(def.fog).convertSRGBToLinear(); scene.fog.near=def.real?200:120; scene.fog.far=def.real?2600:1500; if (LITE){ scene.fog.near=MINI?50:80; scene.fog.far=MINI?(def.real?600:450):(def.real?1100:700); }
   EXT = def.R*2.9+700; CELL=EXT/G; OFF=-EXT/2;
-  initRoadNet(def);
+  initRoadNet(def); planCross(def);
   // nächste-Straße-Raster
   const step=4;
   for (let gz=0; gz<=G; gz++) for (let gx=0; gx<=G; gx++){
     const x=OFF+gx*CELL, z=OFF+gz*CELL; let best=1e12, by=0;
     for (let i=0;i<N;i+=step){ const p=pts[i]; const dx=p.x-x, dz=p.z-z; const dd=dx*dx+dz*dz; if(dd<best){best=dd;by=p.y;} }
+    for (const r of XR) for (let i=0;i<r.P.length;i+=2){ const p=r.P[i]; const dx=p.x-x, dz=p.z-z; const dd=dx*dx+dz*dz; if(dd<best){best=dd;by=p.y;} }
     nearD[gz*(G+1)+gx]=Math.sqrt(best); nearY[gz*(G+1)+gx]=by;
   }
   buildRiver(def);
@@ -6779,7 +6869,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
     const rmat=(t)=>new THREE.MeshLambertMaterial({map:t, vertexColors:true, side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:0, polygonOffsetUnits:-2});
     const road=new THREE.Mesh(geo,rmat(def.real?asphaltTexture('main'):tex)); road.receiveShadow=true; worldGroup.add(road);
     if (def.real && idxM.length && idxP.length){ const g2=geo.clone(); g2.setIndex(idxP); const r2=new THREE.Mesh(g2,rmat(asphaltTexture('plain'))); r2.receiveShadow=true; worldGroup.add(r2); }
-    buildRoadDecals(def, worldGroup, W);
+    buildRoadDecals(def, worldGroup, W); buildCrossRoads(worldGroup, tex, rmat);
     // Bankett, Graben, Böschung, Grasbüschel, Steinchen
     buildCorridor(def, worldGroup, W); buildVerge(def, worldGroup, W); buildGrassField(def, worldGroup, waterY); buildFauna(def, worldGroup);
     // Leitpfosten alle 50 m, beidseitig
@@ -7230,7 +7320,7 @@ function poseRider(r, effort){
   const CL=0.172;
   if (r.glb){   // echte Figur: nur Pedale setzen, Skelett per IK
     [-1,1].forEach(s=>{ const a=r.crankAng+(s>0?0:Math.PI); r.pedals[s>0?1:0].position.set(s*0.125, r.BB.y-Math.cos(a)*CL, r.BB.z-Math.sin(a)*CL); });
-    { const gw=r.gw||[0,1,0], l=r.low==null?0.33:r.low, le=gw[0]*Math.min(l,0.12)+gw[1]*l+gw[2]*Math.max(l,0.78); poseGLB(r.glb, r.g, r.crankAng, effort, {low:le, stand:r.stand||0, lean:r.lean||0, gw}); } return;
+    { const g4=r.gw||[0,1,0,0], l=r.low==null?0.33:r.low, le=g4[0]*Math.min(l,0.12)+g4[1]*Math.max(l,0.42)+g4[3]*Math.max(l,0.95)+g4[2]*Math.max(l,0.82), gw=[g4[0],g4[1]+(g4[3]||0),g4[2]]; poseGLB(r.glb, r.g, r.crankAng, effort, {low:le, stand:r.stand||0, lean:r.lean||0, gw}); } return;
   }
   // Vorwärts treten: oben nach vorn, unten nach hinten.
   // Winkel 0 = rechtes Pedal unten. Pedal-Position: y = -cos(a), z = -sin(a)
@@ -7278,9 +7368,9 @@ function animRider(r, cad, spd, dt, watt){
   }
   /* Griffposition wie am echten Rennrad: bergauf Oberlenker, normal Bremsgriffe (Hoods), bergab/sehr schnell/Sprint Unterlenker */
   { const g=r.gr||0, stn=r.stand||0, lw=r.low==null?0.33:r.low, v=spd||0; let m=r.gripM==null?1:r.gripM;
-    let want = window.GRIP_FORCE!=null ? window.GRIP_FORCE : (stn>0.3 ? (g>0.04?1:2) : (g< -0.03 && v>9) || v>12.5 || lw>0.6 ? 2 : (g>0.045 && v<7.5) ? 0 : 1);
+    let want = window.GRIP_FORCE!=null ? window.GRIP_FORCE : (stn>0.3 ? (g>0.04?1:2) : v>14 || lw>0.6 ? 2 : (g< -0.03 && v>9) ? 3 : (g>0.045 && v<7.5) ? 0 : 1);   /* 3 = tiefe Hoods bergab */
     if (want!==m){ r.gripT=(r.gripT||0)+dt; if (r.gripT>(window.GRIP_FORCE!=null?0:1.5)){ m=want; r.gripT=0; } } else r.gripT=0;   /* erst nach 1,5 s wechseln, kein Zappeln */
-    r.gripM=m; const gw=r.gw||(r.gw=[0,1,0]); const k=Math.min(1,dt*(window.GRIP_FORCE!=null?100:1.6)); for (let i=0;i<3;i++) gw[i]+=((i===m?1:0)-gw[i])*k; }
+    r.gripM=m; const gw=r.gw||(r.gw=[0,1,0,0]); const k=Math.min(1,dt*(window.GRIP_FORCE!=null?100:1.6)); for (let i=0;i<4;i++) gw[i]+=((i===m?1:0)-gw[i])*k; }
   r.crank.rotation.x = r.crankAng;
   if (r.chainUpd) r.chainUpd(r.crankAng);
   const wr = spd/0.335*dt; r.wF.rotation.x += wr; r.wR.rotation.x += wr;
@@ -7290,9 +7380,41 @@ function animRider(r, cad, spd, dt, watt){
 const RIDER_GLB_URL = 'https://d2ol7oe51mr4n9.cloudfront.net/user_34bhqR89E9DYm0YhU1U4tS2vv5r/8a6d04c0-2183-4d12-8601-60d0b0c50e10.glb';
 const RIG = { BB: new THREE.Vector3(0,0.27,-0.08), CL: 0.172, HIP: new THREE.Vector3(0,1.125,-0.22), HAND: new THREE.Vector3(0.2,0.93,0.5), SH: new THREE.Vector3(0,1.29,0.42), SEAT_UP: 0.04 };
 /* Handgelenk-Ziel w und Fingerrichtung f je Griff (Rad-Koordinaten, +z vorn): 0 Oberlenker, 1 Bremsgriffe, 2 Unterlenker */
-const GRIPS=[ {w:new THREE.Vector3(0.14,0.905,0.455), f:new THREE.Vector3(0,-0.05,0.07)},
-  {w:new THREE.Vector3(0.205,0.93,0.555), f:new THREE.Vector3(-0.005,-0.035,0.085)},
-  {w:new THREE.Vector3(0.205,0.79,0.50), f:new THREE.Vector3(0,-0.06,0.05)} ];
+const GRIPS=[ {w:new THREE.Vector3(0.14,0.912,0.462), f:new THREE.Vector3(0,-0.05,0.07)},
+  {w:new THREE.Vector3(0.205,0.935,0.56), f:new THREE.Vector3(-0.005,-0.035,0.085)},
+  {w:new THREE.Vector3(0.215,0.795,0.515), f:new THREE.Vector3(0,-0.06,0.05)} ];
+/* Greifende Hände (die Figur hat keine Fingerknochen): eigene Handschuh-Hand mit gekrümmten Fingern um das Rohr.
+   Rahmen je Griff (linke Hand, Rad-Koordinaten): c Rohrmitte, X Zeigefinger->kleiner Finger, Y Richtung Handfläche/Handrücken, Z Richtung, in die die Finger zuerst greifen */
+const _v3=(x,y,z)=>new THREE.Vector3(x,y,z);
+const GRIPF=(()=>{ const fr=(c,X,Y,Z)=>{ X.normalize(); Y.sub(X.clone().multiplyScalar(Y.dot(X))).normalize(); Z.sub(X.clone().multiplyScalar(Z.dot(X))).sub(Y.clone().multiplyScalar(Z.dot(Y))).normalize(); return {c,X,Y,Z}; };
+  return [ fr(_v3(0.125,0.86,0.52), _v3(1,0,0), _v3(0,0.62,-0.78), _v3(0,0.78,0.62)),          /* Oberlenker: Finger über das Rohr nach vorn, Daumen von hinten drunter */
+           fr(_v3(0.212,0.888,0.628), _v3(0,-0.367,-0.93), _v3(-0.15,0.93,-0.367), _v3(1,0,0)),   /* Hoods: Handfläche oben auf dem Griffkörper, Finger außen herum, Daumen innen */
+           fr(_v3(0.212,0.742,0.585), _v3(0,-0.156,-0.988), _v3(0.42,0.9,-0.14), _v3(-1,0,0)) ]; })();   /* Unterlenker: Rohr in der Faust, Finger innen herum, Daumen außen */
+function gripHandGeo(){ if (_geoCache.gripHand) return _geoCache.gripHand; const glove=[], skin=[], Rw=0.0205;
+  class Arc extends THREE.Curve{ constructor(x,r,a0,a1){ super(); this.x=x; this.r=r; this.a0=a0; this.a1=a1; } getPoint(t,o=new THREE.Vector3()){ const a=this.a0+(this.a1-this.a0)*t; return o.set(this.x, Math.cos(a)*this.r, Math.sin(a)*this.r); } }
+  const fing=[[0.0,0.0088,3.6],[0.0185,0.0092,3.8],[0.036,0.0088,3.6],[0.052,0.0076,3.1]];
+  fing.forEach(([x,th,sw])=>{ const k=0.42; glove.push([new THREE.TubeGeometry(new Arc(x,Rw,0.25,0.25+sw*k),8,th*1.08,8,false),null]); skin.push([new THREE.TubeGeometry(new Arc(x,Rw,0.25+sw*k-0.05,0.25+sw),10,th,8,false),null]);
+    const tip=new THREE.SphereGeometry(th,8,6); const a=0.25+sw; skin.push([tip,new THREE.Matrix4().makeTranslation(x,Math.cos(a)*Rw,Math.sin(a)*Rw)]); });
+  /* Daumen: von der Handfläche in die Gegenrichtung ums Rohr */
+  glove.push([new THREE.TubeGeometry(new Arc(-0.017,Rw+0.001,0.1,-0.9),6,0.0105,8,false),null]); skin.push([new THREE.TubeGeometry(new Arc(-0.019,Rw,-0.85,-2.2),8,0.0095,8,false),null]);
+  { const a=-2.2; skin.push([new THREE.SphereGeometry(0.0095,8,6),new THREE.Matrix4().makeTranslation(-0.019,Math.cos(a)*Rw,Math.sin(a)*Rw)]); }
+  /* Knöchelreihe auf dem Rohr */
+  { const g=new THREE.CylinderGeometry(0.012,0.012,0.07,10); g.rotateZ(Math.PI/2); glove.push([g,new THREE.Matrix4().makeTranslation(0.026,Math.cos(0.4)*Rw*1.15,Math.sin(0.4)*Rw*1.15)]); }
+  const G=mergeGeo(glove), Sk=mergeGeo(skin); G.computeVertexNormals(); Sk.computeVertexNormals(); return (_geoCache.gripHand={G,Sk}); }
+function placeGripHands(R, G, gw, low){ if (!R._gh){ const geo=gripHandGeo(), mG=new THREE.MeshLambertMaterial({color:0x26272b, side:THREE.DoubleSide}), mS=new THREE.MeshLambertMaterial({color:0xc98f6c, side:THREE.DoubleSide});
+    const palmG=new THREE.SphereGeometry(1,12,10);
+    R._gh={}; ['Left','Right'].forEach(s=>{ const g=new THREE.Group(); g.matrixAutoUpdate=false; const a=new THREE.Mesh(geo.G,mG), b=new THREE.Mesh(geo.Sk,mS); a.castShadow=b.castShadow=true; g.add(a,b); G.add(g);
+      const palm=new THREE.Mesh(palmG,mG); palm.castShadow=true; G.add(palm); R._gh[s]={g,palm}; }); }
+  const GP=GRIPF; ['Left','Right'].forEach(s=>{ const side=s==='Left'?1:-1, H=R._gh[s]; const c=new THREE.Vector3(), X=new THREE.Vector3(), Y=new THREE.Vector3(), Z=new THREE.Vector3();
+    for (let i=0;i<3;i++){ c.addScaledVector(GP[i].c,gw[i]); X.addScaledVector(GP[i].X,gw[i]); Y.addScaledVector(GP[i].Y,gw[i]); Z.addScaledVector(GP[i].Z,gw[i]); }
+    X.normalize(); Y.sub(X.clone().multiplyScalar(Y.dot(X))).normalize(); Z.sub(X.clone().multiplyScalar(Z.dot(X))).sub(Y.clone().multiplyScalar(Z.dot(Y))).normalize();
+    [c,X,Y,Z].forEach(v=>{ v.x*=side; });
+    H.g.matrix.makeBasis(X,Y,Z).setPosition(c); H.g.matrixWorldNeedsUpdate=true;
+    /* Handballen/Handrücken: vom Rohr zum Handgelenk */
+    const p0=c.clone().addScaledVector(Y,0.022).addScaledVector(X,0.024), w=new THREE.Vector3(side*R._hand.x,R._hand.y,R._hand.z), d=w.clone().sub(p0), l=d.length();
+    H.palm.position.copy(p0).addScaledVector(d,0.5); H.palm.quaternion.setFromUnitVectors(UPV,d.normalize()); H.palm.scale.set(0.036,Math.max(0.03,l*0.62),0.02);
+    H.palm.rotateY(Math.atan2(X.x,X.z)*0); });
+}
 function ik3(A, T, la, lb, poleDir, out){
   const d=new THREE.Vector3().subVectors(T,A); let dist=d.length(); dist=Math.min(Math.max(dist,Math.abs(la-lb)+1e-4), la+lb-1e-4); d.normalize();
   const a=(la*la+dist*dist-lb*lb)/(2*dist), h=Math.sqrt(Math.max(0,la*la-a*a));
@@ -7381,7 +7503,7 @@ function poseGLB(R, G, crank, effort, opt){
   const {B, rest, L}=R; opt=opt||{};
   const low=opt.low==null?0.33:opt.low, st=opt.stand||0, lean=opt.lean||0;
   G.updateMatrixWorld(true);
-  Object.keys(rest).forEach(n=>{ B[n].quaternion.copy(rest[n].q); B[n].position.copy(rest[n].p); });
+  Object.keys(rest).forEach(n=>{ B[n].quaternion.copy(rest[n].q); B[n].position.copy(rest[n].p); B[n].scale.setScalar(1); });
   B.Head.position.multiplyScalar(0.6);                             // Hals kürzer
   const W=v=>G.localToWorld(v.clone());
   const bob=Math.abs(Math.sin(crank))*(0.002+0.03*st), sway=Math.sin(crank)*0.0025*(0.5+effort)*(1-st);   // ruhiger Oberkörper im Sattel
@@ -7440,7 +7562,9 @@ function poseGLB(R, G, crank, effort, opt){
     aimBone(B[s+'ForeArm'], B[s+'Hand'], W(hand));
     const fing=hand.clone().add(new THREE.Vector3(side*R._fing.x,R._fing.y,R._fing.z));   // Finger umgreifen Oberlenker / Bremsgriff / Unterlenker
     const kids=B[s+'Hand'].children.filter(c=>c.isBone); if (kids.length) aimBone(B[s+'Hand'], kids[0], W(fing));
+    if (!window.OLD_HANDS) B[s+'Hand'].scale.setScalar(0.02);   /* starre Figur-Hand ausblenden, greifende Hand übernimmt */
   });
+  if (!window.OLD_HANDS) placeGripHands(R, G, gw, low);
 }
 
 function label(text, color){ const c=document.createElement('canvas'); c.width=256; c.height=64; const g=c.getContext('2d'); g.fillStyle='rgba(0,0,0,.55)'; g.fillRect(0,8,256,48); g.fillStyle=color; g.font='bold 30px system-ui'; g.textAlign='center'; g.fillText(text,128,44);
@@ -7570,7 +7694,7 @@ const SEG={ list:[], act:[], prev:null, show:null, showT:0,
     g.position.copy(a); g.rotation.y=hd; worldGroup.add(g); },
   reset(){ try{ LEAD.first=true; LEAD.t=0; LEAD.cur={}; }catch(e){} this.act=[]; this.prev=null; this.show=null; $('segbox').style.display='none'; },
   /* jedes Bild während der Fahrt */
-  step(dt){ if ((S.dir||1)<0){ this.prev=null; this.act.length=0; return; } const D=S.dist, v=Math.max(S.speed,0.3), P=this.prev; this.prev=D; if (P===null) { this.list.forEach(sg=>{ if (sg.s===0 && D<1) this.act.push({sg, t0:S.time, d0:0, ok:this.real()}); }); return; }
+  step(dt){ if ((S.dir||1)<0 || (NET && NET.cur!==NET.main)){ this.prev=null; this.act.length=0; return; } const D=S.dist, v=Math.max(S.speed,0.3), P=this.prev; this.prev=D; if (P===null) { this.list.forEach(sg=>{ if (sg.s===0 && D<1) this.act.push({sg, t0:S.time, d0:0, ok:this.real()}); }); return; }
     for (const a of this.act){ if (!this.real()) a.ok=false; }
     for (const a of [...this.act]){ if (D>=a.d0+a.sg.len){ const t=S.time-(D-a.d0-a.sg.len)/v-a.t0; this.act.splice(this.act.indexOf(a),1); if (D-P<30 && t>1) this.finish(a, t); } }   /* Sprünge (Neustart, Teleport) zählen nicht */
     for (const sg of this.list){ if (D-P<30 && Math.floor((P-sg.s)/L)!==Math.floor((D-sg.s)/L) && !this.act.some(a=>a.sg===sg)){ const d0=sg.s+Math.floor((D-sg.s)/L)*L; this.act.push({sg, d0, t0:S.time-(D-d0)/v, ok:this.real()}); } }
@@ -8348,7 +8472,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.6 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.7 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -8500,7 +8624,7 @@ function applyGfx(q){ LITE=q<0.4; const dpr=Math.min(devicePixelRatio,2); render
 let GFX_TREE_R=200, GFX_BUILD_R=200, BUILT_R=0, fpsAcc=0, fpsN=0, fpsT=0;
 // ---------- Wehende Blätter: lösen sich bei Böen von nahen Bäumen, trudeln, rutschen über die Straße ----------
 const LEAVES={ cols:[], im:null, n:90, L:[], acc:0, scanT:0, near:[], wind:new THREE.Vector3(),
-  groundH(x,z){ if (typeof CHASH!=='undefined' && CHASH){ const cn=courseNear(x,z,16); if (cn.i>=0 && cn.d<CORR.CW+0.5){ const d=cum[cn.i]+cn.t*(cum[cn.i+1]-cum[cn.i]), a=pts[cn.i], b=pts[(cn.i+1)%N], side=((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x))<0?1:-1; return profileH(d,side,cn.d); } } return terrainMeshH(x,z); },
+  groundH(x,z){ if (NET && !NET._in && NET.cur!==NET.main) return withMain(()=>this.groundH(x,z)); if (XH){ const xc=xrNear(x,z,6); if (xc.d<XW/2) return xc.y+0.02; } if (typeof CHASH!=='undefined' && CHASH){ const cn=courseNear(x,z,16); if (cn.i>=0 && cn.d<CORR.CW+0.5){ const d=cum[cn.i]+cn.t*(cum[cn.i+1]-cum[cn.i]), a=pts[cn.i], b=pts[(cn.i+1)%N], side=((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x))<0?1:-1; return profileH(d,side,cn.d); } } return terrainMeshH(x,z); },
   init(){ const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'); g.translate(32,34);
     g.beginPath(); g.moveTo(0,26); g.bezierCurveTo(20,14,18,-14,0,-28); g.bezierCurveTo(-18,-14,-20,14,0,26); g.fillStyle='#fff'; g.fill(); g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=1.6; g.beginPath(); g.moveTo(0,28); g.lineTo(0,-24); g.stroke();
     for (let k=-2;k<=2;k++){ if(!k) continue; g.beginPath(); g.moveTo(0,k*7); g.lineTo(Math.sign(k)*12,k*7-8); g.moveTo(0,k*7); g.lineTo(-Math.sign(k)*12,k*7-8); g.stroke(); }
@@ -8591,13 +8715,14 @@ function frame(now){
     if (S.ut){ meP.v=Math.min(meP.v,5); S.ut.t+=dt; if (S.ut.t>=S.ut.D) S.ut=null; }
     S.speed = meP.v; if (!S.ut) S.dist += (S.dir||1)*meP.v*dt; S.odo = (S.odo||0) + meP.v*dt; S.time += dt; S.energy += S.power*dt;
     if (S.dist<0) S.dist+=L;
+    netStep();
     const y=posAt(S.dist).y; if (prevY!==null && y>prevY) S.climb += y-prevY; prevY=y;
     if ((S.odo||0)-lastLapDist >= L){ lastLapDist+=L; S.lap++; toast('Runde '+(S.lap-1)+' geschafft!'); }
     sendGrade(S.grade);
     recordSample(dt);
     SEG.step(dt); try{ LEAD.step(dt); }catch(e){}
 
-    for (const b of bots){ const wv = b.watts*(1+0.06*Math.sin(now/7000+b.watts)); b.st=b.st||{v:6,m:75,draft:1}; stepPhysics(b.st, wv, b.d, dt); b.d+=b.st.v*dt; b.cad=85+Math.sin(now/3000+b.watts)*5; }
+    withMain(()=>{ for (const b of bots){ const wv = b.watts*(1+0.06*Math.sin(now/7000+b.watts)); b.st=b.st||{v:6,m:75,draft:1}; stepPhysics(b.st, wv, b.d, dt); b.d+=b.st.v*dt; b.cad=85+Math.sin(now/3000+b.watts)*5; } });
   }
 
   // place riders
@@ -8610,7 +8735,7 @@ function frame(now){
   AMB.update(dt, active, builtWorld||selWorld);
   try{ if (!LITE || (LEAVES.im && LEAVES.im.count)) LEAVES.update(dt, active && !LITE); }catch(e){ if(!LEAVES.err){ LEAVES.err=1; console.warn('Blätter',e); } }
   animRider(me, active?S.cadence:0, active?S.speed:0, dt, active?S.power:0);
-  for (const b of bots){ placeRider(b.r, b.d, b.lane); animRider(b.r, active?b.cad:0, active&&b.st?b.st.v:0, dt); }
+  withMain(()=>{ for (const b of bots){ placeRider(b.r, b.d, b.lane); animRider(b.r, active?b.cad:0, active&&b.st?b.st.v:0, dt); } });
   try{ MP.frame(dt, now, active); }catch(e){ if (!MP.err){ MP.err=1; console.warn('MP',e); } }
 
   // camera
@@ -8644,6 +8769,7 @@ function frame(now){
   for (const fn of animated) fn(dt);
   animateCritters(dt);
   if (window.camAbs){ const o=window.camAbs; camera.position.set(o[0],o[1],o[2]); camera.lookAt(o[3],o[4],o[5]); } else
+  if (window._camFix){ const o=window._camFix; camera.position.set(o[0],o[1],o[2]); camera.lookAt(o[3],o[4],o[5]); }
   if (window.camOverride){ const o=window.camOverride; me.g.localToWorld(camera.position.set(o[0],o[1],o[2])); camera.lookAt(me.g.localToWorld(tmp.set(o[3],o[4],o[5]))); }
   { camera.getWorldDirection(tmp); tmp.y=0; tmp.normalize(); const ex=sc.right*0.55; const cx=p.x+tmp.x*ex, cz=p.z+tmp.z*ex;   // Schattenbereich vor die Kamera legen
     sun.position.set(cx+SUN_DIR.x*140, p.y+SUN_DIR.y*140, cz+SUN_DIR.z*140); sun.target.position.set(cx,p.y,cz); SUNU.value.copy(SUN_DIR);
