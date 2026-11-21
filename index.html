@@ -4119,7 +4119,7 @@ function planSandstone(def){ SANDR=[]; SANDT=[]; BASTEI=null; if (def.terrain!==
   for (let k=0;k<1500 && SANDR.filter(q=>q.kind==='tafel').length<6;k++){ const x=OFF+R()*EXT, z=OFF+R()*EXT, r=55+R()*70, H=80+R()*45; if (ok(x,z,r+H*0.9,r*1.1+H*1.15+40)) add(x,z,r,H,'tafel'); }
   planBastei(add, R);
   for (let g=0; g<26; g++){ let cx=0,cz=0,t=0; for (;t<60;t++){ const d=R()*L, sd=R()<0.5?1:-1, off=(g%2?45:70)+R()*(g%2?110:300), p=posAt(d), hd=headingAt(d); cx=p.x+Math.cos(hd)*off*sd; cz=p.z-Math.sin(hd)*off*sd; if (ok(cx,cz,18,40)) break; } if (t>=60) continue;
-    const n=3+Math.floor(R()*5); for (let i=0;i<n;i++){ const a=R()*6.28, rr=i?8+R()*26:0, x=cx+Math.cos(a)*rr, z=cz+Math.sin(a)*rr, r=4+R()*8; if (ok(x,z,r,r*1.36+22)) add(x,z,r,18+R()*40,'nadel'); } }
+    const n=3+Math.floor(R()*5); for (let i=0;i<n;i++){ const a=R()*6.28, rr=i?8+R()*26:0, x=cx+Math.cos(a)*rr, z=cz+Math.sin(a)*rr, r=4+R()*6.5; if (ok(x,z,r,r*1.36+22)) add(x,z,r,(28+R()*42)*(0.8+r/16),'nadel'); } }
   /* „Gründe“: Abschnitte, in denen die Straße zwischen Sandsteinwänden durch eine Schlucht führt */
   const tryWall=(d,sd,r,e,offAdd,H)=>{ const off=r*1.36+offAdd, p=posAt(d), hd=headingAt(d), x=p.x+Math.cos(hd)*off*sd, z=p.z-Math.sin(hd)*off*sd; if (riverD && sampleGrid(riverD,x,z)<150) return false;
     const ex=Math.sin(hd)*r*1.36*e, ez=Math.cos(hd)*r*1.36*e; if (roadD(x+ex,z+ez)<r*1.36+3 || roadD(x-ex,z-ez)<r*1.36+3) return false; if (!ok(x,z,r,r*1.36+3)) return false; add(x,z,r,H,'wand',e,hd); return true; };
@@ -4156,22 +4156,27 @@ function buildSandstone(def, grp){ if (!SANDR.length) return; const R=rand; cons
   const FR=FINE?[0,0.1,0.28,0.5,0.72,0.9]:[0,0.16,0.5,0.84];
   for (const r of SANDR){ const nA=r.kind==='tafel'?(LITE?64:128):r.kind==='wand'?(FINE?96:48):(FINE?60:32);
     let lo=1e9; for (let a=0;a<16;a++) lo=Math.min(lo, terrainH(r.x+Math.cos(a*0.3927)*r.r*1.3*r.e, r.z+Math.sin(a*0.3927)*r.r*1.3*r.e)); const y0=lo-3, y1=r.top; if (r.kind==='tafel') r._nL=0;
-    const beds=[]; for (let yy=y0; yy<y1-0.6;){ const t=Math.min(y1-yy, 1.5+R()*3.0); beds.push([yy,t,(R()<0.2?0.9+R()*0.05:0.97+R()*0.05),0.12+R()*0.4,R()]); yy+=t; }
+    const beds=[]; for (let yy=y0; yy<y1-0.6;){ const t=Math.min(y1-yy, R()<0.3?1.0+R()*1.6:3.0+R()*6.5); beds.push([yy,t,(R()<0.3?0.9+R()*0.04:0.98+R()*0.04),0.04+R()*0.16,R()]); yy+=t; }   /* 0.3.6: dicke Bänke wie am Elbsandstein, nur einzelne weiche Schichten springen zurück */
     if (!beds.length) continue; beds[0][2]=1;
     const lev=[]; beds.forEach((b,bi)=>{ for (const f of FR) lev.push([b[0]+b[1]*f,bi,f]); }); lev.push([y1,beds.length-1,1]);
-    const rad=a=>r.r*(1+0.17*Math.sin(2*a+r.p[0])+0.1*Math.sin(3*a+r.p[1])+0.07*Math.sin(4*a+r.p[3])+0.04*Math.sin(7*a+r.p[2]))*(1-0.26*Math.pow(Math.abs(Math.cos(a*r.k*0.5+r.p[3])),11));   /* Klüfte: tiefe Einschnitte */
+    if (!r.sq){ r.sq=3+R()*3; r.asp=r.kind==='nadel'?0.7+R()*0.4:0.85+R()*0.3; r.rot=R()*6.28; r.J=[]; const nj=3+Math.floor(R()*4); for (let q=0;q<nj;q++) r.J.push([R()*6.28,0.035+R()*0.06,0.22+R()*0.3]); }
+    const rad=a=>{ const ca=Math.cos(a-r.rot), sa=Math.sin(a-r.rot); let b=Math.pow(Math.pow(Math.abs(ca),r.sq)+Math.pow(Math.abs(sa/r.asp),r.sq),-1/r.sq)*r.asp;   /* 0.3.6: kantiger Grundriss (Superellipse) wie in der WebGPU-Testwelt */
+      b*=1+0.08*Math.sin(2*a+r.p[0])+0.05*Math.sin(3*a+r.p[1])+0.025*Math.sin(7*a+r.p[2]);
+      let jk=1; for (const [ja,jw,jd] of r.J){ const d=Math.abs(Math.atan2(Math.sin(a-ja),Math.cos(a-ja))); if (d<jw) jk=Math.min(jk,1-jd*Math.pow(1-d/jw,0.6)); }   /* senkrechte Klüfte */
+      return r.r*b*jk; };
     const base=W.p.length/3, per=nA+1, H=Math.max(1,y1-y0), ux=Math.sin(r.hd), uz=Math.cos(r.hd), vx=uz, vz=-ux;
+    const pvx=new Float32Array(nA+1), pvy=new Float32Array(nA+1), pvz=new Float32Array(nA+1), vac=new Float32Array(nA+1); let firstL=true;
     for (const [y,bi,f] of lev){ const F=(y-y0)/H, b=beds[bi];
-      let sc=r.kind==='nadel'?1-0.25*F+0.09*Math.sin(F*5+r.p[0]):1-0.07*F; if (F<0.12) sc*=1+(0.12-F)*1.6; if (F>0.8 && F<0.95 && r.kind!=='tafel') sc*=1.06; if (F>0.999) sc*=0.93; sc*=b[2];
+      let sc=r.kind==='nadel'?1-0.16*F+0.04*Math.sin(F*5+r.p[0]):1-0.07*F; if (F<0.12) sc*=1+(0.12-F)*1.6; if (F>0.8 && F<0.95 && r.kind!=='tafel') sc*=1.06; if (F>0.999) sc*=0.93; sc*=b[2];
       const bul=Math.pow(Math.sin(Math.PI*Math.min(1,f)),0.28), rec=F<0.05?0:b[3]*(1-bul), tn=b[4];
       const cr=tn<0.3?1.02:tn<0.55?0.96:tn<0.8?1.0:1.01, cg=tn<0.3?0.98:tn<0.55?0.96:tn<0.8?0.99:0.97, cb=tn<0.3?0.93:tn<0.55?0.97:tn<0.8?0.98:0.92;
       const dk=y-lo<6?0.66+0.34*Math.max(0,y-lo)/6:1, jd=1-0.26*(1-bul);
       let arc=0, px=0, pz=0;
       for (let j=0;j<=nA;j++){ const a=j/nA*Math.PI*2, rr=Math.max(0.4, rad(a)*sc*(1+0.07*Math.sin(a*(3+bi%4)+bi*1.7+r.p[1])+0.035*Math.sin(a*9+bi*2.3))-rec*(0.6+0.4*Math.sin(a*3+bi))), lx=Math.cos(a)*rr*r.e, lz=Math.sin(a)*rr, x=r.x+ux*lx+vx*lz, z=r.z+uz*lx+vz*lz;
-        if (j) arc+=Math.hypot(x-px,z-pz); px=x; pz=z; W.p.push(x,y,z); if (SPH) W.u.push(arc/3.5,y/3.5+r.p[0]); else W.u.push(arc/24,(bi+f)/8);
-        const st=1-0.1*Math.pow(Math.max(0,Math.sin(a*r.k*0.7+r.p[2]+F*0.8)),14), kk=dk*jd*st; W.c.push(cr*kk, cg*kk*(dk<1?1.03:1), cb*kk); } }
+        if (j) arc+=Math.hypot(x-px,z-pz); px=x; pz=z; W.p.push(x,y,z); if (!firstL) vac[j]+=Math.hypot(x-pvx[j],y-pvy[j],z-pvz[j]); else vac[j]=y; pvx[j]=x; pvy[j]=y; pvz[j]=z; if (SPH) W.u.push(arc/6,y/6+r.p[0]); else W.u.push(arc/24,(bi+f)/8);
+        const st=1-0.1*Math.pow(Math.max(0,Math.sin(a*r.k*0.7+r.p[2]+F*0.8)),14), kk=dk*jd*st; W.c.push(cr*kk, cg*kk*(dk<1?1.03:1), cb*kk); } firstL=false; }
     for (let l=0;l<lev.length-1;l++) for (let j=0;j<nA;j++){ const a=base+l*per+j, b=a+per; W.i.push(a,a+1,b, a+1,b+1,b); }   /* 0.3.2: Wicklung korrigiert (Spiegelung durch ux/vx), sonst Innenseiten sichtbar = hohl */
-    const top=base+(lev.length-1)*per; if (r.kind==='nadel'){ const ci=W.p.length/3; W.p.push(r.x,y1+r.r*0.3,r.z); W.u.push(0,beds.length/8+0.05); W.c.push(0.9,0.88,0.84); for (let j=0;j<nA;j++) W.i.push(ci,top+j,top+j+1); }
+    const top=base+(lev.length-1)*per; if (r.kind==='nadel'){ const ci=W.p.length/3; W.p.push(r.x,y1+r.r*0.08,r.z); W.u.push(0,beds.length/8+0.05); W.c.push(0.9,0.88,0.84); for (let j=0;j<nA;j++) W.i.push(ci,top+j,top+j+1); }
     else { const cb=C.p.length/3; C.p.push(r.x,y1+0.5,r.z); C.u.push(r.x/6,r.z/6); for (let j=0;j<=nA;j++){ const k=top+j; const x=W.p[k*3], z=W.p[k*3+2]; C.p.push(x,y1+0.05,z); C.u.push(x/6,z/6); } for (let j=0;j<nA;j++) C.i.push(cb, cb+1+j, cb+2+j); } }
   const mk=(B,mat)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(B.p,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(B.u,2)); if (B.c) g.setAttribute('color',new THREE.Float32BufferAttribute(B.c,3)); g.setIndex(B.i); g.computeVertexNormals(); const m=new THREE.Mesh(g,mat); m.castShadow=true; m.receiveShadow=true; grp.add(m); return m; };
   const rm=new THREE.MeshLambertMaterial({map:sandstoneTexture(), vertexColors:true}); rm.userData.pbr={n:1.1, r:0.95};
@@ -5885,9 +5890,9 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
       const f=0.78+rand()*0.38; treeTint(tcol,f);
       set.mats.push(m.clone()); set.cols.push(tcol.clone()); set.c++; placed++;
     }
-    for (const s0 of SANDR){ if (s0.kind==='nadel') continue; const nT=Math.round(s0.r*s0.r*(s0.kind==='tafel'?0.018:0.03));
-      for (let i=0;i<nT;i++){ const a=rand()*6.283, rr=Math.sqrt(rand())*s0.r*0.72, lx=Math.cos(a)*rr*(s0.e||1), lz=Math.sin(a)*rr, x=s0.x+Math.sin(s0.hd||0)*lx+Math.cos(s0.hd||0)*lz, z=s0.z+Math.cos(s0.hd||0)*lx-Math.sin(s0.hd||0)*lz; const rt=rand(), type=rt<0.6?'pine':rt<0.82?'birch':'spruce', set=sets[type]; if (!set) continue;
-        const sc=0.7+rand()*0.5; q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc,sc*(0.9+rand()*0.3),sc); p.set(x,s0.top+0.3,z); m.compose(p,q,s); treeTint(tcol,0.72+rand()*0.3); set.mats.push(m.clone()); set.cols.push(tcol.clone()); (set.rf=set.rf||{})[set.c]=0.2; set.c++; } }
+    for (const s0 of SANDR){ const nd=s0.kind==='nadel'; const nT=nd?1+Math.floor(rand()*s0.r/3.2):Math.round(s0.r*s0.r*(s0.kind==='tafel'?0.018:0.03));   /* 0.3.6: auch Kiefern auf den Felsnadeln */
+      for (let i=0;i<nT;i++){ const a=rand()*6.283, rr=Math.sqrt(rand())*s0.r*(nd?0.4:0.72), lx=Math.cos(a)*rr*(s0.e||1), lz=Math.sin(a)*rr, x=s0.x+Math.sin(s0.hd||0)*lx+Math.cos(s0.hd||0)*lz, z=s0.z+Math.cos(s0.hd||0)*lx-Math.sin(s0.hd||0)*lz; const rt=rand(), type=nd||rt<0.6?'pine':rt<0.82?'birch':'spruce', set=sets[type]; if (!set) continue;
+        const sc=nd?0.45+rand()*0.35:0.7+rand()*0.5; q.setFromEuler(new THREE.Euler(0,rand()*6.28,0)); s.set(sc,sc*(0.9+rand()*0.3),sc); p.set(x,s0.top+0.3,z); m.compose(p,q,s); treeTint(tcol,0.72+rand()*0.3); set.mats.push(m.clone()); set.cols.push(tcol.clone()); (set.rf=set.rf||{})[set.c]=0.2; set.c++; } }
     if (LU){ let wf=0; const step=7.5, cap=Math.round((GFX_BUILD_R>=260?3200:GFX_BUILD_R>=180?2200:800)*(def.terrain==='sandstone'?1.4:1));   // geschlossene Waldstücke
       const cand=[]; for (let gx=OFF; gx<OFF+EXT; gx+=step) for (let gz=OFF; gz<OFF+EXT; gz+=step){ const x=gx+(rand()-0.5)*step*0.9, z=gz+(rand()-0.5)*step*0.9; const lu=landUse(x,z); if (lu.t!==6 || lu.edge<1.2) continue; const dd=roadD(x,z); if (dd<12 || elbeSkip(x,z)) continue; cand.push([dd+rand()*25,x,z]); }
       cand.sort((a,b)=>a[0]-b[0]);   // straßennahe Waldstücke zuerst voll bestocken
@@ -7384,7 +7389,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.3.5 · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.3.6 · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7410,7 +7415,7 @@ $('bImg').onclick=downloadImage;
 $('bBack').onclick=()=>{ $('summary').style.display='none'; $('menu').style.display='flex'; renderWorlds(); };
 $('bCam').onclick=()=>{ camMode=(camMode+1)%3; window.orbitReset&&orbitReset(); };
 /* 0.3.2: Wenden wie in anderen Radspielen: Richtung umkehren, dabei kurz abbremsen; Kamera schwenkt weich mit */
-function turnAround(){ if (!S.running) return; S.dir=-(S.dir||1); meP.dir=S.dir; meP.v*=0.35; try{ SEG.prev=null; SEG.act.length=0; }catch(e){} toast(S.dir<0?'↩ Gewendet: Gegenrichtung':'↩ Gewendet: normale Richtung'); }
+function turnAround(){ if (!S.running || S.ut) return; S.ut={t:0, D:3.2, d0:S.dist, od:S.dir||1}; S.dir=-(S.dir||1); meP.dir=S.dir; meP.v=Math.min(meP.v,5); try{ SEG.prev=null; SEG.act.length=0; }catch(e){} toast(S.dir<0?'↩ Gewendet: Gegenrichtung':'↩ Gewendet: normale Richtung'); }
 $('bTurn').onclick=turnAround; addEventListener('keydown',e=>{ if ((e.key==='u'||e.key==='U') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) turnAround(); });
 $('bErg').onclick=()=>{ S.erg=!S.erg; $('bErg').classList.toggle('on',S.erg); $('ergbox').style.display=S.erg?'flex':'none';
   if (S.erg){ sendErg(+$('ergW').value); toast('ERG: Trainer hält '+$('ergW').value+' W'); } else { trainer.lastGradeSent=null; trainer.lastSentAt=0; toast('Zurück zur Steigungssimulation'); }
@@ -7517,6 +7522,12 @@ let orbYaw=0, orbPitch=0, orbZoom=1;
 const camPos=new THREE.Vector3(), camLook=new THREE.Vector3(), tmp=new THREE.Vector3(), tmp2=new THREE.Vector3();
 let lastLapDist=0, prevY=null, simCad=0;
 function fmtTime(s){ s=Math.floor(s); const h=Math.floor(s/3600), m=Math.floor(s/60)%60, ss=s%60; return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(ss).padStart(2,'0'); }
+/* 0.3.6: Wendemanöver: kurz nach links ausholen, Halbkreis nach rechts über die Fahrbahn, auf der Gegenspur einordnen (Pfad im alten Fahrerrahmen: f vorwärts, l rechts) */
+function uturnPath(e){ const sm=t=>t*t*(3-2*t); if (e<0.22){ const s=e/0.22; return [3*s, -0.3-1.3*sm(s)]; } if (e<0.8){ const th=Math.PI*(e-0.22)/0.58; return [3+1.6*Math.sin(th), -1.6*Math.cos(th)]; } const s=(e-0.8)/0.2; return [3-3*s, 1.6-1.3*sm(s)]; }
+function placeTurn(r, U){ const e=Math.min(1,U.t/U.D), sg=U.od, [f,l]=uturnPath(e), [f2,l2]=uturnPath(Math.min(1,e+0.01)), yaw=Math.atan2(l2-l, f2-f);
+  const fr=f*sg, lr=l*sg, d=U.d0+fr, p=posAt(d,tmp), hr=headingAt(d), Wr=roadWAt(d);
+  r.g.position.set(p.x+Math.cos(hr)*lr, p.y+roadCrown(clamp(0.5-lr/Wr,0,1))+0.009, p.z-Math.sin(hr)*lr);
+  const hd=hr+(sg<0?Math.PI:0)+yaw; r._uhd=hd; r.g.rotation.set(0,hd,0); const k=e>0.22&&e<0.8?Math.sin(Math.PI*(e-0.22)/0.58):0; r.g.rotateZ(-0.16*k); }
 function placeRider(r, d, lane, rev){
   const p=posAt(d,tmp), hd=headingAt(d)+(rev?Math.PI:0); const gr=gradeAt(d)*(rev?-1:1);
   const Wr=roadWAt(d); const hd0=hd-(rev?Math.PI:0), ln=rev?-lane:lane; r.g.position.set(p.x+Math.cos(hd0)*ln, p.y+roadCrown(clamp(0.5-ln/Wr,0,1))+0.009, p.z-Math.sin(hd0)*ln);
@@ -7610,7 +7621,8 @@ function frame(now){
     let draft=1; if ((S.dir||1)>0) for (const b of [...bots, ...MP.list()]){ const gap=((b.d-S.dist)%L+L)%L; if (gap>0.5 && gap<6) draft=Math.min(draft, 0.7+gap*0.03); }
     meP.draft=draft;
     S.grade = stepPhysics(meP, S.power, S.dist, dt);
-    S.speed = meP.v; S.dist += (S.dir||1)*meP.v*dt; S.odo = (S.odo||0) + meP.v*dt; S.time += dt; S.energy += S.power*dt;
+    if (S.ut){ meP.v=Math.min(meP.v,5); S.ut.t+=dt; if (S.ut.t>=S.ut.D) S.ut=null; }
+    S.speed = meP.v; if (!S.ut) S.dist += (S.dir||1)*meP.v*dt; S.odo = (S.odo||0) + meP.v*dt; S.time += dt; S.energy += S.power*dt;
     if (S.dist<0) S.dist+=L;
     const y=posAt(S.dist).y; if (prevY!==null && y>prevY) S.climb += y-prevY; prevY=y;
     if ((S.odo||0)-lastLapDist >= L){ lastLapDist+=L; S.lap++; toast('Runde '+(S.lap-1)+' geschafft!'); }
@@ -7622,7 +7634,7 @@ function frame(now){
   }
 
   // place riders
-  placeRider(me, S.dist, -0.3, (S.dir||1)<0);
+  if (S.ut) placeTurn(me, S.ut); else placeRider(me, S.dist, -0.3, (S.dir||1)<0);
   // weicher Kontaktschatten unter Fahrer und Rad (zusätzlich zum Sonnenschatten)
   { if (!window._blob){ const c=document.createElement('canvas'); c.width=64; c.height=128; const g=c.getContext('2d'); g.setTransform(1,0,0,2,0,0); const gr=g.createRadialGradient(32,32,1,32,32,31); gr.addColorStop(0,'rgba(0,0,0,0.5)'); gr.addColorStop(0.5,'rgba(0,0,0,0.22)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,64,64);   /* elliptisch, Ränder ganz weich */
       const m=new THREE.Mesh(new THREE.PlaneGeometry(0.9,2.3).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4})); m.renderOrder=2; m.userData.noStd=true; scene.add(m); window._blob=m; }
@@ -7635,7 +7647,7 @@ function frame(now){
   try{ MP.frame(dt, now, active); }catch(e){ if (!MP.err){ MP.err=1; console.warn('MP',e); } }
 
   // camera
-  const hd=headingAt(S.dist)+((S.dir||1)<0?Math.PI:0); const p=me.g.position;
+  const hd=S.ut&&me._uhd!=null?me._uhd:headingAt(S.dist)+((S.dir||1)<0?Math.PI:0); const p=me.g.position;
   // Kamera starr am Fahrer, nur Richtung und Höhe weich nachgeführt (kein Ruckeln)
   if (snapCam){ camHd=hd; camY=p.y; snapCam=false; }
   let dh=hd-camHd; while(dh>Math.PI) dh-=Math.PI*2; while(dh<-Math.PI) dh+=Math.PI*2;
