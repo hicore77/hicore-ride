@@ -4961,16 +4961,16 @@ function buildSandstone(def, grp){ if (!SANDR.length) return; const R=rand; cons
       let jk=1; for (const [ja,jw,jd] of r.J){ const d=Math.abs(Math.atan2(Math.sin(a-ja),Math.cos(a-ja))); if (d<jw) jk=Math.min(jk,1-jd*Math.pow(1-d/jw,0.6)); }   /* senkrechte Klüfte */
       return r.r*b*jk; };
     const base=W.p.length/3, per=nA+1, H=Math.max(1,y1-y0), ux=Math.sin(r.hd), uz=Math.cos(r.hd), vx=uz, vz=-ux;
-    const pvx=new Float32Array(nA+1), pvy=new Float32Array(nA+1), pvz=new Float32Array(nA+1), vac=new Float32Array(nA+1); let firstL=true;
+    const RA=new Float32Array(nA+1); for (let j=0;j<=nA;j++) RA[j]=rad(j/nA*Math.PI*2);   /* Grundriss je Winkel nur einmal rechnen (schneller laden) */
     for (const [y,bi,f] of lev){ const F=(y-y0)/H, b=beds[bi];
       let sc=r.kind==='nadel'?1-0.16*F+0.04*Math.sin(F*5+r.p[0]):1-0.07*F; if (F<0.12) sc*=1+(0.12-F)*1.6; if (F>0.8 && F<0.95 && r.kind!=='tafel') sc*=1.06; if (F>0.999) sc*=0.93; sc*=b[2];
       const bul=Math.pow(Math.sin(Math.PI*Math.min(1,f)),0.28), rec=F<0.05?0:b[3]*(1-bul), tn=b[4];
       const cr=tn<0.3?1.02:tn<0.55?0.96:tn<0.8?1.0:1.01, cg=tn<0.3?0.98:tn<0.55?0.96:tn<0.8?0.99:0.97, cb=tn<0.3?0.93:tn<0.55?0.97:tn<0.8?0.98:0.92;
       const dk=y-lo<6?0.66+0.34*Math.max(0,y-lo)/6:1, jd=1-0.26*(1-bul);
       let arc=0, px=0, pz=0;
-      for (let j=0;j<=nA;j++){ const a=j/nA*Math.PI*2, rr=Math.max(0.4, rad(a)*sc*(1+0.07*Math.sin(a*(3+bi%4)+bi*1.7+r.p[1])+0.035*Math.sin(a*9+bi*2.3))-rec*(0.6+0.4*Math.sin(a*3+bi))), lx=Math.cos(a)*rr*r.e, lz=Math.sin(a)*rr, x=r.x+ux*lx+vx*lz, z=r.z+uz*lx+vz*lz;
-        if (j) arc+=Math.hypot(x-px,z-pz); px=x; pz=z; W.p.push(x,y,z); if (!firstL) vac[j]+=Math.hypot(x-pvx[j],y-pvy[j],z-pvz[j]); else vac[j]=y; pvx[j]=x; pvy[j]=y; pvz[j]=z; if (SPH) W.u.push(arc/6,y/6+r.p[0]); else W.u.push(arc/24,(bi+f)/8);
-        const st=1-0.1*Math.pow(Math.max(0,Math.sin(a*r.k*0.7+r.p[2]+F*0.8)),14), kk=dk*jd*st; W.c.push(cr*kk, cg*kk*(dk<1?1.03:1), cb*kk); } firstL=false; }
+      for (let j=0;j<=nA;j++){ const a=j/nA*Math.PI*2, rr=Math.max(0.4, RA[j]*sc*(1+0.07*Math.sin(a*(3+bi%4)+bi*1.7+r.p[1])+0.035*Math.sin(a*9+bi*2.3))-rec*(0.6+0.4*Math.sin(a*3+bi))), lx=Math.cos(a)*rr*r.e, lz=Math.sin(a)*rr, x=r.x+ux*lx+vx*lz, z=r.z+uz*lx+vz*lz;
+        if (j) arc+=Math.hypot(x-px,z-pz); px=x; pz=z; W.p.push(x,y,z); if (SPH) W.u.push(arc/6,y/6+r.p[0]); else W.u.push(arc/24,(bi+f)/8);
+        const st=1-0.1*Math.pow(Math.max(0,Math.sin(a*r.k*0.7+r.p[2]+F*0.8)),14), kk=dk*jd*st; W.c.push(cr*kk, cg*kk*(dk<1?1.03:1), cb*kk); } }
     for (let l=0;l<lev.length-1;l++) for (let j=0;j<nA;j++){ const a=base+l*per+j, b=a+per; W.i.push(a,a+1,b, a+1,b+1,b); }   /* 0.3.2: Wicklung korrigiert (Spiegelung durch ux/vx), sonst Innenseiten sichtbar = hohl */
     const top=base+(lev.length-1)*per; if (r.kind==='nadel'){ const ci=W.p.length/3; W.p.push(r.x,y1+r.r*0.08,r.z); W.u.push(0,beds.length/8+0.05); W.c.push(0.9,0.88,0.84); for (let j=0;j<nA;j++) W.i.push(ci,top+j,top+j+1); }
     else { const cb=C.p.length/3; C.p.push(r.x,y1+0.5,r.z); C.u.push(r.x/6,r.z/6); for (let j=0;j<=nA;j++){ const k=top+j; const x=W.p[k*3], z=W.p[k*3+2]; C.p.push(x,y1+0.05,z); C.u.push(x/6,z/6); } for (let j=0;j<nA;j++) C.i.push(cb, cb+1+j, cb+2+j); } }
@@ -6882,15 +6882,32 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   addProps(def); buildFencesHedges(def, worldGroup, def.roadW||7);
   // Wahrzeichen
   if (def.lighthouse){ const d=L*def.lighthouse, p=posAt(d); const l=Math.hypot(p.x,p.z)||1; addLighthouse(worldGroup, p.x+p.x/l*55, p.z+p.z/l*55); }
-  // Start-Bogen
-  {
-    const arch=new THREE.Group(); const mat=new THREE.MeshLambertMaterial({color:0xff7a1a});
-    const pL=new THREE.Mesh(new THREE.BoxGeometry(0.5,6,0.5),mat), pR=pL.clone(); pL.position.set(-4.5,3,0); pR.position.set(4.5,3,0);
-    const bc=document.createElement('canvas'); bc.width=512; bc.height=64; const bg=bc.getContext('2d'); bg.fillStyle='#111'; bg.fillRect(0,0,512,64); bg.fillStyle='#ff7a1a'; bg.font='bold 40px system-ui'; bg.textAlign='center'; bg.fillText(def.name.toUpperCase()+' · START',256,46);
-    const bt=new THREE.CanvasTexture(bc);
-    const banner=new THREE.Mesh(new THREE.BoxGeometry(9.5,1.2,0.3),[mat,mat,mat,mat,new THREE.MeshBasicMaterial({map:bt}),new THREE.MeshBasicMaterial({map:bt})]);
-    banner.position.y=6; arch.add(pL,pR,banner); arch.position.copy(posAt(0)); arch.rotation.y=headingAt(0); worldGroup.add(arch);
-  }
+  // Start/Ziel: eckiger, schlanker Luft-Torbogen (aufblasbar) + Schachbrett-Linie
+  try{
+    const a0=posAt(0), b0=posAt(2), i0=idxAt(0)[0], hw=(ROADW?ROADW[i0]:(def.roadW||7))/2+0.9, hd=Math.atan2(b0.x-a0.x,b0.z-a0.z), g=new THREE.Group();
+    const H=5.6, tr=0.42, rc=0.9, X=hw, Y=H;   /* Breite, Höhe, Schlauchdicke, Eckenradius */
+    const segs=[]; const addL=(p,q)=>segs.push({k:'l',p,q,len:p.distanceTo(q)}); const addA=(c,a1,a2)=>segs.push({k:'a',c,a1,a2,len:Math.abs(a2-a1)*rc});
+    const V=(x,y)=>new THREE.Vector3(x,y,0);
+    addL(V(-X,0),V(-X,Y-rc)); addA(V(-X+rc,Y-rc),Math.PI,Math.PI/2); addL(V(-X+rc,Y),V(X-rc,Y)); addA(V(X-rc,Y-rc),Math.PI/2,0); addL(V(X,Y-rc),V(X,0));
+    const tot=segs.reduce((t,q)=>t+q.len,0); const path=new THREE.Curve();
+    path.getPoint=(t,o)=>{ o=o||new THREE.Vector3(); let d=t*tot; for (const q of segs){ if (d<=q.len||q===segs[segs.length-1]){ const f=Math.min(1,d/q.len); if (q.k==='l') return o.copy(q.p).lerp(q.q,f); const an=q.a1+(q.a2-q.a1)*f; return o.set(q.c.x+Math.cos(an)*rc,q.c.y+Math.sin(an)*rc,0); } d-=q.len; } return o; };
+    const topF=(2*X-2*rc)/tot;   /* Anteil der oberen Geraden an der Schlauchlänge */
+    const c=document.createElement('canvas'); c.width=2048; c.height=256; const x=c.getContext('2d'); x.fillStyle='#ff7a1a'; x.fillRect(0,0,2048,256);
+    x.fillStyle='#ffd2ad'; x.fillRect(0,256*0.25-5,2048,10); x.fillRect(0,256*0.75-5,2048,10);
+    const txt=def.name.toUpperCase()+'  ·  START / ZIEL', tw=2048*topF*0.92; let fs=72; x.font='bold '+fs+'px system-ui,sans-serif'; while (x.measureText(txt).width>tw && fs>24){ fs-=2; x.font='bold '+fs+'px system-ui,sans-serif'; }
+    x.textAlign='center'; x.textBaseline='middle';
+    for (const [yy,rot] of [[0,0],[128,1],[256,0]]){ x.save(); x.translate(1024,yy); if (rot) x.rotate(Math.PI); x.fillStyle="#1b1b1f"; const w=x.measureText(txt).width+60; x.fillRect(-w/2,-fs*0.62,w,fs*1.24); x.fillStyle='#fff'; x.fillText(txt,0,3); x.restore(); }
+    const tex=new THREE.CanvasTexture(c); tex.anisotropy=4; tex.encoding=THREE.sRGBEncoding;
+    const am=new THREE.MeshLambertMaterial({map:tex}); am.userData.pbr={n:0.2,r:0.5};
+    const arch=new THREE.Mesh(new THREE.TubeGeometry(path,96,tr,16,false),am); arch.castShadow=true; g.add(arch);
+    const fm=new THREE.MeshLambertMaterial({color:0x1b1b1f});
+    for (const sd of [1,-1]){ const ft=new THREE.Mesh(new THREE.BoxGeometry(tr*2.6,0.35,tr*2.6),fm); ft.position.set(sd*X,0.17,0); ft.castShadow=true; g.add(ft); }
+    /* Schachbrett-Linie quer über die Straße */
+    const lc=document.createElement('canvas'); lc.width=256; lc.height=32; const lx=lc.getContext('2d'); for (let k=0;k<32;k++) for (let r=0;r<2;r++){ lx.fillStyle=(k+r)%2?'#111':'#f4f4f4'; lx.fillRect(k*8,r*16,8,16); }
+    const lt=new THREE.CanvasTexture(lc); lt.encoding=THREE.sRGBEncoding;
+    const line=new THREE.Mesh(new THREE.PlaneGeometry(hw*2-1.6,0.7), new THREE.MeshBasicMaterial({map:lt, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4, transparent:true, opacity:0.92})); line.rotation.x=-Math.PI/2; line.position.y=0.06; line.material.userData.lin=true; g.add(line);
+    g.position.copy(a0); g.rotation.y=hd; worldGroup.add(g);
+  }catch(e){ console.warn('Start-Tor',e); }
   // km-Schilder
   for (let km=1; km*1000<L-150; km++){ const d=km*1000, pp=posAt(d), hd=headingAt(d);
     const sc2=document.createElement('canvas'); sc2.width=128; sc2.height=64; const g2=sc2.getContext('2d'); g2.fillStyle='#fff'; g2.fillRect(0,0,128,64); g2.fillStyle='#111'; g2.font='bold 40px system-ui'; g2.textAlign='center'; g2.fillText(km+' km',64,46);
@@ -8316,7 +8333,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -8373,8 +8390,8 @@ async function start(){
     if (builtWorld!==def.id || BUILT_R!==GFX_BUILD_R){ const lb=$('loadbox'); $('loadname').textContent=def.name; $('loadstep').textContent='Modelle werden vorbereitet …'; lb.style.display='flex'; $('menu').style.display='none';
       const paint=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
       try{ await paint(); await (window.PROPS_READY||Promise.resolve()); $('loadstep').textContent='Gelände, Straße, Bäume und Felsen werden gebaut …'; await paint();
-        buildWorld(def); gpuFixInst(scene); builtWorld=def.id; $('loadstep').textContent='Grafik wird vorbereitet …'; await paint();
-        if (window.GPU_MODE){ try{ await GPU_INIT; await renderer.compileAsync(scene,camera); }catch(e){ console.warn('compile',e); } } else try{ stageCompile(); renderer.compile(scene,camera); }catch(e){} $('world').style.visibility='visible'; await paint(); }
+        const tB0=performance.now(); buildWorld(def); gpuFixInst(scene); builtWorld=def.id; window.LOADT={b:performance.now()-tB0, t0:tB0}; $('loadstep').textContent='Grafik wird vorbereitet …'; await paint();
+        if (window.GPU_MODE){ const tC0=performance.now(); try{ await GPU_INIT; await renderer.compileAsync(scene,camera); }catch(e){ console.warn('compile',e); } if (window.LOADT){ LOADT.c=performance.now()-tC0; LOADT.ff=1; } } else try{ stageCompile(); renderer.compile(scene,camera); }catch(e){} $('world').style.visibility='visible'; await paint(); }
       finally{ lb.style.display='none'; } }
     resetRide(); setupBots(+$('bots').value);
   }
@@ -8537,6 +8554,7 @@ let FRN=0;
 function frame(now){
   requestAnimationFrame(frame);
   if (!builtWorld){ last=now; return; }
+  if (window.LOADT && LOADT.ff && FRN>=3){ const L=LOADT; L.ff=0; const tot=(performance.now()-L.t0)/1000; try{ toast('Geladen in '+tot.toFixed(1)+' s (Welt '+(L.b/1000).toFixed(1)+' s, Grafik '+((L.c||0)/1000).toFixed(1)+' s)'); }catch(e){} }
   if (FRN<=60){ FRN++; if (FRN===1||FRN===2||FRN===10||FRN===60) STG('Bild '+FRN+(window.glbRiderReady?' mit Fahrer':'')); }
   const dt=Math.min(0.1,(now-last)/1000); last=now;
   const active = S.running && !S.paused;
