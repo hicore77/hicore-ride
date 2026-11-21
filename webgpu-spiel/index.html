@@ -5377,10 +5377,15 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
       const w=vec2(P.x.add(T.sin(P.y.mul(0.011).add(1.3)).mul(14.0)).add(T.sin(P.x.mul(0.027)).mul(6.0)), P.y.add(T.sin(P.x.mul(0.012).add(0.4)).mul(14.0)).add(T.sin(P.y.mul(0.023)).mul(6.0)));
       const u2=vec2(w.x.mul(luR.x).sub(w.y.mul(luR.y)), w.x.mul(luR.y).add(w.y.mul(luR.x)));
       const cc=u2.div(luCS), ci=clamp(T.floor(cc),vec2(-32.0),vec2(31.0)), fr=T.fract(cc).mul(luCS);
-      const edge=T.min(T.min(fr.x,luCS.x.sub(fr.x)),T.min(fr.y,luCS.y.sub(fr.y)));
-      const tt=T.floor(texture(LU.tex, ci.add(32.5).div(64.0)).r.mul(255.0).add(0.5));
+      const luT=c2=>T.floor(texture(LU.tex, clamp(c2,vec2(-32.0),vec2(31.0)).add(32.5).div(64.0)).r.mul(255.0).add(0.5));
+      const tt=luT(ci);
+      /* Rand nur dort, wo das Nachbarfeld eine andere Art hat (kein Streifen zwischen zwei Waldstücken oder zwei Wiesen) */
+      const dx=T.select(fr.x.lessThan(luCS.x.mul(0.5)),float(-1.0),float(1.0)), dy=T.select(fr.y.lessThan(luCS.y.mul(0.5)),float(-1.0),float(1.0));
+      const ex=T.min(fr.x,luCS.x.sub(fr.x)), ey=T.min(fr.y,luCS.y.sub(fr.y));
+      const tx=luT(ci.add(vec2(dx,0.0))), ty=luT(ci.add(vec2(0.0,dy)));
+      const edge=T.min(T.select(T.abs(tx.sub(tt)).lessThan(0.5),float(99.0),ex), T.select(T.abs(ty.sub(tt)).lessThan(0.5),float(99.0),ey));
       const luk=T.attribute('luk','float');
-      let k=smoothstep(1.2,3.2,edge.add(H.vnz(P.mul(0.7)).mul(1.2))).mul(luk);
+      let k=smoothstep(0.5,9.0,edge.add(H.vnz(P.mul(0.06)).mul(7.0)).add(H.vnz(P.mul(0.45)).mul(1.6)).sub(2.0)).mul(luk);   /* Feldränder weich und unregelmäßig statt harter hellgrüner Streifen */
       const wz=texture(LT.wz, u2.div(2.4)).rgb, wl=dot(wz,vec3(0.3,0.6,0.1));
       const wT=WIND.t;
       const wv=T.sin(dot(P,vec2(0.11,0.065)).sub(wT.mul(1.7)).add(H.vnz(P.mul(0.025)).mul(5.0))).mul(smoothstep(0.25,0.75,H.vnz(P.mul(0.018).add(vec2(wT.mul(0.04),wT.mul(0.025))))));
@@ -5403,11 +5408,11 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
       const bF=texture(LT.fw||LT.wz, u2.div(3.0)).rgb, lF=dot(bF,vec3(0.3,0.6,0.1));
       const l5=vec3(0.36,0.29,0.22).mul(lF.mul(0.9).add(0.55)).mul(fu.mul(0.4).add(0.72)).mul(H.vnz(P.mul(0.05)).mul(0.3).add(0.85));
       const wb=texture(LT.wb||LT.wz, wq.mul(0.8)).rgb;
-      const l6=mix(wb.mul(0.7), vec3(0.17,0.25,0.11).mul(H.vnz(P.mul(0.3)).mul(0.5).add(0.75)), H.vnz(P.mul(0.05)).mul(0.25).add(0.62));
+      const l6=mix(wb.mul(0.78), vec3(0.21,0.30,0.13).mul(H.vnz(P.mul(0.3)).mul(0.5).add(0.75)), H.vnz(P.mul(0.05)).mul(0.25).add(0.62));
       const sel=(a,b,lim)=>T.select(tt.lessThan(lim),a,b);
       let lc=sel(vec3(0.0), sel(l1, sel(l2, sel(l3, sel(l4, sel(l5, l6, 5.5), 4.5), 3.5), 2.5), 1.5), 0.5);
       k=T.select(tt.lessThan(0.5), float(0.0), T.select(tt.lessThan(1.5), k.mul(k1), k));
-      c=T.select(tt.lessThan(0.5), c.mul(mowF), c);
+      c=T.select(tt.lessThan(0.5), c.mul(mowF).mul(0.88), c.mul(vec3(0.76,0.82,0.72)));   /* Feldrain: ruhiges, etwas dunkleres Gras statt hellem Mähgrün */
       lc=T.select(tt.greaterThan(1.5).and(tt.lessThan(4.5)), lc.mul(wv.mul(0.16).add(1.0)), lc);
       c=c.mul(wv.mul(0.05).mul(float(1.0).sub(k)).add(1.0));
       luW=k; const lcg=pow(max(lc,vec3(0.0)),vec3(1.9)).mul(1.25);
@@ -7225,7 +7230,7 @@ function poseRider(r, effort){
   const CL=0.172;
   if (r.glb){   // echte Figur: nur Pedale setzen, Skelett per IK
     [-1,1].forEach(s=>{ const a=r.crankAng+(s>0?0:Math.PI); r.pedals[s>0?1:0].position.set(s*0.125, r.BB.y-Math.cos(a)*CL, r.BB.z-Math.sin(a)*CL); });
-    poseGLB(r.glb, r.g, r.crankAng, effort, {low:r.low, stand:r.stand||0, lean:r.lean||0}); return;
+    { const gw=r.gw||[0,1,0], l=r.low==null?0.33:r.low, le=gw[0]*Math.min(l,0.12)+gw[1]*l+gw[2]*Math.max(l,0.78); poseGLB(r.glb, r.g, r.crankAng, effort, {low:le, stand:r.stand||0, lean:r.lean||0, gw}); } return;
   }
   // Vorwärts treten: oben nach vorn, unten nach hinten.
   // Winkel 0 = rechtes Pedal unten. Pedal-Position: y = -cos(a), z = -sin(a)
@@ -7271,6 +7276,11 @@ function animRider(r, cad, spd, dt, watt){
     const amp = 0.004 + 0.025*clamp((watt-350)/250,0,1) + 0.11*r.stand;   // Rad schaukelt mehr bei Druck
     r.lean = cad>5 ? Math.sin(r.crankAng)*amp : r.lean*(1-Math.min(1,dt*3));
   }
+  /* Griffposition wie am echten Rennrad: bergauf Oberlenker, normal Bremsgriffe (Hoods), bergab/sehr schnell/Sprint Unterlenker */
+  { const g=r.gr||0, stn=r.stand||0, lw=r.low==null?0.33:r.low, v=spd||0; let m=r.gripM==null?1:r.gripM;
+    let want = window.GRIP_FORCE!=null ? window.GRIP_FORCE : (stn>0.3 ? (g>0.04?1:2) : (g< -0.03 && v>9) || v>12.5 || lw>0.6 ? 2 : (g>0.045 && v<7.5) ? 0 : 1);
+    if (want!==m){ r.gripT=(r.gripT||0)+dt; if (r.gripT>(window.GRIP_FORCE!=null?0:1.5)){ m=want; r.gripT=0; } } else r.gripT=0;   /* erst nach 1,5 s wechseln, kein Zappeln */
+    r.gripM=m; const gw=r.gw||(r.gw=[0,1,0]); const k=Math.min(1,dt*(window.GRIP_FORCE!=null?100:1.6)); for (let i=0;i<3;i++) gw[i]+=((i===m?1:0)-gw[i])*k; }
   r.crank.rotation.x = r.crankAng;
   if (r.chainUpd) r.chainUpd(r.crankAng);
   const wr = spd/0.335*dt; r.wF.rotation.x += wr; r.wR.rotation.x += wr;
@@ -7279,6 +7289,10 @@ function animRider(r, cad, spd, dt, watt){
 // ================= Realistische Fahrerfigur (GLB mit Skelett, Higgsfield/Meshy) =================
 const RIDER_GLB_URL = 'https://d2ol7oe51mr4n9.cloudfront.net/user_34bhqR89E9DYm0YhU1U4tS2vv5r/8a6d04c0-2183-4d12-8601-60d0b0c50e10.glb';
 const RIG = { BB: new THREE.Vector3(0,0.27,-0.08), CL: 0.172, HIP: new THREE.Vector3(0,1.125,-0.22), HAND: new THREE.Vector3(0.2,0.93,0.5), SH: new THREE.Vector3(0,1.29,0.42), SEAT_UP: 0.04 };
+/* Handgelenk-Ziel w und Fingerrichtung f je Griff (Rad-Koordinaten, +z vorn): 0 Oberlenker, 1 Bremsgriffe, 2 Unterlenker */
+const GRIPS=[ {w:new THREE.Vector3(0.14,0.905,0.455), f:new THREE.Vector3(0,-0.05,0.07)},
+  {w:new THREE.Vector3(0.205,0.93,0.555), f:new THREE.Vector3(-0.005,-0.035,0.085)},
+  {w:new THREE.Vector3(0.205,0.79,0.50), f:new THREE.Vector3(0,-0.06,0.05)} ];
 function ik3(A, T, la, lb, poleDir, out){
   const d=new THREE.Vector3().subVectors(T,A); let dist=d.length(); dist=Math.min(Math.max(dist,Math.abs(la-lb)+1e-4), la+lb-1e-4); d.normalize();
   const a=(la*la+dist*dist-lb*lb)/(2*dist), h=Math.sqrt(Math.max(0,la*la-a*a));
@@ -7375,7 +7389,8 @@ function poseGLB(R, G, crank, effort, opt){
   const hx=lean*1.0*(0.95-0.1*st), sx=sway+lean*1.35*0.95;
   const hipL=new THREE.Vector3(hx, RIG.HIP.y+bob+0.03*st, _lerp(-0.23,-0.19,low)+0.2*st);
   const sh=new THREE.Vector3(sx, _lerp(1.37,1.12,low)+bob*0.6+0.07*st, _lerp(0.36,0.50,low)+0.05*st);
-  R._hand=new THREE.Vector3(RIG.HAND.x-0.01*low, _lerp(_lerp(0.955,0.85,low*low),0.925,st), _lerp(_lerp(0.525,0.47,low),0.52,st));
+  const gw=opt.gw||[0,1,0], GP=window.GRIPS||GRIPS; R._hand=new THREE.Vector3(); R._fing=new THREE.Vector3();
+  for (let i=0;i<3;i++){ R._hand.addScaledVector(GP[i].w,gw[i]); R._fing.addScaledVector(GP[i].f,gw[i]); }
   // Becken auf den Sattel
   B.Hips.parent.updateMatrixWorld(true);
   B.Hips.position.copy(B.Hips.parent.worldToLocal(W(hipL)));
@@ -7423,7 +7438,7 @@ function poseGLB(R, G, crank, effort, opt){
     const elbow=ik3(shL, hand, L.upper, L.fore, new THREE.Vector3(side*(0.45+0.25*low),-0.55,-0.55), new THREE.Vector3());
     aimBone(B[s+'Arm'], B[s+'ForeArm'], W(elbow));
     aimBone(B[s+'ForeArm'], B[s+'Hand'], W(hand));
-    const fing=hand.clone().add(new THREE.Vector3(-side*0.005,-0.045*(1-low),0.08));   // Finger umgreifen den Griffkörper
+    const fing=hand.clone().add(new THREE.Vector3(side*R._fing.x,R._fing.y,R._fing.z));   // Finger umgreifen Oberlenker / Bremsgriff / Unterlenker
     const kids=B[s+'Hand'].children.filter(c=>c.isBone); if (kids.length) aimBone(B[s+'Hand'], kids[0], W(fing));
   });
 }
@@ -8333,7 +8348,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.6 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -8473,7 +8488,7 @@ function placeTurn(r, U){ const e=Math.min(1,U.t/U.D), sg=U.od, [f,l]=uturnPath(
   r.g.position.set(p.x+Math.cos(hr)*lr, p.y+roadCrown(clamp(0.5-lr/Wr,0,1))+0.009, p.z-Math.sin(hr)*lr);
   const hd=hr+(sg<0?Math.PI:0)+yaw; r._uhd=hd; r.g.rotation.set(0,hd,0); const k=e>0.22&&e<0.8?Math.sin(Math.PI*(e-0.22)/0.58):0; r.g.rotateZ(-0.16*k); }
 function placeRider(r, d, lane, rev){
-  const p=posAt(d,tmp), hd=headingAt(d)+(rev?Math.PI:0); const gr=gradeAt(d)*(rev?-1:1);
+  const p=posAt(d,tmp), hd=headingAt(d)+(rev?Math.PI:0); const gr=gradeAt(d)*(rev?-1:1); r.gr=gr;
   const Wr=roadWAt(d); const hd0=hd-(rev?Math.PI:0), ln=rev?-lane:lane; r.g.position.set(p.x+Math.cos(hd0)*ln, p.y+roadCrown(clamp(0.5-ln/Wr,0,1))+0.009, p.z-Math.sin(hd0)*ln);
   r.g.rotation.set(0,hd,0); r.g.rotateX(-Math.atan(gr)); if (r.lean) r.g.rotateZ(r.lean);
 }
