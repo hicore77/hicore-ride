@@ -5353,7 +5353,7 @@ function gpuWater(nm, m){ const T=TSL, nt=m.normalMap; if (!nt) return; const {v
   nm.normalMap=null; nm.clearcoat=0; nm.clearcoatNormalMap=null; nm.roughness=0.85; nm.envMap=null; nm.envMapIntensity=0.15;
   nm.colorNode=vec4(deep, T.materialReference('opacity','float'));
   nm.emissiveNode=sky.mul(F.mul(0.8)).add(vec3(1.0,0.92,0.75).mul(glint)); }
-function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater){ gpuWater(nm,m); return; } const lin=!!u.lin, prep=!!u.pbrPrep, gam=prep && !lin, ao=!!u.worldAO;
+function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater){ gpuWater(nm,m); return; } const lin=!!u.lin, prep=!!u.pbrPrep, gam=prep && !lin && !(fx.terrain), ao=!!u.worldAO && !(fx.terrain);   /* Gelände: im alten Spiel griffen Gamma und AO nie (Anker im Shader ersetzt) -> hier auch nicht */
   const {vec2,vec3,vec4,float,texture,positionWorld,positionGeometry,positionLocal,cameraPosition,smoothstep,mix,clamp,length,normalize,dot,max,pow,Discard,If,screenCoordinate,modelWorldMatrixInverse}=T;
   const need=gam||ao||fx.mask||fx.terrain||fx.wind||fx.dith; if (!need) return;
   const H=gpuHelpers();
@@ -5364,7 +5364,7 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
   if (fx.terrain){ const t=fx.terrain, LT=u.lu||{}, mk=texture(t.t, P.sub(vec2(t.oe.x)).div(t.oe.y));
     nm.maskNode=mk.r.lessThan(0.5);
     const tileS=float(m.map?m.map.repeat.x/EXT:0.15), wq=P.mul(tileS);
-    const tA=texture(m.map, T.uv()), rot=T.mat2(0.8,-0.6,0.6,0.8), tB=texture(m.map, rot.mul(wq).mul(0.71).add(vec2(0.31,0.17)));
+    m.map.updateMatrix(); const tA=texture(m.map, T.uniform(m.map.matrix).mul(vec3(T.uv(),1.0)).xy), rot=T.mat2(0.8,-0.6,0.6,0.8), tB=texture(m.map, rot.mul(wq).mul(0.71).add(vec2(0.31,0.17)));
     const nA=H.vnz(P.mul(0.05)).mul(0.65).add(H.vnz(P.mul(0.17)).mul(0.35));
     let tex=mix(tA,tB,smoothstep(0.35,0.65,nA));
     const mac=H.vnz(P.mul(0.011)).mul(0.6).add(H.vnz(P.mul(0.037).add(3.1)).mul(0.4));
@@ -8333,7 +8333,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
