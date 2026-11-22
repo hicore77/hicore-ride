@@ -5340,7 +5340,7 @@ function gpuSetup(){ const lib=renderer.library, orig=lib.fromMaterial.bind(lib)
   /* 0.4.8: WebGPU bildet den Pipeline-Schlüssel aus den Material-Eigenschaften (Funktionen nur als Quelltext). gpuFx baut Texturen fest ein,
      daher teilten z. B. Wertungs-Torbögen die Pipeline samt Start-Tor-Textur. Texturen als Text-Eigenschaft in den Schlüssel bringen. */
   if (!Object.getOwnPropertyDescriptor(THREE.Material.prototype,'gpuTexKey')) Object.defineProperty(THREE.Material.prototype,'gpuTexKey',{enumerable:true, configurable:true, set(v){},
-    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); return k; } });
+    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); const fx=this.userData&&this.userData.fx; if (fx) for (const n of ['terrain','mask']) if (fx[n]&&fx[n].t&&fx[n].t.uuid) k+=n[0]+fx[n].t.uuid.slice(0,8); return k; } });   /* 0.7.2: Loch-Masken mit in den Schlüssel, sonst teilten Kacheln und Grobgelände eine Maske (Löcher mit Himmel) */
   /* Farben wie im alten Spiel roh lassen (ColorManagement aus), aber sRGB-Texturen und Bildausgabe trotzdem richtig umrechnen */
   const CSN=THREE.ColorSpaceNode; if (CSN && !CSN._hp){ CSN._hp=1; const o=CSN.prototype.setup; CSN.prototype.setup=function(b){ const CM=THREE.ColorManagement, e=CM.enabled; CM.enabled=true; try{ return o.call(this,b); } finally{ CM.enabled=e; } }; }
   lib.fromMaterial=m=>{ const nm=orig(m); if (nm && !m.isNodeMaterial){ try{ gpuFx(nm, m); }catch(e){ console.warn('GPU-Material',e); } }
@@ -5828,7 +5828,7 @@ function updateTreeLOD(cp, force){ const T=TREE_LOD; if (!T) return; if (!force 
   for (const t of T.types){ let a=0, b=0; const st=t.st;
     for (let i=0;i<st.c;i++){ const dx=t.pos[i*2]-cp.x, dz=t.pos[i*2+1]-cp.z, rf=st.rf&&st.rf[i]||1, Rt=T.R*Math.sqrt(rf), d=Math.sqrt(dx*dx+dz*dz);
       const put=(set,j)=>{ for (const im of set){ im.setMatrixAt(j,st.mats[i]); im.geometry.attributes.iLodR.array[j]=Rt; if (im.userData.vary) im.setColorAt(j,st.cols[i]); } };
-      if (d<Rt+LM) put(t.near,a++); if (d>Rt-LOD_B-LM && !(LITE && (st.k.startsWith('bush') ? (d>(MINI?120:200) || (d>90 && (i&3))) : ((d>170 && (i&1)) || (d>340 && (i&3)) || d>(MINI?320:480))))) put(t.far,b++); }   // im Übergangsband in beiden Stufen, der Shader blendet per Raster über
+      if (d<Rt+LM) put(t.near,a++); if (d>Rt-LOD_B-LM && !(LITE ? (st.k.startsWith('bush') ? (d>(MINI?120:200) || (d>90 && (i&3))) : ((d>170 && (i&1)) || (d>340 && (i&3)) || d>(MINI?320:480))) : (st.k.startsWith('bush') ? (d>380 || (d>200 && (i&1))) : ((d>420 && (i&1)) || d>950)))) put(t.far,b++); }   // im Übergangsband in beiden Stufen, der Shader blendet per Raster über
     t.near.forEach(im=>{ im.count=a; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
     t.far.forEach(im=>{ im.count=b; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; }); } }
 // Weicher Wechsel grob <-> fein: beide Stufen im Band LOD_B, pro Pixel per geordnetem Raster (Bayer 8x8) überblendet
@@ -6253,7 +6253,7 @@ function buildSign(o){ const grp=new THREE.Group(), y0=terrainH(o.x,o.z), pm=new
 function disposeSigns(g){ g.traverse(o=>{ if (o.geometry) o.geometry.dispose(); if (o.material){ if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); }
 /* ---------- Gelände in Kacheln (World Streaming): 500-m-Kacheln mit 10-m-Raster rund um den Fahrer, grobes Gesamtgelände darunter ---------- */
 const GT={on:false, tiles:new Map(), S:500, NS:50};
-function gtInit(def, coarse, gt){ GT.on=true; GT.tiles=new Map(); GT.job=null; GT.fk=null; GT.flast=null; GT.hm=null; GT.hj=null; GT.def=def; GT.R=LITE?(MINI?700:1100):1750;
+function gtInit(def, coarse, gt){ GT.on=true; GT.pp=null; GT.dv=null; GT.tiles=new Map(); GT.job=null; GT.fk=null; GT.flast=null; GT.hm=null; GT.hj=null; GT.def=def; GT.R=LITE?(MINI?700:1100):1750;
   const m2=new THREE.MeshLambertMaterial({vertexColors:true, map:gt}); m2.userData.lu=coarse.material.userData.lu; terrainHoleMaterial(m2, def.roadW||7, {S:4}); m2.userData.worldAO=true; m2.userData.pbr={n:1.2, r:0.95, e:0.7}; GT.mat=m2;
   GT.cv=coarse.material.userData.holeCv; GT.tex=coarse.material.userData.holeTex; GT.grp=new THREE.Group(); worldGroup.add(GT.grp);
   const st=gnSigns(); GT.sig=new Map(); st.forEach(o=>{ const k=Math.floor(o.x/GT.S)+','+Math.floor(o.z/GT.S); let l=GT.sig.get(k); if (!l) GT.sig.set(k,l=[]); l.push(o); });
@@ -6267,18 +6267,25 @@ function gtStep(J, ms){ const def=GT.def, pos=J.geo.attributes.position, uv=J.ge
   return true; }
 /* Wald je Kachel: echte OSM-Waldflächen, oben im Gebirge Fichten, unten Mischwald. Fernstufe immer, Detailstufe nur nahe der Kamera */
 function gtForestKit(){ if (GT.fk) return GT.fk; const kit=treeKit(GT.def), fk={};
-  ['spruce','pine','beech','beech2','oak','birch','maple','ash','linden2'].filter(k=>kit.TYPES[k]).forEach(k=>{ fk[k]={near:kit.TYPES[k](), far:kit.FAR[k]()}; fk[k].nearM=fk[k].near.map(pp=>lodMat(pp[1],false)); fk[k].farM=fk[k].far.map(pp=>lodMat(pp[1],true)); });
+  ['spruce','pine','beech','beech2','oak','birch','maple','ash','linden2'].filter(k=>kit.TYPES[k]).forEach(k=>{ fk[k]={near:kit.TYPES[k](), far:kit.FAR[k]()}; fk[k].nearM=fk[k].near.map(pp=>lodMat(pp[1],false)); fk[k].farM=fk[k].far.map(pp=>lodMat(pp[1],true)); fk[k].mini=gtMiniTree(k,fk[k].far); });
   GT.fk=fk; GT.mixLo=[['beech',0.16],['beech2',0.12],['spruce',0.3],['oak',0.08],['birch',0.08],['pine',0.1],['maple',0.05],['ash',0.06],['linden2',0.05]].filter(e=>fk[e[0]]); GT.mixHi=[['spruce',0.64],['pine',0.1],['beech',0.14],['birch',0.06],['beech2',0.06]].filter(e=>fk[e[0]]); return fk; }
+/* 0.7.2: dritte Stufe für ferne Bäume: ein einfacher Kegel bzw. eine Krone aus wenigen Dreiecken, undurchsichtig, ca. 5 bis 24 Dreiecke statt 160 bis 670 */
+function gtMiniTree(k, far){ const bb=new THREE.Box3(); let col=null, best=-1; far.forEach(([g,m])=>{ if (!g.boundingBox) g.computeBoundingBox(); bb.union(g.boundingBox); const c=m&&m.color; if (c && c.g-c.r>best){ best=c.g-c.r; col=c; } });
+  const h=bb.max.y-Math.max(0,bb.min.y), r=Math.max(bb.max.x-bb.min.x, bb.max.z-bb.min.z)*0.5, y0=Math.max(0,bb.min.y), con=k==='spruce';
+  const prof=con?[[0.001,0.06],[r*0.95,0.1],[0.001,1]]:[[0.001,0.3],[r*0.95,0.55],[r*0.7,0.82],[0.001,1]];
+  const geo=new THREE.LatheGeometry(prof.map(([x,f])=>new THREE.Vector2(x,y0+f*h)), con?5:6); geo.deleteAttribute('uv'); geo.computeVertexNormals();
+  const mat=new THREE.MeshLambertMaterial({color:col?col.clone():new THREE.Color(con?0x2c4527:0x45602f)}); return [geo,mat]; }
 function gtForest(i,j){ const g=gtForestGen(i,j); let r; do r=g.next(); while(!r.done); return r.value; }
 function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S, x0=i*S, z0=j*S, step=MINI?17:LITE?12:9.5, fk=gtForestKit(); let sd=((i*73856093)^(j*19349663))&0x7fffffff||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
-  const pick=mx=>{ let r=rnd(), t=0; for (const e of mx) t+=e[1]; r*=t; for (const [k,w] of mx){ if (r<w) return k; r-=w; } return mx[0][0]; };
+  const KEEP=MINI?0.14:LITE?0.2:0.3; const pick=mx=>{ let r=rnd(), t=0; for (const e of mx) t+=e[1]; r*=t; for (const [k,w] of mx){ if (r<w) return k; r-=w; } return mx[0][0]; };
   const by={}, m=new THREE.Matrix4(), q=new THREE.Quaternion(), sc=new THREE.Vector3(), p=new THREE.Vector3(), e=new THREE.Euler(), col=new THREE.Color();
-  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; const n=gnNear(x,z,20); if (n.d<n.w/2+5.5) continue;
-    const h=terrainH(x,z), k=pick(h>440?GT.mixHi:h>380?(rnd()<0.5?GT.mixHi:GT.mixLo):GT.mixLo), s0=1.0+rnd()*0.6; e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(0.85+rnd()*0.4),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
+  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
+    const h=terrainH(x,z), k=pick(h>440?GT.mixHi:h>380?(rnd()<0.5?GT.mixHi:GT.mixLo):GT.mixLo), s0=(inner?1.25:1.0)+rnd()*0.6; e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(0.85+rnd()*0.4),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
     const f=0.72+rnd()*0.35; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[k]=by[k]||[]).push([m.clone(),col.clone()]); } }
-  const grp=new THREE.Group(), RT=LITE?60:110, out={grp, types:[], cx:x0+S/2, cz:z0+S/2};
-  Object.entries(by).forEach(([k,L])=>{ const c=L.length, mk=(parts,mats,far)=>parts.map(([g],pi)=>{ const geo=new THREE.BufferGeometry(); for (const nm in g.attributes) if (nm!=='iLodR') geo.setAttribute(nm,g.attributes[nm]); if (g.index) geo.setIndex(g.index); geo.groups=g.groups; geo.boundingSphere=g.boundingSphere;   /* Puffer teilen statt kopieren */ geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(c).fill(RT),1)); const im=mkIM(geo,mats[pi],c); im.castShadow=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ im.setMatrixAt(ii,mm); im.setColorAt(ii,cc); }); im.count=far?c:0; grp.add(im); return im; });
-    out.types.push({L, near:mk(fk[k].near,fk[k].nearM,false), far:mk(fk[k].far,fk[k].farM,true)}); });
+  const grp=new THREE.Group(), RT=LITE?60:110, out={grp, types:[], cx:x0+S/2, cz:z0+S/2}, bs=new THREE.Sphere(new THREE.Vector3(x0+S/2, terrainH(x0+S/2,z0+S/2), z0+S/2), S*0.72+90);   /* Kachel-Hülle: Wald hinter der Kamera wird nicht gezeichnet */
+  Object.entries(by).forEach(([k,L])=>{ const c=L.length, mk=(parts,mats,far)=>parts.map(([g],pi)=>{ const geo=new THREE.BufferGeometry(); for (const nm in g.attributes) if (nm!=='iLodR') geo.setAttribute(nm,g.attributes[nm]); if (g.index) geo.setIndex(g.index); geo.groups=g.groups; geo.boundingSphere=g.boundingSphere;   /* Puffer teilen statt kopieren */ geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(c).fill(RT),1)); const im=mkIM(geo,mats[pi],c); im.castShadow=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ im.setMatrixAt(ii,mm); im.setColorAt(ii,cc); }); im.count=0; im.frustumCulled=true; im.boundingSphere=bs; grp.add(im); return im; });
+    const mi=mkIM(fk[k].mini[0],fk[k].mini[1],c); mi.castShadow=false; mi.frustumCulled=true; mi.boundingSphere=bs; mi.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ mi.setMatrixAt(ii,mm); mi.setColorAt(ii,cc); }); mi.count=c; grp.add(mi);
+    out.types.push({L, st:'m', mini:mi, near:mk(fk[k].near,fk[k].nearM,false), far:mk(fk[k].far,fk[k].farM,true)}); });
   GT.grp.add(grp); return out; }
 function gtFoDrop(t){ if (!t.fo) return; GT.grp.remove(t.fo.grp); t.fo.grp.children.forEach(im=>{ im.dispose&&im.dispose(); }); t.fo=null; }   /* Geometrie geteilt: nicht freigeben */
 /* Bäume nur bis ca. 1,2 km (LITE 0,7 km) als Instanzen, dahinter zeigt die dunkle Bodenfarbe den Wald */
@@ -6293,10 +6300,15 @@ function gtHouseStep(cp, ms){ let best=null, bd=1e9; GT.tiles.forEach(t=>{ if (t
   if (!ms){ try{ best.hs=gtHouses(best.i,best.j); }catch(e){ console.warn('haeuser',e); best.hs=null; } return true; }
   if (!GT.hj || GT.hj.t!==best) GT.hj={t:best, g:gtHousesGen(best.i,best.j)}; const t0=performance.now(); let r; try{ do r=GT.hj.g.next(); while(!r.done && performance.now()-t0<ms); }catch(e){ console.warn('haeuser',e); r={done:true,value:null}; }
   if (!r.done) return false; best.hs=r.value; GT.hj=null; return true; }
-function gtForestLOD(cp){ if (!GT.on) return; if (GT.flast && Math.hypot(cp.x-GT.flast.x,cp.z-GT.flast.z)<(LITE?10:20)) return; GT.flast={x:cp.x,z:cp.z}; const RT=LITE?60:110, R2=(RT+LOD_M)*(RT+LOD_M);
-  GT.tiles.forEach(t=>{ const F=t.fo; if (!F) return; const near=Math.hypot(cp.x-F.cx,cp.z-F.cz)<GT.S*0.72+RT+LOD_M;
-    F.types.forEach(T=>{ let a=0; if (near) T.L.forEach(([mm,cc])=>{ const dx=mm.elements[12]-cp.x, dz=mm.elements[14]-cp.z; if (dx*dx+dz*dz<R2){ for (const im of T.near){ im.setMatrixAt(a,mm); im.setColorAt(a,cc); } a++; } });
-      if (a || T.near[0] && T.near[0].count){ T.near.forEach(im=>{ im.count=a; im.instanceMatrix.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; }); } }); }); }
+function gtForestLOD(cp){ if (!GT.on) return; if (GT.flast && Math.hypot(cp.x-GT.flast.x,cp.z-GT.flast.z)<(LITE?10:20)) return; GT.flast={x:cp.x,z:cp.z}; const RT=LITE?60:110, RM=gtMidR(), R2=(RT+LOD_M)*(RT+LOD_M), M2=RM*RM;
+  GT.tiles.forEach(t=>{ const F=t.fo; if (!F) return; const dc=Math.hypot(cp.x-F.cx,cp.z-F.cz), near=dc<GT.S*0.72+RT+LOD_M, mid=dc<GT.S*0.72+RM;
+    F.types.forEach(T=>{ const up=(ims,n)=>ims.forEach(im=>{ im.count=n; im.instanceMatrix.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
+      if (!mid){ if (T.st!=='m'){ T.L.forEach(([mm,cc],ii)=>{ T.mini.setMatrixAt(ii,mm); T.mini.setColorAt(ii,cc); }); up([T.mini],T.L.length); T.far.forEach(im=>im.count=0); T.near.forEach(im=>im.count=0); T.st='m'; } return; }
+      T.st='x'; let a=0, b=0, c=0; T.L.forEach(([mm,cc])=>{ const dx=mm.elements[12]-cp.x, dz=mm.elements[14]-cp.z, d2=dx*dx+dz*dz;
+        if (near && d2<R2){ for (const im of T.near){ im.setMatrixAt(a,mm); im.setColorAt(a,cc); } a++; }
+        if (d2<M2){ for (const im of T.far){ im.setMatrixAt(b,mm); im.setColorAt(b,cc); } b++; } else { T.mini.setMatrixAt(c,mm); T.mini.setColorAt(c,cc); c++; } });
+      if (a || T.near[0] && T.near[0].count) up(T.near,a); up(T.far,b); up([T.mini],c); }); }); }
+function gtMidR(){ return MINI?110:LITE?160:280; }
 /* Gebäude aus Overture Maps (OpenStreetMap + Gebäudeerkennung), je Kachel: echte Grundrisse, Satteldach über dem ausgerichteten Rechteck */
 function gtBldIndex(){ if (GT.bi!==undefined) return GT.bi; GT.bi=null; if (!window.ZGBLD) return null; const a=b64i16(window.ZGBLD), M=new Map(); let i=0;
   while (i<a.length){ const n=a[i], k=a[i+1], hd=a[i+2]; let x=a[i+3], z=a[i+4]; const P=[[x,z]]; let qx=Math.round(x*4), qz=Math.round(z*4); i+=5; for (let j=1;j<n;j++){ qx+=a[i]; qz+=a[i+1]; i+=2; P.push([qx/4,qz/4]); }
@@ -6335,13 +6347,16 @@ function gtBuild(i,j){ const J=gtStart(i,j); gtStep(J,0); return gtFinish(J); }
 function gtMask(){ const c=GT.cv; if (!c || !GT.tex) return; const g=c.getContext('2d'), S=c.width, px=EXT/S; g.fillStyle='#000'; g.fillRect(0,0,S,S); g.fillStyle='#fff';
   GT.tiles.forEach(t=>{ g.fillRect((t.i*GT.S-OFF)/px+1, (t.j*GT.S-OFF)/px+1, GT.S/px-2, GT.S/px-2); }); GT.tex.needsUpdate=true; }
 function gtStream(cam, budget){ if (!GT.on) return; const S=GT.S, R=GT.R, ci=Math.floor(cam.x/S), cj=Math.floor(cam.z/S), r=Math.ceil(R/S)+1; let built=0, changed=false; budget=budget||1;
-  const want=[]; for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const i=ci+a, j=cj+b, dx=Math.max(0,Math.abs(cam.x-(i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(j+0.5)*S)-S/2), dd=Math.hypot(dx,dz); if (dd<R) want.push([dd,i,j]); }
+  /* 0.7.2: Fahrtrichtung aus der Bewegung; hinter dem Fahrer nur ca. 600 m laden (reicht zum Wenden), nach vorn die volle Sicht */
+  if (!GT.pp) GT.pp={x:cam.x,z:cam.z}; { const mx=cam.x-GT.pp.x, mz=cam.z-GT.pp.z, ml=Math.hypot(mx,mz); if (ml>200){ GT.dv=null; GT.pp={x:cam.x,z:cam.z}; } else if (ml>25){ GT.dv={x:mx/ml,z:mz/ml}; GT.pp={x:cam.x,z:cam.z}; } }
+  const RB=Math.min(R,MINI?450:600), rr=(i,j,dd)=>{ const dv=GT.dv; if (!dv) return R; const ox=(i+0.5)*S-cam.x, oz=(j+0.5)*S-cam.z; return (ox*dv.x+oz*dv.z)< -S*0.75 ? RB : R; };
+  const want=[]; for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const i=ci+a, j=cj+b, dx=Math.max(0,Math.abs(cam.x-(i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(j+0.5)*S)-S/2), dd=Math.hypot(dx,dz); if (dd<rr(i,j)) want.push([dd,i,j]); }
   want.sort((p,q)=>p[0]-q[0]);
   if (budget>1){ for (const [dd,i,j] of want){ const k=i+','+j; if (GT.tiles.has(k)) continue; if (built>=budget) break; GT.tiles.set(k,gtBuild(i,j)); built++; changed=true; } }
   else { if (GT.job && !want.some(w=>w[1]===GT.job.i&&w[2]===GT.job.j)){ GT.job.geo.dispose(); GT.job=null; }
     if (!GT.job){ for (const [dd,i,j] of want){ if (!GT.tiles.has(i+','+j)){ GT.job=gtStart(i,j); break; } } }
     if (GT.job && gtStep(GT.job, MINI?2:3)){ GT.tiles.set(GT.job.i+','+GT.job.j, gtFinish(GT.job)); GT.job=null; changed=true; } }
-  GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>R+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
+  GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>rr(t.i,t.j)+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
   if (changed){ gtMask(); GT.flast=null; } if (budget>1){ while (gtHouseStep(cam)); while (gtForestRange(cam)); } else if (!GT.job){ if (!gtHouseStepPending(cam)) gtForestRange(cam, MINI?2:3); } gtForestLOD(cam); }
 function gdemH(x,z){ const d=GN.dem; if (!d) return 0; const gx=clamp((x-d.x0)/d.cell,0,d.nx-1.001), gz=clamp((z-d.z0)/d.cell,0,d.nz-1.001); const ix=gx|0, iz=gz|0, fx=gx-ix, fz=gz-iz, n=d.nx, H=d.H;
   return (H[iz*n+ix]*(1-fx)+H[iz*n+ix+1]*fx)*(1-fz)+(H[(iz+1)*n+ix]*(1-fx)+H[(iz+1)*n+ix+1]*fx)*fz; }
@@ -8841,7 +8856,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.7.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.7.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
