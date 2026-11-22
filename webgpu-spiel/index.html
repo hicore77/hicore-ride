@@ -6437,23 +6437,31 @@ function gtBldIndex(){ if (GT.bi!==undefined) return GT.bi; GT.bi=null; if (!win
 /* 0.9.0 Haustypen: Zellen im Atlas (W = Wand, G = Giebel), Dach r = Ziegel, s = Schiefer/Eternit, Walmdach hip */
 const HT={
   U_turk:{w:8,g:1,H:[5.4,6.2],p:[0.9,1.05],rf:'rs',ug:1}, U_redu:{w:9,g:2,H:[5.4,6.2],p:[0.9,1.05],rf:'rs',ug:1}, U_fach:{w:10,g:3,H:[5.4,6.2],p:[0.85,1.0],rf:'r',ug:1}, U_ocker:{w:11,g:10,H:[5.4,6.2],p:[0.9,1.05],rf:'rs',ug:1},
-  U_schiefer:{w:12,g:5,H:[5.4,6.2],p:[0.95,1.1],rf:'s',ug:1}, U_gruen:{w:13,g:6,H:[5.4,6.0],p:[0.9,1.05],rf:'rs',ug:1}, U_grau:{w:14,g:7,H:[5.2,6.0],p:[0.9,1.05],rf:'r',ug:1}, U_rotfach:{w:15,g:11,H:[5.4,6.2],p:[0.85,1.0],rf:'r',ug:1},
+  U_schiefer:{w:12,g:5,H:[5.4,6.2],p:[0.95,1.1],rf:'s',ug:1}, U_gruen:{w:13,g:6,H:[5.4,6.0],p:[0.9,1.05],rf:'rs',ug:1}, U_grau:{w:14,g:7,H:[5.2,6.0],p:[0.9,1.05],rf:'r',ug:1}, U_rotfach:{w:15,g:11,H:[5.4,6.2],p:[0.85,1.0],rf:'r',ug:1}, JONS:{w:31,g:8,H:[5.4,6.2],p:[0.85,1.05],rf:'r',ug:1,tint:5},
   EFH:{w:0,d:6,g:0,H:[5.2,6.2],p:[0.65,0.9],rf:'rs',tint:1}, EFH_L:{w:1,d:6,g:0,H:[5.2,6.0],p:[0.7,0.95],rf:'r',tint:1}, EW58:{w:2,g:9,H:[3.0,3.5],p:[1.0,1.15],rf:'rs',tint:2}, EW65:{w:3,g:9,H:[5.6,6.2],p:[0.28,0.4],rf:'s',hip:1,tint:2},
   SIED:{w:4,g:0,H:[3.3,4.6],p:[0.95,1.1],rf:'r',tint:1}, NEU:{w:5,g:14,H:[5.4,6.0],p:[0.5,0.7],rf:'s'}, DOPPEL:{w:0,d:6,g:0,H:[5.4,6.2],p:[0.7,0.9],rf:'r',tint:1,dop:1}, VILLA:{w:7,g:4,H:[6.4,7.2],p:[0.75,0.95],rf:'s',hip:1},
   ALT:{w:16,b:17,g:0,H:[9.5,13.5],p:[0.6,0.85],rf:'rs',tint:3}, BLOCK:{w:19,g:0,H:[9,12.5],p:[0.45,0.6],rf:'r',hip:1,tint:1}, PLATTE:{w:18,H:[12,15.5],flat:1}, HALLE:{w:20,d:21,g:15,H:[5,7.5],p:[0.12,0.2],rf:'s',tint:4},
   SCHEUNE:{w:22,g:8,H:[4.6,5.6],p:[0.75,0.9],rf:'rs'}, SCHEUNE2:{w:23,g:8,H:[4.8,6.0],p:[0.75,0.9],rf:'r'}, STALL:{w:26,g:14,H:[3.4,4.2],p:[0.6,0.75],rf:'r'}, GARAGE:{w:24,H:[2.5,2.8],flat:1}, SCHUPPEN:{w:25,g:7,H:[2.3,2.8],p:[0.35,0.5],rf:'s'}, BLECH:{w:20,H:[2.6,3.4],flat:1,tint:4} };
 const HT_TINT=[null, [[1,1,1],[1,0.95,0.80],[0.99,0.9,0.78],[0.93,0.95,0.97],[1,0.9,0.86],[0.95,0.97,0.88],[0.98,0.93,0.86]], [[1,1,1],[0.96,0.94,0.9],[0.92,0.9,0.86]],
-  [[1,1,1],[1,0.92,0.76],[0.96,0.88,0.84],[0.9,0.92,0.94],[0.98,0.86,0.72],[0.92,0.95,0.86]], [[1,1,1],[0.85,0.92,1],[1,0.97,0.86],[0.92,0.98,0.94]]];
-function htPick(b, area, asp, rnd, city){ const W=(o)=>{ let t=0; for (const k in o) t+=o[k]; let r=rnd()*t; for (const k in o){ r-=o[k]; if (r<=0) return k; } return Object.keys(o)[0]; };
+  [[1,1,1],[1,0.92,0.76],[0.96,0.88,0.84],[0.9,0.92,0.94],[0.98,0.86,0.72],[0.92,0.95,0.86]], [[1,1,1],[0.85,0.92,1],[1,0.97,0.86],[0.92,0.98,0.94]], [[1,1,1],[1,0.98,0.93],[1,0.96,0.86],[0.97,0.97,0.95]]];
+/* 0.9.4 Häuser am Start Jonsdorf -> Hain nach Mapillary-Fotos (Schlüssel = gerundeter Grundriss-Mittelpunkt)
+   t Typ, c Wandfarbe, r Dachfarbe, rs Schieferdach */
+const HT_OVR={ '-2427,-415':{t:'JONS',c:[1,1,1],r:[0.86,0.42,0.3]}, '-2432,-389':{t:'U_fach',rs:1}, '-2429,-374':{t:'JONS',c:[1,1,1]}, '-2437,-379':{t:'EFH',c:[1,1,1]},
+  '-2378,-370':{t:'JONS',c:[0.86,0.95,0.84]}, '-2438,-299':{t:'EFH',c:[1,1,1]}, '-2431,-290':{t:'JONS',c:[1,0.97,0.9]}, '-2424,-274':{t:'U_fach',rs:1}, '-2457,-258':{t:'JONS',c:[1,1,1]}, '-2461,-235':{t:'EFH_L',c:[1,0.96,0.88]},
+  '-2534,209':{t:'U_fach',r:[0.8,0.4,0.3]}, '-2537,227':{t:'SCHUPPEN'}, '-2501,254':{t:'JONS',c:[1,0.95,0.82],r:[0.86,0.42,0.3]}, '-2501,270':{t:'JONS',c:[1,0.97,0.88]}, '-2483,269':{t:'EFH',c:[1,1,1]}, '-2456,299':{t:'U_fach'},
+  '-2442,418':{t:'U_fach',r:[0.55,0.3,0.24]}, '-2426,419':{t:'JONS',c:[1,1,1]}, '-2458,472':{t:'EFH',c:[0.96,0.96,0.95]}, '-2394,515':{t:'EFH',c:[1,1,1]}, '-2403,520':{t:'EFH_L',c:[0.97,0.97,0.96]},
+  '-2287,739':{t:'EFH',c:[1,0.9,0.62],r:[0.5,0.32,0.24]}, '-2295,763':{t:'JONS',c:[1,1,1]}, '-2294,752':{t:'EFH',c:[1,0.97,0.9]}, '-2365,707':{t:'JONS',c:[1,0.96,0.88]}, '-2346,774':{t:'EFH',c:[1,1,1]}, '-2345,791':{t:'JONS',c:[1,1,1]},
+  '-2333,782':{t:'U_fach'}, '-2304,807':{t:'JONS',c:[1,0.97,0.9]}, '-2293,777':{t:'EFH',c:[1,0.93,0.78]} };
+function htPick(b, area, asp, rnd, city, mtn){ const W=(o)=>{ let t=0; for (const k in o) t+=o[k]; let r=rnd()*t; for (const k in o){ r-=o[k]; if (r<=0) return k; } return Object.keys(o)[0]; };
   const k=b.k;
   if (k===3) return area>230?W({SCHEUNE:1,SCHEUNE2:1.2}):W({SCHEUNE:1,STALL:1,SCHEUNE2:0.5});
   if (k===1) return area<22?W({SCHUPPEN:2,BLECH:1}):area<55?W({GARAGE:2,SCHUPPEN:1}):W({STALL:1,SCHEUNE:1,HALLE:0.6});
   if (area<16) return 'SCHUPPEN';
   if (k===2){ if (asp>2.6 && area>400) return 'HALLE'; if (city) return area>450?W({PLATTE:1.2,BLOCK:1,ALT:0.8,HALLE:0.5}):W({ALT:1.5,BLOCK:1,HALLE:0.4}); return area>600?W({HALLE:1.4,STALL:1}):area>220?W({BLOCK:1,HALLE:1,ALT:0.4,STALL:0.5}):W({EFH:1,SIED:0.6,EW65:0.6,STALL:0.5}); }
   if (city){ if (area>170) return W({ALT:3,BLOCK:1}); return W({EFH:2,EFH_L:1,SIED:1,NEU:1,VILLA:0.6,EW65:0.6}); }
-  const o={EFH:2.4,EFH_L:1.1,EW58:1.4,EW65:1.4,SIED:1,NEU:1};
+  const o=mtn?{EFH:1.6,EFH_L:0.8,EW58:0.7,EW65:0.5,SIED:0.5,NEU:0.5,JONS:2.4}:{EFH:2.4,EFH_L:1.1,EW58:1.4,EW65:1.4,SIED:1,NEU:1};
   if (area>130 && asp>1.45) o.DOPPEL=1.2; if (area>150) o.VILLA=0.5; if (area>280) o.BLOCK=0.6;
-  if (area>65 && area<300 && asp>1.3){ const ug=['U_turk','U_redu','U_fach','U_ocker','U_schiefer','U_gruen','U_grau','U_rotfach']; ug.forEach(u=>o[u]=1.05); }   // Oberlausitzer Umgebindehäuser: lang gestreckt, mittelgroß
+  if (area>65 && area<300 && asp>1.3){ const ug=['U_turk','U_redu','U_fach','U_ocker','U_schiefer','U_gruen','U_grau','U_rotfach']; ug.forEach(u=>o[u]=1.05); if (mtn){ o.U_fach=2.2; o.U_gruen=0.4; o.U_turk=0.5; o.JONS+=1.5; } }   // Oberlausitzer Umgebindehäuser: lang gestreckt, mittelgroß
   return W(o); }
 function gtHouses(i,j){ const g=gtHousesGen(i,j); let r; do r=g.next(); while(!r.done); return r.value; }
 function* gtHousesGen(i,j){ const M=gtBldIndex(); if (!M) return null; const L=M.get(i+','+j); if (!L || !L.length) return null; const T=facadeTextures();
@@ -6484,11 +6492,11 @@ function* gtHousesGen(i,j){ const M=gtBldIndex(); if (!M) return null; const L=M
     const Wp=(u,v)=>[u*ax-v*az, v*ax+u*az]; const p3=(u,v,y)=>{ const [x,z]=Wp(u,v); return [x,y,z]; };
     const asp=(u1-u0)/Math.max(1,v1-v0), isCity=city(b.cx,b.cz);
     if (b.k===4){ gtChurch({P,area,u0,u1,v0,v1,ax,az,Wp,p3,gmin,gmax,y0,rnd,isCity,quad,tri,lathe,GU,col}); continue; }
-    const tn=htPick(b,area,asp,rnd,isCity), ty=HT[tn];
+    const OV=HT_OVR[Math.round(b.cx)+','+Math.round(b.cz)]; const tn=OV&&HT[OV.t]?OV.t:htPick(b,area,asp,rnd,isCity,!isCity&&b.cz>-2200), ty=HT[tn];
     let wallH=ty.H[0]+rnd()*(ty.H[1]-ty.H[0]); if (b.h>0 && (ty.flat || tn==='ALT' || tn==='BLOCK' || tn==='HALLE')) wallH=Math.max(2.4, ty.flat?b.h:b.h*0.78);
     if (!isCity) wallH=Math.min(wallH,10); const E=gmax+wallH, H=E-y0;
     // Wandfarbe: Putztypen bekommen eine Pastellfarbe, Holz/Schiefer bleiben fast unverändert
-    const pal=ty.tint?HT_TINT[ty.tint]:null; const pc=pal?pal[(rnd()*pal.length)|0]:[1,1,1]; const f=0.93+rnd()*0.07; const wc=new THREE.Color(pc[0]*f,pc[1]*f,pc[2]*f);
+    const pal=ty.tint?HT_TINT[ty.tint]:null; const pc0=pal?pal[(rnd()*pal.length)|0]:[1,1,1], pc=OV&&OV.c?OV.c:pc0; const f=OV&&OV.c?1:0.93+rnd()*0.07; const wc=new THREE.Color(pc[0]*f,pc[1]*f,pc[2]*f);
     const wc2=ty.dop?(()=>{ const q=HT_TINT[1][(rnd()*HT_TINT[1].length)|0]; return new THREE.Color(q[0]*f,q[1]*f,q[2]*f); })():wc; const um=(u0+u1)/2;
     const tall=ty.b!==undefined||tn==='BLOCK'||tn==='PLATTE'; const base=!tall&&H>wallH+1.2?H-wallH-0.4:0;   // Hanglage: Sockel aus Bruchstein unter dem Haus
     const Hw=H-base, rows=tall&&Hw>7.6?Math.max(2,Math.round(Hw/5.8)):1, rh=Hw/rows, fvTop=rows===1&&Hw<4.2?Hw/6:1, yb0=y0+base;
@@ -6503,8 +6511,8 @@ function* gtHousesGen(i,j){ const M=gtBldIndex(); if (!M) return null; const L=M
     if (flat){ let tr=null; try{ tr=THREE.ShapeUtils.triangulateShape(P.map(p=>new THREE.Vector2(p[0],p[1])),[]); }catch(e){} col.setHSL(0,0,0.42+rnd()*0.18); if (tr) tr.forEach(([a1,b1,c1])=>tri('flat',[P[a1][0],E,P[a1][1]],[P[b1][0],E,P[b1][1]],[P[c1][0],E,P[c1][1]],[0,0],[1,0],[0,1],col)); continue; }
     // Dach
     const ov=ty.ug?0.55:0.45; const uo0=u0-ov, uo1=u1+ov, vo0=v0-ov, vo1=v1+ov; const vm=(v0+v1)/2, hw=(v1-v0)/2, pitch=ty.p[0]+rnd()*(ty.p[1]-ty.p[0]), Hr=E+hw*pitch, Ee=E-ov*pitch;
-    const rk=ty.rf==='s'?'roofS':ty.rf==='r'?'roof':(rnd()<0.45?'roofS':'roof');
-    if (rk==='roof'){ const g2=0.8+rnd()*0.25; col.setRGB(g2,g2*(0.84+rnd()*0.12),g2*(0.78+rnd()*0.12)); if (rnd()<0.18) col.setRGB(0.55,0.42,0.38); } else { const g2=0.78+rnd()*0.3; col.setRGB(g2,g2*1.01,g2*1.04); }
+    const rk0=ty.rf==='s'?'roofS':ty.rf==='r'?'roof':(rnd()<0.45?'roofS':'roof'), rk=OV&&OV.rs?'roofS':OV&&OV.r?'roof':rk0;
+    if (rk==='roof'){ const g2=0.8+rnd()*0.25; col.setRGB(g2,g2*(0.84+rnd()*0.12),g2*(0.78+rnd()*0.12)); if (rnd()<0.18) col.setRGB(0.55,0.42,0.38); if (OV&&OV.r) col.setRGB(OV.r[0]/0.86,OV.r[1]/0.62,OV.r[2]/0.52); } else { const g2=0.78+rnd()*0.3; col.setRGB(g2,g2*1.01,g2*1.04); }
     const rl=(uo1-uo0)/3, sl=Math.hypot(hw+ov,(hw+ov)*pitch)/3;
     if (ty.hip){ const uc=(u0+u1)/2, rr=Math.max(0,(uo1-uo0)/2-(hw+ov)); const ra=uc-rr, rb=uc+rr;
       [[vo0],[vo1]].forEach(([ve])=>{ const a=p3(uo0,ve,Ee), b2=p3(uo1,ve,Ee), c=p3(rb,vm,Hr), d=p3(ra,vm,Hr); tri(rk,a,b2,c,[0,0],[rl,0],[(rb-uo0)/3,sl],col); tri(rk,a,c,d,[0,0],[(rb-uo0)/3,sl],[(ra-uo0)/3,sl],col); });
@@ -6852,13 +6860,14 @@ function facadeTextures(){
       g=>{ putz(g,'#f6f3ec',384); g.fillStyle='#d4572e'; g.fillRect(0,0,30,384); g.fillRect(226,0,30,384); g.fillRect(0,0,256,8); g.fillRect(0,372,256,12); g.fillRect(30,140,196,8);
         g.fillStyle='#e6e2da'; g.fillRect(96,34,64,84); g.fillStyle='rgba(60,60,60,.6)'; for (let y=40;y<114;y+=8) g.fillRect(98,y,60,3); g.fillStyle='#f4f1e8'; g.beginPath(); g.arc(128,186,24,0,7); g.fill(); g.strokeStyle='#222'; g.lineWidth=3; g.beginPath(); g.moveTo(128,186); g.lineTo(140,180); g.moveTo(128,186); g.lineTo(126,168); g.stroke(); win2(g,114,276,28,44,'#d4572e'); },   // 29 Turm Putz
       g=>{ ashlar(g,0,0,256,384,'#c4ae86'); g.fillStyle='rgba(0,0,0,.2)'; g.fillRect(0,0,26,384); g.fillRect(230,0,26,384); arch(g,128,40,140,52,'#b19a72','#2a2a2a',true); g.fillStyle='rgba(80,80,80,.6)'; for (let y=70;y<140;y+=8) g.fillRect(104,y,48,3); g.fillStyle='#e9e2cf'; g.beginPath(); g.arc(128,196,22,0,7); g.fill(); arch(g,128,268,330,22,'#b19a72','#2d3a44',true); },   // 30 Turm Sandstein
-      g=>{ putz(g,'#f1ede4',384); plinth(g,346,38); } ];                                                                                                                                     // 31 Putz ohne Fenster
+      g=>{ putz(g,'#f4f1ea',384); boards(g,0,0,256,184,'#4a3122','#553826',11); g.fillStyle='rgba(0,0,0,.35)'; for (let x=10;x<256;x+=11) g.fillRect(x,0,1.5,184); g.fillStyle='#3a271b'; g.fillRect(0,176,256,12);
+        win2(g,48,52,40,58,'#f6f3ea'); win2(g,168,52,40,58,'#f6f3ea'); g.translate(0,192); ugEG(g,'#f6f3ec','#3e2a1d'); g.translate(0,-192); } ];   // 31 Jonsdorfer Umgebindehaus: weißer Putz mit dunklem Umgebinde, dunkle Bretter-OG (Sockelzeile = Hangsockel)                                                                                                                                     // 31 Putz ohne Fenster
     const GB=[ // 0..15 Giebelzellen
       g=>{ putz(g,'#f8f6f0',256); win2(g,108,128,40,54,'#ffffff'); }, IMG(turkG), IMG(reduG), IMG(fachG), IMG(villaG),
       g=>{ shingles(g,0,0,256,256,'#4b5159'); win2(g,108,128,40,54,'#f6f3ea'); },
       g=>{ boards(g,0,0,256,256,'#3f7a4a','#468451',9); win2(g,108,128,40,54,'#f6f3ea'); },
       g=>{ boards(g,0,0,256,256,'#8f8a80','#9a958b',9); nz(g,256,0.12); },
-      g=>{ boards(g,0,0,256,256,'#6d4a2f','#76512f',16); g.fillStyle='rgba(0,0,0,.45)'; for (let x=15;x<256;x+=16) g.fillRect(x,0,2,256); g.fillStyle='#2a2018'; g.fillRect(104,120,48,52); },
+      g=>{ boards(g,0,0,256,256,'#6d4a2f','#76512f',16); g.fillStyle='rgba(0,0,0,.45)'; for (let x=15;x<256;x+=16) g.fillRect(x,0,2,256); win2(g,106,122,44,58,'#f6f3ea'); },
       g=>{ kratz(g,'#d8d2c2',256); win2(g,74,150,34,46,'#f4f2ec'); win2(g,148,150,34,46,'#f4f2ec'); },
       g=>{ boards(g,0,0,256,256,'#d9b98a','#d2b183',8); win2(g,110,130,34,48,'#f4f1e8'); },
       g=>{ putz(g,'#f6efe2',256); g.fillStyle=M(g,'wood','#7a3324'); [64,128,192].forEach(x=>g.fillRect(x-4,0,8,256)); g.fillRect(0,120,256,7); g.fillRect(0,214,256,8); win2(g,94,140,28,48,'#ffffff'); win2(g,138,140,28,48,'#ffffff'); },
@@ -6872,7 +6881,7 @@ function facadeTextures(){
         if (h>300){ gr=g.createLinearGradient(0,h-80,0,h-38); gr.addColorStop(0,'rgba(70,60,45,0)'); gr.addColorStop(1,`rgba(70,60,45,${0.22*a})`); g.fillStyle=gr; g.fillRect(0,h-80,256,42); } }
       for (let i=0;i<7;i++){ const x=Math.random()*256, y=Math.random()*h, r=30+Math.random()*70, gr=g.createRadialGradient(x,y,0,x,y,r), d=Math.random()<0.6; gr.addColorStop(0,d?`rgba(60,55,45,${0.07*a})`:`rgba(255,250,240,${0.06*a})`); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(x-r,y-r,2*r,2*r); }
       for (let i=0;i<28;i++){ const x=Math.random()*256, y=Math.random()*h*0.9, l=20+Math.random()*110, w=1.5+Math.random()*4, gr=g.createLinearGradient(0,y,0,y+l); gr.addColorStop(0,`rgba(45,40,35,${(0.05+Math.random()*0.07)*a})`); gr.addColorStop(1,'rgba(45,40,35,0)'); g.fillStyle=gr; g.fillRect(x,y,w,l); } };
-    const REP={16:1,18:1,19:1}, SOFT={20:1,21:1,22:1,23:1,25:1,8:1,9:1,11:1,13:1,14:1};
+    const REP={16:1,18:1,19:1}, SOFT={31:1,20:1,21:1,22:1,23:1,25:1,8:1,9:1,11:1,13:1,14:1};
     W.forEach((fn,i)=>cell((i%8)*256,(i>>3)*384,256,384,g=>{ fn(g); weather(g,384,!!REP[i],!!SOFT[i]); })); GB.forEach((fn,i)=>cell((i%8)*256,1536+(i>>3)*256,256,256,g=>{ fn(g); weather(g,256,true,true); }));
     const t=new THREE.CanvasTexture(c); t.anisotropy=4; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; _facTex.atlas=t; return t; };
   _facTex={plaster, wood, umgebinde, barn, roof, slate, turk, ocker, turkG, fach, fachG, redu, reduG, villa, villaG, garage, p_fach, p_turkW, p_turkG, p_redu, atlasFn}; return _facTex;
@@ -9191,7 +9200,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.9.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.9.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
