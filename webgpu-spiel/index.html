@@ -6466,6 +6466,10 @@ function gReverse(){ const C=NET, R=C.cur, old=posAt(S.dist), f=S.dist/L; const 
   setRoute(nr); let bi=Math.round((1-f)*N)%N, bd=1e9; const w=Math.ceil(N*0.06); for (let o=-w;o<=w;o++){ const i=((Math.round((1-f)*N)+o)%N+N)%N, p=pts[i], d=Math.hypot(p.x-old.x,p.z-old.z); if (d<bd){ bd=d; bi=i; } }
   S.dist=cum[bi]; S.dir=1; meP.dir=1; C.appl.clear(); C.pend=null; junUI(null); }
 function gRouteOfKey(key){ let cur=NET.main; for (const t of key.split(',')){ const [rd,e]=t.split(':').map(Number); const i=cur.ents.findIndex(en=>Math.abs(en.r1-rd)<2); if (i<0 || isNaN(e)) break; cur=gTurn(cur,{i,node:cur.ents[i].n1,rd},e); } return cur; }
+/* 0.8.0 (Hicore): Sackgassen bleiben als Straße sichtbar, bekommen aber keinen Abbiegehinweis. Ausnahme: echte Anstiege (ab 800 m und 60 Hm, z. B. Lausche, Hochwald) */
+function gOfferable(D,e,node){ const C=D._off||(D._off=new Map()), k=e+'|'+node; if (C.has(k)) return C.get(k); const E=D.edges[e], far=E.a===node?E.b:E.a, seen=new Set([far]), st=[far], used=new Set([e]); let len=E.len, top=-1e9, loop=false;
+  while (st.length && !loop){ const n=st.pop(); for (const k2 of (D.adj[n]||[])){ if (used.has(k2)) continue; used.add(k2); const E2=D.edges[k2]; len+=E2.len; E2.P.forEach(q=>{ if (q.y>top) top=q.y; }); const o=E2.a===n?E2.b:E2.a; if (o===node){ loop=true; break; } if (!seen.has(o)){ seen.add(o); st.push(o); } if (seen.size>400){ loop=true; break; } } }
+  E.P.forEach(q=>{ if (q.y>top) top=q.y; }); const y0=D.nodes[node].y!==undefined?D.nodes[node].y:(E.a===node?E.P[0].y:E.P[E.P.length-1].y), ok=loop || (len>=800 && top-y0>=60); C.set(k,ok); return ok; }
 /* 0.8.0: kurzes Anschlussstück (z. B. 32 m Grenzstraße) zeigt auch die weiterführende Straße (Hochwaldweg) */
 function gStreetVia(D,e,node){ const E=D.edges[e], n0=gStreet(E); if (E.len>90) return n0; const far=E.a===node?E.b:E.a, nx=(D.adj[far]||[]).filter(k=>k!==e).map(k=>D.edges[k]).sort((a,b)=>b.len-a.len)[0]; const n1=nx?gStreet(nx):''; return n1&&n1!==n0?(n0?n0+' → ':'')+n1:n0; }
 function gStreet(E){ const r=/^\d+$/.test(E.ref||'')?'':E.ref; return E.street&&r?r+' '+E.street:(E.street||r||''); }
@@ -6484,7 +6488,7 @@ function gNetStep(){ const C=NET, D=gnData();
   const lead=Math.max(160, S.speed*12);
   if (!best || best.ah>lead){ junUI(null); C.pend=null; return; }
   if (!C.pend || C.pend.tag!==best.tag){ const arr=R.ents[best.i].e, nx=R.ents[best.i+1]||(best.node===R.ents[0].n0?(R.rev?gRevMain():C.main).ents[0]:null), planned=nx?nx.e:null;
-    const opts=D.adj[best.node].filter(e=>e!==arr || D.edges[e].a===D.edges[e].b).map(e=>Object.assign({e, name:gStreetVia(D,e,best.node), dest:D.dest(e,best.node), km:(D.destInfo(best.node,e)||{}).km, len:D.edges[e].len, plan:e===planned}, gTurnInfo(arr,best.node,e))).sort((a,b)=>a.a-b.a);
+    const opts=D.adj[best.node].filter(e=>e!==arr || D.edges[e].a===D.edges[e].b).filter(e=>e===planned || gOfferable(D,e,best.node)).map(e=>Object.assign({e, name:gStreetVia(D,e,best.node), dest:D.dest(e,best.node), km:(D.destInfo(best.node,e)||{}).km, len:D.edges[e].len, plan:e===planned}, gTurnInfo(arr,best.node,e))).sort((a,b)=>a.a-b.a);
     if (opts.length<2){ C.appl.add(best.tag); return; }
     C.pend=Object.assign({}, best, {opts, planned}); C.pick=planned; }
   else Object.assign(C.pend, {ah:best.ah, rd:best.rd});
@@ -8941,7 +8945,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.8.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.8.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
