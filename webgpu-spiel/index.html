@@ -5342,7 +5342,7 @@ function gpuSetup(){ const lib=renderer.library, orig=lib.fromMaterial.bind(lib)
   /* 0.4.8: WebGPU bildet den Pipeline-Schlüssel aus den Material-Eigenschaften (Funktionen nur als Quelltext). gpuFx baut Texturen fest ein,
      daher teilten z. B. Wertungs-Torbögen die Pipeline samt Start-Tor-Textur. Texturen als Text-Eigenschaft in den Schlüssel bringen. */
   if (!Object.getOwnPropertyDescriptor(THREE.Material.prototype,'gpuTexKey')) Object.defineProperty(THREE.Material.prototype,'gpuTexKey',{enumerable:true, configurable:true, set(v){},
-    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); const fx=this.userData&&this.userData.fx; if (fx) for (const n of ['terrain','mask']) if (fx[n]&&fx[n].t&&fx[n].t.uuid) k+=n[0]+fx[n].t.uuid.slice(0,8); return k; } });   /* 0.7.2: Loch-Masken mit in den Schlüssel, sonst teilten Kacheln und Grobgelände eine Maske (Löcher mit Himmel) */
+    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); const fx=this.userData&&this.userData.fx; if (fx){ for (const n of ['terrain','mask']) if (fx[n]&&fx[n].t&&fx[n].t.uuid) k+=n[0]+fx[n].t.uuid.slice(0,8); if (fx.dith) k+='d'+fx.dith.mode+(fx.dith.a||'')+'-'+(fx.dith.b||''); if (fx.wind) k+='w'+fx.wind.amp; } if (this.userData&&this.userData.mini) k+='mini'; return k; } });   /* 0.8.2: auch Überblendung/Wind, sonst bekamen ferne Kronen die Pipeline der Mini-Bäume (dunkle Kugeln neben Detailbäumen) */   /* 0.7.2: Loch-Masken mit in den Schlüssel, sonst teilten Kacheln und Grobgelände eine Maske (Löcher mit Himmel) */
   /* Farben wie im alten Spiel roh lassen (ColorManagement aus), aber sRGB-Texturen und Bildausgabe trotzdem richtig umrechnen */
   const CSN=THREE.ColorSpaceNode; if (CSN && !CSN._hp){ CSN._hp=1; const o=CSN.prototype.setup; CSN.prototype.setup=function(b){ const CM=THREE.ColorManagement, e=CM.enabled; CM.enabled=true; try{ return o.call(this,b); } finally{ CM.enabled=e; } }; }
   lib.fromMaterial=m=>{ const nm=orig(m); if (nm && !m.isNodeMaterial){ try{ gpuFx(nm, m); }catch(e){ console.warn('GPU-Material',e); } }
@@ -6270,6 +6270,17 @@ function ztSignTex(rows){ const key='sg:'+JSON.stringify(rows); return ztTex(key
     if (r.a){ g.save(); g.translate(x+22,y); g.rotate(r.a==='left'?-Math.PI/2:r.a==='right'?Math.PI/2:r.a==='slight_right'?0.6:r.a==='slight_left'?-0.6:0); g.fillStyle='#111'; g.fillRect(-5,-6,10,26); g.beginPath(); g.moveTo(0,-26); g.lineTo(-15,-4); g.lineTo(15,-4); g.closePath(); g.fill(); g.restore(); x+=58; }
     (r.refs||[]).forEach(rf=>{ const A=/^A/.test(rf); g.font='bold 34px system-ui,Arial'; const tw=g.measureText(rf).width+20; g.fillStyle=A?'#1f4fa0':'#f4c300'; g.fillRect(x,y-24,tw,48); g.strokeStyle=A?'#fff':'#111'; g.lineWidth=3; g.strokeRect(x+3,y-21,tw-6,42); g.fillStyle=A?'#fff':'#111'; g.textBaseline='middle'; g.fillText(rf,x+10,y+1); x+=tw+12; });
     g.fillStyle='#111'; g.textBaseline='middle'; let f=40; const txt=r.t; do { g.font='bold '+f+'px system-ui,Arial'; f-=2; } while (g.measureText(txt).width>W-x-20 && f>18); g.fillText(txt,x,y+2); }); }); }
+/* 0.8.2: Hochwaldturm (Aussichtsturm aus Naturstein, stilisiert) neben der Hochwaldbaude am Ende des Hochwaldwegs */
+function buildHochwaldTurm(){ const x=-893, z=3031, y=terrainH(x,z)-0.6, g=new THREE.Group(); g.name='hochwaldturm'; let tex=null; try{ tex=sandstoneTexture(); }catch(e){}
+  const st=new THREE.MeshLambertMaterial({color:0xb9b2a6, map:tex||null}); if (tex){ st.map=tex.clone(); st.map.needsUpdate=true; st.map.wrapS=st.map.wrapT=THREE.RepeatWrapping; st.map.repeat.set(3,6); }
+  const sh=new THREE.Mesh(new THREE.CylinderGeometry(3.0,3.6,21,8,1,true),st); sh.position.y=10.5; g.add(sh);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(3.9,3.1,1.2,8),st); top.position.y=21.6; g.add(top);
+  for (let i=0;i<16;i++){ if (i%2) continue; const a=i/16*Math.PI*2, m=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.3,0.6),st); m.position.set(Math.cos(a)*3.55,22.8,Math.sin(a)*3.55); m.rotation.y=-a+Math.PI/2; g.add(m); }
+  const dark=new THREE.MeshLambertMaterial({color:0x2a2622}); [[6,0],[12,2.4],[17,4.2]].forEach(([h,a])=>{ const w=new THREE.Mesh(new THREE.PlaneGeometry(0.7,1.3),dark); w.position.set(Math.cos(a)*3.28,h,Math.sin(a)*3.28); w.rotation.y=-a+Math.PI/2; g.add(w); });
+  const door=new THREE.Mesh(new THREE.PlaneGeometry(1.2,2.2),dark); door.position.set(Math.cos(Math.PI)*3.62,1.1,0); door.rotation.y=-Math.PI/2; g.add(door);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,5,6),new THREE.MeshLambertMaterial({color:0xdddddd})); pole.position.y=24.5; g.add(pole);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.0),new THREE.MeshLambertMaterial({color:0x2f6b2f, side:THREE.DoubleSide})); fl.position.set(0.8,26.4,0); g.add(fl);
+  g.position.set(x,y,z); g.traverse(o=>{ if (o.isMesh){ o.castShadow=true; o.receiveShadow=true; } }); return g; }
 function buildZtMarks(){ const Z=window.ZGZT; if (!Z || !GN.d) return null; const D=GN.d, grp=new THREE.Group(); grp.name='zittauMarks';
   const dash=[], pos=[], quads={}, signs=[]; let nDash=0, nArrow=0, nBike=0, nSign=0;
   /* Weg im Netz verfolgen: alle 1 m Mittelpunkt und Richtung der Netzkante, nur wo der OSM-Weg auf einer Spielstraße liegt */
@@ -6341,7 +6352,7 @@ function gtMiniTree(k, far){ const bb=new THREE.Box3(); let col=null, best=-1; f
   const h=bb.max.y-Math.max(0,bb.min.y), r=Math.max(bb.max.x-bb.min.x, bb.max.z-bb.min.z)*0.5, y0=Math.max(0,bb.min.y), con=k==='spruce';
   const prof=con?[[0.001,0.06],[r*0.95,0.1],[0.001,1]]:[[0.001,0.3],[r*0.95,0.55],[r*0.7,0.82],[0.001,1]];
   const geo=new THREE.LatheGeometry(prof.map(([x,f])=>new THREE.Vector2(x,y0+f*h)), con?5:6); geo.deleteAttribute('uv'); geo.computeVertexNormals();
-  const mat=new THREE.MeshLambertMaterial({color:col?col.clone():new THREE.Color(con?0x2c4527:0x45602f)}); return [geo,mat]; }
+  const mat=new THREE.MeshLambertMaterial({color:col?col.clone():new THREE.Color(con?0x2c4527:0x45602f)}); mat.userData.mini=true; return [geo,mat]; }
 function gtForest(i,j){ const g=gtForestGen(i,j); let r; do r=g.next(); while(!r.done); return r.value; }
 function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S, x0=i*S, z0=j*S, step=MINI?17:LITE?12:9.5, fk=gtForestKit(); let sd=((i*73856093)^(j*19349663))&0x7fffffff||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
   const KEEP=MINI?0.14:LITE?0.2:0.3; const pick=mx=>{ let r=rnd(), t=0; for (const e of mx) t+=e[1]; r*=t; for (const [k,w] of mx){ if (r<w) return k; r-=w; } return mx[0][0]; };
@@ -6349,7 +6360,7 @@ function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S
   for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
     const h=terrainH(x,z), k=pick(h>440?GT.mixHi:h>380?(rnd()<0.5?GT.mixHi:GT.mixLo):GT.mixLo), s0=(inner?1.25:1.0)+rnd()*0.6; e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(0.85+rnd()*0.4),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
     const f=0.72+rnd()*0.35; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[k]=by[k]||[]).push([m.clone(),col.clone()]); } }
-  const grp=new THREE.Group(), RT=LITE?60:110, out={grp, types:[], cx:x0+S/2, cz:z0+S/2}, bs=new THREE.Sphere(new THREE.Vector3(x0+S/2, terrainH(x0+S/2,z0+S/2), z0+S/2), S*0.72+90);   /* Kachel-Hülle: Wald hinter der Kamera wird nicht gezeichnet */
+  const grp=new THREE.Group(), RT=gtNearR(), out={grp, types:[], cx:x0+S/2, cz:z0+S/2}, bs=new THREE.Sphere(new THREE.Vector3(x0+S/2, terrainH(x0+S/2,z0+S/2), z0+S/2), S*0.72+90);   /* Kachel-Hülle: Wald hinter der Kamera wird nicht gezeichnet */
   Object.entries(by).forEach(([k,L])=>{ const c=L.length, mk=(parts,mats,far)=>parts.map(([g],pi)=>{ const geo=new THREE.BufferGeometry(); for (const nm in g.attributes) if (nm!=='iLodR') geo.setAttribute(nm,g.attributes[nm]); if (g.index) geo.setIndex(g.index); geo.groups=g.groups; geo.boundingSphere=g.boundingSphere;   /* Puffer teilen statt kopieren */ geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(c).fill(RT),1)); const im=mkIM(geo,mats[pi],c); im.castShadow=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ im.setMatrixAt(ii,mm); im.setColorAt(ii,cc); }); im.count=0; im.frustumCulled=true; im.boundingSphere=bs; grp.add(im); return im; });
     const mi=mkIM(fk[k].mini[0],fk[k].mini[1],c); mi.castShadow=false; mi.frustumCulled=true; mi.boundingSphere=bs; mi.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ mi.setMatrixAt(ii,mm); mi.setColorAt(ii,cc); }); mi.count=c; grp.add(mi);
     out.types.push({L, st:'m', mini:mi, near:mk(fk[k].near,fk[k].nearM,false), far:mk(fk[k].far,fk[k].farM,true)}); });
@@ -6367,7 +6378,7 @@ function gtHouseStep(cp, ms){ let best=null, bd=1e9; GT.tiles.forEach(t=>{ if (t
   if (!ms){ try{ best.hs=gtHouses(best.i,best.j); }catch(e){ console.warn('haeuser',e); best.hs=null; } return true; }
   if (!GT.hj || GT.hj.t!==best) GT.hj={t:best, g:gtHousesGen(best.i,best.j)}; const t0=performance.now(); let r; try{ do r=GT.hj.g.next(); while(!r.done && performance.now()-t0<ms); }catch(e){ console.warn('haeuser',e); r={done:true,value:null}; }
   if (!r.done) return false; best.hs=r.value; GT.hj=null; return true; }
-function gtForestLOD(cp){ if (!GT.on) return; if (GT.flast && Math.hypot(cp.x-GT.flast.x,cp.z-GT.flast.z)<(LITE?10:20)) return; GT.flast={x:cp.x,z:cp.z}; const RT=LITE?60:110, RM=gtMidR(), R2=(RT+LOD_M)*(RT+LOD_M), M2=RM*RM;
+function gtForestLOD(cp){ if (!GT.on) return; if (GT.flast && Math.hypot(cp.x-GT.flast.x,cp.z-GT.flast.z)<(LITE?10:20)) return; GT.flast={x:cp.x,z:cp.z}; const RT=gtNearR(), RM=gtMidR(), R2=(RT+LOD_M)*(RT+LOD_M), M2=RM*RM;
   GT.tiles.forEach(t=>{ const F=t.fo; if (!F) return; const dc=Math.hypot(cp.x-F.cx,cp.z-F.cz), near=dc<GT.S*0.72+RT+LOD_M, mid=dc<GT.S*0.72+RM;
     F.types.forEach(T=>{ const up=(ims,n)=>ims.forEach(im=>{ im.count=n; im.instanceMatrix.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
       if (!mid){ if (T.st!=='m'){ T.L.forEach(([mm,cc],ii)=>{ T.mini.setMatrixAt(ii,mm); T.mini.setColorAt(ii,cc); }); up([T.mini],T.L.length); T.far.forEach(im=>im.count=0); T.near.forEach(im=>im.count=0); T.st='m'; } return; }
@@ -6375,6 +6386,7 @@ function gtForestLOD(cp){ if (!GT.on) return; if (GT.flast && Math.hypot(cp.x-GT
         if (near && d2<R2){ for (const im of T.near){ im.setMatrixAt(a,mm); im.setColorAt(a,cc); } a++; }
         if (d2<M2){ for (const im of T.far){ im.setMatrixAt(b,mm); im.setColorAt(b,cc); } b++; } else { T.mini.setMatrixAt(c,mm); T.mini.setColorAt(c,cc); c++; } });
       if (a || T.near[0] && T.near[0].count) up(T.near,a); up(T.far,b); up([T.mini],c); }); }); }
+function gtNearR(){ return window.__NR||(MINI?45:LITE?80:150); }
 function gtMidR(){ return MINI?110:LITE?160:280; }
 /* Gebäude aus Overture Maps (OpenStreetMap + Gebäudeerkennung), je Kachel: echte Grundrisse, Satteldach über dem ausgerichteten Rechteck */
 function gtBldIndex(){ if (GT.bi!==undefined) return GT.bi; GT.bi=null; if (!window.ZGBLD) return null; const a=b64i16(window.ZGBLD), M=new Map(); let i=0;
@@ -7420,6 +7432,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
     grp.position.set(pp.x+Math.cos(hd)*5, pp.y, pp.z-Math.sin(hd)*5); grp.rotation.y=hd; worldGroup.add(grp); }
   try{ SEG.build(def); }catch(e){ console.warn('Segmente',e); }
   if (def.graph && window.ZGZT) try{ const zm=buildZtMarks(); if (zm) worldGroup.add(zm); }catch(e){ console.warn('zittau-markierungen',e); }
+  if (def.graph && def.id==='zittau') try{ worldGroup.add(buildHochwaldTurm()); }catch(e){ console.warn('hochwaldturm',e); }
   STG('Materialien'); try{ pbrWorldAO(def); if (!MINI) pbrEnv(def); else scene.environment=null; pbrApply(scene); }catch(e){ console.warn('pbr',e); } STG('Welt fertig');
   profImg=null; snapCam=true; try{ POST.hn=0; }catch(e){}
   try{ ATMO.capture(); ATMO.apply(); }catch(e){ console.warn('Wetter',e); }
@@ -8945,7 +8958,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.8.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.8.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
