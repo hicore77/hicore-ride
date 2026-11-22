@@ -6408,31 +6408,113 @@ function gtBldIndex(){ if (GT.bi!==undefined) return GT.bi; GT.bi=null; if (!win
   while (i<a.length){ const n=a[i], k=a[i+1], hd=a[i+2]; let x=a[i+3], z=a[i+4]; const P=[[x,z]]; let qx=Math.round(x*4), qz=Math.round(z*4); i+=5; for (let j=1;j<n;j++){ qx+=a[i]; qz+=a[i+1]; i+=2; P.push([qx/4,qz/4]); }
     let cx=0, cz=0; P.forEach(p=>{ cx+=p[0]/n; cz+=p[1]/n; }); if (Math.hypot(cx-HW.x,cz-HW.z)<50 && WORLD&&WORLD.id==='zittau') continue; const key=Math.floor(cx/GT.S)+','+Math.floor(cz/GT.S); let l=M.get(key); if (!l) M.set(key,l=[]); l.push({P,k,h:hd/10,cx,cz}); }
   GT.bi=M; return M; }
+/* 0.9.0 Haustypen: Zellen im Atlas (W = Wand, G = Giebel), Dach r = Ziegel, s = Schiefer/Eternit, Walmdach hip */
+const HT={
+  U_turk:{w:8,g:1,H:[5.4,6.2],p:[0.9,1.05],rf:'rs',ug:1}, U_redu:{w:9,g:2,H:[5.4,6.2],p:[0.9,1.05],rf:'rs',ug:1}, U_fach:{w:10,g:3,H:[5.4,6.2],p:[0.85,1.0],rf:'r',ug:1}, U_ocker:{w:11,g:10,H:[5.4,6.2],p:[0.9,1.05],rf:'rs',ug:1},
+  U_schiefer:{w:12,g:5,H:[5.4,6.2],p:[0.95,1.1],rf:'s',ug:1}, U_gruen:{w:13,g:6,H:[5.4,6.0],p:[0.9,1.05],rf:'rs',ug:1}, U_grau:{w:14,g:7,H:[5.2,6.0],p:[0.9,1.05],rf:'r',ug:1}, U_rotfach:{w:15,g:11,H:[5.4,6.2],p:[0.85,1.0],rf:'r',ug:1},
+  EFH:{w:0,d:6,g:0,H:[5.2,6.2],p:[0.65,0.9],rf:'rs',tint:1}, EFH_L:{w:1,d:6,g:0,H:[5.2,6.0],p:[0.7,0.95],rf:'r',tint:1}, EW58:{w:2,g:9,H:[3.0,3.5],p:[1.0,1.15],rf:'rs',tint:2}, EW65:{w:3,g:9,H:[5.6,6.2],p:[0.28,0.4],rf:'s',hip:1,tint:2},
+  SIED:{w:4,g:0,H:[3.3,4.6],p:[0.95,1.1],rf:'r',tint:1}, NEU:{w:5,g:14,H:[5.4,6.0],p:[0.5,0.7],rf:'s'}, DOPPEL:{w:0,d:6,g:0,H:[5.4,6.2],p:[0.7,0.9],rf:'r',tint:1,dop:1}, VILLA:{w:7,g:4,H:[6.4,7.2],p:[0.75,0.95],rf:'s',hip:1},
+  ALT:{w:16,b:17,g:0,H:[9.5,13.5],p:[0.6,0.85],rf:'rs',tint:3}, BLOCK:{w:19,g:0,H:[9,12.5],p:[0.45,0.6],rf:'r',hip:1,tint:1}, PLATTE:{w:18,H:[12,15.5],flat:1}, HALLE:{w:20,d:21,g:15,H:[5,7.5],p:[0.12,0.2],rf:'s',tint:4},
+  SCHEUNE:{w:22,g:8,H:[4.6,5.6],p:[0.75,0.9],rf:'rs'}, SCHEUNE2:{w:23,g:8,H:[4.8,6.0],p:[0.75,0.9],rf:'r'}, STALL:{w:26,g:14,H:[3.4,4.2],p:[0.6,0.75],rf:'r'}, GARAGE:{w:24,H:[2.5,2.8],flat:1}, SCHUPPEN:{w:25,g:7,H:[2.3,2.8],p:[0.35,0.5],rf:'s'}, BLECH:{w:20,H:[2.6,3.4],flat:1,tint:4} };
+const HT_TINT=[null, [[1,1,1],[1,0.95,0.80],[0.99,0.9,0.78],[0.93,0.95,0.97],[1,0.9,0.86],[0.95,0.97,0.88],[0.98,0.93,0.86]], [[1,1,1],[0.96,0.94,0.9],[0.92,0.9,0.86]],
+  [[1,1,1],[1,0.92,0.76],[0.96,0.88,0.84],[0.9,0.92,0.94],[0.98,0.86,0.72],[0.92,0.95,0.86]], [[1,1,1],[0.85,0.92,1],[1,0.97,0.86],[0.92,0.98,0.94]]];
+function htPick(b, area, asp, rnd, city){ const W=(o)=>{ let t=0; for (const k in o) t+=o[k]; let r=rnd()*t; for (const k in o){ r-=o[k]; if (r<=0) return k; } return Object.keys(o)[0]; };
+  const k=b.k;
+  if (k===3) return area>230?W({SCHEUNE:1,SCHEUNE2:1.2}):W({SCHEUNE:1,STALL:1,SCHEUNE2:0.5});
+  if (k===1) return area<22?W({SCHUPPEN:2,BLECH:1}):area<55?W({GARAGE:2,SCHUPPEN:1}):W({STALL:1,SCHEUNE:1,HALLE:0.6});
+  if (area<16) return 'SCHUPPEN';
+  if (k===2){ if (asp>2.6 && area>400) return 'HALLE'; if (city) return area>450?W({PLATTE:1.2,BLOCK:1,ALT:0.8,HALLE:0.5}):W({ALT:1.5,BLOCK:1,HALLE:0.4}); return area>600?W({HALLE:1.4,STALL:1}):area>220?W({BLOCK:1,HALLE:1,ALT:0.4,STALL:0.5}):W({EFH:1,SIED:0.6,EW65:0.6,STALL:0.5}); }
+  if (city){ if (area>170) return W({ALT:3,BLOCK:1}); return W({EFH:2,EFH_L:1,SIED:1,NEU:1,VILLA:0.6,EW65:0.6}); }
+  const o={EFH:2.4,EFH_L:1.1,EW58:1.4,EW65:1.4,SIED:1,NEU:1};
+  if (area>130 && asp>1.45) o.DOPPEL=1.2; if (area>150) o.VILLA=0.5; if (area>280) o.BLOCK=0.6;
+  if (area>65 && area<300 && asp>1.3){ const ug=['U_turk','U_redu','U_fach','U_ocker','U_schiefer','U_gruen','U_grau','U_rotfach']; ug.forEach(u=>o[u]=1.05); }   // Oberlausitzer Umgebindehäuser: lang gestreckt, mittelgroß
+  return W(o); }
 function gtHouses(i,j){ const g=gtHousesGen(i,j); let r; do r=g.next(); while(!r.done); return r.value; }
 function* gtHousesGen(i,j){ const M=gtBldIndex(); if (!M) return null; const L=M.get(i+','+j); if (!L || !L.length) return null; const T=facadeTextures();
-  if (!GT.hm){ const lam=o=>new THREE.MeshLambertMaterial(Object.assign({side:THREE.DoubleSide, vertexColors:true},o)); GT.hm={wall:lam({map:T.plaster}), barn:lam({map:T.barn||T.plaster}), roof:lam({map:T.roof}), flat:lam({color:0x9a9a96})}; }
-  const G={wall:[[],[],[]], barn:[[],[],[]], roof:[[],[],[]], flat:[[],[],[]]}, col=new THREE.Color();
+  if (!GT.hm){ const at=T.atlasFn(); const lam=o=>new THREE.MeshLambertMaterial(Object.assign({side:THREE.DoubleSide, vertexColors:true},o)); GT.hm={wall:lam({map:at}), roof:lam({map:T.roof}), roofS:lam({map:T.slate}), flat:lam({color:0xffffff})}; }
+  const G={wall:[[],[],[]], roof:[[],[],[]], roofS:[[],[],[]], flat:[[],[],[]]}, col=new THREE.Color();
   const tri=(g,a,b,c,ua,ub,uc,cl)=>{ const [v,uv,cc]=G[g]; v.push(...a,...b,...c); uv.push(...ua,...ub,...uc); for (let q=0;q<3;q++) cc.push(cl.r,cl.g,cl.b); };
-  let sd=((i*92821)^(j*68917))&0x7fffffff||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  const E6=0.006, cl01=x=>Math.min(1-E6,Math.max(E6,x));
+  const WU=(ci,fu,fv)=>[((ci%8)+cl01(fu))/8, 1-((ci>>3)+1-cl01(fv))*0.1875];      // Wandzelle
+  const GU=(gi,fu,fv)=>[((gi%8)+cl01(fu))/8, 0.25-((gi>>3)+1-cl01(fv))*0.125];   // Giebelzelle
+  const quad=(ci,A,B,ya,yb,fu0,fu1,fv0,fv1,cl)=>{ const a=[A[0],ya,A[1]], b=[B[0],ya,B[1]], c=[B[0],yb,B[1]], d=[A[0],yb,A[1]]; tri('wall',a,b,c,WU(ci,fu0,fv0),WU(ci,fu1,fv0),WU(ci,fu1,fv1),cl); tri('wall',a,c,d,WU(ci,fu0,fv0),WU(ci,fu1,fv1),WU(ci,fu0,fv1),cl); };
+  const city=(x,z)=>x>3200&&x<6200&&z>-7200&&z<-3700;
+  // Lathe-Körper (Turmhauben, Spitzen) direkt in die Kachel-Geometrie
+  const lathe=(key,pts,seg,cx,cy,cz,rot,cl)=>{ const g=new THREE.LatheGeometry(pts.map(([r,h])=>new THREE.Vector2(Math.max(0.01,r),h)),seg).toNonIndexed(); const p=g.attributes.position; const cs=Math.cos(rot), sn=Math.sin(rot);
+    for (let q=0;q<p.count;q+=3){ const V=[0,1,2].map(t=>{ const x=p.getX(q+t), y=p.getY(q+t), z=p.getZ(q+t); return [cx+x*cs-z*sn, cy+y, cz+x*sn+z*cs]; }); tri(key,V[0],V[1],V[2],[0,0],[1,0],[0,1],cl); } g.dispose(); };
   let bc=0; for (const b of L){ if (++bc%4===0) yield 0; let P=b.P; const n=P.length; let ar=0; for (let q=0;q<n;q++){ const A=P[q], B=P[(q+1)%n]; ar+=A[0]*B[1]-B[0]*A[1]; } if (ar<0) P=P.slice().reverse(); const area=Math.abs(ar)/2;
     const g0=gnNear(b.cx,b.cz,30); if (g0.d<g0.w/2+1.2) continue;
+    let sd=((Math.round(b.cx*7)*92821)^(Math.round(b.cz*13)*68917))&0x7fffffff||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647); rnd(); rnd();
     let gmin=1e9, gmax=-1e9; P.forEach(([x,z])=>{ const h=terrainH(x,z); gmin=Math.min(gmin,h); gmax=Math.max(gmax,h); }); const y0=gmin-0.4;
-    const k=b.k, wallH=b.h>0?Math.max(2.4,b.h*(k===2||k===1?1:0.7)):k===1?2.6:k===2?(area>1500?8:9.5):k===3?5.2:k===4?12:(area>220?6.4:5.6), E=gmax+wallH;
-    const r=rnd(); col.setHSL(0.11+rnd()*0.04, 0.12+rnd()*0.25, 0.80+rnd()*0.14); const wc=col.clone(); const wg=k===3?'barn':'wall';
-    let u=0; for (let q=0;q<n;q++){ const A=P[q], B=P[(q+1)%n], l=Math.hypot(B[0]-A[0],B[1]-A[1]), u1=u+l/4, v1=(E-y0)/3;
-      tri(wg,[A[0],y0,A[1]],[B[0],y0,B[1]],[B[0],E,B[1]],[u,0],[u1,0],[u1,v1],wc); tri(wg,[A[0],y0,A[1]],[B[0],E,B[1]],[A[0],E,A[1]],[u,0],[u1,v1],[u,v1],wc); u=u1; }
-    const flat=k===1||k===2||area>700||area<14;
-    if (flat){ let tr=null; try{ tr=THREE.ShapeUtils.triangulateShape(P.map(p=>new THREE.Vector2(p[0],p[1])),[]); }catch(e){} col.setHSL(0,0,0.5+rnd()*0.15); if (tr) tr.forEach(([a1,b1,c1])=>tri('flat',[P[a1][0],E,P[a1][1]],[P[b1][0],E,P[b1][1]],[P[c1][0],E,P[c1][1]],[0,0],[1,0],[0,1],col)); continue; }
-    /* Satteldach: First entlang der längsten Wand */
+    // ausgerichtetes Rechteck (First entlang der längsten Wand)
     let bl=0, ang=0; for (let q=0;q<n;q++){ const A=P[q], B=P[(q+1)%n], l=Math.hypot(B[0]-A[0],B[1]-A[1]); if (l>bl){ bl=l; ang=Math.atan2(B[1]-A[1],B[0]-A[0]); } }
     const ax=Math.cos(ang), az=Math.sin(ang); let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9; P.forEach(([x,z])=>{ const pu=x*ax+z*az, pv=-x*az+z*ax; u0=Math.min(u0,pu); u1=Math.max(u1,pu); v0=Math.min(v0,pv); v1=Math.max(v1,pv); });
-    const ov=0.45; u0-=ov; u1+=ov; v0-=ov; v1+=ov; const vm=(v0+v1)/2, hw=(v1-v0)/2, pitch=k===3?0.62:0.7+rnd()*0.25, Hr=E+hw*pitch, Ee=E-ov*pitch, W=(u,v)=>[u*ax-v*az, v*ax+u*az];
-    const p=(u,v,y)=>{ const [x,z]=W(u,v); return [x,y,z]; }; const dark=rnd()<0.3; if (dark) col.setRGB(0.3+rnd()*0.06,0.31+rnd()*0.06,0.34+rnd()*0.06); else { const f=0.85+rnd()*0.2; col.setRGB(f,f*(0.86+rnd()*0.1),f*(0.8+rnd()*0.1)); }
-    const rl=(u1-u0)/3, rs=Math.hypot(hw,hw*pitch)/3;
-    [[v0,1],[v1,-1]].forEach(([ve])=>{ const a=p(u0,ve,Ee), b2=p(u1,ve,Ee), c=p(u1,vm,Hr), d=p(u0,vm,Hr); tri('roof',a,b2,c,[0,0],[rl,0],[rl,rs],col); tri('roof',a,c,d,[0,0],[rl,rs],[0,rs],col); });
-    [u0+ov,u1-ov].forEach(ue=>{ const a=p(ue,v0+ov,E), b2=p(ue,v1-ov,E), c=p(ue,vm,Hr-0.05); tri(wg,a,b2,c,[0,0],[hw*2/4,0],[hw/4,(Hr-E)/3],wc); }); }
+    const Wp=(u,v)=>[u*ax-v*az, v*ax+u*az]; const p3=(u,v,y)=>{ const [x,z]=Wp(u,v); return [x,y,z]; };
+    const asp=(u1-u0)/Math.max(1,v1-v0), isCity=city(b.cx,b.cz);
+    if (b.k===4){ gtChurch({P,area,u0,u1,v0,v1,ax,az,Wp,p3,gmin,gmax,y0,rnd,isCity,quad,tri,lathe,GU,col}); continue; }
+    const tn=htPick(b,area,asp,rnd,isCity), ty=HT[tn];
+    let wallH=ty.H[0]+rnd()*(ty.H[1]-ty.H[0]); if (b.h>0 && (ty.flat || tn==='ALT' || tn==='BLOCK' || tn==='HALLE')) wallH=Math.max(2.4, ty.flat?b.h:b.h*0.78);
+    if (!isCity) wallH=Math.min(wallH,10); const E=gmax+wallH, H=E-y0;
+    // Wandfarbe: Putztypen bekommen eine Pastellfarbe, Holz/Schiefer bleiben fast unverändert
+    const pal=ty.tint?HT_TINT[ty.tint]:null; const pc=pal?pal[(rnd()*pal.length)|0]:[1,1,1]; const f=0.93+rnd()*0.07; const wc=new THREE.Color(pc[0]*f,pc[1]*f,pc[2]*f);
+    const wc2=ty.dop?(()=>{ const q=HT_TINT[1][(rnd()*HT_TINT[1].length)|0]; return new THREE.Color(q[0]*f,q[1]*f,q[2]*f); })():wc; const um=(u0+u1)/2;
+    const tall=ty.b!==undefined||tn==='BLOCK'||tn==='PLATTE'; const base=!tall&&H>wallH+1.2?H-wallH-0.4:0;   // Hanglage: Sockel aus Bruchstein unter dem Haus
+    const Hw=H-base, rows=tall&&Hw>7.6?Math.max(2,Math.round(Hw/5.8)):1, rh=Hw/rows, fvTop=rows===1&&Hw<4.2?Hw/6:1, yb0=y0+base;
+    for (let q=0;q<n;q++){ const A=P[q], B=P[(q+1)%n], l=Math.hypot(B[0]-A[0],B[1]-A[1]); if (l<0.05) continue; const nc=Math.max(1,Math.round(l/4)), cw=l/nc, part=nc===1&&l<3.2?l/4:1, longest=Math.abs(l-bl)<0.01;
+      for (let c=0;c<nc;c++){ const t0=c/nc, t1=(c+1)/nc, Ac=[A[0]+(B[0]-A[0])*t0, A[1]+(B[1]-A[1])*t0], Bc=[A[0]+(B[0]-A[0])*t1, A[1]+(B[1]-A[1])*t1];
+        const mu=((Ac[0]+Bc[0])/2)*ax+((Ac[1]+Bc[1])/2)*az; const cl=ty.dop&&mu>um?wc2:wc;
+        let ci=ty.w; if (ty.d!==undefined && longest && (ty.dop?(c===0||c===nc-1)&&nc>=3:c===(nc>>1))) ci=ty.d;
+        const fu0=part<1?0.02:0, fu1=part<1?part:1;
+        if (base>0) quad(31,Ac,Bc,y0,yb0,fu0,fu1,0.005,0.09,cl);
+        for (let r=0;r<rows;r++){ const cc=(r===0&&ty.b!==undefined)?ty.b:(r>0&&ci===ty.d?ty.w:ci); quad(cc,Ac,Bc,yb0+r*rh,yb0+(r+1)*rh,fu0,fu1,0,r===rows-1?fvTop:1,cl); } } }
+    const flat=ty.flat||area>1400||(area<14&&tn!=='SCHUPPEN');
+    if (flat){ let tr=null; try{ tr=THREE.ShapeUtils.triangulateShape(P.map(p=>new THREE.Vector2(p[0],p[1])),[]); }catch(e){} col.setHSL(0,0,0.42+rnd()*0.18); if (tr) tr.forEach(([a1,b1,c1])=>tri('flat',[P[a1][0],E,P[a1][1]],[P[b1][0],E,P[b1][1]],[P[c1][0],E,P[c1][1]],[0,0],[1,0],[0,1],col)); continue; }
+    // Dach
+    const ov=ty.ug?0.55:0.45; const uo0=u0-ov, uo1=u1+ov, vo0=v0-ov, vo1=v1+ov; const vm=(v0+v1)/2, hw=(v1-v0)/2, pitch=ty.p[0]+rnd()*(ty.p[1]-ty.p[0]), Hr=E+hw*pitch, Ee=E-ov*pitch;
+    const rk=ty.rf==='s'?'roofS':ty.rf==='r'?'roof':(rnd()<0.45?'roofS':'roof');
+    if (rk==='roof'){ const g2=0.8+rnd()*0.25; col.setRGB(g2,g2*(0.84+rnd()*0.12),g2*(0.78+rnd()*0.12)); if (rnd()<0.18) col.setRGB(0.55,0.42,0.38); } else { const g2=0.78+rnd()*0.3; col.setRGB(g2,g2*1.01,g2*1.04); }
+    const rl=(uo1-uo0)/3, sl=Math.hypot(hw+ov,(hw+ov)*pitch)/3;
+    if (ty.hip){ const uc=(u0+u1)/2, rr=Math.max(0,(uo1-uo0)/2-(hw+ov)); const ra=uc-rr, rb=uc+rr;
+      [[vo0],[vo1]].forEach(([ve])=>{ const a=p3(uo0,ve,Ee), b2=p3(uo1,ve,Ee), c=p3(rb,vm,Hr), d=p3(ra,vm,Hr); tri(rk,a,b2,c,[0,0],[rl,0],[(rb-uo0)/3,sl],col); tri(rk,a,c,d,[0,0],[(rb-uo0)/3,sl],[(ra-uo0)/3,sl],col); });
+      const wv=(vo1-vo0)/3; [[uo0,ra],[uo1,rb]].forEach(([ue,ur])=>{ tri(rk,p3(ue,vo0,Ee),p3(ue,vo1,Ee),p3(ur,vm,Hr),[0,0],[wv,0],[wv/2,sl],col); });
+      continue; }
+    [[vo0],[vo1]].forEach(([ve])=>{ const a=p3(uo0,ve,Ee), b2=p3(uo1,ve,Ee), c=p3(uo1,vm,Hr), d=p3(uo0,vm,Hr); tri(rk,a,b2,c,[0,0],[rl,0],[rl,sl],col); tri(rk,a,c,d,[0,0],[rl,sl],[0,sl],col); });
+    [[u0,wc],[u1,wc2]].forEach(([ue,gc])=>{ const a=p3(ue,v0,E), b2=p3(ue,v1,E), c=p3(ue,vm,Hr-0.05); const gi=ty.g!==undefined?ty.g:14; tri('wall',a,b2,c,GU(gi,0,0),GU(gi,1,0),GU(gi,0.5,1),gc); }); }
   const grp=new THREE.Group(); Object.entries(G).forEach(([key,[v,uv,cc]])=>{ if (!v.length) return; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); g.computeVertexNormals(); const m=new THREE.Mesh(g,GT.hm[key]); m.castShadow=true; m.receiveShadow=true; grp.add(m); });
   GT.grp.add(grp); return grp; }
+/* Kirchen in 4 Varianten, ganz in der Kachel-Geometrie (kein eigener Draw Call):
+   1 Dorfkirche wie Spitzkunnersdorf/Waltersdorf (weiß, rote Lisenen, Ziegeldach, Turm mit welscher Haube und Laterne),
+   2 weiße Kirche mit schlanker Schieferspitze, 3 kleine Kirche/Kapelle mit Dachreiter, 4 Stadtkirche aus Sandstein mit hoher Spitze */
+function gtChurch(C){ const {P,area,u0,u1,v0,v1,p3,gmin,y0,rnd,isCity,quad,tri,lathe,GU,col}=C; const n=P.length;
+  const v=isCity?4:area>380?(rnd()<0.65?1:2):area>170?(rnd()<0.5?2:3):3;
+  const xa=p3(u0,0,0)[0], xb=p3(u1,0,0)[0]; const wAt0=xa<=xb, uW=wAt0?u0:u1, dir=wAt0?1:-1;
+  const eaveH=v===4?13:v===1?9.5:v===2?8.5:5.8, E=gmin+eaveH, cw=v===4?28:27, white=new THREE.Color(1,1,1), cream=new THREE.Color(0.99,0.96,0.9);
+  const wcol=v===2?cream:white;
+  for (let q=0;q<n;q++){ const A=P[q], B=P[(q+1)%n], l=Math.hypot(B[0]-A[0],B[1]-A[1]); if (l<0.05) continue; const nc=Math.max(1,Math.round(l/5)); for (let c=0;c<nc;c++){ const t0=c/nc, t1=(c+1)/nc; quad(cw,[A[0]+(B[0]-A[0])*t0,A[1]+(B[1]-A[1])*t0],[A[0]+(B[0]-A[0])*t1,A[1]+(B[1]-A[1])*t1],y0,E,0,nc===1&&l<3?l/5:1,0,1,wcol); } }
+  // steiles Dach
+  const ov=0.5, vm=(v0+v1)/2, hw=(v1-v0)/2, pitch=1.2, Hr=E+hw*pitch, Ee=E-ov*pitch, rk=v===1?'roof':'roofS';
+  if (rk==='roof') col.setRGB(1,0.8,0.68); else col.setRGB(0.85,0.86,0.9);
+  const rl=(u1-u0+2*ov)/3, sl=Math.hypot(hw+ov,(hw+ov)*pitch)/3;
+  [v0-ov,v1+ov].forEach(ve=>{ const a=p3(u0-ov,ve,Ee), b=p3(u1+ov,ve,Ee), c=p3(u1+ov,vm,Hr), d=p3(u0-ov,vm,Hr); tri(rk,a,b,c,[0,0],[rl,0],[rl,sl],col); tri(rk,a,c,d,[0,0],[rl,sl],[0,sl],col); });
+  const gi=v===4?13:12; [u0,u1].forEach(ue=>tri('wall',p3(ue,v0,E),p3(ue,v1,E),p3(ue,vm,Hr-0.05),GU(gi,0,0),GU(gi,1,0),GU(gi,0.5,1),wcol));
+  const rot=-Math.atan2(C.az,C.ax);
+  const cu=new THREE.Color(0.36,0.58,0.5), sla=new THREE.Color(0.24,0.26,0.3), gold=new THREE.Color(0.85,0.7,0.3);
+  if (v===3){ // Dachreiter
+    const [x,,z]=p3(uW+dir*Math.min(3,(u1-u0)*0.2),vm,0); const r=Math.min(1.1,hw*0.35);
+    lathe('flat',[[r*1.41,0],[r*1.41,2.6]],4,x,Hr-1.2,z,rot+Math.PI/4,new THREE.Color(0.95,0.93,0.88)); lathe('roofS',[[r*1.7,0],[0.02,4.2]],4,x,Hr+1.4,z,rot+Math.PI/4,sla); return; }
+  // Turm am Westende
+  const TW=Math.min(v===4?9:7, hw*2*0.8), TH=v===4?38:v===1?24:26, tc=p3(uW+dir*TW*0.45,vm,0), tcol=v===4?30:29, tr=TW/2;
+  const corners=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([a,b])=>p3(uW+dir*TW*0.45+a*tr,vm+b*tr,0)).map(p=>[p[0],p[2]]);
+  for (let q=0;q<4;q++){ const A=corners[q], B=corners[(q+1)%4]; quad(tcol,A,B,y0,gmin+TH,0,1,0,1,white); }
+  const ty=gmin+TH;
+  if (v===1){ const k=TW/6.6; lathe('flat',[[4.05,0],[3.7,0.35],[3.15,0.95],[2.75,1.7],[2.62,2.5],[2.72,3.2],[2.62,3.9],[2.15,4.6],[1.65,5.1],[1.55,5.35]].map(([r,h])=>[r*k,h*k]),8,tc[0],ty,tc[2],rot+Math.PI/8,cu);
+    lathe('flat',[[1.0*k,0],[1.0*k,3.3*k]],8,tc[0],ty+5.3*k,tc[2],rot,new THREE.Color(0.17,0.2,0.19));
+    lathe('flat',[[1.85*k,0],[1.55*k,0.35*k],[1.05*k,0.9*k],[1.12*k,1.45*k],[1.0*k,1.95*k],[0.55*k,2.45*k],[0.22*k,2.85*k],[0.05,3.6*k]],8,tc[0],ty+8.5*k,tc[2],rot+Math.PI/8,cu);
+    lathe('flat',[[0.01,-0.4],[0.42,0],[0.01,0.42]],8,tc[0],ty+12.6*k,tc[2],0,gold); }
+  else { const sh=v===4?TW*2.9:TW*2.4; lathe('flat',[[tr*1.5,0],[tr*1.5,0.5]],4,tc[0],ty-0.2,tc[2],rot+Math.PI/4,v===4?new THREE.Color(0.7,0.62,0.48):new THREE.Color(0.93,0.9,0.84));
+    lathe('roofS',[[tr*1.22,0],[tr*0.9,sh*0.12],[0.03,sh]],8,tc[0],ty+0.3,tc[2],rot+Math.PI/8,sla);
+    lathe('flat',[[0.01,-0.3],[0.35,0],[0.01,0.35]],6,tc[0],ty+0.3+sh+0.2,tc[2],0,gold);
+    if (v===4){ [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([a,b])=>{ const p=p3(uW+dir*TW*0.45+a*tr*0.85,vm+b*tr*0.85,0); lathe('roofS',[[0.55,0],[0.02,3.6]],4,p[0],ty+0.3,p[2],rot+Math.PI/4,sla); }); } } }
 function gtFinish(J){ const geo=J.geo, i=J.i, j=J.j; geo.setAttribute('color',new THREE.BufferAttribute(J.col,3)); geo.setAttribute('luk',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count).fill(1),1)); geo.computeVertexNormals();
   const m=new THREE.Mesh(geo, GT.mat); m.receiveShadow=true; GT.grp.add(m);
   let sg=null; const l=GT.sig.get(i+','+j); if (l){ sg=new THREE.Group(); l.forEach(o=>{ try{ sg.add(buildSign(o)); }catch(e){ console.warn('schild',e); } }); GT.grp.add(sg); }
@@ -6673,7 +6755,69 @@ function facadeTextures(){
     W2(0.425,0.57,0.51,0.78,'#f6f4ee',2,3); W2(0.60,0.57,0.675,0.78,'#f6f4ee',2,3);
     const ST=M(g,'stein','#8d8f8c'); R(0.755,0.55,0.8,0.77,ST); W2(0.765,0.565,0.79,0.755,'#8a8e8c',1,2); R(0.82,0.51,0.94,0.97,ST); R(0.845,0.58,0.915,0.97,M(g,'wood','#3a2a22')); R(0.96,0.55,1,0.77,ST);
     R(0,0.97,1,1,M(g,'stein','#9a968e')); });
-  _facTex={plaster, wood, umgebinde, barn, roof, slate, turk, ocker, turkG, fach, fachG, redu, reduG, villa, villaG, garage, p_fach, p_turkW, p_turkG, p_redu}; return _facTex;
+  // ---- Haustypen-Atlas (0.9.0): 32 Wandzellen 4 x 6 m (256 x 384) + 16 Giebelzellen (256 x 256) in einer Textur -> alle Häuser einer Kachel in einem Draw Call
+  const atlasFn=()=>{ if (_facTex.atlas) return _facTex.atlas; const s=MINI?0.5:1; const c=document.createElement('canvas'); c.width=c.height=2048*s; const g=c.getContext('2d');
+    const nz=(g,h,a)=>{ for (let i=0;i<1600;i++){ g.fillStyle=`rgba(0,0,0,${Math.random()*a})`; g.fillRect(Math.random()*256,Math.random()*h,2,2); } };
+    const kratz=(g,col,h)=>{ g.fillStyle=M(g,'putz',col); g.fillRect(0,0,256,h); for (let i=0;i<5000;i++){ g.fillStyle=Math.random()<0.5?'rgba(0,0,0,.10)':'rgba(255,255,255,.12)'; g.fillRect(Math.random()*256,Math.random()*h,1.5,1.5); } };
+    const putz=(g,col,h)=>{ g.fillStyle=M(g,'putz',col); g.fillRect(0,0,256,h); };
+    const shingles=(g,x,y,w,h,col)=>{ g.fillStyle=col; g.fillRect(x,y,w,h); for (let yy=y; yy<y+h; yy+=9){ for (let xx=x+((yy-y)/9%2?0:6); xx<x+w; xx+=12){ g.fillStyle=`rgba(255,255,255,${0.03+Math.random()*0.07})`; g.beginPath(); g.arc(xx+6,yy+5,5.5,0,Math.PI); g.fill(); } g.fillStyle='rgba(0,0,0,.28)'; g.fillRect(x,yy+8,w,1.2); } };
+    const ashlar=(g,x,y,w,h,col)=>{ g.fillStyle=M(g,'stein',col); g.fillRect(x,y,w,h); g.fillStyle=col; g.globalAlpha=0.55; g.fillRect(x,y,w,h); g.globalAlpha=1; for (let yy=y; yy<y+h; yy+=22){ g.fillStyle='rgba(60,45,30,.35)'; g.fillRect(x,yy,w,1.5); for (let xx=x+((yy-y)/22%2?0:24); xx<x+w; xx+=48) g.fillRect(xx,yy,1.5,22); } };
+    const ugEG=(g,pc,wc)=>{ putz(g,pc,150); const UB=M(g,'wood',wc); g.fillStyle=UB; g.fillRect(0,0,14,150); g.fillRect(242,0,14,150); g.fillRect(121,0,14,150); g.fillRect(0,0,256,9);
+      [[14,121],[135,242]].forEach(([a,b])=>{ g.beginPath(); g.moveTo(a,9); g.lineTo(a,40); g.quadraticCurveTo((a+b)/2,0,b,40); g.lineTo(b,9); g.closePath(); g.fill(); });
+      win2(g,46,48,40,58,'#f6f3ea'); win2(g,170,48,40,58,'#f6f3ea'); plinth(g,150,42,'#9a968e'); };
+    const door=(g,x,y,w,h,col)=>{ g.fillStyle=M(g,'stein','#b8b2a6'); g.fillRect(x-7,y-7,w+14,h+7); g.fillStyle=M(g,'wood',col); g.fillRect(x,y,w,h); g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(x+w/2-1,y,2,h); g.fillStyle='rgba(150,180,200,.4)'; g.fillRect(x+8,y+10,w-16,h*0.25); g.fillStyle='#c9b26a'; g.fillRect(x+w-12,y+h*0.55,5,3); };
+    const shut=(g,x,y,w,h,col)=>{ const S=M(g,'wood',col); g.fillStyle=S; g.fillRect(x-w*0.5-6,y-3,w*0.5,h+6); g.fillRect(x+w+6,y-3,w*0.5,h+6); g.fillStyle='rgba(0,0,0,.25)'; for (let yy=y; yy<y+h; yy+=7){ g.fillRect(x-w*0.5-6,yy,w*0.5,1.2); g.fillRect(x+w+6,yy,w*0.5,1.2); } };
+    const big=(g,x,y,w,h,fr)=>{ g.fillStyle=fr; g.fillRect(x-4,y-4,w+8,h+8); const gr=g.createLinearGradient(x,y,x+w,y+h); gr.addColorStop(0,'#55697a'); gr.addColorStop(1,'#1c262e'); g.fillStyle=gr; g.fillRect(x,y,w,h); g.fillStyle=fr; g.fillRect(x+w/2-2,y,4,h); };
+    const arch=(g,cx,y0,y1,w,fr,glass,pointed)=>{ const r=w/2; g.fillStyle=fr; const P=(r2,top)=>{ g.beginPath(); g.moveTo(cx-r2,y1); g.lineTo(cx-r2,top+r2); if (pointed){ g.quadraticCurveTo(cx-r2,top+r2*0.2,cx,top-r2*0.4); g.quadraticCurveTo(cx+r2,top+r2*0.2,cx+r2,top+r2); } else g.arc(cx,top+r2,r2,Math.PI,0); g.lineTo(cx+r2,y1); g.closePath(); g.fill(); };
+      P(r+7,y0-7); g.fillStyle=glass; P(r,y0); g.strokeStyle='rgba(200,215,225,.35)'; g.lineWidth=1.5; for (let yy=y1-12; yy>y0+r; yy-=14){ g.beginPath(); g.moveTo(cx-r,yy); g.lineTo(cx+r,yy); g.stroke(); } g.beginPath(); g.moveTo(cx,y1); g.lineTo(cx,y0); g.stroke(); };
+    const IMG=(t)=>(g)=>g.drawImage(t.image,0,0,256,t.image.height/t.image.width*256);
+    const W=[ // 0..31 Wandzellen (y=0 oben = 6 m, y=384 = Boden)
+      g=>{ putz(g,'#f8f6f0',384); g.fillStyle='#e6e2d8'; g.fillRect(0,186,256,6); win2(g,40,60,44,60,'#ffffff'); win2(g,172,60,44,60,'#ffffff'); win2(g,40,236,44,62,'#ffffff'); win2(g,172,236,44,62,'#ffffff'); plinth(g,344,40); },                         // 0 Putz EFH
+      g=>{ putz(g,'#f8f6f0',384); [[56,60],[56,236]].forEach(([x,y])=>{ win2(g,x,y,40,58,'#ffffff'); shut(g,x,y,40,58,'#3f6a4a'); win2(g,x+120,y,40,58,'#ffffff'); shut(g,x+120,y,40,58,'#3f6a4a'); }); plinth(g,344,40); },           // 1 Putz mit Fensterläden
+      g=>{ kratz(g,'#d8d2c2',384); win2(g,96,94,40,46,'#f4f2ec'); g.fillStyle='#bfb6a4'; g.fillRect(0,196,256,5); win2(g,64,236,104,62,'#f4f2ec'); plinth(g,346,38,'#76726a'); },                                               // 2 DDR EW 58 / Siedlungshaus (Kratzputz)
+      g=>{ kratz(g,'#cbc2b1',384); big(g,36,58,184,58,'#efece4'); g.fillStyle='#8a6e58'; g.fillRect(0,176,256,14); big(g,36,236,184,60,'#efece4'); plinth(g,346,38,'#6e6a64'); },                                                    // 3 DDR EW 65 (Würfelhaus)
+      g=>{ putz(g,'#efe5cf',384); [[60,64],[156,64],[60,240],[156,240]].forEach(([x,y])=>{ win2(g,x,y,40,52,'#f6f2e8'); shut(g,x,y,40,52,'#6b4a33'); }); g.fillStyle=M(g,'stein','#9c5a44'); g.fillRect(0,328,256,56); g.fillStyle='rgba(0,0,0,.25)'; for (let y=328;y<384;y+=8){ g.fillRect(0,y,256,1); for (let x=(y/8%2)*12;x<256;x+=24) g.fillRect(x,y,1,8); } },   // 4 Siedlungshaus 30er, Ziegelsockel
+      g=>{ putz(g,'#fbfbf8',384); big(g,28,40,92,104,'#3a3d41'); big(g,28,206,120,138,'#3a3d41'); boards(g,186,0,70,344,'#b5875a','#ad8053',10); g.fillStyle='#3a3d41'; g.fillRect(0,344,256,40); },                         // 5 Neubau
+      g=>{ putz(g,'#f8f6f0',384); g.fillStyle='#e6e2d8'; g.fillRect(0,186,256,6); win2(g,104,60,48,60,'#ffffff'); door(g,100,222,56,122,'#6a3e26'); g.fillStyle='#d9d4c8'; g.fillRect(88,206,80,10); plinth(g,344,40); },                // 6 Putz mit Haustür
+      IMG(villa), IMG(turk), IMG(redu), IMG(fach), IMG(ocker),                                                                                                                                           // 7..11
+      g=>{ shingles(g,0,0,256,186,'#4b5159'); win2(g,46,58,40,56,'#f6f3ea'); win2(g,170,58,40,56,'#f6f3ea'); g.translate(0,192); ugEG(g,'#f6f2e8','#4a3022'); g.translate(0,-192); g.fillStyle='#e8e2d4'; g.fillRect(0,186,256,6); },   // 12 Umgebinde Schiefer
+      g=>{ boards(g,0,0,256,186,'#3f7a4a','#468451',9); win2(g,46,58,40,56,'#f6f3ea'); win2(g,170,58,40,56,'#f6f3ea'); g.translate(0,192); ugEG(g,'#f3eddc','#4a3020'); g.translate(0,-192); g.fillStyle='#e8e2d4'; g.fillRect(0,186,256,6); },   // 13 Umgebinde grün
+      g=>{ boards(g,0,0,256,186,'#8f8a80','#9a958b',9); nz(g,186,0.12); win2(g,46,58,40,56,'#f1ede2'); win2(g,170,58,40,56,'#f1ede2'); g.translate(0,192); ugEG(g,'#efe6cf','#5b4430'); g.translate(0,-192); g.fillStyle='#e0d8c6'; g.fillRect(0,186,256,6); },   // 14 Umgebinde graue Bretter
+      g=>{ putz(g,'#f6efe2',192); const BM=M(g,'wood','#7a3324'); g.fillStyle=BM; g.fillRect(0,0,256,9); g.fillRect(0,180,256,10); g.fillRect(0,96,256,6); [0,64,128,192,248].forEach(x=>g.fillRect(x,0,8,190)); g.lineWidth=7; g.strokeStyle=BM; [[8,96,60,10],[248,96,196,10]].forEach(([a,b,c2,d])=>{ g.beginPath(); g.moveTo(a,b); g.lineTo(c2,d); g.stroke(); }); win2(g,82,26,34,56,'#ffffff'); win2(g,148,26,34,56,'#ffffff'); g.translate(0,192); ugEG(g,'#f2e7c8','#6a3a24'); g.translate(0,-192); },   // 15 Umgebinde rotes Fachwerk
+      g=>{ putz(g,'#f1ebdf',384); [[0],[192]].forEach(([y])=>{ g.fillStyle='#fbf8f1'; [52,164].forEach(x=>{ g.fillRect(x-8,y+30,56,112); g.fillRect(x-12,y+26,64,10); }); [52,164].forEach(x=>win2(g,x,y+44,40,92,'#ffffff')); g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(0,y+184,256,8); }); },   // 16 Altbau Obergeschosse
+      g=>{ putz(g,'#f1ebdf',192); g.fillStyle='#fbf8f1'; [52,164].forEach(x=>{ g.fillRect(x-8,30,56,112); g.fillRect(x-12,26,64,10); }); [52,164].forEach(x=>win2(g,x,44,40,92,'#ffffff')); g.fillStyle='#e9e2d2'; g.fillRect(0,184,256,10); g.fillStyle=M(g,'putz','#e7dfcf'); g.fillRect(0,194,256,190); g.fillStyle='rgba(0,0,0,.12)'; for (let y=210;y<330;y+=20) g.fillRect(0,y,256,2); big(g,34,226,188,98,'#5a4a3e'); g.fillStyle='#d8cfbd'; g.fillRect(28,214,200,8); plinth(g,340,44,'#8c8678'); },   // 17 Altbau Erdgeschoss mit Laden
+      g=>{ g.fillStyle=M(g,'putz','#d2cdc1'); g.fillRect(0,0,256,384); for (let y=0;y<384;y+=192){ big(g,22,y+52,86,72,'#efece6'); g.fillStyle='#3a3f44'; g.fillRect(140,y+36,100,124); g.fillStyle='#bdb7aa'; g.fillRect(136,y+120,108,40); g.fillStyle='rgba(0,0,0,.35)'; g.fillRect(0,y,256,2); g.fillRect(0,y+190,256,2); } g.fillRect(0,0,2,384); g.fillRect(254,0,2,384); },   // 18 Plattenbau
+      g=>{ putz(g,'#ece3cf',384); for (let y=0;y<384;y+=192){ win2(g,40,y+62,46,66,'#ffffff'); win2(g,170,y+62,46,66,'#ffffff'); g.fillStyle='#ddd3be'; g.fillRect(36,y+132,54,6); g.fillRect(166,y+132,54,6); } },   // 19 Wohnblock 50er
+      g=>{ g.fillStyle='#b9bec2'; g.fillRect(0,0,256,384); for (let x=0;x<256;x+=16){ g.fillStyle='rgba(0,0,0,.16)'; g.fillRect(x,0,4,384); g.fillStyle='rgba(255,255,255,.18)'; g.fillRect(x+5,0,2,384); } big(g,0,44,256,30,'#9aa0a4'); g.fillStyle='#8d8a84'; g.fillRect(0,352,256,32); },   // 20 Halle (Trapezblech)
+      g=>{ g.fillStyle='#b9bec2'; g.fillRect(0,0,256,384); for (let x=0;x<256;x+=16){ g.fillStyle='rgba(0,0,0,.16)'; g.fillRect(x,0,4,384); } g.fillStyle='#d4d6d6'; g.fillRect(40,170,176,182); g.fillStyle='rgba(0,0,0,.22)'; for (let y=176;y<352;y+=9) g.fillRect(40,y,176,2); g.fillStyle='#8d8a84'; g.fillRect(0,352,256,32); },   // 21 Halle mit Rolltor
+      g=>{ boards(g,0,0,256,384,'#6d4a2f','#76512f',16); g.fillStyle='rgba(0,0,0,.45)'; for (let x=15;x<256;x+=16) g.fillRect(x,0,2,384); nz(g,384,0.12); g.fillStyle='#2a2018'; g.fillRect(104,70,48,48); },   // 22 Scheune Holz
+      g=>{ boards(g,0,0,256,190,'#6d4a2f','#76512f',16); nz(g,190,0.1); g.fillStyle=M(g,'stein','#9a958a'); g.fillRect(0,190,256,194); g.fillStyle='rgba(0,0,0,.25)'; g.fillRect(0,190,256,3); g.fillStyle=M(g,'wood','#5a3a24'); g.fillRect(70,228,116,156); g.fillStyle='rgba(0,0,0,.3)'; g.fillRect(127,228,2,156); },   // 23 Scheune Stein + Holz
+      g=>{ putz(g,'#efc9a0',384); g.drawImage(garage.image,0,192,256,192); },                                                                                                           // 24 Garage
+      g=>{ boards(g,0,0,256,384,'#7d786c','#878276',12); nz(g,384,0.15); g.fillStyle=M(g,'wood','#5e5850'); g.fillRect(92,250,72,134); g.fillStyle='rgba(0,0,0,.35)'; g.fillRect(92,250,72,3); },   // 25 Holzschuppen
+      g=>{ putz(g,'#ece6d6',384); [20,84,148,212].forEach(x=>win2(g,x,226,30,26,'#e8e2d4','#2a3036')); plinth(g,330,54,'#8f8a80'); },                                                    // 26 Stall
+      g=>{ putz(g,'#f6f3ec',384); g.fillStyle='#d4572e'; g.fillRect(0,0,18,384); g.fillRect(238,0,18,384); g.fillRect(0,0,256,10); arch(g,128,80,300,58,'#d4572e','#33414c',false); g.fillStyle='#d4572e'; g.fillRect(0,366,256,18); },   // 27 Kirche Putz
+      g=>{ ashlar(g,0,0,256,384,'#c4ae86'); g.fillStyle='rgba(0,0,0,.18)'; g.fillRect(0,0,22,384); g.fillRect(234,0,22,384); arch(g,128,70,310,64,'#b19a72','#2d3a44',true); },   // 28 Kirche Sandstein
+      g=>{ putz(g,'#f6f3ec',384); g.fillStyle='#d4572e'; g.fillRect(0,0,30,384); g.fillRect(226,0,30,384); g.fillRect(0,0,256,8); g.fillRect(0,372,256,12); g.fillRect(30,140,196,8);
+        g.fillStyle='#e6e2da'; g.fillRect(96,34,64,84); g.fillStyle='rgba(60,60,60,.6)'; for (let y=40;y<114;y+=8) g.fillRect(98,y,60,3); g.fillStyle='#f4f1e8'; g.beginPath(); g.arc(128,186,24,0,7); g.fill(); g.strokeStyle='#222'; g.lineWidth=3; g.beginPath(); g.moveTo(128,186); g.lineTo(140,180); g.moveTo(128,186); g.lineTo(126,168); g.stroke(); win2(g,114,276,28,44,'#d4572e'); },   // 29 Turm Putz
+      g=>{ ashlar(g,0,0,256,384,'#c4ae86'); g.fillStyle='rgba(0,0,0,.2)'; g.fillRect(0,0,26,384); g.fillRect(230,0,26,384); arch(g,128,40,140,52,'#b19a72','#2a2a2a',true); g.fillStyle='rgba(80,80,80,.6)'; for (let y=70;y<140;y+=8) g.fillRect(104,y,48,3); g.fillStyle='#e9e2cf'; g.beginPath(); g.arc(128,196,22,0,7); g.fill(); arch(g,128,268,330,22,'#b19a72','#2d3a44',true); },   // 30 Turm Sandstein
+      g=>{ putz(g,'#f1ede4',384); plinth(g,346,38); } ];                                                                                                                                     // 31 Putz ohne Fenster
+    const GB=[ // 0..15 Giebelzellen
+      g=>{ putz(g,'#f8f6f0',256); win2(g,108,128,40,54,'#ffffff'); }, IMG(turkG), IMG(reduG), IMG(fachG), IMG(villaG),
+      g=>{ shingles(g,0,0,256,256,'#4b5159'); win2(g,108,128,40,54,'#f6f3ea'); },
+      g=>{ boards(g,0,0,256,256,'#3f7a4a','#468451',9); win2(g,108,128,40,54,'#f6f3ea'); },
+      g=>{ boards(g,0,0,256,256,'#8f8a80','#9a958b',9); nz(g,256,0.12); },
+      g=>{ boards(g,0,0,256,256,'#6d4a2f','#76512f',16); g.fillStyle='rgba(0,0,0,.45)'; for (let x=15;x<256;x+=16) g.fillRect(x,0,2,256); g.fillStyle='#2a2018'; g.fillRect(104,120,48,52); },
+      g=>{ kratz(g,'#d8d2c2',256); win2(g,74,150,34,46,'#f4f2ec'); win2(g,148,150,34,46,'#f4f2ec'); },
+      g=>{ boards(g,0,0,256,256,'#d9b98a','#d2b183',8); win2(g,110,130,34,48,'#f4f1e8'); },
+      g=>{ putz(g,'#f6efe2',256); g.fillStyle=M(g,'wood','#7a3324'); [64,128,192].forEach(x=>g.fillRect(x-4,0,8,256)); g.fillRect(0,120,256,7); g.fillRect(0,214,256,8); win2(g,94,140,28,48,'#ffffff'); win2(g,138,140,28,48,'#ffffff'); },
+      g=>{ putz(g,'#f6f3ec',256); g.fillStyle='#d4572e'; g.beginPath(); g.arc(128,150,30,0,7); g.fill(); g.fillStyle='#33414c'; g.beginPath(); g.arc(128,150,22,0,7); g.fill(); g.fillStyle='#d4572e'; g.fillRect(0,244,256,12); },
+      g=>{ ashlar(g,0,0,256,256,'#c4ae86'); g.fillStyle='#b19a72'; g.beginPath(); g.arc(128,150,28,0,7); g.fill(); g.fillStyle='#2d3a44'; g.beginPath(); g.arc(128,150,21,0,7); g.fill(); },
+      g=>{ putz(g,'#f1ede4',256); },
+      g=>{ g.fillStyle='#b9bec2'; g.fillRect(0,0,256,256); for (let x=0;x<256;x+=16){ g.fillStyle='rgba(0,0,0,.16)'; g.fillRect(x,0,4,256); } } ];
+    const cell=(x,y,w,h,fn)=>{ g.save(); g.scale(s,s); g.translate(x,y); g.beginPath(); g.rect(0,0,w,h); g.clip(); try{ fn(g); }catch(e){ console.warn('atlas',e); } g.restore(); };
+    W.forEach((fn,i)=>cell((i%8)*256,(i>>3)*384,256,384,fn)); GB.forEach((fn,i)=>cell((i%8)*256,1536+(i>>3)*256,256,256,fn));
+    const t=new THREE.CanvasTexture(c); t.anisotropy=4; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; _facTex.atlas=t; return t; };
+  _facTex={plaster, wood, umgebinde, barn, roof, slate, turk, ocker, turkG, fach, fachG, redu, reduG, villa, villaG, garage, p_fach, p_turkW, p_turkG, p_redu, atlasFn}; return _facTex;
 }
 // ---- Dorfkirche Spitzkunnersdorf (nach Hicores Fotos): weißer Putz, rote Lisenen, Spitzbogenfenster,
 // steiles rotes Ziegeldach mit Walm im Osten, Westturm mit Gesimsen, Uhren, grüner Kupferhaube, Laterne, Kugel und Stern
@@ -8973,7 +9117,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.8.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.9.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
