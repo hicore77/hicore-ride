@@ -7427,6 +7427,10 @@ function gripHandGeo(){ if (_geoCache.gripHand) return _geoCache.gripHand; const
   /* Knöchelreihe auf dem Rohr */
   { const g=new THREE.CylinderGeometry(0.012,0.012,0.07,10); g.rotateZ(Math.PI/2); glove.push([g,new THREE.Matrix4().makeTranslation(0.026,Math.cos(0.4)*Rw*1.15,Math.sin(0.4)*Rw*1.15)]); }
   const G=mergeGeo(glove), Sk=mergeGeo(skin); G.computeVertexNormals(); Sk.computeVertexNormals(); return (_geoCache.gripHand={G,Sk}); }
+const WRIST_HL=0.075, WRIST_FLEX=0.008;
+function gripPalm(gw, side){ const GP=GRIPF, c=new THREE.Vector3(), X=new THREE.Vector3(), Y=new THREE.Vector3();
+  for (let i=0;i<3;i++){ c.addScaledVector(GP[i].c,gw[i]); X.addScaledVector(GP[i].X,gw[i]); Y.addScaledVector(GP[i].Y,gw[i]); }
+  X.normalize(); Y.sub(X.clone().multiplyScalar(Y.dot(X))).normalize(); const p=c.addScaledVector(Y,0.022).addScaledVector(X,0.024); p.x*=side; return p; }
 function placeGripHands(R, G, gw, low){ if (!R._gh){ const geo=gripHandGeo(), mG=new THREE.MeshLambertMaterial({color:0x26272b, side:THREE.DoubleSide}), mS=new THREE.MeshLambertMaterial({color:0xc98f6c, side:THREE.DoubleSide});
     const palmG=new THREE.SphereGeometry(1,12,10);
     R._gh={}; ['Left','Right'].forEach(s=>{ const g=new THREE.Group(); g.matrixAutoUpdate=false; const a=new THREE.Mesh(geo.G,mG), b=new THREE.Mesh(geo.Sk,mS); a.castShadow=b.castShadow=true; g.add(a,b); G.add(g);
@@ -7582,8 +7586,12 @@ function poseGLB(R, G, crank, effort, opt){
     // Schultern locker nach vorn-unten (nicht hochgezogen)
     if (B[s+'Shoulder']){ const aL=G.worldToLocal(B[s+'Arm'].getWorldPosition(new THREE.Vector3())); aL.add(new THREE.Vector3(-side*0.012,-0.06,0.035)); aimBone(B[s+'Shoulder'], B[s+'Arm'], W(aL)); }
     const shW=B[s+'Arm'].getWorldPosition(new THREE.Vector3()); const shL=G.worldToLocal(shW.clone());
-    const hand=new THREE.Vector3(side*R._hand.x, R._hand.y, R._hand.z);
-    const elbow=ik3(shL, hand, L.upper, L.fore, new THREE.Vector3(side*(0.45+0.25*low),-0.55,-0.55), new THREE.Vector3());
+    let hand=new THREE.Vector3(side*R._hand.x, R._hand.y, R._hand.z);
+    const pole=new THREE.Vector3(side*(0.45+0.25*low),-0.55,-0.55); let elbow=ik3(shL, hand, L.upper, L.fore, pole, new THREE.Vector3());
+    if (!window.OLD_HANDS && !window.OLD_WRIST){ /* Handgelenk gerade bis leicht nach unten: Handgelenk liegt auf der Verlängerung Ellbogen -> Handballen, etwas darüber */
+      const p0=gripPalm(gw, side); for (let it=0; it<3; it++){ const d=p0.clone().sub(elbow).normalize(), up=new THREE.Vector3(0,1,0).addScaledVector(d,-d.y).normalize();
+        hand=p0.clone().addScaledVector(d,-WRIST_HL).addScaledVector(up,WRIST_FLEX); elbow=ik3(shL, hand, L.upper, L.fore, pole, new THREE.Vector3()); }
+      if (side>0) R._hand.set(hand.x, hand.y, hand.z); }
     aimBone(B[s+'Arm'], B[s+'ForeArm'], W(elbow));
     aimBone(B[s+'ForeArm'], B[s+'Hand'], W(hand));
     const fing=hand.clone().add(new THREE.Vector3(side*R._fing.x,R._fing.y,R._fing.z));   // Finger umgreifen Oberlenker / Bremsgriff / Unterlenker
@@ -8510,7 +8518,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.9 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.4.10 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
