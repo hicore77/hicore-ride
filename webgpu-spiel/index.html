@@ -6270,17 +6270,32 @@ function ztSignTex(rows){ const key='sg:'+JSON.stringify(rows); return ztTex(key
     if (r.a){ g.save(); g.translate(x+22,y); g.rotate(r.a==='left'?-Math.PI/2:r.a==='right'?Math.PI/2:r.a==='slight_right'?0.6:r.a==='slight_left'?-0.6:0); g.fillStyle='#111'; g.fillRect(-5,-6,10,26); g.beginPath(); g.moveTo(0,-26); g.lineTo(-15,-4); g.lineTo(15,-4); g.closePath(); g.fill(); g.restore(); x+=58; }
     (r.refs||[]).forEach(rf=>{ const A=/^A/.test(rf); g.font='bold 34px system-ui,Arial'; const tw=g.measureText(rf).width+20; g.fillStyle=A?'#1f4fa0':'#f4c300'; g.fillRect(x,y-24,tw,48); g.strokeStyle=A?'#fff':'#111'; g.lineWidth=3; g.strokeRect(x+3,y-21,tw-6,42); g.fillStyle=A?'#fff':'#111'; g.textBaseline='middle'; g.fillText(rf,x+10,y+1); x+=tw+12; });
     g.fillStyle='#111'; g.textBaseline='middle'; let f=40; const txt=r.t; do { g.font='bold '+f+'px system-ui,Arial'; f-=2; } while (g.measureText(txt).width>W-x-20 && f>18); g.fillText(txt,x,y+2); }); }); }
-/* 0.8.2: Hochwaldturm (Aussichtsturm aus Naturstein, stilisiert) neben der Hochwaldbaude am Ende des Hochwaldwegs */
-function buildHochwaldTurm(){ const x=-893, z=3031, y=terrainH(x,z)-0.6, g=new THREE.Group(); g.name='hochwaldturm'; let tex=null; try{ tex=sandstoneTexture(); }catch(e){}
-  const st=new THREE.MeshLambertMaterial({color:0xb9b2a6, map:tex||null}); if (tex){ st.map=tex.clone(); st.map.needsUpdate=true; st.map.wrapS=st.map.wrapT=THREE.RepeatWrapping; st.map.repeat.set(3,6); }
-  const sh=new THREE.Mesh(new THREE.CylinderGeometry(3.0,3.6,21,8,1,true),st); sh.position.y=10.5; g.add(sh);
-  const top=new THREE.Mesh(new THREE.CylinderGeometry(3.9,3.1,1.2,8),st); top.position.y=21.6; g.add(top);
-  for (let i=0;i<16;i++){ if (i%2) continue; const a=i/16*Math.PI*2, m=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.3,0.6),st); m.position.set(Math.cos(a)*3.55,22.8,Math.sin(a)*3.55); m.rotation.y=-a+Math.PI/2; g.add(m); }
-  const dark=new THREE.MeshLambertMaterial({color:0x2a2622}); [[6,0],[12,2.4],[17,4.2]].forEach(([h,a])=>{ const w=new THREE.Mesh(new THREE.PlaneGeometry(0.7,1.3),dark); w.position.set(Math.cos(a)*3.28,h,Math.sin(a)*3.28); w.rotation.y=-a+Math.PI/2; g.add(w); });
-  const door=new THREE.Mesh(new THREE.PlaneGeometry(1.2,2.2),dark); door.position.set(Math.cos(Math.PI)*3.62,1.1,0); door.rotation.y=-Math.PI/2; g.add(door);
-  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,5,6),new THREE.MeshLambertMaterial({color:0xdddddd})); pole.position.y=24.5; g.add(pole);
-  const fl=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.0),new THREE.MeshLambertMaterial({color:0x2f6b2f, side:THREE.DoubleSide})); fl.position.set(0.8,26.4,0); g.add(fl);
-  g.position.set(x,y,z); g.traverse(o=>{ if (o.isMesh){ o.castShadow=true; o.receiveShadow=true; } }); return g; }
+/* 0.8.2: Hochwaldturm (runder, hell verputzter Turm mit dunklen Steinbändern, Balkon, Zinnen, Antenne) und Hochwald-Turmbaude, nach Fotos von Hicore */
+const HW={x:-915, z:3040};
+function buildHochwaldTurm(){ const g=new THREE.Group(); g.name='hochwaldturm'; const L=(c)=>new THREE.MeshLambertMaterial({color:c});
+  const pl=L(0xcfc8b8), st=L(0x55504a), dk=L(0x22201e), gl=L(0x3a4652);
+  const tx=HW.x+12, tz=HW.z+2, ty=terrainH(tx,tz)-0.8, T=new THREE.Group(); T.position.set(tx,ty,tz); g.add(T);
+  const cyl=(r0,r1,h,y,m,seg)=>{ const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r0,h,seg||24),m); o.position.y=y+h/2; T.add(o); return o; };
+  cyl(3.3,3.1,3.2,0,pl); cyl(3.38,3.38,0.45,3.2,st); cyl(3.1,2.95,9.6,3.6,pl); cyl(3.05,3.05,0.35,8.2,st); cyl(3.02,3.02,0.35,12.9,st);
+  cyl(4.1,4.1,0.3,13.4,st); /* Balkon */ for (let i=0;i<28;i++){ const a=i/28*Math.PI*2, b=new THREE.Mesh(new THREE.BoxGeometry(0.05,1.0,0.05),dk); b.position.set(Math.cos(a)*4.0,14.2,Math.sin(a)*4.0); T.add(b); }
+  const rail=new THREE.Mesh(new THREE.TorusGeometry(4.0,0.04,4,32),dk); rail.rotation.x=Math.PI/2; rail.position.y=14.7; T.add(rail);
+  cyl(2.95,2.85,6.4,13.7,pl); cyl(2.9,2.9,0.35,16.5,st); cyl(2.95,3.25,0.8,20.1,st); cyl(3.25,3.25,3.0,20.9,pl); cyl(3.3,3.3,0.35,23.9,st);
+  for (let i=0;i<14;i++){ const a=i/14*Math.PI*2, m=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.7,0.45),st); m.position.set(Math.cos(a)*3.1,24.6,Math.sin(a)*3.1); m.rotation.y=-a; T.add(m); }
+  cyl(2.0,2.0,1.6,24.2,pl,12); const ant=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.16,7,6),L(0xd8d8d8)); ant.position.y=29.3; T.add(ant);
+  for (let k=0;k<4;k++){ const cb=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.05,0.05),L(0xd8d8d8)); cb.position.y=27+k*1.4; cb.rotation.y=k*0.8; T.add(cb); }
+  const win=(r,y,a,w,h)=>{ const f=new THREE.Mesh(new THREE.PlaneGeometry(w+0.36,h+0.36),st), q=new THREE.Mesh(new THREE.PlaneGeometry(w,h),gl); [f,q].forEach((o,k)=>{ o.position.set(Math.cos(a)*(r+0.03+k*0.02),y,Math.sin(a)*(r+0.03+k*0.02)); o.rotation.y=-a+Math.PI/2; T.add(o); }); };
+  const fa=Math.atan2(-1,-0.3);   /* Blick zur Straße (Norden) */
+  win(3.0,6.5,fa,0.7,1.2); win(3.0,10.8,fa+0.5,0.7,1.2); win(2.9,15.3,fa,0.8,1.3); win(2.9,18.3,fa-0.4,0.7,1.1); for (let k=0;k<6;k++) win(3.27,22.4,fa+k*Math.PI/3,0.6,1.0);
+  win(3.3,1.2,fa+0.6,1.2,2.2);
+  /* Baude: unten hell verputzt, Giebel braunes Holz mit Sonne, graues Blechdach */
+  const bx=HW.x-4, bz=HW.z+1, by=terrainH(bx,bz)-0.5, B=new THREE.Group(); B.position.set(bx,by,bz); g.add(B); const W=13, D=9, H=4.6, R=3.6;
+  const wall=new THREE.Mesh(new THREE.BoxGeometry(W,H,D),L(0xd9cba6)); wall.position.y=H/2; B.add(wall);
+  const gt=ztTex('hwgiebel',256,128,(c,w,h)=>{ c.fillStyle='#5b3a26'; c.fillRect(0,0,w,h); c.strokeStyle='rgba(0,0,0,.35)'; c.lineWidth=2; for (let x=0;x<w;x+=10){ c.beginPath(); c.moveTo(x,0); c.lineTo(x,h); c.stroke(); } c.fillStyle='#e0a040'; for (let k=0;k<11;k++){ const a=Math.PI+k/10*Math.PI; c.beginPath(); c.moveTo(w/2,30); c.lineTo(w/2+Math.cos(a-0.07)*44,30+Math.sin(a-0.07)*44*-1); c.lineTo(w/2+Math.cos(a+0.07)*44,30+Math.sin(a+0.07)*44*-1); c.closePath(); c.fill(); } c.fillStyle='#2b3440'; c.fillRect(w/2-34,62,30,34); c.fillRect(w/2+4,62,30,34); });
+  const gs=new THREE.Shape(); gs.moveTo(-D/2,0); gs.lineTo(D/2,0); gs.lineTo(0,R); gs.closePath(); const gg=new THREE.ShapeGeometry(gs); { const p=gg.attributes.position, uv=[]; for (let i=0;i<p.count;i++) uv.push((p.getX(i)+D/2)/D, p.getY(i)/R); gg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); }
+  [-1,1].forEach(sd=>{ const m=new THREE.Mesh(gg,new THREE.MeshLambertMaterial({map:gt, side:THREE.DoubleSide})); m.rotation.y=sd<0?Math.PI/2:-Math.PI/2; m.position.set(sd*W/2*0.999,H,0); B.add(m); });
+  const rl=Math.hypot(D/2+0.6,R+0.3), ra=Math.atan2(R+0.3,D/2+0.6); [-1,1].forEach(sd=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(W+1.0,0.12,rl),L(0x9aa1a6)); r.position.set(0,H+R/2,sd*(D/4+0.15)); r.rotation.x=sd*ra; B.add(r); });
+  for (let k=0;k<4;k++){ const q=new THREE.Mesh(new THREE.PlaneGeometry(1.0,1.3),gl); q.position.set(-W/2+2+k*3,2.4,-D/2-0.02); q.rotation.y=Math.PI; B.add(q); }
+  g.traverse(o=>{ if (o.isMesh){ o.castShadow=true; o.receiveShadow=true; } }); return g; }
 function buildZtMarks(){ const Z=window.ZGZT; if (!Z || !GN.d) return null; const D=GN.d, grp=new THREE.Group(); grp.name='zittauMarks';
   const dash=[], pos=[], quads={}, signs=[]; let nDash=0, nArrow=0, nBike=0, nSign=0;
   /* Weg im Netz verfolgen: alle 1 m Mittelpunkt und Richtung der Netzkante, nur wo der OSM-Weg auf einer Spielstraße liegt */
@@ -6357,7 +6372,7 @@ function gtForest(i,j){ const g=gtForestGen(i,j); let r; do r=g.next(); while(!r
 function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S, x0=i*S, z0=j*S, step=MINI?17:LITE?12:9.5, fk=gtForestKit(); let sd=((i*73856093)^(j*19349663))&0x7fffffff||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
   const KEEP=MINI?0.14:LITE?0.2:0.3; const pick=mx=>{ let r=rnd(), t=0; for (const e of mx) t+=e[1]; r*=t; for (const [k,w] of mx){ if (r<w) return k; r-=w; } return mx[0][0]; };
   const by={}, m=new THREE.Matrix4(), q=new THREE.Quaternion(), sc=new THREE.Vector3(), p=new THREE.Vector3(), e=new THREE.Euler(), col=new THREE.Color();
-  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
+  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
     const h=terrainH(x,z), k=pick(h>440?GT.mixHi:h>380?(rnd()<0.5?GT.mixHi:GT.mixLo):GT.mixLo), s0=(inner?1.25:1.0)+rnd()*0.6; e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(0.85+rnd()*0.4),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
     const f=0.72+rnd()*0.35; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[k]=by[k]||[]).push([m.clone(),col.clone()]); } }
   const grp=new THREE.Group(), RT=gtNearR(), out={grp, types:[], cx:x0+S/2, cz:z0+S/2}, bs=new THREE.Sphere(new THREE.Vector3(x0+S/2, terrainH(x0+S/2,z0+S/2), z0+S/2), S*0.72+90);   /* Kachel-Hülle: Wald hinter der Kamera wird nicht gezeichnet */
@@ -6391,7 +6406,7 @@ function gtMidR(){ return MINI?110:LITE?160:280; }
 /* Gebäude aus Overture Maps (OpenStreetMap + Gebäudeerkennung), je Kachel: echte Grundrisse, Satteldach über dem ausgerichteten Rechteck */
 function gtBldIndex(){ if (GT.bi!==undefined) return GT.bi; GT.bi=null; if (!window.ZGBLD) return null; const a=b64i16(window.ZGBLD), M=new Map(); let i=0;
   while (i<a.length){ const n=a[i], k=a[i+1], hd=a[i+2]; let x=a[i+3], z=a[i+4]; const P=[[x,z]]; let qx=Math.round(x*4), qz=Math.round(z*4); i+=5; for (let j=1;j<n;j++){ qx+=a[i]; qz+=a[i+1]; i+=2; P.push([qx/4,qz/4]); }
-    let cx=0, cz=0; P.forEach(p=>{ cx+=p[0]/n; cz+=p[1]/n; }); const key=Math.floor(cx/GT.S)+','+Math.floor(cz/GT.S); let l=M.get(key); if (!l) M.set(key,l=[]); l.push({P,k,h:hd/10,cx,cz}); }
+    let cx=0, cz=0; P.forEach(p=>{ cx+=p[0]/n; cz+=p[1]/n; }); if (Math.hypot(cx-HW.x,cz-HW.z)<50 && WORLD&&WORLD.id==='zittau') continue; const key=Math.floor(cx/GT.S)+','+Math.floor(cz/GT.S); let l=M.get(key); if (!l) M.set(key,l=[]); l.push({P,k,h:hd/10,cx,cz}); }
   GT.bi=M; return M; }
 function gtHouses(i,j){ const g=gtHousesGen(i,j); let r; do r=g.next(); while(!r.done); return r.value; }
 function* gtHousesGen(i,j){ const M=gtBldIndex(); if (!M) return null; const L=M.get(i+','+j); if (!L || !L.length) return null; const T=facadeTextures();
@@ -6443,7 +6458,7 @@ function gdemH(x,z){ const d=GN.dem; if (!d) return 0; const gx=clamp((x-d.x0)/d
 function gRoute(path, key){ const D=gnData(), dense=[], ents=[]; let acc=0;
   path.forEach(({e,dir},pi)=>{ const E=D.edges[e], P=dir?E.P.slice().reverse():E.P;
     /* Sackgasse (z. B. Hochwald, Lausche): oben eine Wendeschleife statt Kehrtwende auf der Stelle */
-    if (pi>0 && path[pi-1].e===e && path[pi-1].dir!==dir && dense.length>4){ const T=dense[dense.length-1], Q=dense[dense.length-4], hx=T.x-Q.x, hz=T.z-Q.z, hl=Math.hypot(hx,hz)||1, R=7, cx=T.x+hx/hl*R, cz=T.z+hz/hl*R, a0=Math.atan2(T.z-cz,T.x-cx);
+    if (pi>0 && path[pi-1].e===e && path[pi-1].dir!==dir && dense.length>4){ const T=dense[dense.length-1], Q=dense[dense.length-4], hx=T.x-Q.x, hz=T.z-Q.z, hl=Math.hypot(hx,hz)||1, R=7, cx=T.x+hx/hl*R, cz=T.z+hz/hl*R, a0=Math.atan2(T.z-cz,T.x-cx); (window.GLOOPS=window.GLOOPS||new Map()).set(Math.round(cx/20)+','+Math.round(cz/20),{x:cx,z:cz,y:T.y});
       for (let k=1;k<=26;k++){ const a=a0-k/26*Math.PI*2, q=new THREE.Vector3(cx+Math.cos(a)*R, T.y, cz+Math.sin(a)*R), l=dense[dense.length-1]; acc+=Math.hypot(q.x-l.x,q.z-l.z); dense.push(q); } }
     const r0=acc;
     for (let j=0;j<P.length;j++){ if (dense.length){ const q=dense[dense.length-1], dl=Math.hypot(P[j].x-q.x,P[j].z-q.z); if (dl<0.05) continue; acc+=dl; } dense.push(P[j].clone()); }
@@ -8958,7 +8973,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.8.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.8.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -9247,6 +9262,12 @@ function frame(now){
   else if (camMode===0){ camera.position.set(p.x-fx*4.6, camY+2.0, p.z-fz*4.6); camera.position.y=Math.max(camera.position.y, terrainH(camera.position.x,camera.position.z)+1.2); camLook.set(p.x+fx*10, camY+1.2, p.z+fz*10); }
   else if (camMode===1){ camera.position.set(p.x+rx*3.0+fx*0.6, camY+1.15, p.z+rz*3.0+fz*0.6); camLook.set(p.x+fx*0.25, camY+0.85, p.z+fz*0.25); }
   else { camera.position.set(p.x-fx*22, camY+17, p.z-fz*22); camLook.set(p.x, camY, p.z); }
+  /* 0.8.2: Drohnenflug wie bei Zwift: oben an der Wendeschleife (Hochwald, Lausche) ca. 10 s um den Gipfel, dann zurück zum Fahrer */
+  if (S.running && window.GLOOPS && WORLD.graph){ const DR=window.DRONE||(window.DRONE={t:-1,spot:null,last:new Map()});
+    if (DR.t<0){ for (const [k,o] of GLOOPS){ if (Math.hypot(p.x-o.x,p.z-o.z)<28 && now-(DR.last.get(k)||-1e9)>180000){ DR.t=0; DR.spot=(WORLD.id==='zittau' && Math.hypot(o.x-HW.x,o.z-HW.z)<80)?{x:HW.x+4,z:HW.z+2,y:terrainH(HW.x,HW.z)}:o; DR.last.set(k,now); DR.a0=Math.atan2(camera.position.z-o.z,camera.position.x-o.x); break; } } }
+    if (DR.t>=0){ DR.t+=dt; const T=10, t=DR.t, o=DR.spot, w=Math.min(1,t/1.5,(T-t)/1.5), e=w*w*(3-2*w), a=DR.a0+t/T*Math.PI*1.25, r=42+t*1.5, h=o.y+18+t*0.8;
+      const dx=o.x+Math.cos(a)*r, dz=o.z+Math.sin(a)*r, dy=Math.max(h, terrainH(dx,dz)+6); camera.position.set(camera.position.x+(dx-camera.position.x)*e, camera.position.y+(dy-camera.position.y)*e, camera.position.z+(dz-camera.position.z)*e);
+      camLook.set(camLook.x+(o.x-camLook.x)*e, camLook.y+(o.y+7-camLook.y)*e, camLook.z+(o.z-camLook.z)*e); if (t>=T){ DR.t=-1; DR.spot=null; } } }
   if (S.running && (Math.abs(orbYaw)>1e-3 || Math.abs(orbPitch)>1e-3 || Math.abs(orbZoom-1)>1e-3)){
     // Orbit-Kamera: Position um den Fahrer drehen (Zwei-Finger/Maus ziehen, Pinch = Zoom)
     const pv=tmp.set(p.x, camY+1.0, p.z);
