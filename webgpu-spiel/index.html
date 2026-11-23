@@ -9113,7 +9113,23 @@ window.WALK=WALK;
    solange keiner eingetragen ist, antwortet die Figur aus ihrem eigenen kleinen Wissen (offline). */
 const CHAT={
   API:'', npcs:[], cur:null, on:false, hist:[], busy:false, rec:null, lastErr:'',
-  add(n){ this.npcs.push(n); return n; },
+  add(n){ if (n.W){ const g=n.W.G; n.home={x:g.position.x, z:g.position.z, yaw:g.rotation.y}; n.mode='idle'; } this.npcs.push(n); return n; },
+  /* 0.10.11 (Hicore): wer angesprochen wird, kommt zum Fahrer und stellt sich daneben; fährt man weiter, geht die Figur zurück */
+  move(n, dt, P){ const W=n.W, G=W.G, me_=me.g, v=(S.speed||0);
+    const walkTo=(tx,tz,stop)=>{ const dx=tx-G.position.x, dz=tz-G.position.z, d=Math.hypot(dx,dz); if (d<stop) return true; const sp=1.35, st=Math.min(d, sp*dt);
+      G.position.x+=dx/d*st; G.position.z+=dz/d*st; G.position.y=groundAt(G.position.x,G.position.z); let dy=Math.atan2(dx,dz)-G.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); G.rotation.y+=dy*Math.min(1,dt*5);
+      W.v=sp; WALK.step(W, dt); return false; };
+    const face=(tx,tz)=>{ let dy=Math.atan2(tx-G.position.x,tz-G.position.z)-G.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); G.rotation.y+=dy*Math.min(1,dt*3); };
+    if (n.mode==='go'||n.mode==='near'){ const dRider=Math.hypot(P.x-G.position.x, P.z-G.position.z);
+      if (v>2.5 || dRider>40 || !S.running){ n.mode='back'; }
+      else { const hd=me_.rotation.y, sx=Math.cos(hd), sz=-Math.sin(hd), A=[P.x+sx*1.7,P.z+sz*1.7], B=[P.x-sx*1.7,P.z-sz*1.7];
+        if (!n.side){ const h=n.home; n.side=Math.hypot(A[0]-h.x,A[1]-h.z)<Math.hypot(B[0]-h.x,B[1]-h.z)?1:-1; }   /* Seite zum Wegrand, wo sie herkommt */
+        const T=n.side>0?A:B;
+        if (n.mode==='go'){ if (walkTo(T[0],T[1],0.5)) n.mode='near'; }
+        if (n.mode==='near'){ if (Math.hypot(T[0]-G.position.x,T[1]-G.position.z)>2.5) n.mode='go'; else { face(P.x,P.z); W.look=new THREE.Vector3(P.x,P.y+1.5,P.z); WALK.idle(W,dt); } }
+        return; } }
+    if (n.mode==='back'){ n.side=0; if (walkTo(n.home.x,n.home.z,0.3)) n.mode='idle'; return; }
+    let dy=n.home.yaw-G.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); G.rotation.y+=dy*Math.min(1,dt*1.5); WALK.idle(W,dt); },
   clear(){ this.npcs.length=0; this.cur=null; this.close(); },
   pos(n){ const o=n.W?n.W.G:n.o; return o&&o.parent?o.position:null; },
   /* nächste ansprechbare Figur, nur im Stand */
@@ -9133,7 +9149,7 @@ const CHAT={
   stopRec(){ try{ this.rec&&this.rec.stop(); }catch(e){} this.rec=null; this.on=false; },
   /* Sprechknopf gedrückt: zuhören */
   unlock(){ if (this._ul) return; try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); speechSynthesis.getVoices(); this._ul=1; }catch(e){} },
-  talk(){ this.unlock(); if (this.busy) return; if (this.on){ this.stopRec(); this.say(0,'…','me'); return; }
+  talk(){ this.unlock(); if (this.cur && this.cur.W && this.cur.mode!=='near') this.cur.mode='go'; if (this.busy) return; if (this.on){ this.stopRec(); this.say(0,'…','me'); return; }
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if (!SR){ this.ask(prompt('Dein Browser kann nicht zuhören. Was möchtest du sagen?')||''); return; }
     try{ const r=new SR(); r.lang='de-DE'; r.interimResults=true; r.maxAlternatives=1; this.rec=r; this.on=true;
@@ -9658,7 +9674,7 @@ function copStep(dt, P){ if (!EGG.cops.length) return; const v=(typeof S!=='unde
 function eggStep(dt){ if (!WORLD || !WORLD.graph || !GN.d || typeof me==='undefined') return; const P=me.g.position, R=Math.random;
   for (const k in EGG.cd) EGG.cd[k]-=dt;
   for (const it of EGG.idle){ it.t+=dt; it.o.rotation.z=Math.sin(it.t*0.9)*0.012; }
-  for (const W of EGG.talkers){ if (W.G.parent) WALK.idle(W, Math.min(dt,0.1)); }
+  for (const n of CHAT.npcs) if (n.W && n.W.G.parent) CHAT.move(n, Math.min(dt,0.1), P);
   try{ CHAT.step(dt); }catch(e){}
   try{ if (TRAFFIC.copW && TRAFFIC.cop){ TRAFFIC.copW.look=new THREE.Vector3(P.x,P.y+1.5,P.z); WALK.idle(TRAFFIC.copW, Math.min(dt,0.1)); } copStep(dt, P); }catch(e){ if (!EGG._ce){ EGG._ce=1; console.warn('polizist', e); } }
   for (const w of EGG.walk){ w.t+=dt; const go=Math.max(0,Math.sin(w.t*0.23+w.ph*3)); w.a+=dt*0.22*go; const x=w.cx+Math.sin(w.a)*w.r, z=w.cz+Math.sin(w.a*1.7+w.ph)*w.r*0.5, vx=x-w.o.position.x, vz=z-w.o.position.z;
@@ -10255,7 +10271,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.10 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.11 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
