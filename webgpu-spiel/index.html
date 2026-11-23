@@ -235,7 +235,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
       <p style="font-size:12px;opacity:.75;margin:6px 0 0">Schnell umschalten im Spiel: Knopf „👁 Anzeige“ oben rechts oder Taste H (alles · nur Werte oben · nur Fahrer).</p>
       </div>
       <div class="spage" id="sTon" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Ton</h3>
-      <div class="sndbox" style="border:0;padding:0;margin:4px 0"><div class="sndhead"><label class="chk" style="margin:0"><input type="checkbox" id="sndOn"> <b>Umgebungsgeräusche</b>&nbsp;(Wind, Vögel, Blätter, Meer, Fahrgeräusch)</label><button id="sndTest">Probehören</button></div><div class="sndgrid" id="sndGrid"></div></div><div style="margin:6px 0"><label>Raumklang <select id="sndSur"><option value="auto">Automatisch</option><option value="hp">Kopfhörer 3D</option><option value="51">Surround 5.1</option><option value="st">Stereo einfach</option></select></label> <small id="sndSurI" style="opacity:.7"></small></div>
+      <div class="sndbox" style="border:0;padding:0;margin:4px 0"><div class="sndhead"><label class="chk" style="margin:0"><input type="checkbox" id="sndOn"> <b>Umgebungsgeräusche</b>&nbsp;(Wind, Vögel, Blätter, Meer, Fahrgeräusch)</label><button id="sndTest">Probehören</button></div><div class="sndgrid" id="sndGrid"></div></div><div style="margin:6px 0"><label>Raumklang <select id="sndSur"><option value="auto">Automatisch</option><option value="hp">Kopfhörer 3D</option><option value="51">Surround 5.1</option><option value="st">Stereo einfach</option></select></label> <small id="sndSurI" style="opacity:.7"></small></div><div style="margin:8px 0"><label><b>KI für Gespräche</b> (kostenloser Google-Gemini-Schlüssel, bleibt nur auf diesem Gerät): <input id="aiKey" type="password" autocomplete="off" placeholder="AIza…" style="width:min(320px,90%)"></label> <span id="aiKeyI" style="opacity:.75;font-size:12px"></span></div>
       </div>
       <div class="spage" id="sWelt" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Welten</h3>
       <label class="chk"><input type="checkbox" id="unlockAll"> Alle Welten freischalten (zum Ausprobieren)</label>
@@ -9132,7 +9132,8 @@ const CHAT={
   close(){ const el=document.getElementById('talkBox'); if (el) el.style.display='none'; this.stopRec(); try{ speechSynthesis.cancel(); }catch(e){} },
   stopRec(){ try{ this.rec&&this.rec.stop(); }catch(e){} this.rec=null; this.on=false; },
   /* Sprechknopf gedrückt: zuhören */
-  talk(){ if (this.busy) return; if (this.on){ this.stopRec(); this.say(0,'…','me'); return; }
+  unlock(){ if (this._ul) return; try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); speechSynthesis.getVoices(); this._ul=1; }catch(e){} },
+  talk(){ this.unlock(); if (this.busy) return; if (this.on){ this.stopRec(); this.say(0,'…','me'); return; }
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if (!SR){ this.ask(prompt('Dein Browser kann nicht zuhören. Was möchtest du sagen?')||''); return; }
     try{ const r=new SR(); r.lang='de-DE'; r.interimResults=true; r.maxAlternatives=1; this.rec=r; this.on=true;
@@ -9144,19 +9145,31 @@ const CHAT={
     }catch(e){ this.on=false; this.say(0,'Mikrofon geht hier nicht.','me'); } },
   ask(text){ text=(text||'').trim(); if (!text) return; const n=this.cur; if (!n) return; this.busy=true; this.say(0,text,'me');
     const done=a=>{ this.busy=false; if (this.cur!==n) return; this.hist.push({q:text,a}); if (this.hist.length>6) this.hist.shift(); this.say(1,a); this.speak(a, n); };
+    const key=this.key();
+    if (key){ const ctl=new AbortController(); setTimeout(()=>ctl.abort(), 15000); this.say(1,'<i>…</i>');
+      const sys=n.role+' Antworte immer auf Deutsch, natürlich gesprochen, hoechstens zwei kurze Saetze, ohne Aufzaehlungen, ohne Emojis, ohne Sternchen. Der Gespraechspartner ist ein Radfahrer, der gerade neben dir angehalten hat.';
+      const cont=[]; this.hist.slice(-4).forEach(h=>{ cont.push({role:'user',parts:[{text:h.q}]}); cont.push({role:'model',parts:[{text:h.a}]}); }); cont.push({role:'user',parts:[{text}]});
+      const tryM=(ms)=>{ const m=ms[0]; return fetch('https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},signal:ctl.signal,
+          body:JSON.stringify({systemInstruction:{parts:[{text:sys}]}, contents:cont, generationConfig:{temperature:0.8,maxOutputTokens:160, thinkingConfig:{thinkingBudget:0}}})})
+        .then(r=>r.ok?r.json():r.text().then(t=>Promise.reject(r.status+' '+t.slice(0,160))))
+        .catch(e=>ms.length>1?tryM(ms.slice(1)):Promise.reject(e)); };
+      tryM(['gemini-flash-latest','gemini-2.5-flash','gemini-flash-lite-latest']).then(j=>{ const t=((j.candidates||[])[0]||{}).content; const a=t&&t.parts?t.parts.map(p=>p.text||'').join('').replace(/[*_#]/g,'').trim():''; done(a.slice(0,400)||this.local(text,n)); })
+        .catch(e=>{ this.lastErr=String(e); console.warn('KI', e); done(this.local(text,n)); });
+      return; }
     if (this.API){ const ctl=new AbortController(); setTimeout(()=>ctl.abort(), 12000);
       fetch(this.API,{method:'POST',headers:{'Content-Type':'application/json'},signal:ctl.signal,body:JSON.stringify({rolle:n.role, frage:text, verlauf:this.hist.slice(-3)})})
         .then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>done((j.antwort||j.text||'').slice(0,400)||this.local(text,n)))
         .catch(e=>{ this.lastErr=String(e); done(this.local(text,n)); });
     } else done(this.local(text,n)); },
   /* Antwort ohne Server: kleines eigenes Wissen je Rolle */
+  key(){ try{ return (localStorage.getItem('hicoreRide.aiKey')||'').trim(); }catch(e){ return ''; } },
   local(q, n){ const t=q.toLowerCase(), K=n.wissen||[];
     for (const [keys,a] of K){ if (keys.some(k=>t.includes(k))) return a; }
     return n.standard||'Da bin ich überfragt.'; },
   speak(txt, n){ try{ const u=new SpeechSynthesisUtterance(txt); u.lang='de-DE'; u.rate=n.rate||1; u.pitch=n.pitch||1;
       const V=speechSynthesis.getVoices().filter(v=>/de[-_]DE/i.test(v.lang)); if (V.length){ const w=V.find(v=>n.male?/male|Conrad|Klaus|Stefan|Markus|Google Deutsch/i.test(v.name):/female|Katja|Hedda|Anna|Google Deutsch/i.test(v.name)); u.voice=w||V[0]; }
       u.onend=()=>{ if (n.W) n.W.talkT=0; }; if (n.W) n.W.talkT=Math.max(2, txt.length/13);
-      speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
+      if (speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.resume(); speechSynthesis.speak(u); }catch(e){} }, 60); }catch(e){} }
 };
 window.CHAT=CHAT;
 
@@ -10196,6 +10209,8 @@ $('unlockAll').onchange = ()=>{ store.set('unlockAll',$('unlockAll').checked); r
 // Umgebungsgeräusche: Menü
 AMB.on=store.get('sndOn',true); $('sndOn').checked=AMB.on; $('sndOn').onchange=()=>{ AMB.on=$('sndOn').checked; store.set('sndOn',AMB.on); $('sndGrid').style.opacity=AMB.on?1:0.45; };
 $('sndGrid').innerHTML=SND_KEYS.map(([k,l])=>'<div><label>'+l+' <span id="'+k+'V"></span></label><input type="range" id="'+k+'" min="0" max="100" step="5"></div>').join('');
+try{ const k=localStorage.getItem('hicoreRide.aiKey')||''; $('aiKey').value=k; $('aiKeyI').textContent=k?'aktiv':'ohne Schlüssel: Antworten aus eigenem Wissen'; }catch(e){}
+$('aiKey').onchange=()=>{ try{ localStorage.setItem('hicoreRide.aiKey',$('aiKey').value.trim()); }catch(e){} $('aiKeyI').textContent=$('aiKey').value.trim()?'gespeichert':'ohne Schlüssel: Antworten aus eigenem Wissen'; };
 AMB.surSel=store.get('sndSur','auto'); $('sndSur').value=AMB.surSel; $('sndSur').onchange=()=>{ store.set('sndSur',$('sndSur').value); AMB.setSur($('sndSur').value); if (!AMB.ctx) $('sndSurI').textContent='wird beim Start aktiv'; };
 SND_KEYS.forEach(([k,l,d])=>{ const v=store.get(k,d); AMB.vol[k]=v; const el=$(k), lab=$(k+'V'); el.value=Math.round(v*100); lab.textContent=el.value+' %'; el.oninput=()=>{ AMB.vol[k]=el.value/100; lab.textContent=el.value+' %'; store.set(k,AMB.vol[k]); }; });
 $('sndGrid').style.opacity=AMB.on?1:0.45;
@@ -10240,7 +10255,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.9 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.10 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
