@@ -9175,17 +9175,30 @@ const CHAT={
     } else done(this.local(text,n)); },
   /* Antwort ohne Server: kleines eigenes Wissen je Rolle */
   /* Gemini direkt aus dem Browser; probiert mehrere Modelle, ohne Denk-Einstellung falls abgelehnt */
-  gemini(key, sys, cont, signal){ const errs=[]; const M=['gemini-2.5-flash','gemini-flash-latest','gemini-2.5-flash-lite','gemini-2.0-flash'];
-    /* Schlüssel mit "AQ." (neuere Google-Schlüssel, Vertex AI Express) laufen über aiplatform, klassische "AIza" über generativelanguage; beide werden probiert */
-    const GL=m=>'https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key='+encodeURIComponent(key), VX=m=>'https://aiplatform.googleapis.com/v1/publishers/google/models/'+m+':generateContent?key='+encodeURIComponent(key);
-    const base=/^AQ\./.test(key)?[VX,GL]:[GL,VX]; let bi=0;
-    const one=(m,think)=>fetch(base[bi](m),{method:'POST',headers:{'Content-Type':'application/json'},signal,
-        body:JSON.stringify(Object.assign({contents:cont, generationConfig:Object.assign({temperature:0.8,maxOutputTokens:think?200:900}, think?{thinkingConfig:{thinkingBudget:0}}:{})}, sys?{systemInstruction:{parts:[{text:sys}]}}:{}))})
-      .then(r=>r.ok?r.json():r.text().then(t=>{ let msg=t; try{ msg=JSON.parse(t).error.message; }catch(e){} return Promise.reject(r.status+' '+msg); }))
-      .then(j=>{ const c=(j.candidates||[])[0]||{}, t=c.content&&c.content.parts?c.content.parts.map(p=>p.text||'').join('').replace(/[*_#]/g,'').trim():''; if (!t) return Promise.reject('leere Antwort ('+(c.finishReason||(j.promptFeedback&&j.promptFeedback.blockReason)||'?')+')'); return t; });
-    const run=(i,think)=>{ if (i>=M.length){ if (bi+1<base.length){ bi++; return run(0,true); } return Promise.reject(errs.join(' | ')); }
-      return one(M[i],think).catch(e=>{ const es=String(e); errs.push((bi?'B ':'A ')+M[i]+': '+es.slice(0,90)); if (/^4(01|03)/.test(es) || /API key|TypeError|Failed to fetch|Load failed/i.test(es)){ if (bi+1<base.length){ bi++; return run(0,true); } return Promise.reject(errs.slice(-3).join(' | ')); } return think?run(i,false):run(i+1,true); }); };
-    return run(0,true); },
+  /* 0.10.15: verfügbare Modelle beim Schlüssel nachfragen (Google schaltet ältere Modelle für neue Nutzer ab) */
+  GL:m=>'https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key=',
+  models(key){ if (this._mk===key && this._mp) return this._mp; this._mk=key;
+    const ver=n=>{ const m=n.match(/gemini-(\d+(?:\.\d+)?)/); return m?parseFloat(m[1]):(/latest/.test(n)?9:0); };
+    const rank=n=>ver(n)*10-(/lite/.test(n)?3:0)-(/preview|exp/.test(n)?0.5:0);
+    this._mp=fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key='+encodeURIComponent(key)).then(r=>r.ok?r.json():Promise.reject(r.status))
+      .then(j=>{ const all=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace(/^models\//,''));
+        const txt=all.filter(n=>/gemini/.test(n)&&/flash/.test(n)&&!/tts|image|live|audio|embed|thinking|computer|robot/.test(n)).sort((a,b)=>rank(b)-rank(a));
+        const tts=all.filter(n=>/tts/.test(n)).sort((a,b)=>rank(b)-rank(a)+(/pro/.test(a)?1:0)-(/pro/.test(b)?1:0));
+        this.mInfo=txt.slice(0,3).join(', ')+' / '+(tts[0]||'keine Stimme'); return {txt:txt.length?txt:null, tts:tts.length?tts:null}; })
+      .catch(()=>({txt:null,tts:null})); return this._mp; },
+  gcall(key, M, body, signal, pick){ const errs=[], enc=encodeURIComponent(key);
+    const base=[m=>'https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key='+enc, m=>'https://aiplatform.googleapis.com/v1/publishers/google/models/'+m+':generateContent?key='+enc];
+    const one=(b,m,bd)=>fetch(b(m),{method:'POST',headers:{'Content-Type':'application/json'},signal,body:JSON.stringify(bd)})
+      .then(r=>r.ok?r.json():r.text().then(t=>{ let msg=t; try{ msg=JSON.parse(t).error.message; }catch(e){} return Promise.reject(r.status+' '+msg); })).then(pick);
+    const run=(bi,i,alt)=>{ if (i>=M.length) return bi+1<base.length?run(bi+1,0,false):Promise.reject(errs.slice(-3).join(' | '));
+      const bd=alt&&body.alt?body.alt:body.main;
+      return one(base[bi],M[i],bd).catch(e=>{ const es=String(e); errs.push(M[i]+': '+es.slice(0,90)); if (/429|RESOURCE_EXHAUSTED|quota/i.test(es)) return Promise.reject(es);
+        if (/^40[13]/.test(es)) return bi+1<base.length?run(bi+1,0,false):Promise.reject(errs.slice(-3).join(' | '));
+        if (/^400/.test(es) && !alt && body.alt) return run(bi,i,true); return run(bi,i+1,false); }); };
+    return run(0,0,false); },
+  gemini(key, sys, cont, signal){ return this.models(key).then(mm=>{ const M=mm.txt||['gemini-flash-latest','gemini-3-flash-preview','gemini-2.5-flash','gemini-flash-lite-latest','gemini-2.5-flash-lite'];
+      const b=t=>Object.assign({contents:cont, generationConfig:Object.assign({temperature:0.8,maxOutputTokens:t?220:1200}, t?{thinkingConfig:{thinkingBudget:0}}:{})}, sys?{systemInstruction:{parts:[{text:sys}]}}:{});
+      return this.gcall(key, M.slice(0,5), {main:b(true), alt:b(false)}, signal, j=>{ const c=(j.candidates||[])[0]||{}, t=c.content&&c.content.parts?c.content.parts.filter(p=>!p.thought).map(p=>p.text||'').join('').replace(/[*_#]/g,'').trim():''; if (!t) return Promise.reject('leere Antwort ('+(c.finishReason||'?')+')'); return t; }); }); },
   key(){ try{ return (localStorage.getItem('hicoreRide.aiKey')||'').trim(); }catch(e){ return ''; } },
   local(q, n){ const t=q.toLowerCase(), K=n.wissen||[];
     for (const [keys,a] of K){ if (keys.some(k=>t.includes(k))) return a; }
@@ -9199,14 +9212,10 @@ const CHAT={
         .catch(e=>{ this.ttsErr=String(e); console.warn('TTS', e); if (/429|quota|RESOURCE_EXHAUSTED/i.test(this.ttsErr)) this.ttsOk=false; this.speakLocal(txt, n); });
       return; }
     this.speakLocal(txt, n); },
-  ttsCall(key, txt, n, signal){ const M=['gemini-2.5-flash-preview-tts','gemini-2.5-flash-tts','gemini-2.5-pro-preview-tts'], errs=[];
-    const GL=m=>'https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key='+encodeURIComponent(key), VX=m=>'https://aiplatform.googleapis.com/v1/publishers/google/models/'+m+':generateContent?key='+encodeURIComponent(key);
-    const base=/^AQ\./.test(key)?[VX,GL]:[GL,VX]; const body=JSON.stringify({contents:[{role:'user',parts:[{text:(n.ttsStyle||'Sprich freundlich, locker und natürlich, wie im Gespräch draußen beim Wandern')+': '+txt}]}],
-      generationConfig:{responseModalities:['AUDIO'], speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:n.ttsVoice||(n.male?'Charon':'Sulafat')}}}}});
-    const one=(b,m)=>fetch(b(m),{method:'POST',headers:{'Content-Type':'application/json'},signal,body}).then(r=>r.ok?r.json():r.text().then(t=>{ let msg=t; try{ msg=JSON.parse(t).error.message; }catch(e){} return Promise.reject(r.status+' '+msg); }))
-      .then(j=>{ const p=(((j.candidates||[])[0]||{}).content||{}).parts||[], a=p.find(q=>q.inlineData); if (!a) return Promise.reject('keine Audiodaten'); return a.inlineData.data; });
-    const run=(bi,i)=>{ if (i>=M.length){ return bi+1<base.length?run(bi+1,0):Promise.reject(errs.slice(-3).join(' | ')); } return one(base[bi],M[i]).catch(e=>{ errs.push(M[i]+': '+String(e).slice(0,80)); if (/429|quota|RESOURCE_EXHAUSTED/i.test(String(e))) return Promise.reject(String(e)); return run(bi,i+1); }); };
-    return run(0,0); },
+  ttsCall(key, txt, n, signal){ return this.models(key).then(mm=>{ const M=mm.tts||['gemini-2.5-flash-preview-tts','gemini-2.5-flash-tts','gemini-2.5-pro-preview-tts'];
+      const body={contents:[{role:'user',parts:[{text:(n.ttsStyle||'Sprich freundlich, locker und natürlich, wie im Gespräch draußen beim Wandern')+': '+txt}]}],
+        generationConfig:{responseModalities:['AUDIO'], speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:n.ttsVoice||(n.male?'Charon':'Sulafat')}}}}};
+      return this.gcall(key, M.slice(0,3), {main:body}, signal, j=>{ const p=(((j.candidates||[])[0]||{}).content||{}).parts||[], a=p.find(q=>q.inlineData); if (!a) return Promise.reject('keine Audiodaten'); return a.inlineData.data; }); }); },
   speakLocal(txt, n){ try{ const u=new SpeechSynthesisUtterance(txt); u.lang='de-DE'; u.rate=n.rate||1; u.pitch=n.pitch||1;
       const V=speechSynthesis.getVoices().filter(v=>/de[-_]DE/i.test(v.lang)); if (V.length){ const w=V.find(v=>n.male?/male|Conrad|Klaus|Stefan|Markus|Google Deutsch/i.test(v.name):/female|Katja|Hedda|Anna|Google Deutsch/i.test(v.name)); u.voice=w||V[0]; }
       u.onend=()=>{ if (n.W) n.W.talkT=0; }; if (n.W) n.W.talkT=Math.max(2, txt.length/13);
@@ -10259,7 +10268,7 @@ AMB.on=store.get('sndOn',true); $('sndOn').checked=AMB.on; $('sndOn').onchange=(
 $('sndGrid').innerHTML=SND_KEYS.map(([k,l])=>'<div><label>'+l+' <span id="'+k+'V"></span></label><input type="range" id="'+k+'" min="0" max="100" step="5"></div>').join('');
 try{ const k=localStorage.getItem('hicoreRide.aiKey')||''; $('aiKey').value=k; $('aiKeyI').textContent=k?'aktiv':'ohne Schlüssel: Antworten aus eigenem Wissen'; }catch(e){}
 $('aiKey').oninput=$('aiKey').onchange=()=>{ try{ localStorage.setItem('hicoreRide.aiKey',$('aiKey').value.replace(/\s+/g,'')); }catch(e){} $('aiKeyI').textContent=$('aiKey').value.trim()?'gespeichert':'ohne Schlüssel: Antworten aus eigenem Wissen'; };
-$('aiTest').onclick=e=>{ e.preventDefault(); const k=CHAT.key(); if (!k){ $('aiKeyI').textContent='Bitte erst den Schlüssel einfügen.'; return; } $('aiKeyI').textContent='teste …'; CHAT.gemini(k,'Antworte auf Deutsch in einem kurzen Satz.',[{role:'user',parts:[{text:'Sag Hallo aus dem Zittauer Gebirge.'}]}]).then(t=>{ $('aiKeyI').textContent='✓ KI antwortet: '+t.slice(0,80)+' · Stimme wird getestet …'; CHAT.ttsCall(k,'Hallo, hier ist Marlies vom Kelchstein.',{male:false},undefined).then(()=>{ $('aiKeyI').textContent='✓ KI antwortet: '+t.slice(0,60)+' · ✓ natürliche Stimme aktiv'; }).catch(e=>{ $('aiKeyI').textContent='✓ KI antwortet · ✗ Stimme: '+String(e).slice(0,160)+' (iPad-Stimme wird genutzt)'; }); }).catch(err=>{ $('aiKeyI').textContent='✗ '+String(err).slice(0,220); }); };
+$('aiTest').onclick=e=>{ e.preventDefault(); const k=CHAT.key(); if (!k){ $('aiKeyI').textContent='Bitte erst den Schlüssel einfügen.'; return; } $('aiKeyI').textContent='teste …'; CHAT.gemini(k,'Antworte auf Deutsch in einem kurzen Satz.',[{role:'user',parts:[{text:'Sag Hallo aus dem Zittauer Gebirge.'}]}]).then(t=>{ $('aiKeyI').textContent='✓ KI antwortet: '+t.slice(0,80)+' · Stimme wird getestet … ('+(CHAT.mInfo||'')+')'; CHAT.ttsCall(k,'Hallo, hier ist Marlies vom Kelchstein.',{male:false},undefined).then(()=>{ $('aiKeyI').textContent='✓ KI antwortet: '+t.slice(0,60)+' · ✓ natürliche Stimme aktiv ('+(CHAT.mInfo||'')+')'; }).catch(e=>{ $('aiKeyI').textContent='✓ KI antwortet · ✗ Stimme: '+String(e).slice(0,160)+' (iPad-Stimme wird genutzt)'; }); }).catch(err=>{ $('aiKeyI').textContent='✗ '+String(err).slice(0,400)+(CHAT.mInfo?' · Modelle: '+CHAT.mInfo:''); }); };
 AMB.surSel=store.get('sndSur','auto'); $('sndSur').value=AMB.surSel; $('sndSur').onchange=()=>{ store.set('sndSur',$('sndSur').value); AMB.setSur($('sndSur').value); if (!AMB.ctx) $('sndSurI').textContent='wird beim Start aktiv'; };
 SND_KEYS.forEach(([k,l,d])=>{ const v=store.get(k,d); AMB.vol[k]=v; const el=$(k), lab=$(k+'V'); el.value=Math.round(v*100); lab.textContent=el.value+' %'; el.oninput=()=>{ AMB.vol[k]=el.value/100; lab.textContent=el.value+' %'; store.set(k,AMB.vol[k]); }; });
 $('sndGrid').style.opacity=AMB.on?1:0.45;
@@ -10304,7 +10313,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.14 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.15 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
