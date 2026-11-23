@@ -9190,7 +9190,24 @@ const CHAT={
   local(q, n){ const t=q.toLowerCase(), K=n.wissen||[];
     for (const [keys,a] of K){ if (keys.some(k=>t.includes(k))) return a; }
     return n.standard||'Da bin ich überfragt.'; },
-  speak(txt, n){ try{ const u=new SpeechSynthesisUtterance(txt); u.lang='de-DE'; u.rate=n.rate||1; u.pitch=n.pitch||1;
+  /* 0.10.13 (Hicore): natürlichere Stimme über Google Gemini TTS mit demselben Schlüssel; klappt das nicht, Browser-Stimme */
+  speak(txt, n){ const key=this.key(), A=typeof AMB!=='undefined'?AMB:null;
+    if (key && A && A.ctx && this.ttsOk!==false){ const ctl=new AbortController(); setTimeout(()=>ctl.abort(), 14000); if (n.W) n.W.talkT=Math.max(2, txt.length/13);
+      this.ttsCall(key, txt, n, ctl.signal).then(b64=>{ const bin=atob(b64), N=bin.length>>1, buf=A.ctx.createBuffer(1,N,24000), d=buf.getChannelData(0);
+          for (let i=0;i<N;i++){ let v=bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8); if (v>32767) v-=65536; d[i]=v/32768; }
+          try{ this.src&&this.src.stop(); }catch(e){} const sN=A.ctx.createBufferSource(), g=A.ctx.createGain(); g.gain.value=1.4; sN.buffer=buf; sN.connect(g); g.connect(A.master); sN.start(); this.src=sN; if (n.W) n.W.talkT=buf.duration; })
+        .catch(e=>{ this.ttsErr=String(e); console.warn('TTS', e); if (/429|quota|RESOURCE_EXHAUSTED/i.test(this.ttsErr)) this.ttsOk=false; this.speakLocal(txt, n); });
+      return; }
+    this.speakLocal(txt, n); },
+  ttsCall(key, txt, n, signal){ const M=['gemini-2.5-flash-preview-tts','gemini-2.5-flash-tts','gemini-2.5-pro-preview-tts'], errs=[];
+    const GL=m=>'https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key='+encodeURIComponent(key), VX=m=>'https://aiplatform.googleapis.com/v1/publishers/google/models/'+m+':generateContent?key='+encodeURIComponent(key);
+    const base=/^AQ\./.test(key)?[VX,GL]:[GL,VX]; const body=JSON.stringify({contents:[{role:'user',parts:[{text:(n.ttsStyle||'Sprich freundlich, locker und natürlich, wie im Gespräch draußen beim Wandern')+': '+txt}]}],
+      generationConfig:{responseModalities:['AUDIO'], speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:n.ttsVoice||(n.male?'Charon':'Sulafat')}}}}});
+    const one=(b,m)=>fetch(b(m),{method:'POST',headers:{'Content-Type':'application/json'},signal,body}).then(r=>r.ok?r.json():r.text().then(t=>{ let msg=t; try{ msg=JSON.parse(t).error.message; }catch(e){} return Promise.reject(r.status+' '+msg); }))
+      .then(j=>{ const p=(((j.candidates||[])[0]||{}).content||{}).parts||[], a=p.find(q=>q.inlineData); if (!a) return Promise.reject('keine Audiodaten'); return a.inlineData.data; });
+    const run=(bi,i)=>{ if (i>=M.length){ return bi+1<base.length?run(bi+1,0):Promise.reject(errs.slice(-3).join(' | ')); } return one(base[bi],M[i]).catch(e=>{ errs.push(M[i]+': '+String(e).slice(0,80)); if (/429|quota|RESOURCE_EXHAUSTED/i.test(String(e))) return Promise.reject(String(e)); return run(bi,i+1); }); };
+    return run(0,0); },
+  speakLocal(txt, n){ try{ const u=new SpeechSynthesisUtterance(txt); u.lang='de-DE'; u.rate=n.rate||1; u.pitch=n.pitch||1;
       const V=speechSynthesis.getVoices().filter(v=>/de[-_]DE/i.test(v.lang)); if (V.length){ const w=V.find(v=>n.male?/male|Conrad|Klaus|Stefan|Markus|Google Deutsch/i.test(v.name):/female|Katja|Hedda|Anna|Google Deutsch/i.test(v.name)); u.voice=w||V[0]; }
       u.onend=()=>{ if (n.W) n.W.talkT=0; }; if (n.W) n.W.talkT=Math.max(2, txt.length/13);
       if (speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel(); setTimeout(()=>{ try{ speechSynthesis.resume(); speechSynthesis.speak(u); }catch(e){} }, 60); }catch(e){} }
@@ -10235,7 +10252,7 @@ AMB.on=store.get('sndOn',true); $('sndOn').checked=AMB.on; $('sndOn').onchange=(
 $('sndGrid').innerHTML=SND_KEYS.map(([k,l])=>'<div><label>'+l+' <span id="'+k+'V"></span></label><input type="range" id="'+k+'" min="0" max="100" step="5"></div>').join('');
 try{ const k=localStorage.getItem('hicoreRide.aiKey')||''; $('aiKey').value=k; $('aiKeyI').textContent=k?'aktiv':'ohne Schlüssel: Antworten aus eigenem Wissen'; }catch(e){}
 $('aiKey').oninput=$('aiKey').onchange=()=>{ try{ localStorage.setItem('hicoreRide.aiKey',$('aiKey').value.replace(/\s+/g,'')); }catch(e){} $('aiKeyI').textContent=$('aiKey').value.trim()?'gespeichert':'ohne Schlüssel: Antworten aus eigenem Wissen'; };
-$('aiTest').onclick=e=>{ e.preventDefault(); const k=CHAT.key(); if (!k){ $('aiKeyI').textContent='Bitte erst den Schlüssel einfügen.'; return; } $('aiKeyI').textContent='teste …'; CHAT.gemini(k,'Antworte auf Deutsch in einem kurzen Satz.',[{role:'user',parts:[{text:'Sag Hallo aus dem Zittauer Gebirge.'}]}]).then(t=>{ $('aiKeyI').textContent='✓ KI antwortet: '+t.slice(0,80); }).catch(err=>{ $('aiKeyI').textContent='✗ '+String(err).slice(0,220); }); };
+$('aiTest').onclick=e=>{ e.preventDefault(); const k=CHAT.key(); if (!k){ $('aiKeyI').textContent='Bitte erst den Schlüssel einfügen.'; return; } $('aiKeyI').textContent='teste …'; CHAT.gemini(k,'Antworte auf Deutsch in einem kurzen Satz.',[{role:'user',parts:[{text:'Sag Hallo aus dem Zittauer Gebirge.'}]}]).then(t=>{ $('aiKeyI').textContent='✓ KI antwortet: '+t.slice(0,80)+' · Stimme wird getestet …'; CHAT.ttsCall(k,'Hallo, hier ist Marlies vom Kelchstein.',{male:false},undefined).then(()=>{ $('aiKeyI').textContent='✓ KI antwortet: '+t.slice(0,60)+' · ✓ natürliche Stimme aktiv'; }).catch(e=>{ $('aiKeyI').textContent='✓ KI antwortet · ✗ Stimme: '+String(e).slice(0,160)+' (iPad-Stimme wird genutzt)'; }); }).catch(err=>{ $('aiKeyI').textContent='✗ '+String(err).slice(0,220); }); };
 AMB.surSel=store.get('sndSur','auto'); $('sndSur').value=AMB.surSel; $('sndSur').onchange=()=>{ store.set('sndSur',$('sndSur').value); AMB.setSur($('sndSur').value); if (!AMB.ctx) $('sndSurI').textContent='wird beim Start aktiv'; };
 SND_KEYS.forEach(([k,l,d])=>{ const v=store.get(k,d); AMB.vol[k]=v; const el=$(k), lab=$(k+'V'); el.value=Math.round(v*100); lab.textContent=el.value+' %'; el.oninput=()=>{ AMB.vol[k]=el.value/100; lab.textContent=el.value+' %'; store.set(k,AMB.vol[k]); }; });
 $('sndGrid').style.opacity=AMB.on?1:0.45;
@@ -10280,7 +10297,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.12 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.13 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
