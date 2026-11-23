@@ -9043,7 +9043,9 @@ const WALK={
   idle(W, dt){ const {R,G}=W, {B,rest,L}=R; W.t+=dt; const t=W.t, V=(x,y,z)=>new THREE.Vector3(x,y,z);
     G.updateMatrixWorld(true); Object.keys(rest).forEach(n=>{ B[n].quaternion.copy(rest[n].q); B[n].position.copy(rest[n].p); B[n].scale.setScalar(1); }); if (!R.real) B.Head.position.multiplyScalar(0.75);
     const Wd=v=>G.localToWorld(v.clone()), Lg=L.thigh+L.shin, AH=L.ankleH||0.095;
-    const sh=0.5+0.5*Math.sin(t*0.31)+0.25*Math.sin(t*0.83+1), sw=(sh-0.6)*0.045, br=Math.sin(t*1.55);   /* langsames Gewicht-Verlagern, Atmung */
+    if (W.talkT>0) W.talkT-=dt;
+    const tk=W.talkT>0?1:0;
+    const sh=0.5+0.5*Math.sin(t*0.31)+0.25*Math.sin(t*0.83+1), sw=(sh-0.6)*0.045, br=Math.sin(t*1.55)+tk*0.5*Math.sin(t*5.1);   /* langsames Gewicht-Verlagern, Atmung */
     const fw=L.hipW/2+0.045, hy=Lg*0.975+AH-0.006*Math.abs(sw)/0.045, hip=V(sw, hy+L.hipDrop, 0.005);
     B.Hips.parent.updateMatrixWorld(true); B.Hips.position.copy(B.Hips.parent.worldToLocal(Wd(hip))); B.Hips.updateMatrixWorld(true);
     const up=Wd(V(0,1,0)).sub(Wd(V(0,0,0))).normalize(), rot=(b,a)=>{ const pq=b.parent.getWorldQuaternion(new THREE.Quaternion()).invert(); b.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(up.clone().applyQuaternion(pq).normalize(), a)); b.updateMatrixWorld(true); };
@@ -9069,6 +9071,7 @@ const WALK={
     [['Left',1],['Right',-1]].forEach(([s,side])=>{ if (B[s+'Shoulder']){ const aL=G.worldToLocal(B[s+'Arm'].getWorldPosition(new THREE.Vector3())); aL.add(V(0,-0.03,0)); aimBone(B[s+'Shoulder'], B[s+'Arm'], Wd(aL)); }
       const shp=G.worldToLocal(B[s+'Arm'].getWorldPosition(new THREE.Vector3()));
       let ud=V(side*0.2, -1, 0.04+0.012*br).normalize(), fdv=V(-side*0.55, -0.55, 0.62).normalize();   /* Hände vorn am Gürtel */
+      if (side<0 && tk && !wv){ const k=Math.sin(t*3.1), k2=Math.cos(t*2.3); ud.lerp(V(-0.5,-0.72,0.42).normalize(),0.55).normalize(); fdv.lerp(V(-0.3+0.25*k,0.25+0.2*k2,0.85).normalize(),0.6).normalize(); }
       if (side<0 && wv>0){ const k=Math.sin(t*7.5); const u2=V(-0.75, -0.25, 0.55).normalize(), f2=V(-0.45+0.35*k, 0.1, 0.9).normalize(); ud.lerp(u2,wv).normalize(); fdv.lerp(f2,wv).normalize(); }
       const el=shp.clone().addScaledVector(ud,L.upper), hand=el.clone().addScaledVector(fdv,L.fore);
       aimBone(B[s+'Arm'], B[s+'ForeArm'], Wd(el)); aimBone(B[s+'ForeArm'], B[s+'Hand'], Wd(hand));
@@ -9077,6 +9080,59 @@ const WALK={
   step(W, dt){ this.pose(W, dt); W.d+=W.v*dt; }
 };
 window.WALK=WALK;
+
+/* ===== 0.10.8 Mit Figuren sprechen (Hicore 23.11.2026) =====
+   Sprechknopf erscheint nur, wenn man neben einer ansprechbaren Figur angehalten hat.
+   Spracherkennung und Stimme kommen aus dem Browser (kostenlos). Die Antwort holt CHAT.API (Server mit KI),
+   solange keiner eingetragen ist, antwortet die Figur aus ihrem eigenen kleinen Wissen (offline). */
+const CHAT={
+  API:'', npcs:[], cur:null, on:false, hist:[], busy:false, rec:null, lastErr:'',
+  add(n){ this.npcs.push(n); return n; },
+  clear(){ this.npcs.length=0; this.cur=null; this.close(); },
+  pos(n){ const o=n.W?n.W.G:n.o; return o&&o.parent?o.position:null; },
+  /* nächste ansprechbare Figur, nur im Stand */
+  step(dt){ if (!this.npcs.length) return; const me_=(typeof me!=='undefined')&&me.g; if (!me_) return; const P=me.g.position;
+    let best=null, bd=7;
+    if (S.running && (S.speed||0)<0.8) for (const n of this.npcs){ const p=this.pos(n); if (!p) continue; const d=Math.hypot(p.x-P.x,p.z-P.z); if (d<bd){ bd=d; best=n; } }
+    if (best!==this.cur){ this.cur=best; if (!best) this.close(); this.btn(); }
+    if (this.cur && this.cur.W){ this.cur.W.look=new THREE.Vector3(P.x,P.y+1.5,P.z); } },
+  btn(){ let b=document.getElementById('talkBtn');
+    if (!this.cur){ if (b) b.style.display='none'; return; }
+    if (!b){ b=document.createElement('button'); b.id='talkBtn'; b.style.cssText='position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:62;padding:10px 18px;border-radius:999px;border:1px solid #3b6cff;background:rgba(13,30,70,.9);color:#fff;font:600 15px system-ui,sans-serif;cursor:pointer';
+      b.onclick=e=>{ e.stopPropagation(); CHAT.talk(); }; document.body.appendChild(b); }
+    b.innerHTML='💬 '+(this.cur.name||'Sprechen')+(document.body.classList.contains('kbd')?' (V)':''); b.style.display='block'; },
+  box(){ let el=document.getElementById('talkBox'); if (!el){ el=document.createElement('div'); el.id='talkBox'; el.style.cssText='position:fixed;left:50%;bottom:150px;transform:translateX(-50%);max-width:min(620px,88vw);background:rgba(10,14,24,.9);color:#fff;border:1px solid #3b6cff;border-radius:14px;padding:12px 16px;font:500 15px/1.45 system-ui,sans-serif;z-index:61;text-align:left;box-shadow:0 6px 24px rgba(0,0,0,.45);pointer-events:none'; document.body.appendChild(el); } return el; },
+  say(who, txt, cls){ const el=this.box(); el.style.display='block'; el.innerHTML=(cls==='me'?'<b>Du:</b> ':'<b>'+(this.cur&&this.cur.name||'Figur')+':</b> ')+txt; },
+  close(){ const el=document.getElementById('talkBox'); if (el) el.style.display='none'; this.stopRec(); try{ speechSynthesis.cancel(); }catch(e){} },
+  stopRec(){ try{ this.rec&&this.rec.stop(); }catch(e){} this.rec=null; this.on=false; },
+  /* Sprechknopf gedrückt: zuhören */
+  talk(){ if (this.busy) return; if (this.on){ this.stopRec(); this.say(0,'…','me'); return; }
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if (!SR){ this.ask(prompt('Dein Browser kann nicht zuhören. Was möchtest du sagen?')||''); return; }
+    try{ const r=new SR(); r.lang='de-DE'; r.interimResults=true; r.maxAlternatives=1; this.rec=r; this.on=true;
+      this.say(0,'<i>… ich höre</i>','me');
+      r.onresult=e=>{ let t=''; for (let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; this.say(0,t||'…','me'); if (e.results[e.results.length-1].isFinal){ this.on=false; this.ask(t); } };
+      r.onerror=e=>{ this.on=false; this.say(0,'Ich habe nichts verstanden. ('+e.error+')','me'); };
+      r.onend=()=>{ this.on=false; };
+      r.start();
+    }catch(e){ this.on=false; this.say(0,'Mikrofon geht hier nicht.','me'); } },
+  ask(text){ text=(text||'').trim(); if (!text) return; const n=this.cur; if (!n) return; this.busy=true; this.say(0,text,'me');
+    const done=a=>{ this.busy=false; if (this.cur!==n) return; this.hist.push({q:text,a}); if (this.hist.length>6) this.hist.shift(); this.say(1,a); this.speak(a, n); };
+    if (this.API){ const ctl=new AbortController(); setTimeout(()=>ctl.abort(), 12000);
+      fetch(this.API,{method:'POST',headers:{'Content-Type':'application/json'},signal:ctl.signal,body:JSON.stringify({rolle:n.role, frage:text, verlauf:this.hist.slice(-3)})})
+        .then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>done((j.antwort||j.text||'').slice(0,400)||this.local(text,n)))
+        .catch(e=>{ this.lastErr=String(e); done(this.local(text,n)); });
+    } else done(this.local(text,n)); },
+  /* Antwort ohne Server: kleines eigenes Wissen je Rolle */
+  local(q, n){ const t=q.toLowerCase(), K=n.wissen||[];
+    for (const [keys,a] of K){ if (keys.some(k=>t.includes(k))) return a; }
+    return n.standard||'Da bin ich überfragt.'; },
+  speak(txt, n){ try{ const u=new SpeechSynthesisUtterance(txt); u.lang='de-DE'; u.rate=n.rate||1; u.pitch=n.pitch||1;
+      const V=speechSynthesis.getVoices().filter(v=>/de[-_]DE/i.test(v.lang)); if (V.length){ const w=V.find(v=>n.male?/male|Conrad|Klaus|Stefan|Markus|Google Deutsch/i.test(v.name):/female|Katja|Hedda|Anna|Google Deutsch/i.test(v.name)); u.voice=w||V[0]; }
+      u.onend=()=>{ if (n.W) n.W.talkT=0; }; if (n.W) n.W.talkT=Math.max(2, txt.length/13);
+      speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
+};
+window.CHAT=CHAT;
 
 /* feste Szenen: Jäger mit Geländewagen an Waldeinfahrten, Polizeikontrolle in einigen Orten */
 function buildZgScenes(){ const g=new THREE.Group(); g.name='zgszenen'; const D=gnData(); if (!D) return g; let sd=4711; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647); const polC=[];
@@ -9148,7 +9204,27 @@ function buildLandmarks(){ const g=new THREE.Group(); g.name='landmarks'; const 
 function zgKelchLeute(g,rock,X,Z,R){ rock.updateMatrixWorld(true); let fx=R.x-X, fz=R.z-Z; const l=Math.hypot(fx,fz)||1; fx/=l; fz/=l; const lx=-fz, lz=fx, P0=(a,b)=>[X+fx*a+lx*b, Z+fz*a+lz*b], face=Math.atan2(fx,fz);
   const put=(n,a,b,yaw)=>{ const o=propObject(n); if (!o) return null; const [x,z]=P0(a,b); o.position.set(x,terrainH(x,z),z); o.rotation.y=yaw; g.add(o); return o; };
   const bk=put('bank_wanderer',11,5,face); if (bk) EGG.idle.push({o:bk,t:0});
-  [['wanderer1',12,-2,0.0],['wanderer2',13.5,0.5,2.1]].forEach(([n,a,b,ph])=>{ const o=put(n,a,b,face); if (o){ const [cx,cz]=P0(a,b); EGG.walk.push({o,cx,cz,r:2.4,ph,t:ph*5,a:ph}); } });
+  [['wanderer2',13.5,0.5,2.1]].forEach(([n,a,b,ph])=>{ const o=put(n,a,b,face); if (o){ const [cx,cz]=P0(a,b); EGG.walk.push({o,cx,cz,r:2.4,ph,t:ph*5,a:ph}); } });
+  /* 0.10.8 (Hicore): eine Wanderin an den Kelchsteinen ist ansprechbar - Figur mit Skelett, steht und schaut sich um */
+  try{ const [wx,wz]=P0(12,-2); WALK.make(W=>{ W.G.position.set(wx, groundAt(wx,wz), wz); W.G.rotation.y=face+Math.PI; W.G.traverse(m=>{ if (m.isMesh) m.castShadow=true; }); g.add(W.G); EGG.talkers.push(W);
+      CHAT.add({W, name:'Wanderin', male:false, rate:0.98,
+        role:'Du bist Marlies, 54, Wanderin aus Zittau, stehst an den Kelchsteinen an der Kammstraße im Zittauer Gebirge. Du kennst die Gegend gut: Oybin, Jonsdorf, Hochwald, Lückendorf, die Schmalspurbahn. Du antwortest freundlich, kurz (hoechstens zwei Saetze), auf Deutsch, mit leichtem Oberlausitzer Einschlag.',
+        standard:'Hm, da müsste ich passen. Aber die Aussicht hier oben ist jedenfalls famos.',
+        wissen:[ [['kelchstein','stein','fels'],'Das sind die Kelchsteine, Sandstein, ausgewaschen wie ein Kelch. Der große ist gut zwölf Meter hoch.'],
+          [['hallo','guten tag','guten morgen','servus','moin','grüß','gruess'],'Guten Tag! Schöne Tour heute, gell?'],
+          [['wie geht','gehts','geht es dir'],'Danke, prächtig. Wir rasten hier nur kurz, dann geht es weiter zum Hochwald.'],
+          [['hochwald','turm','baude'],'Der Hochwald ist der zweithöchste Berg hier, 749 Meter, mit Turm und Baude oben. Von hier gut zwei Stunden zu Fuß.'],
+          [['oybin','burg','kloster'],'Oybin ist von hier nicht weit, mit Burg- und Klosterruine auf dem Berg. Lohnt sich.'],
+          [['jonsdorf','mühlsteine','mühlsteinbrüche'],'In Jonsdorf sind die Mühlsteinbrüche und die Felsenstadt, da waren wir gestern.'],
+          [['lückendorf','kammstraße','pass'],'Lückendorf ist der höchste Ort hier, gleich an der tschechischen Grenze. Die Kammstraße hoch ist ein ordentlicher Anstieg mit dem Rad.'],
+          [['bahn','zug','dampf','schmalspur'],'Die Schmalspurbahn fährt von Zittau nach Oybin und Jonsdorf, mit richtiger Dampflok. Hör mal, manchmal pfeift sie bis hier herauf.'],
+          [['wetter','regen','sonne'],'Heute hält es, denke ich. Im Gebirge kann es aber schnell umschlagen.'],
+          [['klettern','kletterer','seil'],'Da drüben klettert einer. Hier darf man an vielen Felsen, aber nur ohne Magnesia und nicht überall.'],
+          [['weg','wohin','richtung','verfahren'],'Bergauf kommst du nach Lückendorf, bergab nach Oybin. Verfahren kannst du dich hier kaum.'],
+          [['rad','fahrrad','radfahr','tour'],'Mit dem Rad hier hoch, Respekt. Die Abfahrt nach Oybin ist dann aber der Lohn.'],
+          [['name','wie heißt','heißen'],'Ich bin die Marlies, aus Zittau. Und du?'],
+          [['tschüss','wiedersehen','danke','ciao'],'Schöne Weiterfahrt und immer Luft in den Reifen!'] ] });
+    }, {fig:'spaziergaengerin', idle:true}); }catch(e){ console.warn('wanderin', e); }
   /* Kletterwand: Felsoberfläche zur Straße hin per Strahl suchen */
   if (PROP_LIB.kletterer2){ const bb=new THREE.Box3().setFromObject(rock), top=bb.max.y, gy=terrainH(X,Z);
     /* Wandprofil: Strahlen von der Straßenseite in mehreren Höhen, Kletterer folgt der Felsoberfläche */
@@ -9522,8 +9598,8 @@ const ZSB={ lines:null, grid:null, C:25, grp:null, chunks:[], train:null, nextT:
 
 window.ZSBC=(x,z,h)=>ZSB.carve(x,z,h);
 /* zufällige Begegnungen in der Nähe des Fahrers */
-const EGG={cops:[], list:[], cd:{}, vill:new Set(), idle:[], walk:[], climbers:[], acc:0, climber:null, scenes:null};
-function eggReset(){ EGG.list.forEach(e=>e.o.parent&&e.o.parent.remove(e.o)); EGG.list=[]; EGG.cd={}; EGG.vill=new Set(); EGG.idle=[]; EGG.cops=[]; EGG.walk=[]; EGG.climbers=[]; EGG.climber=null; }
+const EGG={cops:[], talkers:[], list:[], cd:{}, vill:new Set(), idle:[], walk:[], climbers:[], acc:0, climber:null, scenes:null};
+function eggReset(){ EGG.list.forEach(e=>e.o.parent&&e.o.parent.remove(e.o)); EGG.list=[]; EGG.cd={}; EGG.vill=new Set(); EGG.idle=[]; EGG.cops=[]; EGG.talkers=[]; if (window.CHAT) CHAT.clear(); EGG.walk=[]; EGG.climbers=[]; EGG.climber=null; }
 function eggSpawn(name,x,z,yaw,extra){ const o=propObject(name); if (!o) return null; o.position.set(x,groundAt(x,z),z); o.rotation.y=yaw; worldGroup.add(o); const e=Object.assign({o,kind:name,t:0},extra||{}); EGG.list.push(e); return e; }
 /* 0.10.7 Polizist an der Kontrolle (Hicore): steht, bewegt sich leicht, schaut zum Fahrer. Hält man daneben: „Bitte weiterfahren, hier gibt es nichts zu sehen.“ Bleibt man ca. 1 Minute weiter stehen: zweite, strengere Ansage. */
 function copSay(cop, key, txt){ const A=typeof AMB!=='undefined'?AMB:null, b=A&&A.buf&&A.buf[key]; let dur=3;
@@ -9541,6 +9617,8 @@ function copStep(dt, P){ if (!EGG.cops.length) return; const v=(typeof S!=='unde
 function eggStep(dt){ if (!WORLD || !WORLD.graph || !GN.d || typeof me==='undefined') return; const P=me.g.position, R=Math.random;
   for (const k in EGG.cd) EGG.cd[k]-=dt;
   for (const it of EGG.idle){ it.t+=dt; it.o.rotation.z=Math.sin(it.t*0.9)*0.012; }
+  for (const W of EGG.talkers){ if (W.G.parent) WALK.idle(W, Math.min(dt,0.1)); }
+  try{ CHAT.step(dt); }catch(e){}
   try{ if (TRAFFIC.copW && TRAFFIC.cop){ TRAFFIC.copW.look=new THREE.Vector3(P.x,P.y+1.5,P.z); WALK.idle(TRAFFIC.copW, Math.min(dt,0.1)); } copStep(dt, P); }catch(e){ if (!EGG._ce){ EGG._ce=1; console.warn('polizist', e); } }
   for (const w of EGG.walk){ w.t+=dt; const go=Math.max(0,Math.sin(w.t*0.23+w.ph*3)); w.a+=dt*0.22*go; const x=w.cx+Math.sin(w.a)*w.r, z=w.cz+Math.sin(w.a*1.7+w.ph)*w.r*0.5, vx=x-w.o.position.x, vz=z-w.o.position.z;
     if (go>0.05 && vx*vx+vz*vz>1e-7){ let dy=Math.atan2(vx,vz)-w.o.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); w.o.rotation.y+=dy*Math.min(1,dt*3); } w.o.position.set(x,terrainH(x,z)+Math.abs(Math.sin(w.t*5.5))*0.03*go,z); w.o.rotation.z=Math.sin(w.t*5.5)*0.03*go; }
@@ -10003,6 +10081,7 @@ addEventListener('pointerdown',e=>{ const b=$('keysBox'); if (b && b.style.displ
 $('bGest').onclick=e=>{ e.stopPropagation(); const m=$('gestMenu'); m.style.display=m.style.display==='flex'?'none':'flex'; $('bGest').blur(); };
 document.querySelectorAll('#gestMenu button[data-g]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); gestStart(b.dataset.g); $('gestMenu').style.display='none'; b.blur(); });
 addEventListener('pointerdown',e=>{ const m=$('gestMenu'); if (m && m.style.display==='flex' && !m.contains(e.target) && e.target.id!=='bGest') m.style.display='none'; });
+addEventListener('keydown',e=>{ if ((e.key==='v'||e.key==='V') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && CHAT.cur){ CHAT.talk(); } });
 addEventListener('keydown',e=>{ if ((e.key==='g'||e.key==='G') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) gestStart('wave'); const gi='12345'.indexOf(e.key); if (gi>=0 && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && S && S.running) gestStart(['wave','thumb','vorbei','drink','stretch'][gi]); });   /* Tasten 1-5 Gesten, 6-0 später Sprüche */
 addEventListener('keydown',e=>{ if ((e.key==='h'||e.key==='H') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) cycleHud(); });
 applyHud();
@@ -10133,7 +10212,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.7 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.8 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
