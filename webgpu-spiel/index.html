@@ -6000,7 +6000,7 @@ function planCross(def){ NET=null; XR=[]; XH=null; if (def.graph) return planGra
 function planGraphNet(def){ const D=gnData(); const main={pts,cum,L,segs:[{s0:0,s1:L,r0:0}],main:true,key:'',ents:GN.mainEnts};
   const onLoop=new Set(main.ents.map(en=>en.e));
   D.edges.forEach(E=>{ if (onLoop.has(E.k)) return; XR.push({k:XR.length, e:E.k, g:true, w:E.w, mk:gMark(E), name:gStreet(E), P:E.P, len:E.len, A:E.P[0], B:E.P[E.P.length-1]}); });
-  if (ROADW){ main.ents.forEach(en=>{ const E=D.edges[en.e], w=E.w, mk=gMark(E)?1:0, i0=Math.max(0,Math.floor(en.r0/L*N)), i1=Math.min(N-1,Math.ceil(en.r1/L*N)); for (let i=i0;i<=i1;i++){ ROADW[i]=w; if (ROADMARK) ROADMARK[i]=mk; } }); smoothArr(ROADW,3,3);
+  if (ROADW){ main.ents.forEach(en=>{ const E=D.edges[en.e], w=E.w, mk=gMark(E)?1:0, i0=Math.max(0,Math.floor(en.r0/L*N)), i1=Math.min(N-1,Math.ceil(en.r1/L*N)); for (let i=i0;i<=i1;i++){ ROADW[i]=w; if (ROADMARK) ROADMARK[i]=mk; } }); smoothArr(ROADW,3,3); main.RW0=ROADW; main.RM0=ROADMARK; main.RW=ROADW; main.RM=ROADMARK;
     /* 0.9.5 Randstreifen nach Straßenart: Hauptstraßen 1,2 m Bankett, Kreis- und Nebenstraßen schmal, im Ort fast keiner; im Wald leichte Mulde neben der Fahrbahn */
     SHW=new Float32Array(N); DMIN=new Float32Array(N); for (let i=0;i<N;i++){ const p=pts[i], q=pts[(i+1)%N], dx=q.x-p.x, dz=q.z-p.z, l=Math.hypot(dx,dz)||1, nx=-dz/l, nz=dx/l;
       const inner=gnInner(p.x,p.z), fo=gnForest(p.x+nx*9,p.z+nz*9)||gnForest(p.x-nx*9,p.z-nz*9), mk=ROADMARK?ROADMARK[i]:1;
@@ -6011,7 +6011,10 @@ function planGraphNet(def){ const D=gnData(); const main={pts,cum,L,segs:[{s0:0,
     for (let x=x0;x<=x1;x++) for (let z=z0;z<=z1;z++){ const kk=hashKey(x,z); let l=h.get(kk); if(!l) h.set(kk,l=[]); l.push([k,i]); } } }); XH={C,h};
   if (JUNC){ main.ents.forEach(en=>{ if (D.adj[en.n0].length<3) return; const ci=idxAt(en.r0)[0], k=Math.ceil((XW/2+6)/(L/N)); for (let o=-k;o<=k;o++) JUNC[(ci+o+N)%N]=1; }); for (let i=0;i<N;i++) if (gnRBAt(pts[i].x,pts[i].z,6)) JUNC[i]=1; smoothArr(JUNC,2,2); }
   NET={main, cur:main, junc:[], graph:true, pick:null, pend:null, appl:new Set(), rc:{'':main}}; }
-function useCourse(c){ pts=c.pts; cum=c.cum; L=c.L; }
+/* 0.10.5 (Hicore): Fahrbahnbreite je Strecke. Vorher galt nach dem Abbiegen weiter die Breite der Hauptrunde -> Fahrer fuhr auf schmalen Straßen auf dem Bankett */
+function useCourse(c){ pts=c.pts; cum=c.cum; L=c.L;
+  try{ if (c.ents && WORLD && WORLD.graph && ROADW){ if (!c.RW){ if (c===NET.main && NET.main.RW0){ c.RW=NET.main.RW0; c.RM=NET.main.RM0; } else { const D=gnData(), RW=new Float32Array(N).fill(6), RM=new Uint8Array(N).fill(1); c.ents.forEach(en=>{ const E=D.edges[en.e]; if (!E) return; const i0=Math.max(0,Math.floor(en.r0/c.L*N)), i1=Math.min(N-1,Math.ceil(en.r1/c.L*N)); for (let i=i0;i<=i1;i++){ RW[i]=E.w; RM[i]=gMark(E)?1:0; } }); for (let k=0;k<3;k++){ const b=Float32Array.from(RW); for (let i=0;i<N;i++){ let a=0,m=0; for (let o=-3;o<=3;o++){ const j=i+o; if (j<0||j>=N) continue; a+=b[j]; m++; } RW[i]=a/m; } } c.RW=RW; c.RM=RM; } }
+    ROADW=c.RW; if (c.RM) ROADMARK=c.RM; } }catch(e){ console.warn('roadW',e); } }
 function withCourse(c,fn){ if (!NET || !c || (c===NET.cur && !NET._in)) return fn(); const sv=[pts,cum,L], was=NET._in; NET._in=true; useCourse(c); try{ return fn(); } finally{ pts=sv[0]; cum=sv[1]; L=sv[2]; NET._in=was; } }
 /* Strecke eines Mitfahrers aus seinem Schlüssel (genommene Querwege dieser Runde) nachbauen, damit man ihm auf den Querweg folgen kann */
 function routeOfKey(key){ if (!NET) return null; key=key||''; if (NET.rc[key]) return NET.rc[key]; if (NET.graph){ let r=NET.main; try{ r=withCourse(NET.main,()=>gRouteOfKey(key)); }catch(e){} return (NET.rc[key]=r); } let cur=NET.main; try{ withCourse(NET.main,()=>{ for (const ks of key.split(',')){ const j=XR[+ks]; if (!j) break; const rd=routeD(cur,j.d1); if (rd==null) break; cur=buildRoute(cur,rd,j); } }); }catch(e){ cur=NET.main; } return (NET.rc[key]=cur); }
@@ -9126,7 +9129,7 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
     const P={parts, T, axles:SP.axles||[]}; this.cache.set(key,P); return P; },
   /* 0.10.4 echte Motorgeräusche (ElevenLabs) je Fahrzeug: von weitem leise und dumpf, nah laut und hell, Doppler beim Vorbeifahren, Stereo links/rechts */
   engKey(c){ if (c.eng) return c.eng; const m=(this.types[c.ti]||{}).m||''; const o=c.police?['e_kombi','e_sport']:m==='veh_traktor'?['e_traktor']:m==='veh_van'?['e_van']:m==='veh_suv'?['e_suv','e_van']:m==='veh_kombi'?['e_kombi','e_sport','e_alt']:['e_klein','e_alt','e_sport','e_kombi']; c.eng=o[Math.floor(Math.random()*o.length)]; c.ePitch=0.9+Math.random()*0.2; return c.eng; },
-  carAudio(dt, rp){ const A=typeof AMB!=='undefined'?AMB:null; if (!A||!A.ctx||!A.master||!A.buf||!A.buf.e_klein) return false; const c=A.ctx, cv=A.vol.sndTraffic??0.6, play=A.on!==false && S.running && !S.paused, t=c.currentTime;
+  carAudio(dt, rp){ const A=typeof AMB!=='undefined'?AMB:null; if (!A||!A.ctx||!A.master||!A.buf||!A.buf.e_klein) return false; const c=A.ctx, cv=A.vol.sndTraffic??0.6, play=A.on!==false && S.running, t=c.currentTime;
     const R=new THREE.Vector3(1,0,0); try{ R.applyQuaternion(camera.quaternion); }catch(e){}
     for (const car of this.act){ if (!car.o) continue; const k=this.engKey(car), b=A.buf[k]; if (!b) continue; const o=car.o.position, dx=o.x-rp.x, dz=o.z-rp.z, d=Math.hypot(dx,dz);
       if (!car.au){ if (d>330 || !play) continue; try{ const s=c.createBufferSource(); s.buffer=b; s.loop=true; const f=c.createBiquadFilter(); f.type='lowpass'; f.frequency.value=900; const q=A.p3(o.x,o.y+0.6,o.z), p=!q&&c.createStereoPanner?c.createStereoPanner():null, g=c.createGain(); g.gain.value=0; s.connect(f); if (q){ f.connect(q); q.connect(g); } else if (p){ f.connect(p); p.connect(g); } else f.connect(g); g.connect(A.master); s.start(0, Math.random()*b.duration); car.au={s,f,p,q,g,pd:d,vr:0}; }catch(e){ continue; } }
@@ -9393,7 +9396,7 @@ const ZSB={ lines:null, grid:null, C:25, grp:null, chunks:[], train:null, nextT:
     T.svT=(T.svT??(6+R()*10))-dt; if (T.svT<0){ if (T.svT<-1.6) T.svT=14+R()*20; else if (R()<dt*14) emit((R()-0.5)*0.2,3.4,1.4,(R()-0.5)*0.5,5+R()*2,(R()-0.5)*0.5,1.6,0.3,1.8,0.7); }
     T.smoke.forEach(s=>{ if (!s.sp.visible) return; s.a+=dt; const u=s.a/(s.life||3); s.v.multiplyScalar(Math.max(0,1-dt*1.6)); s.sp.position.addScaledVector(s.v,dt); s.sp.position.y+=dt*(0.7-u*0.3); s.sp.position.x+=dt*0.5; const k=(s.g0||0.8)+((s.g1||3)-(s.g0||0.8))*Math.sqrt(Math.min(1,u)); s.sp.scale.set(k,k,1); s.sp.material.opacity=Math.max(0,(s.op||0.6)*Math.min(1,s.a*8)*(1-u)); if (u>=1) s.sp.visible=false; });
     const dist=Math.hypot(L0.position.x-P.x,L0.position.z-P.z); this.sound(T,dist,dt); if (T.t>30 && dist>760) this.kill(); },
-  sound(T,dist,dt){ const A=typeof AMB!=='undefined'?AMB:null; if (!A||!A.ctx||!A.master) return; const c=A.ctx, cv=A.vol.sndTraffic??0.6, play=A.on!==false && S.running && !S.paused, vol=play?Math.min(1, 40/(dist+10))*0.5:0;
+  sound(T,dist,dt){ const A=typeof AMB!=='undefined'?AMB:null; if (!A||!A.ctx||!A.master) return; const c=A.ctx, cv=A.vol.sndTraffic??0.6, play=A.on!==false && S.running, vol=play?Math.min(1, 40/(dist+10))*0.5:0;
     /* 0.10.4 Pfiff vor jedem Bahnübergang (lang) und zwischendurch kurz */
     T.wh=T.wh||new Set(); const li=this.lines.indexOf(T.l), wv=play?Math.min(1,70/(dist+25))*cv:0; for (const q of this.lcs){ if (q.li!==li || T.wh.has(q)) continue; const dTr=(q.s-T.s)*T.dir; if (dTr>15 && dTr<80){ T.wh.add(q); if (wv>0.02) this.toot('zsb_pfiff_lang', wv); T.whT=Math.max(T.whT||0, 12); } }
     T.whT=(T.whT??(15+Math.random()*20))-dt; if (T.whT<=0){ T.whT=25+Math.random()*40; if (wv>0.02) this.toot('zsb_pfiff_kurz', wv*0.8); }
@@ -10009,7 +10012,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.6 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -10286,14 +10289,14 @@ function frame(now){
   try{ gestStep(dt); }catch(e){}
   try{ if (AMB.ctx) AMB.listen(); }catch(e){}
   try{ ZSB.step(dt); }catch(e){ if (!window._zsbErr){ window._zsbErr=1; console.warn('zsb',e); } }
-  try{ TRAFFIC.step(dt, active); }catch(e){ if (!TRAFFIC._err){ TRAFFIC._err=1; console.warn('verkehr',e); } }
+  try{ TRAFFIC.step(dt, S.running); }   /* 0.10.6 (Hicore): auch in der Pause fährt der Verkehr weiter, nur der Fahrer steht */catch(e){ if (!TRAFFIC._err){ TRAFFIC._err=1; console.warn('verkehr',e); } }
   if (S.ut) placeTurn(me, S.ut); else placeRider(me, S.dist, TRAFFIC.rLane, (S.dir||1)<0);
   // weicher Kontaktschatten unter Fahrer und Rad (zusätzlich zum Sonnenschatten)
   { if (!window._blob){ const c=document.createElement('canvas'); c.width=64; c.height=128; const g=c.getContext('2d'); g.setTransform(1,0,0,2,0,0); const gr=g.createRadialGradient(32,32,1,32,32,31); gr.addColorStop(0,'rgba(0,0,0,0.5)'); gr.addColorStop(0.5,'rgba(0,0,0,0.22)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,64,64);   /* elliptisch, Ränder ganz weich */
       const m=new THREE.Mesh(new THREE.PlaneGeometry(0.9,2.3).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4})); m.renderOrder=2; m.userData.noStd=true; scene.add(m); window._blob=m; }
     const b=window._blob, hb=headingAt(S.dist); b.position.set(me.g.position.x, me.g.position.y+0.03, me.g.position.z); b.rotation.y=hb; b.visible=!!S.running || true; }
   { if (window.GPU_MODE && scene.fog) WSKY.hor.value.copy(scene.fog.color); WIND.t.value+=dt; const hw=headingAt(S.dist)+((S.dir||1)<0?Math.PI:0); WIND.rp.value.copy(me.g.position); updateGrassField(me.g.position); WIND.rv.value.set(Math.sin(hw),Math.cos(hw)); WIND.rs.value+=((active?Math.min(1,S.speed/9):0)-WIND.rs.value)*Math.min(1,dt*2); }
-  AMB.update(dt, active, builtWorld||selWorld);
+  AMB.update(dt, S.running, builtWorld||selWorld);   /* Umgebung bleibt hörbar, Fahrgeräusche hängen am Tempo */
   try{ if (!LITE || (LEAVES.im && LEAVES.im.count)) LEAVES.update(dt, active && !LITE); }catch(e){ if(!LEAVES.err){ LEAVES.err=1; console.warn('Blätter',e); } }
   animRider(me, active?S.cadence:0, (active||S.brk)?S.speed:0, dt, active?S.power:0);
   withMain(()=>{ for (const b of bots){ placeRider(b.r, b.d, b.lane); animRider(b.r, active?b.cad:0, active&&b.st?b.st.v:0, dt); } });
