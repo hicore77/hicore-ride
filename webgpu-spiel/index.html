@@ -235,7 +235,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
       <p style="font-size:12px;opacity:.75;margin:6px 0 0">Schnell umschalten im Spiel: Knopf „👁 Anzeige“ oben rechts oder Taste H (alles · nur Werte oben · nur Fahrer).</p>
       </div>
       <div class="spage" id="sTon" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Ton</h3>
-      <div class="sndbox" style="border:0;padding:0;margin:4px 0"><div class="sndhead"><label class="chk" style="margin:0"><input type="checkbox" id="sndOn"> <b>Umgebungsgeräusche</b>&nbsp;(Wind, Vögel, Blätter, Meer, Fahrgeräusch)</label><button id="sndTest">Probehören</button></div><div class="sndgrid" id="sndGrid"></div></div><div style="margin:6px 0"><label>Raumklang <select id="sndSur"><option value="auto">Automatisch</option><option value="hp">Kopfhörer 3D</option><option value="51">Surround 5.1</option><option value="st">Stereo einfach</option></select></label> <small id="sndSurI" style="opacity:.7"></small></div><div style="margin:8px 0"><label><b>KI für Gespräche</b> (kostenloser Google-Gemini-Schlüssel, bleibt nur auf diesem Gerät): <input id="aiKey" type="password" autocomplete="off" placeholder="AIza…" style="width:min(320px,90%)"></label> <span id="aiKeyI" style="opacity:.75;font-size:12px"></span></div>
+      <div class="sndbox" style="border:0;padding:0;margin:4px 0"><div class="sndhead"><label class="chk" style="margin:0"><input type="checkbox" id="sndOn"> <b>Umgebungsgeräusche</b>&nbsp;(Wind, Vögel, Blätter, Meer, Fahrgeräusch)</label><button id="sndTest">Probehören</button></div><div class="sndgrid" id="sndGrid"></div></div><div style="margin:6px 0"><label>Raumklang <select id="sndSur"><option value="auto">Automatisch</option><option value="hp">Kopfhörer 3D</option><option value="51">Surround 5.1</option><option value="st">Stereo einfach</option></select></label> <small id="sndSurI" style="opacity:.7"></small></div><div style="margin:8px 0"><label><b>KI für Gespräche</b> (kostenloser Google-Gemini-Schlüssel, bleibt nur auf diesem Gerät): <input id="aiKey" type="password" autocomplete="off" placeholder="AIza… oder AQ.…" style="width:min(320px,90%)"></label> <button id="aiTest">Schlüssel testen</button> <span id="aiKeyI" style="opacity:.75;font-size:12px"></span></div>
       </div>
       <div class="spage" id="sWelt" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Welten</h3>
       <label class="chk"><input type="checkbox" id="unlockAll"> Alle Welten freischalten (zum Ausprobieren)</label>
@@ -9160,17 +9160,13 @@ const CHAT={
       r.start();
     }catch(e){ this.on=false; this.say(0,'Mikrofon geht hier nicht.','me'); } },
   ask(text){ text=(text||'').trim(); if (!text) return; const n=this.cur; if (!n) return; this.busy=true; this.say(0,text,'me');
-    const done=a=>{ this.busy=false; if (this.cur!==n) return; this.hist.push({q:text,a}); if (this.hist.length>6) this.hist.shift(); this.say(1,a); this.speak(a, n); };
+    const done=(a,err)=>{ this.busy=false; if (this.cur!==n) return; if (!err){ this.hist.push({q:text,a}); if (this.hist.length>6) this.hist.shift(); } this.say(1,a+(err?'<br><small style="color:#ffb36b">'+err.replace(/</g,'&lt;')+'</small>':'')); this.speak(a, n); };
     const key=this.key();
     if (key){ const ctl=new AbortController(); setTimeout(()=>ctl.abort(), 15000); this.say(1,'<i>…</i>');
       const sys=n.role+' Antworte immer auf Deutsch, natürlich gesprochen, hoechstens zwei kurze Saetze, ohne Aufzaehlungen, ohne Emojis, ohne Sternchen. Der Gespraechspartner ist ein Radfahrer, der gerade neben dir angehalten hat.';
       const cont=[]; this.hist.slice(-4).forEach(h=>{ cont.push({role:'user',parts:[{text:h.q}]}); cont.push({role:'model',parts:[{text:h.a}]}); }); cont.push({role:'user',parts:[{text}]});
-      const tryM=(ms)=>{ const m=ms[0]; return fetch('https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},signal:ctl.signal,
-          body:JSON.stringify({systemInstruction:{parts:[{text:sys}]}, contents:cont, generationConfig:{temperature:0.8,maxOutputTokens:160, thinkingConfig:{thinkingBudget:0}}})})
-        .then(r=>r.ok?r.json():r.text().then(t=>Promise.reject(r.status+' '+t.slice(0,160))))
-        .catch(e=>ms.length>1?tryM(ms.slice(1)):Promise.reject(e)); };
-      tryM(['gemini-flash-latest','gemini-2.5-flash','gemini-flash-lite-latest']).then(j=>{ const t=((j.candidates||[])[0]||{}).content; const a=t&&t.parts?t.parts.map(p=>p.text||'').join('').replace(/[*_#]/g,'').trim():''; done(a.slice(0,400)||this.local(text,n)); })
-        .catch(e=>{ this.lastErr=String(e); console.warn('KI', e); done(this.local(text,n)); });
+      this.gemini(key, sys, cont, ctl.signal).then(a=>done(a.slice(0,400)))
+        .catch(e=>{ this.lastErr=String(e); console.warn('KI', e); done(this.local(text,n), 'KI nicht erreichbar: '+this.lastErr.slice(0,140)); });
       return; }
     if (this.API){ const ctl=new AbortController(); setTimeout(()=>ctl.abort(), 12000);
       fetch(this.API,{method:'POST',headers:{'Content-Type':'application/json'},signal:ctl.signal,body:JSON.stringify({rolle:n.role, frage:text, verlauf:this.hist.slice(-3)})})
@@ -9178,6 +9174,18 @@ const CHAT={
         .catch(e=>{ this.lastErr=String(e); done(this.local(text,n)); });
     } else done(this.local(text,n)); },
   /* Antwort ohne Server: kleines eigenes Wissen je Rolle */
+  /* Gemini direkt aus dem Browser; probiert mehrere Modelle, ohne Denk-Einstellung falls abgelehnt */
+  gemini(key, sys, cont, signal){ const errs=[]; const M=['gemini-2.5-flash','gemini-flash-latest','gemini-2.5-flash-lite','gemini-2.0-flash'];
+    /* Schlüssel mit "AQ." (neuere Google-Schlüssel, Vertex AI Express) laufen über aiplatform, klassische "AIza" über generativelanguage; beide werden probiert */
+    const GL=m=>'https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key='+encodeURIComponent(key), VX=m=>'https://aiplatform.googleapis.com/v1/publishers/google/models/'+m+':generateContent?key='+encodeURIComponent(key);
+    const base=/^AQ\./.test(key)?[VX,GL]:[GL,VX]; let bi=0;
+    const one=(m,think)=>fetch(base[bi](m),{method:'POST',headers:{'Content-Type':'application/json'},signal,
+        body:JSON.stringify(Object.assign({contents:cont, generationConfig:Object.assign({temperature:0.8,maxOutputTokens:think?200:900}, think?{thinkingConfig:{thinkingBudget:0}}:{})}, sys?{systemInstruction:{parts:[{text:sys}]}}:{}))})
+      .then(r=>r.ok?r.json():r.text().then(t=>{ let msg=t; try{ msg=JSON.parse(t).error.message; }catch(e){} return Promise.reject(r.status+' '+msg); }))
+      .then(j=>{ const c=(j.candidates||[])[0]||{}, t=c.content&&c.content.parts?c.content.parts.map(p=>p.text||'').join('').replace(/[*_#]/g,'').trim():''; if (!t) return Promise.reject('leere Antwort ('+(c.finishReason||(j.promptFeedback&&j.promptFeedback.blockReason)||'?')+')'); return t; });
+    const run=(i,think)=>{ if (i>=M.length){ if (bi+1<base.length){ bi++; return run(0,true); } return Promise.reject(errs.join(' | ')); }
+      return one(M[i],think).catch(e=>{ const es=String(e); errs.push((bi?'B ':'A ')+M[i]+': '+es.slice(0,90)); if (/^4(01|03)/.test(es) || /API key|TypeError|Failed to fetch|Load failed/i.test(es)){ if (bi+1<base.length){ bi++; return run(0,true); } return Promise.reject(errs.slice(-3).join(' | ')); } return think?run(i,false):run(i+1,true); }); };
+    return run(0,true); },
   key(){ try{ return (localStorage.getItem('hicoreRide.aiKey')||'').trim(); }catch(e){ return ''; } },
   local(q, n){ const t=q.toLowerCase(), K=n.wissen||[];
     for (const [keys,a] of K){ if (keys.some(k=>t.includes(k))) return a; }
@@ -10226,7 +10234,8 @@ $('unlockAll').onchange = ()=>{ store.set('unlockAll',$('unlockAll').checked); r
 AMB.on=store.get('sndOn',true); $('sndOn').checked=AMB.on; $('sndOn').onchange=()=>{ AMB.on=$('sndOn').checked; store.set('sndOn',AMB.on); $('sndGrid').style.opacity=AMB.on?1:0.45; };
 $('sndGrid').innerHTML=SND_KEYS.map(([k,l])=>'<div><label>'+l+' <span id="'+k+'V"></span></label><input type="range" id="'+k+'" min="0" max="100" step="5"></div>').join('');
 try{ const k=localStorage.getItem('hicoreRide.aiKey')||''; $('aiKey').value=k; $('aiKeyI').textContent=k?'aktiv':'ohne Schlüssel: Antworten aus eigenem Wissen'; }catch(e){}
-$('aiKey').onchange=()=>{ try{ localStorage.setItem('hicoreRide.aiKey',$('aiKey').value.trim()); }catch(e){} $('aiKeyI').textContent=$('aiKey').value.trim()?'gespeichert':'ohne Schlüssel: Antworten aus eigenem Wissen'; };
+$('aiKey').oninput=$('aiKey').onchange=()=>{ try{ localStorage.setItem('hicoreRide.aiKey',$('aiKey').value.replace(/\s+/g,'')); }catch(e){} $('aiKeyI').textContent=$('aiKey').value.trim()?'gespeichert':'ohne Schlüssel: Antworten aus eigenem Wissen'; };
+$('aiTest').onclick=e=>{ e.preventDefault(); const k=CHAT.key(); if (!k){ $('aiKeyI').textContent='Bitte erst den Schlüssel einfügen.'; return; } $('aiKeyI').textContent='teste …'; CHAT.gemini(k,'Antworte auf Deutsch in einem kurzen Satz.',[{role:'user',parts:[{text:'Sag Hallo aus dem Zittauer Gebirge.'}]}]).then(t=>{ $('aiKeyI').textContent='✓ KI antwortet: '+t.slice(0,80); }).catch(err=>{ $('aiKeyI').textContent='✗ '+String(err).slice(0,220); }); };
 AMB.surSel=store.get('sndSur','auto'); $('sndSur').value=AMB.surSel; $('sndSur').onchange=()=>{ store.set('sndSur',$('sndSur').value); AMB.setSur($('sndSur').value); if (!AMB.ctx) $('sndSurI').textContent='wird beim Start aktiv'; };
 SND_KEYS.forEach(([k,l,d])=>{ const v=store.get(k,d); AMB.vol[k]=v; const el=$(k), lab=$(k+'V'); el.value=Math.round(v*100); lab.textContent=el.value+' %'; el.oninput=()=>{ AMB.vol[k]=el.value/100; lab.textContent=el.value+' %'; store.set(k,AMB.vol[k]); }; });
 $('sndGrid').style.opacity=AMB.on?1:0.45;
@@ -10271,7 +10280,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.11 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.12 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
