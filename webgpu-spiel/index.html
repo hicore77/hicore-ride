@@ -9139,11 +9139,11 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
     return true; },
   auOff(car){ const au=car&&car.au; if (!au) return; try{ const t=AMB.ctx.currentTime; au.g.gain.setTargetAtTime(0,t,0.05); au.s.stop(t+0.4); }catch(e){} car.au=null; },
   /* Lenkung: Fahrzeug dreht leicht in Fahrtrichtung (Spurwechsel), Vorderräder schlagen nach Gierrate ein */
-  steerStep(c, dt, gr){ const o=c.o.position, pp=c.pp; c.pp={x:o.x,z:o.z}; if (!pp || dt<=0) return; const vx=(o.x-pp.x)/dt, vz=(o.z-pp.z)/dt, sp=Math.hypot(vx,vz); let yo=0;
-    if (sp>1.2 && c.mode!=='stop'){ let d=Math.atan2(-vx,-vz)-c.hd; d=Math.atan2(Math.sin(d),Math.cos(d)); yo=clamp(d,-0.22,0.22); }
-    c.yo=(c.yo||0)+(yo-(c.yo||0))*Math.min(1,dt*5); const psi=c.hd+c.yo; c.o.rotation.set(0,psi,0); c.o.rotateX(-Math.atan(gr));
-    let w=0; if (c.psi!=null){ let dp=psi-c.psi; dp=Math.atan2(Math.sin(dp),Math.cos(dp)); w=dp/dt; } c.psi=psi;
-    const tgt=sp>1?clamp(Math.atan((c.wb||2.6)*w/Math.max(sp,2)),-0.5,0.5):(c.st||0); c.st=(c.st||0)+(tgt-(c.st||0))*Math.min(1,dt*4);
+  /* 0.10.4b (Hicore): Karosserie folgt nur der Fahrbahn (kein Eiern mehr), nur die Vorderräder lenken: Lenkwinkel aus der Krümmung der Fahrspur, ruhig geglättet */
+  steerStep(c, dt, gr){ if (dt<=0) return; const o=c.o.position, pp=c.pp; c.pp={x:o.x,z:o.z}; const sp=pp?Math.hypot(o.x-pp.x,o.z-pp.z)/dt:0;
+    c.o.rotation.set(0,c.hd,0); c.o.rotateX(-Math.atan(gr));
+    let w=0; if (c.hd0!=null){ let dp=c.hd-c.hd0; dp=Math.atan2(Math.sin(dp),Math.cos(dp)); w=dp/dt; } c.hd0=c.hd; c.wf=(c.wf||0)+(w-(c.wf||0))*Math.min(1,dt*2.5);
+    const tgt=sp>1?clamp(Math.atan((c.wb||2.6)*c.wf/Math.max(sp,3)),-0.45,0.45):(c.st||0); c.st=(c.st||0)+(tgt-(c.st||0))*Math.min(1,dt*3);
     if (c.wh) c.wh.forEach(q=>{ if (q.steer) q.pv.rotation.y=q.ry0+c.st; }); },
   halves(A){ if (A._h!==undefined) return A._h; A._h=null; try{ let x0=1e9,x1=-1e9; A.parts.forEach(({geo})=>{ const p=geo.attributes.position; for (let i=0;i<p.count;i++){ const x=p.getX(i); if (x<x0)x0=x; if (x>x1)x1=x; } }); const xm=(x0+x1)/2;
       const H=[-1,1].map(sd=>{ let sx=0, n=0; const parts=A.parts.map(({geo,mat})=>{ const p=geo.attributes.position, nt=p.count/3|0, keep=[]; for (let t=0;t<nt;t++){ const cx=(p.getX(t*3)+p.getX(t*3+1)+p.getX(t*3+2))/3; if ((cx-xm)*sd>0){ keep.push(t); sx+=cx; n++; } }
@@ -10009,7 +10009,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
