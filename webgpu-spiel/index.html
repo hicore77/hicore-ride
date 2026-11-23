@@ -182,8 +182,8 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
       <p>Wähle deine Welt. Mit jedem gefahrenen Kilometer schaltest du neue Welten frei.</p>
       <div id="worlds"></div>
       <div class="mpbox"><h4>Tageszeit &amp; Wetter</h4>
-        <div class="mpgrid"><select id="tod"><option value="morgen">🌅 Morgen</option><option value="mittag">☀️ Mittag</option><option value="nachm" selected>🌤️ Nachmittag</option><option value="abend">🌇 Abend</option><option value="nacht">🌙 Nacht</option></select>
-        <select id="wx"><option value="sonne" selected>☀️ Sonnig</option><option value="wolken">☁️ Bewölkt</option><option value="regen">🌧️ Regen</option><option value="gewitter">⛈️ Gewitter</option><option value="nebel">🌫️ Nebel</option></select></div></div>
+        <div class="mpgrid"><select id="tod"><option value="morgen">🌅 Morgen</option><option value="mittag">☀️ Mittag</option><option value="nachm" selected>🌤️ Nachmittag</option><option value="abend">🌇 Abend</option><option value="nacht">🌙 Nacht</option><option value="echt">🌐 Echte Tageszeit</option></select>
+        <select id="wx"><option value="sonne" selected>☀️ Sonnig</option><option value="wolken">☁️ Bewölkt</option><option value="regen">🌧️ Regen</option><option value="gewitter">⛈️ Gewitter</option><option value="nebel">🌫️ Nebel</option><option value="echt">🌐 Echtes Wetter</option></select></div><div id="realWx" style="font-size:12px;opacity:.8;margin-top:6px;display:none"></div></div>
       <div class="mpbox"><h4>Gruppenfahrt (Multiplayer)</h4>
         <div class="mpgrid"><input id="mpName" maxlength="16" placeholder="Dein Name" autocomplete="off"><input id="mpRoom" maxlength="16" placeholder="Raum-Code" autocomplete="off" autocapitalize="characters"></div>
         <div class="mpbtn"><button id="mpJoin">Raum beitreten</button><button id="mpLeave" style="display:none">Raum verlassen</button></div>
@@ -8439,14 +8439,14 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), base:null, rain:null,
        regen:{si:0.15,hi:0.85,gray:0.85,g:[0.56,0.59,0.63],fogF:0.42,cl:0.6,rain:1},
        gewitter:{si:0.05,hi:0.6,gray:0.96,g:[0.3,0.32,0.38],fogF:0.3,cl:0.3,rain:1.6,bolt:1},   /* 0.9.8: dunkler, dramatischer */
        nebel:{si:0.3,hi:1.0,gray:0.8,g:[0.84,0.86,0.88],fogF:0.13,fogN:0.06,cl:0.9} },
-  T(){ return this.TOD[this.tod]||this.TOD.nachm; }, W(){ return this.WX[this.wx]||this.WX.sonne; }, night(){ return this.tod==='nacht'; },
+  T(){ return this.tod==='echt'&&RWX.T?RWX.T:this.TOD[this.tod]||this.TOD.nachm; }, W(){ return this.wx==='echt'&&RWX.W?RWX.W:this.WX[this.wx]||this.WX.sonne; }, night(){ return this.tod==='nacht'||(this.tod==='echt'&&RWX.night); },
   /* Grundfarben der frisch gebauten Welt merken */
   capture(){ this.base={bg:scene.background.clone(), fog:scene.fog.color.clone(), near:scene.fog.near, far:scene.fog.far, sky:skyDome?Float32Array.from(skyDome.geometry.attributes.color.array):null};
     if (cloudLayer) cloudLayer.traverse(o=>{ if (o.material && o.material.color) o.userData.c0=o.material.color.clone(); }); },
   tint(c0, mul){ const T=this.T(), W=this.W(), c=c0.clone(); c.r*=mul[0]; c.g*=mul[1]; c.b*=mul[2];
     if (W.gray){ const b=(T.sky[0]+T.sky[1]+T.sky[2])/3, l=(c0.r+c0.g+c0.b)/3; c.lerp(new THREE.Color(W.g[0]*b*l*1.6,W.g[1]*b*l*1.6,W.g[2]*b*l*1.6), W.gray); } return c; },
   apply(){ const T=this.T(), W=this.W();
-    const el=T.el*Math.PI/180, az=AZ0+T.az; SUN_DIR.set(Math.cos(el)*Math.cos(az), Math.sin(el), Math.cos(el)*Math.sin(az));
+    if (T.dir) SUN_DIR.copy(T.dir); else { const el=T.el*Math.PI/180, az=AZ0+T.az; SUN_DIR.set(Math.cos(el)*Math.cos(az), Math.sin(el), Math.cos(el)*Math.sin(az)); }
     sun.color.set(T.sc).convertSRGBToLinear(); sun.intensity=T.si*W.si;
     hemi.color.set(T.hc).convertSRGBToLinear(); hemi.groundColor.set(T.hg).convertSRGBToLinear(); this.hi=(PBR.std?0.45:0.75)*T.hi*W.hi*(this.night()&&LITE?1.3:1); hemi.intensity=this.hi;
     this.ex=T.ex; renderer.toneMappingExposure=this.ex;
@@ -8458,7 +8458,7 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), base:null, rain:null,
     if (skyDome && B.sky){ const a=skyDome.geometry.attributes.color, c=new THREE.Color(); for (let i=0;i<a.count;i++){ c.setRGB(B.sky[i*3],B.sky[i*3+1],B.sky[i*3+2]); const t=this.tint(c,T.sky); a.setXYZ(i,t.r,t.g,t.b); } a.needsUpdate=true; }
     if (cloudLayer) cloudLayer.traverse(o=>{ if (o.userData.c0){ const t=this.tint(o.userData.c0,T.sky); t.multiplyScalar(W.cl); o.material.color.copy(t); } });
     if (this.stars) this.stars.visible=this.night() && W.gray<0.6;
-    this.rainAmt=W.rain||0; if (this.rain) this.rain.visible=this.rainAmt>0; WET.tw=W.rain?1:0; WET.ts=W.bolt?1:0; if (this._wetInit===undefined){ this._wetInit=1; WET.w.value=WET.tw; WET.s.value=WET.ts; } },
+    this.rainAmt=W.rain||0; if (this.rain) this.rain.visible=this.rainAmt>0; WET.tw=W.rain?Math.min(1,0.65+0.35*W.rain):(W.wet||0); WET.ts=W.bolt?1:W.rain>1.1?0.5:0; if (this._wetInit===undefined){ this._wetInit=1; WET.w.value=WET.tw; WET.s.value=WET.ts; } },
   setup(){ /* Sterne, Regen und Licht einmalig anlegen */
     { const n=1400, p=new Float32Array(n*3); for (let i=0;i<n;i++){ const u=Math.random(), v=Math.random()*Math.PI*2, y=0.08+u*0.92, r=Math.sqrt(1-y*y); p[i*3]=Math.cos(v)*r*2500; p[i*3+1]=y*2500; p[i*3+2]=Math.sin(v)*r*2500; }
       const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(p,3)); this.stars=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff, size:LITE?1.6:2.2, sizeAttenuation:false, fog:false, transparent:true, opacity:0.85, depthWrite:false}));
@@ -8471,7 +8471,9 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), base:null, rain:null,
     if (!LITE){ const l=new THREE.SpotLight(0xfff2dd, 0, 45, 0.55, 0.65, 1.4); l.position.set(0,1.05,0.55); l.target.position.set(0,0,14); me.g.add(l); me.g.add(l.target); this.lamp=l; }
     this.apply(); },
   update(dt){ const W=this.W();
-    { const k=Math.min(1,dt*0.35); WET.w.value+=(WET.tw-WET.w.value)*k; WET.s.value+=(WET.ts-WET.s.value)*k; }
+    { /* 0.10.16: Regen macht die Straße in ca. 1 min nass, danach trocknet sie langsam ab (ca. 12 min, Pfützen länger) */
+      const wet=(u,t,dry)=>{ if (t>u.value) u.value+=(t-u.value)*Math.min(1,dt*0.06); else u.value=Math.max(t,u.value-dt/dry); };
+      wet(WET.w,WET.tw,720); wet(WET.s,WET.ts,1100); }
     if (this.spray){ const wet=WET.w.value, sp=(typeof S!=='undefined'&&S.speed)||0, P=this.sprP, V=this.sprV, Lf=this.sprL, n=this.sprN; let alive=false;
       if (wet>0.15 && sp>1.5 && me && me.g){ const fx=WIND.rv.value.x, fz=WIND.rv.value.y, o=me.g.position; this.sprAcc+=dt*sp*(14+10*WET.s.value)*wet;
         while (this.sprAcc>=1){ this.sprAcc-=1; const i=this.sprI=(this.sprI+1)%n, rear=Math.random()<0.7, sd=(Math.random()-0.5);
@@ -8517,10 +8519,62 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), base:null, rain:null,
         const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:op, fog:false, depthWrite:false, side:THREE.DoubleSide, blending:THREE.AdditiveBlending})); m.userData.op=op; m.frustumCulled=false; m.renderOrder=5; G.add(m); }); };
     chan(bx,top,bz,top-gy,W,0,0); G.visible=false; }
 };
+
+/* 0.10.16 (Hicore): ECHTES WETTER und ECHTE TAGESZEIT. Wetter kostenlos von Open-Meteo (ohne Schlüssel) für den Ort im Spiel
+   (echte Welten: Position des Fahrers, sonst Zittau), Sonnenstand selbst berechnet aus Uhrzeit und Ort. Alle 10 min bzw. nach 3 km neu. */
+const RWX={ W:null, T:null, night:false, last:0, ll:null, cat:'', info:'', windF:1, busy:false,
+  want(){ return ATMO.wx==='echt'||ATMO.tod==='echt'; },
+  pos(){ try{ if (me && me.g){ const p=me.g.position, Z=window.ZGNET;
+      if (WORLD.graph && Z && Z.lat0) return [Z.lat0 - p.z/110574, Z.lon0 + p.x/(111320*Math.cos(Z.lat0*Math.PI/180))];
+      if (WORLD.real && realData()) return geoOf(p.x, p.z); } }catch(e){} return [50.85,14.74]; },
+  here(){ return WORLD && (WORLD.graph||WORLD.real); },
+  sun(lat,lon,d){ const R=Math.PI/180, n=d.getTime()/864e5-10957.5, L=280.46+0.9856474*n, g=(357.528+0.9856003*n)*R, lam=(L+1.915*Math.sin(g)+0.02*Math.sin(2*g))*R, eps=(23.439-4e-7*n)*R;
+    const ra=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam)), dec=Math.asin(Math.sin(eps)*Math.sin(lam)), ha=((280.46061837+360.98564736629*n+lon)%360)*R-ra, la=lat*R;
+    return { el:Math.asin(Math.sin(la)*Math.sin(dec)+Math.cos(la)*Math.cos(dec)*Math.cos(ha))/R, az:Math.atan2(-Math.sin(ha), Math.tan(dec)*Math.cos(la)-Math.sin(la)*Math.cos(ha)) }; },
+  /* zwei Voreinstellungen mischen (Zahlen, Farben, Listen) */
+  mix(a,b,f){ f=clamp(f,0,1); const o={}, D={fogN:1,gray:0,rain:0,bolt:0,az:0}; for (const k of new Set([...Object.keys(a),...Object.keys(b)])){ const x=a[k]??D[k], y=b[k]??D[k];
+      if (Array.isArray(x)) o[k]=x.map((v,i)=>v+((y||x)[i]-v)*f); else if (typeof x==='number' && /^(sc|hc|hg)$/.test(k)) o[k]=new THREE.Color(x).lerp(new THREE.Color(y),f).getHex(); else if (typeof x==='number') o[k]=x+((y??x)-x)*f; else o[k]=f<0.5?x:y; }
+    return o; },
+  calcT(){ const [lat,lon]=this.pos(), now=new Date(), s=this.sun(lat,lon,now), e=s.el, P=ATMO.TOD, dusk=now.getHours()<12?P.morgen:P.abend;
+    let T= e<=-7?P.nacht : e<=-1?this.mix(P.nacht,dusk,(e+7)/6) : e<=6?dusk : e<=22?this.mix(dusk,P.nachm,(e-6)/16) : e<=45?this.mix(P.nachm,P.mittag,(e-22)/23) : P.mittag;
+    T=Object.assign({},T); this.night=e<-4;
+    if (e>-4){ const el=Math.max(e,1.5)*Math.PI/180; T.dir=new THREE.Vector3(Math.cos(el)*Math.sin(s.az), Math.sin(el), -Math.cos(el)*Math.cos(s.az)); T.el=e; }
+    this.sunEl=e; this.T=T; },
+  catOf(c,cc,pr,vis){ if (c>=95) return 'gewitter'; if ((c>=71&&c<=77)||c===85||c===86) return 'schnee'; if ((c>=51&&c<=67)||(c>=80&&c<=82)||pr>0.1) return 'regen';
+    if (c===45||c===48||(vis!=null&&vis<1500)) return 'nebel'; if (cc>=75||c===3) return 'wolken'; return (cc>=35||c===2)?'teils':'sonne'; },
+  NAME:{sonne:'sonnig',teils:'leicht bewölkt',wolken:'bewölkt',regen:'Regen',schnee:'Schnee (als Regen dargestellt)',nebel:'Nebel',gewitter:'Gewitter'},
+  calcW(j){ this.shower=0; const c=j.weather_code|0, cc=j.cloud_cover??0, pr=j.precipitation??0, vis=j.visibility, X=ATMO.WX, cat=this.catOf(c,cc,pr,vis); let W;
+    if (cat==='sonne') W=this.mix(X.sonne,X.wolken,cc/100*0.4); else if (cat==='teils') W=this.mix(X.sonne,X.wolken,0.25+cc/100*0.45);
+    else if (cat==='wolken') W=this.mix(X.wolken,X.regen,clamp((cc-85)/30,0,0.4)); else if (cat==='nebel') W=this.mix(X.nebel,X.wolken,clamp(((vis||500)-300)/2500,0,0.7));
+    else if (cat==='gewitter') W=Object.assign({},X.gewitter);
+    else { const shower=(c>=80&&c<=82)||cc<75; W=shower?this.mix(X.regen,X.sonne,clamp(0.55-cc/200,0.15,0.5)):Object.assign({},X.regen); W.rain=clamp(0.35+pr/2.5,0.35,1.5); if (cat==='schnee') W.g=[0.82,0.84,0.88]; if (shower && cc<75) this.shower=1; }
+    if (cat!=='regen'&&cat!=='schnee'&&cat!=='gewitter'){ delete W.rain; delete W.bolt; }
+    /* Straße noch nass vom Regen der letzten 3 Stunden (je älter, desto trockener) */
+    let ws=0; const m=this.m15; if (m && m.precipitation){ const T0=Date.now(); m.time.forEach((t,i)=>{ const age=(T0-Date.parse(t))/36e5; if (age>=-0.1 && age<3.2) ws+=(m.precipitation[i]||0)*Math.exp(-Math.max(0,age)/1.1); }); }
+    W.wet=clamp(ws/0.6,0,1); this.wetInfo=!W.rain&&W.wet>0.15;
+    this.windF=clamp(0.45+(j.wind_speed_10m||0)/22,0.45,2.2); this.W=W; this.cat=cat;
+    const t=j.temperature_2m!=null?Math.round(j.temperature_2m)+' °C, ':'';
+    this.info=(this.place||(this.here()?'Am Ort':'Zittau'))+': '+t+(this.shower?'Schauer mit Sonne':this.NAME[cat])+(this.wetInfo?', Straße noch nass':'')+', Wind '+Math.round(j.wind_speed_10m||0)+' km/h'; },
+  /* nächster Ort für die Anzeige (Jonsdorf, Zittau …) aus den Ortsnamen der echten Welt */
+  near(){ try{ if (!(this.here()&&me&&me.g)) return ''; const p=me.g.position; let L=[];
+      if (WORLD.graph && GN.d && GN.d.vill) L=GN.d.vill; else if (WORLD.real) L=(realData().pois||[]).filter(q=>/village|town|hamlet|city/.test(q[0])).map(q=>({name:q[1],x:q[2],z:q[3]}));
+      let b='', bd=4000; for (const q of L){ const d=Math.hypot(q.x-p.x,q.z-p.z); if (d<bd && q.name){ bd=d; b=q.name; } } return b; }catch(e){ return ''; } },
+  show(){ const el=$('realWx'); if (!el) return; el.style.display=this.want()?'block':'none'; el.textContent=this.want()?'🌐 '+(this.info||'Wetter wird geholt …')+(ATMO.tod==='echt'&&this.sunEl!=null?' · Sonne '+Math.round(this.sunEl)+'°':''):''; },
+  fetchW(force){ if (this.busy || ATMO.wx!=='echt') return; const ll=this.pos(), moved=!this.ll||Math.hypot((ll[0]-this.ll[0])*111,(ll[1]-this.ll[1])*70)>1.5;
+    if (!force && !moved && Date.now()-this.last<300000) return; this.busy=true; this.ll=ll;
+    const u='https://api.open-meteo.com/v1/forecast?latitude='+ll[0].toFixed(3)+'&longitude='+ll[1].toFixed(3)+'&current=temperature_2m,weather_code,cloud_cover,precipitation,wind_speed_10m,visibility&minutely_15=precipitation&past_minutely_15=13&forecast_minutely_15=1&timezone=UTC';
+    fetch(u).then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{ const old=this.cat+this.shower; this.m15=j.minutely_15?{time:j.minutely_15.time.map(t=>t+'Z'),precipitation:j.minutely_15.precipitation}:null; this.place=this.near(); this.calcW(j.current||{}); this.last=Date.now(); ATMO.apply(); this.show();
+        if (old!==this.cat+this.shower && S && S.running) toast('🌐 Echtes Wetter: '+this.info); })
+      .catch(e=>{ this.last=Date.now()-480000; this.info='Wetter gerade nicht erreichbar ('+e+'), versuche es gleich wieder'; this.show(); })
+      .finally(()=>{ this.busy=false; }); },
+  tick(force){ if (!this.want()){ this.show(); return; } if (ATMO.tod==='echt'){ this.calcT(); if (force||!this._ta||Date.now()-this._ta>30000){ this._ta=Date.now(); ATMO.apply(); } } this.fetchW(force); this.show(); }
+};
+window.RWX=RWX;
+setInterval(()=>{ try{ if (!document.hidden) RWX.tick(); }catch(e){ console.warn('Echtwetter',e); } }, 30000);
 $('tod').value=ATMO.tod; $('wx').value=ATMO.wx;
-$('tod').onchange=()=>{ ATMO.tod=$('tod').value; store.set('tod',ATMO.tod); ATMO.apply(); };
-$('wx').onchange=()=>{ ATMO.wx=$('wx').value; store.set('wx',ATMO.wx); ATMO.apply(); };
-try{ ATMO.setup(); }catch(e){ console.warn('Wetter-Setup',e); }
+$('tod').onchange=()=>{ ATMO.tod=$('tod').value; store.set('tod',ATMO.tod); RWX.tick(true); ATMO.apply(); };
+$('wx').onchange=()=>{ ATMO.wx=$('wx').value; store.set('wx',ATMO.wx); RWX.tick(true); ATMO.apply(); };
+try{ RWX.tick(true); }catch(e){} try{ ATMO.setup(); }catch(e){ console.warn('Wetter-Setup',e); }
 // ---------- Segmente mit Bestzeiten: zählen NUR mit echtem Rollentrainer (nicht im Testmodus ohne Trainer) ----------
 const SEG={ list:[], act:[], prev:null, show:null, showT:0,
   fmt(t){ const m=Math.floor(t/60), x=t-m*60; return m+':'+(x<10?'0':'')+x.toFixed(1).replace('.',','); },
@@ -9146,7 +9200,12 @@ const CHAT={
   box(){ let el=document.getElementById('talkBox'); if (!el){ el=document.createElement('div'); el.id='talkBox'; el.style.cssText='position:fixed;left:50%;bottom:150px;transform:translateX(-50%);max-width:min(620px,88vw);background:rgba(10,14,24,.9);color:#fff;border:1px solid #3b6cff;border-radius:14px;padding:12px 16px;font:500 15px/1.45 system-ui,sans-serif;z-index:61;text-align:left;box-shadow:0 6px 24px rgba(0,0,0,.45);pointer-events:none'; document.body.appendChild(el); } return el; },
   say(who, txt, cls){ const el=this.box(); el.style.display='block'; el.innerHTML=(cls==='me'?'<b>Du:</b> ':'<b>'+(this.cur&&this.cur.name||'Figur')+':</b> ')+txt; },
   close(){ const el=document.getElementById('talkBox'); if (el) el.style.display='none'; this.stopRec(); try{ speechSynthesis.cancel(); }catch(e){} },
-  stopRec(){ try{ this.rec&&this.rec.stop(); }catch(e){} this.rec=null; this.on=false; },
+  stopRec(){ try{ this.rec&&this.rec.stop(); }catch(e){} this.rec=null; this.on=false; this.wake(); },
+  /* 0.10.16: iPad schaltet beim Mikrofon auf Sprechfunk-Modus und stoppt die Umgebungsgeräusche -> danach wieder auf Wiedergabe stellen und Ton fortsetzen */
+  sess(t){ try{ if (navigator.audioSession) navigator.audioSession.type=t; }catch(e){} },
+  wake(){ this.sess('playback'); const A=typeof AMB!=='undefined'?AMB:null; if (!A||!A.ctx) return;
+    if (!this._sc){ this._sc=1; A.ctx.addEventListener('statechange',()=>{ if (A.ctx.state!=='running' && A.ctx.state!=='closed' && !document.hidden) setTimeout(()=>A.ctx.resume().catch(()=>{}),150); }); }
+    [0,250,800,2000].forEach(t=>setTimeout(()=>{ if (A.ctx.state!=='running' && !document.hidden) A.ctx.resume().catch(()=>{}); },t)); },
   /* Sprechknopf gedrückt: zuhören */
   unlock(){ if (this._ul) return; try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); speechSynthesis.getVoices(); this._ul=1; }catch(e){} },
   talk(){ this.unlock(); if (this.cur && this.cur.W && this.cur.mode!=='near') this.cur.mode='go'; if (this.busy) return; if (this.on){ this.stopRec(); this.say(0,'…','me'); return; }
@@ -9154,10 +9213,10 @@ const CHAT={
     if (!SR){ this.ask(prompt('Dein Browser kann nicht zuhören. Was möchtest du sagen?')||''); return; }
     try{ const r=new SR(); r.lang='de-DE'; r.interimResults=true; r.maxAlternatives=1; this.rec=r; this.on=true;
       this.say(0,'<i>… ich höre</i>','me');
-      r.onresult=e=>{ let t=''; for (let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; this.say(0,t||'…','me'); if (e.results[e.results.length-1].isFinal){ this.on=false; this.ask(t); } };
-      r.onerror=e=>{ this.on=false; this.say(0,'Ich habe nichts verstanden. ('+e.error+')','me'); };
-      r.onend=()=>{ this.on=false; };
-      r.start();
+      r.onresult=e=>{ let t=''; for (let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript; this.say(0,t||'…','me'); if (e.results[e.results.length-1].isFinal){ this.stopRec(); this.ask(t); } };
+      r.onerror=e=>{ this.stopRec(); this.say(0,'Ich habe nichts verstanden. ('+e.error+')','me'); };
+      r.onend=()=>{ this.on=false; this.rec=null; this.wake(); };
+      this.sess('play-and-record'); r.start();
     }catch(e){ this.on=false; this.say(0,'Mikrofon geht hier nicht.','me'); } },
   ask(text){ text=(text||'').trim(); if (!text) return; const n=this.cur; if (!n) return; this.busy=true; this.say(0,text,'me');
     const done=(a,err)=>{ this.busy=false; if (this.cur!==n) return; if (!err){ this.hist.push({q:text,a}); if (this.hist.length>6) this.hist.shift(); } this.say(1,a+(err?'<br><small style="color:#ffb36b">'+err.replace(/</g,'&lt;')+'</small>':'')); this.speak(a, n); };
@@ -9206,14 +9265,19 @@ const CHAT={
   /* 0.10.13 (Hicore): natürlichere Stimme über Google Gemini TTS mit demselben Schlüssel; klappt das nicht, Browser-Stimme */
   speak(txt, n){ const key=this.key(), A=typeof AMB!=='undefined'?AMB:null;
     if (key && A && A.ctx && this.ttsOk!==false){ const ctl=new AbortController(); setTimeout(()=>ctl.abort(), 14000); if (n.W) n.W.talkT=Math.max(2, txt.length/13);
-      this.ttsCall(key, txt, n, ctl.signal).then(b64=>{ const bin=atob(b64), N=bin.length>>1, buf=A.ctx.createBuffer(1,N,24000), d=buf.getChannelData(0);
-          for (let i=0;i<N;i++){ let v=bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8); if (v>32767) v-=65536; d[i]=v/32768; }
+      this.ttsCall(key, txt, n, ctl.signal).then(b64=>{ const bin=atob(b64), N=bin.length>>1, raw=new Float32Array(N);
+          for (let i=0;i<N;i++){ let v=bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8); if (v>32767) v-=65536; raw[i]=v/32768; }
+          /* 0.10.16: Knacken weg: Stille/Rauschen am Anfang und Ende abschneiden, Gleichanteil entfernen, weich ein- und ausblenden */
+          let a0=0, a1=N; while (a0<N && Math.abs(raw[a0])<0.012) a0++; while (a1>a0 && Math.abs(raw[a1-1])<0.012) a1--; a0=Math.max(0,a0-240); a1=Math.min(N,a1+480);
+          const L=Math.max(1,a1-a0); let dc=0; for (let i=a0;i<a1;i++) dc+=raw[i]; dc/=L; const F=Math.min(720, L>>2);
+          this.wake(); const buf=A.ctx.createBuffer(1,L,24000), d=buf.getChannelData(0);
+          for (let i=0;i<L;i++){ const w=Math.min(1, i/F, (L-1-i)/F); d[i]=(raw[a0+i]-dc)*w*w; }
           try{ this.src&&this.src.stop(); }catch(e){} const sN=A.ctx.createBufferSource(), g=A.ctx.createGain(); g.gain.value=1.4; sN.buffer=buf; sN.connect(g); g.connect(A.master); sN.start(); this.src=sN; if (n.W) n.W.talkT=buf.duration; })
         .catch(e=>{ this.ttsErr=String(e); console.warn('TTS', e); if (/429|quota|RESOURCE_EXHAUSTED/i.test(this.ttsErr)) this.ttsOk=false; this.speakLocal(txt, n); });
       return; }
     this.speakLocal(txt, n); },
   ttsCall(key, txt, n, signal){ return this.models(key).then(mm=>{ const M=mm.tts||['gemini-2.5-flash-preview-tts','gemini-2.5-flash-tts','gemini-2.5-pro-preview-tts'];
-      const body={contents:[{role:'user',parts:[{text:(n.ttsStyle||'Sprich freundlich, locker und natürlich, wie im Gespräch draußen beim Wandern')+': '+txt}]}],
+      const body={contents:[{role:'user',parts:[{text:txt}]}],
         generationConfig:{responseModalities:['AUDIO'], speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:n.ttsVoice||(n.male?'Charon':'Sulafat')}}}}};
       return this.gcall(key, M.slice(0,3), {main:body}, signal, j=>{ const p=(((j.candidates||[])[0]||{}).content||{}).parts||[], a=p.find(q=>q.inlineData); if (!a) return Promise.reject('keine Audiodaten'); return a.inlineData.data; }); }); },
   speakLocal(txt, n){ try{ const u=new SpeechSynthesisUtterance(txt); u.lang='de-DE'; u.rate=n.rate||1; u.pitch=n.pitch||1;
@@ -9499,21 +9563,24 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
         if (c.mode==='chase'){ this.polV=Math.max(this.polV,rv*3.6); c.blueOn=c.chT>0.8; this.sirenOn=c.chT>1.4; vt=c.chT<1.2?c.v:Math.max(rv+7,14); if (ah<40) c.latT=Math.min(W/4+0.3, half-0.9); if (ah<-11){ c.mode='block'; c.chT=0; this.hold=1; this.sirenOn=false; } if (c.chT>90){ c.mode='leave'; c.chT=0; } }
         else if (c.mode==='block'){ c.latT=-(half-0.95); const gap=-ah; vt=Math.max(0, rv-(gap-9)*0.6); if (gap<6) vt=0; if (rv<0.25 && c.v<0.3){ c.mode='talk'; c.chT=0; this.hold=2; this.polTalk(c); } }
         else if (c.mode==='talk'){ vt=0; if (c.chT>this.talkLen){ this.polEndTalk(); c.mode='leave'; c.chT=0; } }
-        else if (c.mode==='leave'){ vt=c.chT<2.5?0:(tw?50/3.6:c.vR); if (c.chT>2.5) c.latT=-W/4; if (c.chT>1.5){ this.hold=0; } if (c.chT>7){ c.blueOn=false; c.mode='drive'; this.polBusy=0; } }
+        else if (c.mode==='leave'){ vt=c.chT<2.5?0:(tw?50/3.6:c.vR); if (c.chT>2.5) c.latT=(same&&ah>-14)?Math.max(0.9,Math.min(W/4+0.3,half-0.9)):-W/4; if (c.chT>1.5){ this.hold=0; } if (c.chT>7){ c.blueOn=false; c.mode='drive'; this.polBusy=0; } }
         if (c.fl){ if (c.flash){ c.flashT+=dt; const on=(c.flashT<0.18)||(c.flashT>0.36&&c.flashT<0.54); c.fl.forEach(m=>m.visible=on); if (c.flashT>0.6){ c.flash=0; c.fl.forEach(m=>m.visible=false); } } }
         if (c.blue){ const ph=(performance.now()/85|0)%8; c.blue[0].visible=!!c.blueOn&&(ph===0||ph===2); c.blue[1].visible=!!c.blueOn&&(ph===4||ph===6); } }
       /* Fahrer als Hindernis: gleiche Richtung, Fahrer vor dem Auto */
       const ahead=same? -r : r;     /* >0: Fahrer liegt vor dem Auto */
+      /* 0.10.16 (Hicore: Autos rollten langsam auf und über den Fahrer): Abstand wird jetzt immer geregelt, nicht nur solange das Auto schneller ist;
+         an engen/kurvigen Anstiegen überholen sie, sobald es geht (wartet ein Auto schon länger, reicht weniger Platz) */
       if (same && c.mode!=='stop' && !PM){
-        if (ahead>0 && ahead<90 && c.v>rv+0.3){
-          /* überholen? frei, wenn kein Gegenverkehr in 260 m und die Straße 120 m voraus fast gerade */
-          let free=true; for (const o of this.act){ if (o===c || o.cd===c.cd) continue; const dd=(o.d-c.d)*c.cd; const dw=((dd%L)+L)%L; if (dw<(this.waveBy>0?150:260)+ahead) { free=false; break; } }
-          const hA=headingAt(c.d+c.cd*(ahead+60)); if (Math.abs(Math.atan2(Math.sin(hA-h0),Math.cos(hA-h0)))>0.45) free=false;
-          if (W<4.4) free=false;
-          if (c.mode==='pass' || (free && ahead<45)){ c.mode='pass'; c.latT=Math.min(W/4+0.3, half-0.9); }
-          else if (ahead<40){ vt=Math.min(vt, Math.max(rv, ahead<14?rv*0.9:rv+1)); if (ahead<12) vt=Math.min(vt,rv*0.85); }
+        if (ahead>0 && ahead<90){ c.wait=(c.wait||0)+(c.v<rv+1.5&&ahead<40?dt:0); const slow=rv<6, pat=c.wait>12;
+          let free=true; const look=(this.waveBy>0?150:slow?(pat?140:180):260)+ahead;
+          for (const o of this.act){ if (o===c || o.cd===c.cd) continue; const dd=(o.d-c.d)*c.cd; const dw=((dd%L)+L)%L; if (dw<look) { free=false; break; } }
+          const hA=headingAt(c.d+c.cd*(ahead+(slow?35:60))); if (Math.abs(Math.atan2(Math.sin(hA-h0),Math.cos(hA-h0)))>(slow?(pat?0.9:0.7):0.45)) free=false;
+          if (W<(slow?3.3:4.4)) free=false;
+          if (c.mode==='pass' || (free && ahead<45 && c.v>=rv-0.5)){ c.mode='pass'; c.latT=Math.max(0.9, Math.min(W/4+0.3, half-0.9)); vt=Math.min(vt, slow?Math.max(rv+5,8):vt); }
+          if (!(c.mode==='pass' && c.lat>0.6)){ const g0=T.len*0.5+7, gMin=T.len*0.5+1.8;
+            vt=Math.min(vt, Math.max(0, rv+(ahead-g0)*0.35)); if (ahead<gMin) vt=0; }
         }
-        if (c.mode==='pass' && ahead<-12){ c.mode='drive'; c.latT=-W/4; }
+        if (c.mode==='pass' && ahead<-12){ c.mode='drive'; c.latT=-W/4; c.wait=0; }
       }
       /* Gegenverkehr: steht der Fahrer auf seiner Spur (beim Überholen), bremst er */
       if (!same && ahead>0 && ahead<70 && this.rLane>0.4) vt=Math.min(vt, ahead<35?0:3);
@@ -9971,7 +10038,7 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
     const play=this.on && (active||this.preview>0) && c.state==='running'; const V=k=>this.vol[k]??0.5;
     this.acc=(this.acc||0)+dt; if (play){ this.birds(dt,world,V); this.clicks(dt,V); } if (this.acc<0.1) return; this.acc=0;
     this.set(this.master.gain, play?V('sndMaster')*1.2:0, play?0.3:0.12); if (!play) return;
-    const t=this.t, wf={insel:1.1,spk:0.8,huegel:1,pass:1.5}[world]??1, lf={insel:0.9,spk:0.7,huegel:1.1,pass:0.6}[world]??1;
+    const t=this.t, wf=({insel:1.1,spk:0.8,huegel:1,pass:1.5}[world]??1)*(ATMO.wx==='echt'&&RWX.windF||1), lf={insel:0.9,spk:0.7,huegel:1.1,pass:0.6}[world]??1;
     // Böen: langsame Grundbewegung + kurze Stöße
     const gust=clamp(0.45+0.3*Math.sin(t*0.11)+0.2*Math.sin(t*0.31+1.3)+0.12*Math.sin(t*0.83+0.4),0,1); const v=this.preview>0?8:(S.speed||0);
     if (!this.mixL('wind', V('sndWind')*wf*(0.3+0.7*gust)*0.75, 0.5, [this.wind,this.wind2], 0.9+0.2*gust)){
@@ -9982,7 +10049,7 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
     const sw=0.5+0.5*Math.sin(t*0.7)*Math.sin(t*0.23+0.5), seaV=this.env?Math.pow(clamp(1-this.env.sea/420,0,1),1.5):0; if (!this.mixL('meer', V('sndWater')*seaV*(0.45+0.4*sw), 1.2, [this.sea])) this.set(this.sea.g.gain, V('sndWater')*seaV*(0.15+0.3*sw), 1.2);
     this.near(world,V,t);
     const sv=clamp(v/13,0,1.4);
-    const wet=Math.min(1,ATMO.rainAmt||0), nite=ATMO.night(); this.mixL('regen', V('sndWind')*0.75*Math.min(1.3,ATMO.rainAmt||0), 1.2); this.mixL('nassreifen', V('sndRide')*wet*Math.pow(sv,1.1)*0.9, 0.25, null, 0.8+0.35*sv); this.mixL('nacht', nite&&world!=='pass'?V('sndAnimal')*0.55:0, 1.5);
+    const wet=Math.min(1,Math.max(ATMO.rainAmt||0,WET.w.value*0.8)), nite=ATMO.night(); this.mixL('regen', V('sndWind')*0.75*Math.min(1.3,ATMO.rainAmt||0), 1.2); this.mixL('nassreifen', V('sndRide')*wet*Math.pow(sv,1.1)*0.9, 0.25, null, 0.8+0.35*sv); this.mixL('nacht', nite&&world!=='pass'?V('sndAnimal')*0.55:0, 1.5);
     /* 2.9: Reifen-Sample (klickerte wie eine Kette) ersetzt durch weiches Abrollrauschen */ { this.set(this.tyre.g.gain, V('sndRide')*Math.pow(sv,1.5)*0.35, 0.2); this.set(this.tyre.f.frequency, 300+420*sv, 0.3); }
     if (!this.mixL('fahrtwind', V('sndRide')*sv*sv*0.55, 0.3, [this.air], 0.85+0.3*sv)) this.set(this.air.g.gain, V('sndRide')*sv*sv*0.12, 0.3);
     /* Grillen über Wiesen und Feldern (nicht im Hochgebirge) */
@@ -10313,7 +10380,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.15 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.16 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
