@@ -4918,7 +4918,7 @@ let ponds=[];
 function baseH(x,z){
   const d=sampleGrid(nearD,x,z), ry=sampleGrid(nearY,x,z), bl=clamp((d-9)/70,0,1);
   if (WORLD.terrain==='real'){ const b2=clamp((d-4.5)/28,0,1), sm=b2*b2*(3-2*b2); return (ry-0.45)*(1-sm)+demH(x,z)*sm; }
-  if (WORLD.terrain==='dem' && WORLD.graph && GN.d){ const n=gnNear(x,z,40), g=gdemH(x,z); if (n.d>=40) return g; const b2=clamp((n.d-(n.w/2+0.4))/30,0,1), sm=b2*b2*(3-2*b2); return (n.y-0.5)*(1-sm)+g*sm; }
+  if (WORLD.terrain==='dem' && WORLD.graph && GN.d){ const n=gnNear(x,z,40), g=gdemH(x,z); let dd=n.d-(n.w/2+0.4), yy=n.y; const rb=GN.d.rb||gnRB(); for (const R of rb){ const dx=x-R.x, dz=z-R.z, e=R.ro+32; if (dx>e||dx<-e||dz>e||dz<-e) continue; const dr=Math.hypot(dx,dz)-R.ro-0.4; if (dr<dd){ dd=dr; yy=R.a+R.gx*dx+R.gz*dz; } } if (n.d>=40 && dd>=30) return g; const b2=clamp(dd/30,0,1), sm=b2*b2*(3-2*b2); return (yy-0.5)*(1-sm)+g*sm; }
   if (WORLD.terrain==='dem'){ const b2=clamp((d-4.2)/30,0,1), sm=b2*b2*(3-2*b2); return (ry-0.5)*(1-sm)+gdemH(x,z)*sm; }
   if (WORLD.terrain==='island') return ry-0.7 + bl*(noise(x,z)*0.15+2.5) - Math.max(0,d-110)*0.09;
   if (WORLD.terrain==='mountains') return ry-0.7 + bl*bl*(noise(x,z)*2.2 + 70*bl);
@@ -6005,10 +6005,11 @@ function planGraphNet(def){ const D=gnData(); const main={pts,cum,L,segs:[{s0:0,
     SHW=new Float32Array(N); DMIN=new Float32Array(N); for (let i=0;i<N;i++){ const p=pts[i], q=pts[(i+1)%N], dx=q.x-p.x, dz=q.z-p.z, l=Math.hypot(dx,dz)||1, nx=-dz/l, nz=dx/l;
       const inner=gnInner(p.x,p.z), fo=gnForest(p.x+nx*9,p.z+nz*9)||gnForest(p.x-nx*9,p.z-nz*9), mk=ROADMARK?ROADMARK[i]:1;
       SHW[i]=mk?(inner?0.45:1.2):inner?0.12:fo?0.28:0.45; RURAL[i]=inner?0.15:mk?1:0.8; DMIN[i]=(!inner&&fo)?(mk?0.22:0.3):0; }
-    smoothArr(SHW,3,2); smoothArr(DMIN,4,2); smoothArr(RURAL,4,2); }
+    smoothArr(SHW,3,2); smoothArr(DMIN,4,2); smoothArr(RURAL,4,2);
+    if (ROADMARK) for (let i=0;i<N;i++){ const R=gnRBAt(pts[i].x,pts[i].z,1.5); if (R){ ROADMARK[i]=0; SHW[i]=0.1; } } }
   const C=16, h=new Map(); XR.forEach((r,k)=>{ for (let i=0;i<r.P.length-1;i++){ const a=r.P[i], b=r.P[i+1]; const x0=Math.floor(Math.min(a.x,b.x)/C), x1=Math.floor(Math.max(a.x,b.x)/C), z0=Math.floor(Math.min(a.z,b.z)/C), z1=Math.floor(Math.max(a.z,b.z)/C);
     for (let x=x0;x<=x1;x++) for (let z=z0;z<=z1;z++){ const kk=hashKey(x,z); let l=h.get(kk); if(!l) h.set(kk,l=[]); l.push([k,i]); } } }); XH={C,h};
-  if (JUNC){ main.ents.forEach(en=>{ if (D.adj[en.n0].length<3) return; const ci=idxAt(en.r0)[0], k=Math.ceil((XW/2+6)/(L/N)); for (let o=-k;o<=k;o++) JUNC[(ci+o+N)%N]=1; }); smoothArr(JUNC,2,2); }
+  if (JUNC){ main.ents.forEach(en=>{ if (D.adj[en.n0].length<3) return; const ci=idxAt(en.r0)[0], k=Math.ceil((XW/2+6)/(L/N)); for (let o=-k;o<=k;o++) JUNC[(ci+o+N)%N]=1; }); for (let i=0;i<N;i++) if (gnRBAt(pts[i].x,pts[i].z,6)) JUNC[i]=1; smoothArr(JUNC,2,2); }
   NET={main, cur:main, junc:[], graph:true, pick:null, pend:null, appl:new Set(), rc:{'':main}}; }
 function useCourse(c){ pts=c.pts; cum=c.cum; L=c.L; }
 function withCourse(c,fn){ if (!NET || !c || (c===NET.cur && !NET._in)) return fn(); const sv=[pts,cum,L], was=NET._in; NET._in=true; useCourse(c); try{ return fn(); } finally{ pts=sv[0]; cum=sv[1]; L=sv[2]; NET._in=was; } }
@@ -6031,15 +6032,22 @@ function buildRoute(cur, rd, j){ const M=NET.main, dense=[];
   const segs=cur.segs.filter(s=>s.s0!=null ? s.r0<rd : s.r0<rd).map(s=>Object.assign({},s)); const last=segs[segs.length-1]; if (last && last.s0!=null && last.r0+(last.s1-last.s0)>rd) last.s1=last.s0+(rd-last.r0);
   segs.push({k:j.k, r0:rd, len:c2[ie]-rd}); segs.push({s0:j.d2, s1:M.L, r0:c2[ie]});
   return {pts:np, cum:c2, L:c2[N], segs, key:(cur.key?cur.key+',':'')+j.k}; }
+let _rbSign=null; function rbSignTex(){ if (_rbSign) return _rbSign; const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); g.fillStyle='#fff'; g.beginPath(); g.arc(64,64,63,0,7); g.fill(); g.fillStyle='#1f5fbf'; g.beginPath(); g.arc(64,64,58,0,7); g.fill();
+  g.strokeStyle='#fff'; g.fillStyle='#fff'; g.lineWidth=9; for (let k=0;k<3;k++){ const a0=-Math.PI/2+k*2*Math.PI/3; g.beginPath(); g.arc(64,64,30,a0+0.35,a0+1.75,false); g.stroke(); const a=a0+0.35, x=64+Math.cos(a)*30, y=64+Math.sin(a)*30, tx=Math.sin(a), ty=-Math.cos(a); g.beginPath(); g.moveTo(x+tx*14,y+ty*14); g.lineTo(x+Math.cos(a)*11,y+Math.sin(a)*11); g.lineTo(x-Math.cos(a)*11,y-Math.sin(a)*11); g.closePath(); g.fill(); }
+  _rbSign=new THREE.CanvasTexture(c); _rbSign.colorSpace=THREE.SRGBColorSpace; return _rbSign; }
 function buildCrossRoads(grp, tex, rmat){ if (!XR.length) return;
   const v=[], uv=[], idx0=[], pidx=[], col=[], sv=[], suv=[], sidx=[], US=[0,0.25,0.5,0.75,1]; const scol=new THREE.Color().setHSL(WORLD.grass[0]-0.02, WORLD.grass[1]*0.8, 0.46);
-  XR.forEach(r=>{ const P=r.P, idx=(r.g&&!r.mk)?pidx:idx0; let acc=0, first=true, base=0, sb=0, n=0;
+  XR.forEach(r=>{ const P=r.g?gnClipRB(r.P):r.P, idx=(r.g&&!r.mk)?pidx:idx0; let acc=0, first=true, base=0, sb=0, n=0;
+    if (r.g){ const ra=gnRBAt(r.A.x,r.A.z,1), rb=gnRBAt(r.B.x,r.B.z,1); if (ra && ra===rb) return; }   /* Stück innerhalb eines Kreisels */
     for (let i=0;i<P.length;i++){ const p=P[i]; if (i) acc+=Math.hypot(p.x-P[i-1].x,p.z-P[i-1].z);
-      const dE=Math.min(Math.hypot(p.x-r.A.x,p.z-r.A.z), Math.hypot(p.x-r.B.x,p.z-r.B.z)); if (dE<(WORLD.roadW||7)/2-0.3) continue;   /* beginnt am Rand der Hauptstraße */
+      const dE=Math.min(Math.hypot(p.x-r.A.x,p.z-r.A.z), Math.hypot(p.x-r.B.x,p.z-r.B.z));
+      /* 0.10.3: Nebenstraßen laufen bis in die Kreuzungsmitte (kein Gras, keine Lücke), kurz vor der Mitte etwas tiefer, damit die Vorfahrtstraße oben liegt */
+      if (!r.g && dE<(WORLD.roadW||7)/2-0.3) continue;
+      const yo=r.g?0.03-0.075*clamp((5.5-dE)/2.5,0,1):0.03, so=r.g&&dE<5.5?-1.2:0;
       const q=P[Math.min(i+1,P.length-1)], o=P[Math.max(i-1,0)], dx=q.x-o.x, dz=q.z-o.z, l=Math.hypot(dx,dz)||1, nx=dz/l, nz=-dx/l;
       if (first){ base=v.length/3; sb=sv.length/3; first=false; }
-      US.forEach(u=>{ const off=(0.5-u)*(r.w||XW); v.push(p.x+nx*off, p.y+roadCrown(u)*0.8+0.03, p.z+nz*off); uv.push(u*0.86+0.07, acc/24); const b=0.97+0.04*Math.sin(acc/23+u*4); col.push(b,b,b); });
-      [-1,1].forEach(sg=>{ const o1=(r.w||XW)/2*sg, o2=((r.w||XW)/2+3.2)*sg; const x1=p.x+nx*o1, z1=p.z+nz*o1, x2=p.x+nx*o2, z2=p.z+nz*o2; sv.push(x1,p.y+0.01,z1, x2,Math.min(p.y-0.05,terrainMeshH(x2,z2)+0.02),z2); suv.push(0,acc/5, 0.6,acc/5); });
+      US.forEach(u=>{ const off=(0.5-u)*(r.w||XW); v.push(p.x+nx*off, p.y+roadCrown(u)*0.8+yo, p.z+nz*off); uv.push(u*0.86+0.07, acc/24); const b=0.97+0.04*Math.sin(acc/23+u*4); col.push(b,b,b); });
+      [-1,1].forEach(sg=>{ const o1=(r.w||XW)/2*sg, o2=((r.w||XW)/2+3.2)*sg; const x1=p.x+nx*o1, z1=p.z+nz*o1, x2=p.x+nx*o2, z2=p.z+nz*o2; sv.push(x1,p.y+0.01+so,z1, x2,Math.min(p.y-0.05,terrainMeshH(x2,z2)+0.02)+so,z2); suv.push(0,acc/5, 0.6,acc/5); });
       if (n>0){ const a=base+(n-1)*5; for (let k=0;k<4;k++){ const q2=a+k; idx.push(q2,q2+5,q2+1, q2+1,q2+5,q2+6); }
         const c0=sb+(n-1)*4; [[0,1],[2,3]].forEach(([a1,b1])=>{ const A0=c0+a1, B0=c0+b1, A1=A0+4, B1=B0+4; sidx.push(A0,B0,A1, B0,B1,A1); }); }
       n++; }
@@ -6056,6 +6064,29 @@ function buildCrossRoads(grp, tex, rmat){ if (!XR.length) return;
     const x=p.x+Math.cos(hd)*off*sg, z=p.z-Math.sin(hd)*off*sg, y=terrainMeshH(x,z);
     const post=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.6,8), new THREE.MeshLambertMaterial({color:0x9aa0a6})); post.position.set(x,y+1.3,z); grp.add(post);
     const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.4), new THREE.MeshLambertMaterial({map:t, side:THREE.DoubleSide})); sign.position.set(x,y+2.3,z); sign.rotation.y=hd+Math.PI; grp.add(sign); });
+  /* 0.10.3: Kreuzungsflächen (Asphalt bis in die Mitte) und Kreisverkehre */
+  if (NET && NET.graph){ const D=gnData(), pm=rmat(asphaltTexture('plain')), onMain=new Set(); (NET.main.ents||[]).forEach(en=>{ onMain.add(en.n0); onMain.add(en.n1); });
+    const pv=[], pc=[], pu=[], pi=[];
+    D.nodes.forEach((nd,ni)=>{ const ad=D.adj[ni]||[]; if (ad.length<3 || gnRBAt(nd.x,nd.z,2)) return; let w=0; ad.forEach(k=>{ w=Math.max(w,D.edges[k].w||6); }); const R=w/2+0.9, m=onMain.has(ni), yo=m?0.035:0.1, b=pv.length/3, S=28;
+      pv.push(nd.x, nd.y+yo, nd.z); pu.push(0.5,0.5); pc.push(1,1,1);
+      for (let k=0;k<S;k++){ const a=k/S*Math.PI*2, x=nd.x+Math.cos(a)*R, z=nd.z+Math.sin(a)*R, q=gnNear(x,z,20); pv.push(x, (q.k>=0?q.y:nd.y)+yo, z); pu.push(0.5+Math.cos(a)*0.45, 0.5+Math.sin(a)*R/24); pc.push(1,1,1); pi.push(b, b+1+k, b+1+(k+1)%S); } });
+    if (pi.length){ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pv,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(pu,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(pc,3)); g.setIndex(pi); g.computeVertexNormals(); const m=new THREE.Mesh(g,pm); m.receiveShadow=true; grp.add(m); }
+    const RB=gnRB(); if (RB.length){ const av=[], au=[], ac=[], ai=[], iv=[], ii=[], cv=[], ci=[]; const S=64, RS=4;
+      RB.forEach(R=>{ const b=av.length/3; for (let k=0;k<=S;k++){ const a=k/S*Math.PI*2; for (let j=0;j<RS;j++){ const rr=R.ri+(R.ro-R.ri)*j/(RS-1), x=R.x+Math.cos(a)*rr, z=R.z-Math.sin(a)*rr; av.push(x, R.y(x,z)+0.1, z); au.push(0.07+0.86*j/(RS-1), a*R.r/24); const c=0.97+0.03*Math.sin(a*7+j); ac.push(c,c,c); }
+          if (k<S) for (let j=0;j<RS-1;j++){ const q=b+k*RS+j; ai.push(q,q+RS,q+1, q+1,q+RS,q+RS+1); } }
+        /* Mittelinsel: Bordstein + Rasen, leicht erhöht */
+        const ib=iv.length/3, cb=cv.length/3, top=0.32; iv.push(R.x, R.y(R.x,R.z)+top+0.15, R.z);
+        for (let k=0;k<S;k++){ const a=k/S*Math.PI*2, ca=Math.cos(a), sa=Math.sin(a), x=R.x+ca*(R.ri-0.25), z=R.z-sa*(R.ri-0.25), y=R.y(x,z); iv.push(x,y+top,z); ii.push(ib, ib+1+k, ib+1+(k+1)%S);
+          const x1=R.x+ca*R.ri, z1=R.z-sa*R.ri, y1=R.y(x1,z1); cv.push(x1,y1-0.3,z1, x1,y1+top,z1, x,y+top,z); const c0=cb+k*3, c1=cb+((k+1)%S)*3; ci.push(c0,c1,c0+1, c1,c1+1,c0+1, c0+1,c1+1,c0+2, c1+1,c1+2,c0+2); }
+        /* blaues Kreisverkehr-Schild an jeder Zufahrt */
+        (R.S||[]).forEach(([sx,sz])=>{ const l=Math.hypot(sx,sz)||1, hx=-sx/l, hz=-sz/l, rx=-hz, rz=hx, d=R.ro+3.5, w=7, x=R.x-hx*d+rx*(w/2+1.3), z=R.z-hz*d+rz*(w/2+1.3); if (gnNear(x,z,10).d<2.2) return; const y=terrainMeshH(x,z);
+          const post=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.3,8), new THREE.MeshLambertMaterial({color:0x9aa0a6})); post.position.set(x,y+1.15,z); grp.add(post);
+          const sg=new THREE.Mesh(new THREE.CircleGeometry(0.32,24), new THREE.MeshLambertMaterial({map:rbSignTex(), side:THREE.DoubleSide})); sg.position.set(x,y+2.05,z); sg.rotation.y=Math.atan2(-hx,-hz); grp.add(sg); }); });
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(av,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(au,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(ac,3)); g.setIndex(ai); g.computeVertexNormals(); const rm=new THREE.Mesh(g,pm); rm.receiveShadow=true; grp.add(rm);
+      const gi=new THREE.BufferGeometry(); gi.setAttribute('position',new THREE.Float32BufferAttribute(iv,3)); gi.setIndex(ii); gi.computeVertexNormals(); const isl=new THREE.Mesh(gi,new THREE.MeshLambertMaterial({color:0x5d8a3a, map:grassDetailTexture()})); isl.receiveShadow=true; grp.add(isl);
+      const gc=new THREE.BufferGeometry(); gc.setAttribute('position',new THREE.Float32BufferAttribute(cv,3)); gc.setIndex(ci); gc.computeVertexNormals(); const cu=new THREE.Mesh(gc,new THREE.MeshLambertMaterial({color:0xb9b6ae, side:THREE.DoubleSide})); cu.receiveShadow=true; grp.add(cu);
+      /* ein paar Büsche auf der Insel */
+      const bm=new THREE.MeshLambertMaterial({color:0x3f6b2c, flatShading:true}); RB.forEach((R,ix)=>{ const nb=R.ri>6?5:3; for (let k=0;k<nb;k++){ const a=k/nb*6.283+ix, rr=k?R.ri*0.45:0, x=R.x+Math.cos(a)*rr, z=R.z+Math.sin(a)*rr, s=k?0.7:1.1, b=new THREE.Mesh(new THREE.IcosahedronGeometry(s,0),bm); b.scale.set(1.2,0.8,1.2); b.position.set(x,R.y(x,z)+0.32+s*0.5,z); b.castShadow=true; grp.add(b); } }); } }
   /* Wendeplatz am Ende jeder Sackgasse im Straßennetz */
   if (NET && NET.graph){ const D=gnData(), dm=rmat(asphaltTexture('plain')); D.nodes.forEach((n,ni)=>{ if (D.adj[ni].length!==1) return; const E=D.edges[D.adj[ni][0]]; if (E.a===E.b) return; const f=E.a===ni, P=E.P, T=f?P[0]:P[P.length-1], Q=f?P[Math.min(P.length-1,3)]:P[Math.max(0,P.length-4)], hx=T.x-Q.x, hz=T.z-Q.z, hl=Math.hypot(hx,hz)||1;
     const g=new THREE.CircleGeometry(9.5,36).rotateX(-Math.PI/2), m=new THREE.Mesh(g,dm); m.position.set(T.x+hx/hl*7, T.y+0.04, T.z+hz/hl*7); m.receiveShadow=true; grp.add(m); }); }
@@ -6245,6 +6276,45 @@ function gnData(){ if (GN.d) return GN.d; const D=window.ZGNET; if (!D) return n
   d.dest=(e,from)=>{ const r=d.destInfo(from,e); return r?r.name:''; };
   return (GN.d=d); }
 /* nächstes Straßenstück (alle Straßen des Netzes): Abstand, Höhe, Breite */
+/* 0.10.3 Kreisverkehre aus OpenStreetMap (Kreismittelpunkt x, z, Radius der Ringfahrbahn). Gefahren wird wie in Deutschland gegen den Uhrzeigersinn. */
+const ZG_RB0=[[2049.1,-5578.7,11.6],[6477.0,-1833.1,14.3],[-3603.3,-9685.5,14.7],[1765.8,-2210.2,13.8],[-5531.9,-5179.6,10.6],[-2203.7,-13000.3,11.3],[7326.2,-2752.8,21.3],[1376.4,-1669.0,11.2],[-8551.2,-6493.9,14.9],[-5944.0,-5363.1,12.4],[4076.8,-4889.6,11.7],[7358.0,-1924.2,18.2],[-8540.7,-9228.9,13.2],[7421.5,-5642.0,22.0],[3708.4,-4741.8,14.2],[6876.7,-6364.8,18.3]];
+function gnRB(){ const D=gnData(); if (!D) return []; if (D.rb) return D.rb; const out=[]; D.rb=out; if (!(WORLD&&WORLD.graph)) return out;
+  ZG_RB0.forEach(([cx,cz,r0])=>{ const r=clamp(r0,7,16), ns=[]; D.nodes.forEach((n,i)=>{ if (D.adj[i]&&D.adj[i].length && Math.hypot(n.x-cx,n.z-cz)<Math.min(r0,r)+3) ns.push(i); }); if (!ns.length) return;
+    const S=[], R4=r+5; ns.forEach(i=>D.adj[i].forEach(k=>{ const E=D.edges[k], P=E.a===i?E.P:E.P.slice().reverse();
+      for (let j=1;j<P.length;j++){ const d=Math.hypot(P[j].x-cx,P[j].z-cz); if (d>=R4){ const p0=P[j-1], d0=Math.hypot(p0.x-cx,p0.z-cz), f=clamp((R4-d0)/Math.max(1e-3,d-d0),0,1); S.push([p0.x+(P[j].x-p0.x)*f-cx, p0.z+(P[j].z-p0.z)*f-cz, p0.y+(P[j].y-p0.y)*f]); break; } } }));
+    const yn=ns.reduce((a,i)=>a+D.nodes[i].y,0)/ns.length; let a=yn, gx=0, gz=0;
+    if (S.length>=2){ const lam=40*S.length; let n=S.length, sx=0,sz=0,sy=0,sxx=lam,szz=lam,sxz=0,sxy=0,szy=0; S.forEach(([x,z,y])=>{ sx+=x; sz+=z; sy+=y; sxx+=x*x; szz+=z*z; sxz+=x*z; sxy+=x*y; szy+=z*y; });
+      const M=[[n,sx,sz],[sx,sxx,sxz],[sz,sxz,szz]], B=[sy,sxy,szy], det=m=>m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+      const d0=det(M); if (Math.abs(d0)>1e-9){ const col=(c)=>M.map((row,ri)=>row.map((v,ci)=>ci===c?B[ri]:v)); a=det(col(0))/d0; gx=clamp(det(col(1))/d0,-0.08,0.08); gz=clamp(det(col(2))/d0,-0.08,0.08); } }
+    const ri=Math.max(2.6,r-3.4), ro=r+3.4; out.push({x:cx, z:cz, r, ri, ro, a, gx, gz, ns, S, y:(x,z)=>a+gx*(x-cx)+gz*(z-cz)}); });
+  return out; }
+function gnClipRB(P){ const RB=gnRB(); if (!RB.length) return P; let any=false; for (const p of [P[0],P[P.length-1]]) if (gnRBAt(p.x,p.z,0)) any=true; if (!any) return P;
+  const out=[]; for (let i=0;i<P.length;i++){ const p=P[i], R=gnRBAt(p.x,p.z,-0.8); if (!R){ if (i>0){ const q=P[i-1], Rq=gnRBAt(q.x,q.z,-0.8); if (Rq) out.push(rbEdgePt(Rq,p,q)); } out.push(p); continue; }
+    if (i>0 && !gnRBAt(P[i-1].x,P[i-1].z,-0.8)) out.push(rbEdgePt(R,P[i-1],p)); }
+  return out.length>=2?out:P; }
+function rbEdgePt(R,O,I){ const R0=R.ro-0.8; let lo=0, hi=1; for (let k=0;k<22;k++){ const t=(lo+hi)/2; if (Math.hypot(O.x+(I.x-O.x)*t-R.x, O.z+(I.z-O.z)*t-R.z)>R0) lo=t; else hi=t; } const v=O.clone().lerp(I,lo); return v; }
+function gnRBAt(x,z,m){ const L=gnRB(); for (const R of L){ const e=R.ro+(m||0); if (Math.abs(x-R.x)<e && Math.abs(z-R.z)<e && Math.hypot(x-R.x,z-R.z)<e) return R; } return null; }
+/* Strecke durch den Kreisel: Punkte innerhalb des Kreises werden durch einen Bogen gegen den Uhrzeigersinn ersetzt (Einfahrt rechts, Ausfahrt rechts) */
+function gRBArcs(dense, ents){ const RB=gnRB(); if (!RB.length || dense.length<3) return null; const n=dense.length, ol=[0]; for (let i=1;i<n;i++) ol.push(ol[i-1]+Math.hypot(dense[i].x-dense[i-1].x,dense[i].z-dense[i-1].z));
+  const out=[], kn=[]; let nl=0, hits=0; const push=p=>{ if (out.length){ const q=out[out.length-1], d=Math.hypot(p.x-q.x,p.z-q.z); if (d<0.05) return; nl+=d; } out.push(p); };
+  const inR=(p,R)=>Math.hypot(p.x-R.x,p.z-R.z)<R.r+3;
+  let i=0; while (i<n){ const p=dense[i]; let H=null; if (i>0) for (const R of RB){ if (Math.abs(p.x-R.x)<R.r+3 && Math.abs(p.z-R.z)<R.r+3 && inR(p,R)){ H=R; break; } }
+    if (!H){ push(p); kn.push([ol[i],nl]); i++; continue; }
+    let j=i; while (j+1<n && inR(dense[j+1],H)) j++;
+    let md=1e9; for (let k=i-1;k<=Math.min(n-2,j);k++){ const A=dense[k], B=dense[k+1], dx=B.x-A.x, dz=B.z-A.z, ll=dx*dx+dz*dz||1, t=clamp(((H.x-A.x)*dx+(H.z-A.z)*dz)/ll,0,1); md=Math.min(md,Math.hypot(A.x+dx*t-H.x,A.z+dz*t-H.z)); }
+    if (j+1>=n || md>H.r*0.75){ for (let k=i;k<=j;k++){ push(dense[k]); kn.push([ol[k],nl]); } i=j+1; continue; }
+    const R0=H.r+3, cut=(P,Q)=>{ let lo=0, hi=1; for (let it=0;it<24;it++){ const t=(lo+hi)/2, x=P.x+(Q.x-P.x)*t, z=P.z+(Q.z-P.z)*t; if (Math.hypot(x-H.x,z-H.z)>R0) lo=t; else hi=t; } const t=(lo+hi)/2; return {x:P.x+(Q.x-P.x)*t, z:P.z+(Q.z-P.z)*t, t}; };
+    const A=dense[i-1], B=dense[i], C=dense[j], E=dense[j+1], pin=cut(A,B), pout=cut(E,C), ang=q=>Math.atan2(-(q.z-H.z), q.x-H.x);
+    const a0=ang(pin), a1=ang(pout); let da=a1-a0; while (da<=0) da+=Math.PI*2; while (da>Math.PI*2) da-=Math.PI*2; if (da<0.8) da+=Math.PI*2;
+    const off=0.32, aS=a0+off, aE=a0+da-off, K=Math.max(5,Math.ceil((aE-aS)*H.r/1.6));
+    const oIn=ol[i-1]+Math.hypot(pin.x-A.x,pin.z-A.z), oOut=ol[j]+Math.hypot(pout.x-C.x,pout.z-C.z);
+    push(new THREE.Vector3(pin.x, H.y(pin.x,pin.z), pin.z)); kn.push([oIn,nl]);
+    for (let k=0;k<=K;k++){ const a=aS+(aE-aS)*k/K, x=H.x+Math.cos(a)*H.r, z=H.z-Math.sin(a)*H.r; push(new THREE.Vector3(x, H.y(x,z), z)); }
+    push(new THREE.Vector3(pout.x, H.y(pout.x,pout.z), pout.z)); kn.push([oOut,nl]); hits++; i=j+1; }
+  if (!hits) return null;
+  const map=s=>{ if (s<=kn[0][0]) return s-kn[0][0]+kn[0][1]; for (let k=1;k<kn.length;k++) if (s<=kn[k][0]){ const [a0,b0]=kn[k-1], [a1,b1]=kn[k]; return b0+(b1-b0)*clamp((s-a0)/Math.max(1e-6,a1-a0),0,1); } const l=kn[kn.length-1]; return s-l[0]+l[1]; };
+  ents.forEach(en=>{ en.r0=map(en.r0); en.r1=map(en.r1); });
+  dense.length=0; out.forEach(p=>dense.push(p)); return nl; }
 function gnNear(x,z,R){ const d=GN.d, best={d:1e9,y:0,w:6.5,k:-1,i:0}; if (!d||!d.sh) return best; R=R||40; const C=40, r=Math.ceil(R/C), cx=Math.floor(x/C), cz=Math.floor(z/C);
   for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const l=d.sh.get(hashKey(cx+a,cz+b)); if(!l) continue;
     for (let n=0;n<l.length;n+=2){ const E=d.edges[l[n]], i=l[n+1], p=E.P[i], q=E.P[i+1], dx=q.x-p.x, dz=q.z-p.z, ll=dx*dx+dz*dz||1, t=clamp(((x-p.x)*dx+(z-p.z)*dz)/ll,0,1), dd=Math.hypot(x-p.x-dx*t,z-p.z-dz*t);
@@ -6645,6 +6715,7 @@ function gRoute(path, key){ const D=gnData(), dense=[], ents=[]; let acc=0;
     const r0=acc;
     for (let j=0;j<P.length;j++){ if (dense.length){ const q=dense[dense.length-1], dl=Math.hypot(P[j].x-q.x,P[j].z-q.z); if (dl<0.05) continue; acc+=dl; } dense.push(P[j].clone()); }
     ents.push({e, dir, r0, r1:acc, n0:dir?E.b:E.a, n1:dir?E.a:E.b}); });
+  { const nl=gRBArcs(dense, ents); if (nl!=null) acc=nl; }
   const q0=dense[0], ql=dense[dense.length-1]; const close=Math.hypot(q0.x-ql.x,q0.z-ql.z); const T=acc+close, np=[]; let a=0;
   const dl=[0]; for (let i=1;i<dense.length;i++) dl.push(dl[i-1]+Math.hypot(dense[i].x-dense[i-1].x,dense[i].z-dense[i-1].z));
   for (let i=0;i<N;i++){ const s=i/N*T; if (s>=acc){ const f=(s-acc)/Math.max(1e-6,close); np.push(ql.clone().lerp(q0,f)); continue; } while (a<dense.length-2 && dl[a+1]<s) a++; const f=(s-dl[a])/Math.max(1e-6,dl[a+1]-dl[a]); np.push(dense[a].clone().lerp(dense[a+1],clamp(f,0,1))); }
@@ -9056,6 +9127,13 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
   rel(d){ const s=S.dir||1; let r=(d-S.dist)%L; if (r>L/2) r-=L; if (r<-L/2) r+=L; return r*s; },   /* >0: vor dem Fahrer (in seiner Fahrtrichtung) */
   town(x,z){ try{ return typeof gnInner==='function' && GN.res ? gnInner(x,z) : false; }catch(e){ return false; } },
   klass(x,z){ try{ const D=NET&&NET.graph?gnData():null; if (!D) return 2; const n=gnNear(x,z,25); return n.k>=0?(D.edges[n.k].c||3):3; }catch(e){ return 3; } },
+  /* 0.10.3: Gegenverkehr fährt im Kreisel ebenfalls gegen den Uhrzeigersinn (innere Spur), statt die Strecke rückwärts im Uhrzeigersinn */
+  rbFix(c,R,P2){ const T2=Math.PI*2, ang=p=>Math.atan2(-(p.z-R.z),p.x-R.x), key=((NET.cur&&NET.cur.key)||'')+'|'+R.x; this.rbC=this.rbC||new Map(); let A=this.rbC.get(key);
+    if (!A || Math.abs(A.d-c.d)>60){ let d0=c.d, d1=c.d; for (let k=0;k<40;k++){ const p=posAt(d0-2); if (Math.hypot(p.x-R.x,p.z-R.z)>R.r+3) break; d0-=2; } for (let k=0;k<40;k++){ const p=posAt(d1+2); if (Math.hypot(p.x-R.x,p.z-R.z)>R.r+3) break; d1+=2; }
+      const aIn=ang(posAt(d0)), aOut=ang(posAt(d1)); let da=aOut-aIn; while (da<=0) da+=T2; while (da>T2) da-=T2; if (da<0.8) da+=T2; A={d:c.d,aIn,aOut,da}; this.rbC.set(key,A); }
+    const dc=Math.hypot(P2.x-R.x,P2.z-R.z); let u=ang(P2)-A.aIn; while (u<0) u+=T2; while (u>T2) u-=T2; if (u>A.da) u=(u-A.da>T2-u)?0:A.da;
+    const g=1-u/A.da, tc=A.aOut+g*(T2-A.da), rr=R.r-1.4, mx=R.x+Math.cos(tc)*rr, mz=R.z-Math.sin(tc)*rr, k0=clamp((R.r+3-dc)/3,0,1), w=k0*k0*(3-2*k0), o=c.o.position;
+    o.x+=(mx-o.x)*w; o.z+=(mz-o.z)*w; o.y+=(R.y(mx,mz)+0.06-o.y)*w; let dh=tc-c.hd; dh=Math.atan2(Math.sin(dh),Math.cos(dh)); c.hd+=dh*w; c.o.rotation.set(0,c.hd,0); },
   spawnPolice(){ const pol=this.pool.find(p=>p.police); if (!pol || pol.busy || this.act.length>=this.MAXA) return false; const s=S.dir||1, d=S.dist+s*(170+Math.random()*120); if (L<2600) return false; const p=posAt(d); if (!this.town(p.x,p.z) || roadWAt(d)<4.4) return false;
     const c={...pol, pick:pol, d, cd:s, v:50/3.6, lat:-roadWAt(d)/4, latT:-roadWAt(d)/4, mode:'drive', stopT:0, o:null, police:1}; c.o=this.make(c); if (!c.o) return false; pol.busy=true; scene.add(c.o); this.act.push(c); this.polCd=240; return true; },
   spawn(fk, fti){ let free=this.pool.filter(p=>!p.busy && (fti===5 || !p.police)); if (fti!=null) free=free.filter(p=>p.ti===fti); if (!free.length || this.act.length>=this.MAXA) return; const s=S.dir||1;
@@ -9124,7 +9202,7 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
       c.d+=c.cd*c.v*dt; c.lat+=Math.sign(c.latT-c.lat)*Math.min(Math.abs(c.latT-c.lat),(c.mode==='pass'?1.4:1.0)*dt);
       /* Position wie placeRider: rechts der eigenen Fahrtrichtung, Spur über lat */
       const P2=posAt(c.d), hd=headingAt(c.d), rev=c.cd<0, ln=rev?-c.lat:c.lat, gr=gradeAt(c.d)*(rev?-1:1);
-      c.o.position.set(P2.x+Math.cos(hd)*ln, P2.y+0.06, P2.z-Math.sin(hd)*ln); c.hd=hd+(rev?Math.PI:0); c.o.rotation.set(0,c.hd,0); c.o.rotateX(-Math.atan(gr)); if (c.wh) c.wh.forEach(w=>{ w.a+=w.s*c.v*dt/w.r; w.pv.rotation.x=w.a; });
+      c.o.position.set(P2.x+Math.cos(hd)*ln, P2.y+0.06, P2.z-Math.sin(hd)*ln); c.hd=hd+(rev?Math.PI:0); c.o.rotation.set(0,c.hd,0); c.o.rotateX(-Math.atan(gr)); if (rev && NET && NET.graph){ const RB=gnRBAt(P2.x,P2.z,0.4); if (RB) this.rbFix(c,RB,P2); } if (c.wh) c.wh.forEach(w=>{ w.a+=w.s*c.v*dt/w.r; w.pv.rotation.x=w.a; });
       /* Fahrer weicht nach rechts, wenn ein Auto nah ist; überholt selbst langsame/parkende Fahrzeuge links */
       /* Hicore: überholt der Fahrer ein fahrendes Auto, hupt es manchmal (Land eher, Stadt selten) */
       if (same && c.mode!=='stop' && !c.police && c.v>2 && c.pr!=null && c.pr>0 && r<=0 && !(this.hornCd>0)){ const tw2=this.town(p.x,p.z); if (Math.random()<(tw2?0.12:0.45)){ this.hornCd=tw2?150:60; const k=T.slow||T.m==='veh_van'?0.8:1; setTimeout(()=>this.horn(k, Math.random()<0.5), 300+Math.random()*1200); } }
@@ -9812,7 +9890,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
