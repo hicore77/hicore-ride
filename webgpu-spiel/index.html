@@ -4702,7 +4702,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </script>
 <script>window.PROP_GLB={};window.PROP_LIST=["amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
 <script src="data/media.js?h=afc7bcb6"></script>
-<script src="data/zittau.js?h=ffab61ee"></script>
+<script src="data/zittau.js?h=a847fd29"></script>
 <script>
 "use strict";
 // ================= Helpers =================
@@ -6775,7 +6775,33 @@ function gtChurch(C){ const {P,area,u0,u1,v0,v1,p3,gmin,y0,rnd,isCity,quad,tri,l
 function gtFinish(J){ const geo=J.geo, i=J.i, j=J.j; geo.setAttribute('color',new THREE.BufferAttribute(J.col,3)); geo.setAttribute('luk',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count).fill(1),1)); geo.computeVertexNormals();
   const m=new THREE.Mesh(geo, GT.mat); m.receiveShadow=true; GT.grp.add(m);
   let sg=null; const l=GT.sig.get(i+','+j); if (l){ sg=new THREE.Group(); l.forEach(o=>{ try{ sg.add(buildSign(o)); }catch(e){ console.warn('schild',e); } }); GT.grp.add(sg); }
-  return {i,j,m,sg,fo:null,hs:undefined}; }
+  let sr=null; try{ sr=gtSideMesh(i,j); if (sr) GT.grp.add(sr); }catch(e){ console.warn('nebenstr',e); }
+  return {i,j,m,sg,sr,fo:null,hs:undefined}; }
+/* 0.11.0 (Hicore): alle übrigen Straßen aus OSM sichtbar (nicht befahrbar): Wohnstraßen, Nebenstraßen, Zufahrten, feste Wege. Pro 500-m-Kachel ein Netz,
+   Stücke, die auf befahrbaren Straßen liegen, fallen weg; Einmündungen enden am Fahrbahnrand. Belag: Asphalt, Pflaster oder Schotter (OSM surface). */
+let SIDE_IDX=null, SIDE_MAT=null;
+function gtSideIdx(){ if (SIDE_IDX) return SIDE_IDX; SIDE_IDX=new Map(); if (!window.ZGSIDE || !(WORLD&&WORLD.id==='zittau')) return SIDE_IDX; const D=gnData(); if (!D) return SIDE_IDX;
+  const bin=atob(window.ZGSIDE), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer); const N=dv.getUint32(0,true); let o=4; const S=GT.S;
+  const add=(run,w,sf)=>{ if (run.length<2) return; const k=Math.floor(run[0][0]/S)+','+Math.floor(run[0][1]/S); let l=SIDE_IDX.get(k); if (!l) SIDE_IDX.set(k,l=[]); l.push({P:run,w,sf}); };
+  for (let r=0;r<N;r++){ const c=dv.getUint8(o), w=dv.getUint8(o+1)/10, sf=dv.getUint8(o+2), fl=dv.getUint8(o+3), n=dv.getUint16(o+4,true); o+=6; let x=0, z=0; const P=[]; for (let j=0;j<n;j++){ x+=dv.getInt16(o,true); z+=dv.getInt16(o+2,true); o+=4; P.push([x/2,z/2]); }
+    if (fl&16) continue;   /* Tunnel */
+    const Q=[]; for (let j=0;j<P.length-1;j++){ const a=P[j], b=P[j+1], L=Math.hypot(b[0]-a[0],b[1]-a[1]), m=Math.max(1,Math.ceil(L/6)); for (let t=0;t<m;t++) Q.push([a[0]+(b[0]-a[0])*t/m, a[1]+(b[1]-a[1])*t/m]); } Q.push(P[P.length-1]);
+    let run=[], tile=null; const ww=Math.max(2.4,Math.min(9,w*(c>=7?0.85:0.9)));
+    for (const q of Q){ const nn=gnNear(q[0],q[1],30), on=nn.k>=0 && nn.d<nn.w/2+0.15; const tk=Math.floor(q[0]/S)+','+Math.floor(q[1]/S);
+      if (on){ if (run.length){ run.push(q); add(run,ww,sf); } run=[]; tile=null; continue; }
+      if (tile && tk!==tile && run.length){ run.push(q); add(run,ww,sf); run=[run[run.length-2]]; }
+      if (!run.length && Q.indexOf(q)>0){ const pq=Q[Q.indexOf(q)-1]; run.push(pq); }
+      run.push(q); tile=tk; }
+    add(run,ww,sf); }
+  return SIDE_IDX; }
+function gtSideMesh(i,j){ const L=gtSideIdx().get(i+','+j); if (!L || !L.length) return null;
+  if (!SIDE_MAT) SIDE_MAT=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.95, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2});
+  const pos=[], col=[], idx=[]; const C=[[0.33,0.335,0.345],[0.43,0.40,0.37],[0.60,0.56,0.49]];
+  L.forEach(({P,w,sf})=>{ const cc=C[sf]||C[0], b0=pos.length/3; for (let k=0;k<P.length;k++){ const a=P[Math.max(0,k-1)], b=P[Math.min(P.length-1,k+1)]; let tx=b[0]-a[0], tz=b[1]-a[1]; const l=Math.hypot(tx,tz)||1; tx/=l; tz/=l; const nx=-tz*w/2, nz=tx*w/2;
+      [[P[k][0]+nx,P[k][1]+nz],[P[k][0]-nx,P[k][1]-nz]].forEach(([x,z])=>{ pos.push(x,terrainH(x,z)+0.09,z); const f=0.94+Math.random()*0.08; col.push(cc[0]*f,cc[1]*f,cc[2]*f); });
+      if (k){ const v=b0+k*2; idx.push(v-2,v,v-1, v-1,v,v+1); } } });
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
+  const m=new THREE.Mesh(g,SIDE_MAT); m.receiveShadow=true; m.name='nebenstrassen'; return m; }
 function gtBuild(i,j){ const J=gtStart(i,j); gtStep(J,0); return gtFinish(J); }
 function gtMask(){ const c=GT.cv; if (!c || !GT.tex) return; const g=c.getContext('2d'), S=c.width, px=EXT/S; g.fillStyle='#000'; g.fillRect(0,0,S,S); g.fillStyle='#fff';
   GT.tiles.forEach(t=>{ g.fillRect((t.i*GT.S-OFF)/px+1, (t.j*GT.S-OFF)/px+1, GT.S/px-2, GT.S/px-2); }); GT.tex.needsUpdate=true; }
@@ -6789,7 +6815,7 @@ function gtStream(cam, budget){ if (!GT.on) return; const S=GT.S, R=GT.R, ci=Mat
   else { if (GT.job && !want.some(w=>w[1]===GT.job.i&&w[2]===GT.job.j)){ GT.job.geo.dispose(); GT.job=null; }
     if (!GT.job){ for (const [dd,i,j] of want){ if (!GT.tiles.has(i+','+j)){ GT.job=gtStart(i,j); break; } } }
     if (GT.job && gtStep(GT.job, MINI?2:3)){ GT.tiles.set(GT.job.i+','+GT.job.j, gtFinish(GT.job)); GT.job=null; changed=true; } }
-  GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>rr(t.i,t.j)+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
+  GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>rr(t.i,t.j)+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } if (t.sr){ GT.grp.remove(t.sr); t.sr.geometry.dispose(); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
   if (changed){ gtMask(); GT.flast=null; } if (budget>1){ while (gtHouseStep(cam)); while (gtForestRange(cam)); } else if (!GT.job){ if (!gtHouseStepPending(cam)) gtForestRange(cam, MINI?2:3); } gtForestLOD(cam); }
 function gdemH(x,z){ const d=GN.dem; if (!d) return 0; const gx=clamp((x-d.x0)/d.cell,0,d.nx-1.001), gz=clamp((z-d.z0)/d.cell,0,d.nz-1.001); const ix=gx|0, iz=gz|0, fx=gx-ix, fz=gz-iz, n=d.nx, H=d.H;
   return (H[iz*n+ix]*(1-fx)+H[iz*n+ix+1]*fx)*(1-fz)+(H[(iz+1)*n+ix]*(1-fx)+H[(iz+1)*n+ix+1]*fx)*fz; }
@@ -10565,7 +10591,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
