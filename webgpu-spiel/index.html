@@ -6250,7 +6250,12 @@ function gnData(){ if (GN.d) return GN.d; const D=window.ZGNET; if (!D) return n
         for (let i=mi+1;i<P.length;i++){ const w=Math.min(1,(i-mi)/6); P[i].y=P[mi].y*(1-w)+P[i].y*w; }
         E.P=P; d.nodes[E.b].x=a.x; d.nodes[E.b].z=a.z; d.nodes[E.b].y=a.y; E.hwExt=true; } } }
   d.edges.forEach(e=>{ const parts=(e.nm||'').split('|'); e.ref=parts[0]||''; e.street=parts[1]||''; const c=[0]; for (let i=1;i<e.P.length;i++) c.push(c[i-1]+Math.hypot(e.P[i].x-e.P[i-1].x,e.P[i].z-e.P[i-1].z)); e.len=c[c.length-1]; });
-  d.adj=d.nodes.map(()=>[]); d.edges.forEach(e=>{ d.adj[e.a].push(e.k); if (e.b!==e.a) d.adj[e.b].push(e.k); });
+  /* 0.10.17 (Hicore: jede Kreuzung muss in jede Richtung gehen): doppelte Kanten zwischen denselben zwei Knoten (getrennte Fahrbahnen, Inseln) führten beim "Abbiegen" auf die
+     Parallelfahrbahn zur Kehrtwende. Fürs Abbiegen zählt nur noch die kürzere; zu sehen bleiben beide. */
+  { const G=new Map(); d.edges.forEach(e=>{ if (e.a===e.b) return; const k=Math.min(e.a,e.b)+','+Math.max(e.a,e.b); const o=G.get(k); if (!o){ G.set(k,e); return; } const keep=o.len<=e.len?o:e, drop=keep===o?e:o; drop.dup=keep.k; if (keep!==o) G.set(k,keep); });
+    d.edges.forEach(e=>{ if (e.dup!=null){ let k=e.dup; while (d.edges[k].dup!=null) k=d.edges[k].dup; e.dup=k; } });
+    if (d.loop) d.loop=d.loop.map(([e,dir])=>{ const E=d.edges[e]; if (E.dup==null) return [e,dir]; const K=d.edges[E.dup]; return [K.k, K.a===E.a?dir:(dir?0:1)]; }); }
+  d.adj=d.nodes.map(()=>[]); d.edges.forEach(e=>{ if (e.dup!=null) return; d.adj[e.a].push(e.k); if (e.b!==e.a) d.adj[e.b].push(e.k); });
   d.vill=d.pois.filter(p=>p[0]==='village'||p[0]==='town'||p[0]==='hamlet').map(p=>({name:p[1], x:p[3], z:p[4]}));
   /* Zielort einer Kante: nächster Ort am fernen Ende (für die Abbiegeschilder) */
   d.town=d.pois.filter(p=>p[0]==='village'||p[0]==='town').map(p=>({name:p[1], x:p[3], z:p[4]}));
@@ -6305,7 +6310,7 @@ function gRBArcs(dense, ents){ const RB=gnRB(); if (!RB.length || dense.length<3
     if (!H){ push(p); kn.push([ol[i],nl]); i++; continue; }
     let j=i; while (j+1<n && inR(dense[j+1],H)) j++;
     let md=1e9; for (let k=i-1;k<=Math.min(n-2,j);k++){ const A=dense[k], B=dense[k+1], dx=B.x-A.x, dz=B.z-A.z, ll=dx*dx+dz*dz||1, t=clamp(((H.x-A.x)*dx+(H.z-A.z)*dz)/ll,0,1); md=Math.min(md,Math.hypot(A.x+dx*t-H.x,A.z+dz*t-H.z)); }
-    if (j+1>=n || md>H.r*0.75){ for (let k=i;k<=j;k++){ push(dense[k]); kn.push([ol[k],nl]); } i=j+1; continue; }
+    if (j+1>=n || md>H.r+2){   /* 0.10.17: auch wer am Ring entlang fährt, fährt den Bogen gegen den Uhrzeigersinn */ for (let k=i;k<=j;k++){ push(dense[k]); kn.push([ol[k],nl]); } i=j+1; continue; }
     const R0=H.r+3, cut=(P,Q)=>{ let lo=0, hi=1; for (let it=0;it<24;it++){ const t=(lo+hi)/2, x=P.x+(Q.x-P.x)*t, z=P.z+(Q.z-P.z)*t; if (Math.hypot(x-H.x,z-H.z)>R0) lo=t; else hi=t; } const t=(lo+hi)/2; return {x:P.x+(Q.x-P.x)*t, z:P.z+(Q.z-P.z)*t, t}; };
     const A=dense[i-1], B=dense[i], C=dense[j], E=dense[j+1], pin=cut(A,B), pout=cut(E,C), ang=q=>Math.atan2(-(q.z-H.z), q.x-H.x);
     const a0=ang(pin), a1=ang(pout); let da=a1-a0; while (da<=0) da+=Math.PI*2; while (da>Math.PI*2) da-=Math.PI*2; if (da<0.8) da+=Math.PI*2;
@@ -6740,10 +6745,28 @@ function gTurn(cur, at, e){ const D=gnData(), M=cur.rev?gRevMain():NET.main, E=D
   const via=[{e,dir}], ex=new Set([e]); let fn=far; if (E.len<90 && !idx.has(far)){ const e2=(D.adj[far]||[]).filter(k=>k!==e).sort((a,b)=>D.edges[b].len-D.edges[a].len)[0]; if (e2!==undefined){ const E2=D.edges[e2], d2=E2.a===far?0:1; via.push({e:e2,dir:d2}); ex.add(e2); fn=d2?E2.a:E2.b; } }
   /* 0.9.6: Knoten ohne Abzweig (nur eine weiterführende Straße) einfach weiterfahren, z. B. Windgasse -> An der Lausche bis hoch zur Hubertusbaude, statt unten zu wenden */
   for (let g=0; g<12 && !idx.has(fn); g++){ const nx=(D.adj[fn]||[]).filter(k=>!ex.has(k)); if (nx.length!==1) break; const E3=D.edges[nx[0]], d3=E3.a===fn?0:1; via.push({e:nx[0],dir:d3}); ex.add(nx[0]); fn=d3?E3.a:E3.b; }
-  let back=gPath(fn, new Set(idx.keys()), ex) || gPath(fn, new Set(idx.keys()), null);
+  let back=gPath(fn, new Set(idx.keys()), ex);
+  /* 0.10.17: führt die gewählte Straße in ein Stück Netz ohne Rückweg (z. B. bis an den Rand der Karte), nicht gleich am ersten Knoten wenden,
+     sondern der Straße möglichst geradeaus bis zu ihrem Ende folgen; erst dort Wendeschleife */
+  if (!back){ for (let g=0; g<40 && (D.adj[fn]||[]).length>1; g++){ const lv=via[via.length-1], LE=D.edges[lv.e], LP=lv.dir?LE.P.slice().reverse():LE.P, q1=LP[LP.length-1], q0=LP[Math.max(0,LP.length-5)], hx=q1.x-q0.x, hz=q1.z-q0.z, hl=Math.hypot(hx,hz)||1;
+      let best=-1, bs=-9; for (const k of D.adj[fn]){ if (ex.has(k)) continue; const K=D.edges[k], f=K.a===fn, Q=f?K.P:K.P.slice().reverse(), r=Q[Math.min(Q.length-1,4)], ox=r.x-q1.x, oz=r.z-q1.z, ol=Math.hypot(ox,oz)||1, sc=(hx*ox+hz*oz)/hl/ol+(K.nm===LE.nm&&LE.nm!=='|'?0.5:0); if (sc>bs){ bs=sc; best=k; } }
+      if (best<0) break; const K=D.edges[best], d4=K.a===fn?0:1; via.push({e:best,dir:d4}); ex.add(best); fn=d4?K.a:K.b; if (idx.has(fn)) break; }
+    back=gPath(fn, new Set(idx.keys()), ex); }
+  back=back || gPath(fn, new Set(idx.keys()), null);
   if (!back) back={node:start, path:[]};
-  const rest=back.node===start?[]:M.ents.slice(idx.get(back.node)).map(x=>({e:x.e,dir:x.dir}));
-  const out=gRoute([...prefix, ...via, ...back.path, ...rest], (cur.key?cur.key+',':'')+Math.round(at.rd)+':'+e); out.rev=!!cur.rev; return out; }
+  let rest=back.node===start?[]:M.ents.slice(idx.get(back.node)).map(x=>({e:x.e,dir:x.dir})), flip=false;
+  /* 0.10.17 (Kreuzungstest): führt die Runde am Anschlussknoten genau die Straße zurück, auf der man gekommen ist, wäre das eine Kehrtwende.
+     Dann geht es in Gegenrichtung der Runde weiter (wie nach dem Wenden). */
+  { const last=(back.path.length?back.path[back.path.length-1]:via[via.length-1]).e;
+    if (rest.length && rest[0].e===last){ const RM=cur.rev?NET.main:gRevMain(), j=RM.ents.findIndex(en=>en.n0===back.node && en.e!==last); if (j>=0){ rest=RM.ents.slice(j).map(x=>({e:x.e,dir:x.dir})); flip=true; } } }
+  let list=[...prefix, ...via, ...back.path, ...rest];
+  /* 0.10.17: verbleibende Kehrtwenden mitten im Netz (nicht an Sackgassen) umfahren: vom Wendepunkt auf anderem Weg zur Runde, dort in der passenden Richtung weiter */
+  { const endN=x=>{ const E=D.edges[x.e]; return x.dir?E.a:E.b; };
+    for (let it=0; it<4; it++){ let j=-1; for (let k=Math.max(0,prefix.length-1); k<list.length-1; k++){ if (list[k].e===list[k+1].e && (D.adj[endN(list[k])]||[]).length>1){ j=k; break; } } if (j<0) break;
+      const X=endN(list[j]), last=list[j].e, MM=flip?(cur.rev?NET.main:gRevMain()):M, OM=MM===NET.main?gRevMain():NET.main, ids=new Set(MM.ents.map(en=>en.n0)), bk=gPath(X, ids, new Set([last])); if (!bk) break;
+      const L2=bk.path.length?bk.path[bk.path.length-1].e:last; let jj=MM.ents.findIndex(en=>en.n0===bk.node && en.e!==L2), R2=MM; if (jj<0){ R2=OM; jj=OM.ents.findIndex(en=>en.n0===bk.node && en.e!==L2); if (jj>=0) flip=!flip; } if (jj<0) break;
+      list=[...list.slice(0,j+1), ...bk.path, ...R2.ents.slice(jj).map(x=>({e:x.e,dir:x.dir}))]; } }
+  const out=gRoute(list, (cur.key?cur.key+',':'')+Math.round(at.rd)+':'+e); out.rev=flip?!cur.rev:!!cur.rev; return out; }
 /* Gegenrichtung als eigene Route: so kommen nach dem Wenden alle Abbiegehinweise wie vorwärts */
 function gRevOf(R){ const o=gRoute(R.ents.slice().reverse().map(x=>({e:x.e,dir:x.dir?0:1})), (R.key||'main')+',rev'); o.rev=!R.rev; o.main=false; return o; }
 function gRevMain(){ return NET.revMain||(NET.revMain=gRevOf(NET.main)); }
@@ -8440,6 +8463,8 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), base:null, rain:null,
        gewitter:{si:0.05,hi:0.6,gray:0.96,g:[0.3,0.32,0.38],fogF:0.3,cl:0.3,rain:1.6,bolt:1},   /* 0.9.8: dunkler, dramatischer */
        nebel:{si:0.3,hi:1.0,gray:0.8,g:[0.84,0.86,0.88],fogF:0.13,fogN:0.06,cl:0.9} },
   T(){ return this.tod==='echt'&&RWX.T?RWX.T:this.TOD[this.tod]||this.TOD.nachm; }, W(){ return this.wx==='echt'&&RWX.W?RWX.W:this.WX[this.wx]||this.WX.sonne; }, night(){ return this.tod==='nacht'||(this.tod==='echt'&&RWX.night); },
+  /* Autos fahren mit Licht: Nacht, Dämmerung (Morgen/Abend bzw. Sonne unter 8°), Regen, Gewitter, Nebel */
+  dark(){ const W=this.W(); return this.night() || this.tod==='abend' || this.tod==='morgen' || (this.tod==='echt' && RWX.sunEl!=null && RWX.sunEl<8) || (W.gray||0)>=0.8; },
   /* Grundfarben der frisch gebauten Welt merken */
   capture(){ this.base={bg:scene.background.clone(), fog:scene.fog.color.clone(), near:scene.fog.near, far:scene.fog.far, sky:skyDome?Float32Array.from(skyDome.geometry.attributes.color.array):null};
     if (cloudLayer) cloudLayer.traverse(o=>{ if (o.material && o.material.color) o.userData.c0=o.material.color.clone(); }); },
@@ -8591,6 +8616,10 @@ const SEG={ list:[], act:[], prev:null, show:null, showT:0,
       /* 0.10.4 (Hicore): liegt das Ziel an einem Bahnübergang der Schmalspurbahn, Zielbogen 20 m davor */
       try{ if (ZSB.init()){ const m0=P.length-1; let ic=-1, bd=10; for (let i=m0;i>=0 && cu[m0]-cu[i]<90;i--){ const dd=ZSB.near(P[i].x,P[i].z,15).d; if (dd<bd){ bd=dd; ic=i; } }
         if (ic>0){ const tg=Math.max(cu[ic]-20, cu[m0]*0.5); let j=0; while (j<P.length-2 && cu[j+1]<tg) j++; const u=clamp((tg-cu[j])/((cu[j+1]-cu[j])||1),0,1), q=P[j].clone().lerp(P[j+1],u); P.length=j+1; cu.length=j+1; P.push(q); cu.push(tg); window._komCut=(window._komCut||[]).concat([[k,Math.round(q.x),Math.round(q.z)]]); } } }catch(e){ console.warn('kom zsb',e); }
+      /* 0.10.17 (Hicore, Waltersdorf – Lausche): endet die Wertung an einer Sackgasse (oben Wendeschleife), liegt das Ziel 30 m vor dem Straßenende, damit man sicher durchfährt */
+      try{ const D=gnData(), m0=P.length-1; let dn=null, bd=90; D.nodes.forEach((n,i)=>{ if ((D.adj[i]||[]).length!==1) return; const dd=Math.hypot(n.x-P[m0].x,n.z-P[m0].z); if (dd<bd){ bd=dd; dn=n; } });
+        if (dn){ let ic=m0, b2=1e9; for (let i=m0;i>=0 && cu[m0]-cu[i]<160;i--){ const dd=Math.hypot(P[i].x-dn.x,P[i].z-dn.z); if (dd<b2){ b2=dd; ic=i; } }
+          const tg=Math.max(cu[ic]-30, cu[m0]*0.6); if (tg<cu[m0]-1){ let j=0; while (j<P.length-2 && cu[j+1]<tg) j++; const u=clamp((tg-cu[j])/((cu[j+1]-cu[j])||1),0,1), q=P[j].clone().lerp(P[j+1],u); P.length=j+1; cu.length=j+1; P.push(q); cu.push(tg); window._komDead=(window._komDead||[]).concat([[c.name,Math.round(q.x),Math.round(q.z)]]); } } }catch(e){ console.warn('kom sackgasse',e); }
       const sg={id:'kom'+k, name:c.name, ico:'⛰️', geo:true, P, cu, len:cu[cu.length-1], col:'#d9480f', info:'+'+c.hm+' Hm · '+(c.len/1000).toFixed(1).replace('.',',')+' km'}; this.geo.push(sg);
       const at=(i,j)=>{ const n=gnNear(P[i].x,P[i].z,20); return {a:P[i], b:P[j], hw:(n.k>=0?n.w:6.5)/2+0.7}; }, m=P.length-1;
       this.gate(def, sg, 0, false, at(0,Math.min(m,1))); this.gate(def, sg, 0, true, at(m,Math.max(0,m-1)).a?{a:P[m], b:P[m].clone().add(P[m].clone().sub(P[Math.max(0,m-1)])), hw:at(m,m).hw}:null); }); },
@@ -8601,7 +8630,7 @@ const SEG={ list:[], act:[], prev:null, show:null, showT:0,
       let bi=a.gi, bd=1e9; for (let i=Math.max(0,a.gi-3); i<Math.min(P.length,a.gi+12); i++){ const dd=Math.hypot(p.x-P[i].x,p.z-P[i].z); if (dd<bd){ bd=dd; bi=i; } }
       if (bd>25){ this.act.splice(this.act.indexOf(a),1); continue; }   /* abgebogen: Wertung abgebrochen */
       a.gi=bi; a.d0=S.dist-sg.cu[bi]; if (!this.real()) a.ok=false;
-      if (bi>=P.length-2 && Math.hypot(p.x-P[P.length-1].x,p.z-P[P.length-1].z)<8){ this.act.splice(this.act.indexOf(a),1); const t=S.segT-a.t0; if (t>1) this.finish(a,t); } } },
+      if (bi>=P.length-2 && Math.hypot(p.x-P[P.length-1].x,p.z-P[P.length-1].z)<12){ this.act.splice(this.act.indexOf(a),1); const t=S.segT-a.t0; if (t>1) this.finish(a,t); } } },
   /* Start: weiße Linie quer über die Straße + Hinweisschild rechts. Ziel: aufblasbarer Torbogen (Sprint grün, Berg weiß mit roten Punkten) + Ziellinie. */
   gate(def, sg, d, fin, at){ if (at===null) return; const a=at?at.a:posAt(d), b=at?at.b:posAt(d+2), i=idxAt(d)[0], hw=at?at.hw:(ROADW?ROADW[i]:(def.roadW||7))/2+0.7, g=new THREE.Group(), hd=Math.atan2(b.x-a.x, b.z-a.z);
     const berg=sg.id==='berg'||!!sg.geo, col=berg?'#d81e1e':'#14583a', nm=berg?'BERGWERTUNG':'SPRINTWERTUNG';
@@ -9509,7 +9538,14 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
       const tx=new THREE.CanvasTexture(cv); tx.anisotropy=4; if (THREE.SRGBColorSpace) tx.colorSpace=THREE.SRGBColorSpace; const pm=new THREE.MeshLambertMaterial({map:tx});
       const bb=new THREE.Box3(); g.children.forEach(m=>{ if (!m.geometry) return; m.geometry.computeBoundingBox(); bb.union(m.geometry.boundingBox); }); const T=P.T, py=T.slow?1.05:(T.m==='veh_van'?0.5:0.42);
       const pg=new THREE.PlaneGeometry(0.52,0.114); [[bb.max.z+0.015,0],[bb.min.z-0.015,Math.PI]].forEach(([z,ry],i)=>{ if (T.slow && i===0) return; const m=new THREE.Mesh(pg,pm); m.position.set(0,py,z); m.rotation.y=ry; g.add(m); });
-      { const fz=T.rot?bb.min.z+0.05:bb.max.z-0.05, fm=new THREE.MeshBasicMaterial({color:0xfff6dd, transparent:true, opacity:0.95, blending:THREE.AdditiveBlending, depthWrite:false}), fg=new THREE.SphereGeometry(0.17,10,8), hy=T.slow?1.3:(T.m==='veh_van'?0.95:0.72), hx=(bb.max.x-bb.min.x)/2-0.28; c.fl=[-hx,hx].map(x2=>{ const m=new THREE.Mesh(fg,fm); m.position.set(x2,hy,fz); m.visible=false; g.add(m); return m; }); } }catch(e){}
+      { const fz=T.rot?bb.min.z+0.05:bb.max.z-0.05, fm=new THREE.MeshBasicMaterial({color:0xfff6dd, transparent:true, opacity:0.95, blending:THREE.AdditiveBlending, depthWrite:false}), fg=new THREE.SphereGeometry(0.17,10,8), hy=T.slow?1.3:(T.m==='veh_van'?0.95:0.72), hx=(bb.max.x-bb.min.x)/2-0.28; c.fl=[-hx,hx].map(x2=>{ const m=new THREE.Mesh(fg,fm); m.position.set(x2,hy,fz); m.visible=false; g.add(m); return m; });
+        /* 0.10.16 (Hicore): Licht bei Dunkelheit, Dämmerung, Regen und Nebel: Scheinwerfer, Rücklichter und Lichtkegel auf der Straße */
+        const fd=T.rot?-1:1, bz=T.rot?bb.max.z+0.01:bb.min.z-0.01, fz2=T.rot?bb.min.z-0.01:bb.max.z+0.01, L=new THREE.Group(); L.visible=false; g.add(L); c.lights=L;
+        const hm=new THREE.MeshBasicMaterial({color:0xfff3d6, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false, fog:false}), tm=new THREE.MeshBasicMaterial({color:0xff2a1a, transparent:true, opacity:0.85, blending:THREE.AdditiveBlending, depthWrite:false, fog:false});
+        const hg=new THREE.SphereGeometry(0.15,8,6); [-hx,hx].forEach(x2=>{ const a=new THREE.Mesh(hg,hm); a.position.set(x2,hy,fz2); L.add(a); const b2=new THREE.Mesh(hg,tm); b2.scale.set(0.9,0.6,0.5); b2.position.set(x2*1.02,hy+(T.slow?0:0.12),bz); L.add(b2); });
+        if (!TRAFFIC.beamTex){ const cv2=document.createElement('canvas'); cv2.width=64; cv2.height=128; const x2=cv2.getContext('2d'), gr=x2.createRadialGradient(32,128,4,32,128,128); gr.addColorStop(0,'rgba(255,240,205,0.75)'); gr.addColorStop(0.55,'rgba(255,235,190,0.22)'); gr.addColorStop(1,'rgba(255,235,190,0)'); x2.fillStyle=gr; x2.beginPath(); x2.moveTo(26,128); x2.lineTo(38,128); x2.lineTo(64,0); x2.lineTo(0,0); x2.closePath(); x2.fill(); TRAFFIC.beamTex=new THREE.CanvasTexture(cv2); }
+        const bm2=new THREE.MeshBasicMaterial({map:TRAFFIC.beamTex, transparent:true, opacity:0.55, blending:THREE.AdditiveBlending, depthWrite:false, fog:true, polygonOffset:true, polygonOffsetFactor:-2}), bq=new THREE.Mesh(new THREE.PlaneGeometry(7,16),bm2);
+        bq.rotation.x=-Math.PI/2; if (fd>0) bq.rotation.z=Math.PI; bq.position.set(0,0.06,fz+fd*8.2); bq.renderOrder=3; L.add(bq); } }catch(e){}
     if (!PROP_LIB[P.T.m]){ g.rotation.order='YXZ'; } return g; },
   rel(d){ const s=S.dir||1; let r=(d-S.dist)%L; if (r>L/2) r-=L; if (r<-L/2) r+=L; return r*s; },   /* >0: vor dem Fahrer (in seiner Fahrtrichtung) */
   town(x,z){ try{ return typeof gnInner==='function' && GN.res ? gnInner(x,z) : false; }catch(e){ return false; } },
@@ -9551,6 +9587,7 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
     for (const c of [...this.act]){ const T=this.types[c.ti], r=this.rel(c.d), same=c.cd===s, W=roadWAt(c.d), half=W/2;
       if ((r<-450 || r>1700 || (L<2600 && Math.abs(r)>L/2-40)) && !(c.police && c.mode!=='drive' && Math.abs(r)<600)){ this.kill(c); continue; }
       const p=posAt(c.d), tw=this.town(p.x,p.z); let vt=T.slow?c.vS:(tw?c.vU:c.vR);
+      if (c.lights){ const on=ATMO.dark(); if (c.lights.visible!==on) c.lights.visible=on; }
       /* Kurven: Querbeschleunigung höchstens ca. 2,8 m/s² (Sicht 25 m voraus) */
       const h0=headingAt(c.d), h1=headingAt(c.d+c.cd*25); let dh=Math.abs(Math.atan2(Math.sin(h1-h0),Math.cos(h1-h0))); if (dh>0.02) vt=Math.min(vt, Math.sqrt(2.8*25/dh));
       if (W<5) vt*=0.8; vt=Math.max(vt, 4);
@@ -10380,7 +10417,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.16 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.10.17 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
