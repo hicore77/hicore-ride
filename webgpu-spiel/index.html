@@ -4702,7 +4702,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </script>
 <script>window.PROP_GLB={};window.PROP_LIST=["amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
 <script src="data/media.js?h=afc7bcb6"></script>
-<script src="data/zittau.js?h=a847fd29"></script>
+<script src="data/zittau.js?h=3b461feb"></script>
 <script>
 "use strict";
 // ================= Helpers =================
@@ -6596,7 +6596,7 @@ function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S
   /* 0.10.19: keine Bäume in oder direkt an Häusern (Satellitenpixel sind 10 m groß) */
   const BI=gtBldIndex(), BL=[]; if (BI) for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=BI.get((i+a)+','+(j+b)); if (l) l.forEach(o=>{ if (o.r==null){ let r=0; o.P.forEach(pp=>{ r=Math.max(r,Math.hypot(pp[0]-o.cx,pp[1]-o.cz)); }); o.r=r; } BL.push(o); }); }
   const nearB=(x,z)=>{ for (const o of BL){ const dx=x-o.cx, dz=z-o.cz, R=o.r+3.5; if (dx*dx+dz*dz<R*R) return true; } return false; };
-  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; if (BL.length && nearB(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; if (ZSB.near(x,z,10).d<5) continue; if (ZSB.cuts){ const cd=ZSB.cutD(x,z); if (cd && cd.r<6) continue; } if (ZG_NOTREE.length && ZG_NOTREE.some(q=>{ const u=(x-q.x)/q.ax, v=(z-q.z)/q.az; return u*u+v*v<1; })) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
+  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; if (BL.length && nearB(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; { const zn=ZSB.near(x,z,10); if (zn.d<(zn.g==='s'?7:5)) continue; } if (ZSB.cuts){ const cd=ZSB.cutD(x,z); if (cd && cd.r<6) continue; } if (ZG_NOTREE.length && ZG_NOTREE.some(q=>{ const u=(x-q.x)/q.ax, v=(z-q.z)/q.az; return u*u+v*v<1; })) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
     const h=terrainH(x,z), k=pick(h>440?GT.mixHi:h>380?(rnd()<0.5?GT.mixHi:GT.mixLo):GT.mixLo), s0=(inner?1.25:1.0)+rnd()*0.6; e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(0.85+rnd()*0.4),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
     const f=0.72+rnd()*0.35; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[k]=by[k]||[]).push([m.clone(),col.clone()]); } }
   { const OT=gtOsmTrees(), L=OT&&OT.get(i+','+j); if (L) for (let k=0;k<L.length;k+=3){ if (k%300===0) yield 0; const x=L[k], z=L[k+1], t=L[k+2], bush=t>=6;
@@ -9841,11 +9841,11 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
 /* ===== 0.10.2 Zittauer Schmalspurbahn (Hicore): Gleisnetz aus OSM, Andreaskreuze, seltener Dampfzug ===== */
 const ZSB={ lines:null, grid:null, C:25, grp:null, chunks:[], train:null, nextT:60, cd:0, hold:0, lcs:[],
   /* 0.10.4 aus OSM: Straße überquert das Gleis (bridge=yes an der Straße, Gleis im Einschnitt) und Gleis auf Brücke über Straße */
-  UP:[[219.5,-2025.3],[4917.3,-4307.5]], OV:[[[2382.8,-2919.9],[2369.4,-2914.9],[2355.4,-2912.0],[2340.5,-2910.8],[2321.0,-2910.5],[2298.1,-2910.4],[2284.9,-2910.2],[2271.1,-2909.8],[2256.5,-2909.2]]], cuts:null, brs:[],
+  UP:[[219.5,-2025.3,'n'],[4917.3,-4307.5,'n'],[-3609,-4526,'s']], OV:[[[2382.8,-2919.9],[2369.4,-2914.9],[2355.4,-2912.0],[2340.5,-2910.8],[2321.0,-2910.5],[2298.1,-2910.4],[2284.9,-2910.2],[2271.1,-2909.8],[2256.5,-2909.2]]], cuts:null, brs:[],
   prepCuts(){ if (!(WORLD&&WORLD.graph&&GN.d)) return null; if (this.cuts && this.cuts.D===GN.d) return this.cuts; if (this._pc) return null; this._pc=true;
     const out={D:GN.d, Z:[]}; try{ if (!this.init()) return null;
       const bh=(x,z)=>baseH(x,z), sm=(l,i)=>{ let a=0,c=0; for (let o=-8;o<=8;o++){ const j=i+o; if (j<0||j>=l.P.length) continue; a+=bh(l.P[j].x,l.P[j].z); c++; } return a/c; };
-      this.UP.forEach(([bx,bz])=>{ const n=this.near(bx,bz,30); if (n.d>12) return; const l=this.lines[n.li], r=zgRoadAt(bx,bz); if (!r) return; const yb=r.y, D=6.2, Lt=105, s0=l.cum[n.i], pts=[];
+      this.UP.forEach(([bx,bz,gg])=>{ const n=this.near(bx,bz,30,gg); if (n.d>12) return; const l=this.lines[n.li], r=zgRoadAt(bx,bz); if (!r) return; const yb=r.y, D=6.2, Lt=105, s0=l.cum[n.i], pts=[];
         for (let i=0;i<l.P.length;i++){ const ds=Math.abs(l.cum[i]-s0); if (ds>12+Lt) continue; const k=clamp(1-(ds-12)/Lt,0,1), w=k*k*(3-2*k), p=l.P[i], y0=Math.max(sm(l,i), bh(p.x,p.z)-0.6)+0.25; pts.push({i, x:p.x, z:p.z, y:Math.min(y0, y0+(yb-D-y0)*w), w}); }
         out.Z.push({t:'up', li:n.li, x:bx, z:bz, r, yb, pts, bb:[bx-140,bx+140,bz-140,bz+140]}); });
       this.OV.forEach(G=>{ let best=null; this.lines.forEach((l,li)=>l.P.forEach((p,i)=>{ let dg=1e9; for (let k=0;k<G.length-1;k++){ const A=G[k], B=G[k+1], dx=B[0]-A[0], dz=B[1]-A[1], ll=dx*dx+dz*dz||1, t=clamp(((p.x-A[0])*dx+(p.z-A[1])*dz)/ll,0,1); dg=Math.min(dg,Math.hypot(p.x-A[0]-dx*t,p.z-A[1]-dz*t)); } if (dg>8) return; const q=gnNear(p.x,p.z,20); if (q.k<0 || q.d>q.w/2+1) return; if (!best || q.d<best.q) best={li,i,q:q.d}; }));
@@ -9875,7 +9875,7 @@ const ZSB={ lines:null, grid:null, C:25, grp:null, chunks:[], train:null, nextT:
   /* Brückenbauwerke: Straßenbrücke über dem Einschnitt bzw. Bahnbrücke über der Straße */
   bridges(g){ const C=this.prepCuts(); if (!C) return; const con=new THREE.MeshLambertMaterial({color:0xa9a59c}), dark=new THREE.MeshLambertMaterial({color:0x6f6a62}), steel=new THREE.MeshLambertMaterial({color:0x3f5446});
     const box=(w,h,L,x,y,z,ry,m)=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,L),m); b.position.set(x,y,z); b.rotation.y=ry; b.castShadow=true; b.receiveShadow=true; g.add(b); return b; };
-    C.Z.forEach(Z=>{ const r=Z.r, l=this.lines[Z.li], n=this.near(Z.x,Z.z,30), f=this.at(l,l.cum[n.i]), ryR=Math.atan2(r.tx,r.tz), ryT=Math.atan2(f.tx,f.tz), sa=Math.max(0.35,Math.abs(r.tx*f.tz-r.tz*f.tx));
+    C.Z.forEach(Z=>{ const r=Z.r, l=this.lines[Z.li], n=this.near(Z.x,Z.z,30,l.g), f=this.at(l,l.cum[n.i]), ryR=Math.atan2(r.tx,r.tz), ryT=Math.atan2(f.tx,f.tz), sa=Math.max(0.35,Math.abs(r.tx*f.tz-r.tz*f.tx));
       if (Z.t==='up'){ const yr=Z.yb, ytr=f.y, span=(2.6+(yr-ytr)/1.15+1)/sa, W=r.w+1.6;
         box(W, 0.7, span*2, r.x, yr-0.42, r.z, ryR, con);   /* Brückenplatte */
         [-1,1].forEach(sd=>{ const ox=-r.tz*sd*(r.w/2+0.55), oz=r.tx*sd*(r.w/2+0.55); box(0.35,0.9,span*2+1.2, r.x+ox, yr+0.38, r.z+oz, ryR, con); box(0.08,0.08,span*2+1.2, r.x+ox, yr+0.86, r.z+oz, ryR, dark);
@@ -9884,50 +9884,162 @@ const ZSB={ lines:null, grid:null, C:25, grp:null, chunks:[], train:null, nextT:
         box(3.0, 0.8, span*2, f.x, yr-0.55, f.z, ryT, con);   /* Überbau */
         [-1,1].forEach(sd=>{ const ox=-f.tz*sd*1.55, oz=f.tx*sd*1.55; box(0.12,1.1,span*2, f.x+ox, yr+0.2, f.z+oz, ryT, steel);
           const ax=r.x+(-r.tz)*0+r.tx*0, wx=-r.tz*sd*(r.w/2+1.4), wz=r.tx*sd*(r.w/2+1.4), hh=yr-yb+0.4; box(0.9, hh, 4.2, f.x+wx/sa*0+(-r.tz*sd*(r.w/2+1.4)), yb-0.4+hh/2, f.z+(r.tx*sd*(r.w/2+1.4)), ryR, con); }); } }); },
-  init(){ if (this.lines || !window.ZSBD) return !!this.lines; const D=window.ZSBD; this.lines=D.lines.slice(0,3).map(l=>{ const P=l.map(([x,z])=>({x,z,y:0})), cum=[0]; for (let i=1;i<P.length;i++) cum.push(cum[i-1]+Math.hypot(P[i].x-P[i-1].x,P[i].z-P[i-1].z)); return {P,cum,L:cum[cum.length-1]}; });
+  init(){ if (this.lines || !window.ZSBD) return !!this.lines; const D=window.ZSBD; const mkL=(P,g,side)=>{ const cum=[0]; for (let i=1;i<P.length;i++) cum.push(cum[i-1]+Math.hypot(P[i].x-P[i-1].x,P[i].z-P[i-1].z)); return {P,cum,L:cum[cum.length-1],g,side:!!side}; };
+    this.lines=D.lines.slice(0,3).map(l=>mkL(l.map(([x,z])=>({x,z,y:0})),'n'));
+    /* 0.11.3 Normalspurbahn (DB/Länderbahn) aus OSM railway=rail: Zittau–Löbau, Zittau–Görlitz, Zittau–Liberec, Zittau–Varnsdorf–Großschönau; Brücken nach OSM bridge=yes */
+    if (window.ZGDB) window.ZGDB.lines.forEach(l=>this.lines.push(mkL(l.P.map(([x,z,b])=>({x,z,y:0,br:!!b})),'s',l.s)));
     const G=new Map(), C=this.C; this.lines.forEach((l,li)=>l.P.forEach((p,i)=>{ const k=Math.floor(p.x/C)+','+Math.floor(p.z/C); let a=G.get(k); if (!a) G.set(k,a=[]); a.push(li,i); })); this.grid=G; return true; },
-  near(x,z,R){ if (!this.init()) return {d:1e9}; R=R||30; const C=this.C, r=Math.ceil(R/C), cx=Math.floor(x/C), cz=Math.floor(z/C); let best={d:1e9,li:-1,i:0};
-    for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const L=this.grid.get((cx+a)+','+(cz+b)); if (!L) continue; for (let k=0;k<L.length;k+=2){ const p=this.lines[L[k]].P[L[k+1]], d=Math.hypot(p.x-x,p.z-z); if (d<best.d) best={d,li:L[k],i:L[k+1]}; } } return best; },
+  near(x,z,R,g){ if (!this.init()) return {d:1e9}; R=R||30; const C=this.C, r=Math.ceil(R/C), cx=Math.floor(x/C), cz=Math.floor(z/C); let best={d:1e9,li:-1,i:0};
+    for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const L=this.grid.get((cx+a)+','+(cz+b)); if (!L) continue; for (let k=0;k<L.length;k+=2){ if (g && this.lines[L[k]].g!==g) continue; const p=this.lines[L[k]].P[L[k+1]], d=Math.hypot(p.x-x,p.z-z); if (d<best.d) best={d,li:L[k],i:L[k+1],g:this.lines[L[k]].g}; } } return best; },
   /* Höhe: Gelände geglättet, an Bahnübergängen Straßenhöhe */
   heights(){ this.lines.forEach(l=>{ const P=l.P, n=P.length, h=new Float32Array(n); for (let i=0;i<n;i++) h[i]=terrainH(P[i].x,P[i].z);
       const s=new Float32Array(n); for (let i=0;i<n;i++){ let a=0,c=0; for (let o=-8;o<=8;o++){ const j=i+o; if (j<0||j>=n) continue; a+=h[j]; c++; } s[i]=a/c; }
-      for (let i=0;i<n;i++){ P[i].road=false; let y=Math.max(s[i], h[i]-0.6); try{ const nr=gnNear(P[i].x,P[i].z,20); if (nr.k>=0 && nr.d<nr.w/2+1.5){ const r=zgRoadAt(P[i].x,P[i].z); if (r){ y=r.y-0.09-0.25; P[i].road=true; } } }catch(e){} P[i].y=y+0.25; }
+      for (let i=0;i<n;i++){ P[i].road=false; let y=Math.max(s[i], h[i]-0.6); if (!P[i].br) try{ const nr=gnNear(P[i].x,P[i].z,20); if (nr.k>=0 && nr.d<nr.w/2+1.5){ const r=zgRoadAt(P[i].x,P[i].z); if (r){ y=r.y-0.09-0.25; P[i].road=true; } } }catch(e){} P[i].y=y+0.25; }
+      if (l.g==='s') this.dbBridgeY(l);
       /* 0.10.4: Unterführungen (Straße als Brücke über dem Gleis) und Bahnbrücken über Straßen */ this.zoneY(l);
       /* Übergang Straße/Gleisbett weich */ const Y=P.map(p=>p.y); for (let i=0;i<n;i++){ let near=false; for (let o=-4;o<=4;o++){ const j=i+o; if (j>=0&&j<n&&P[j].road) near=true; } if (near && !P[i].road){ let a=0,c=0; for (let o=-3;o<=3;o++){ const j=i+o; if (j<0||j>=n) continue; a+=Y[j]; c++; } P[i].y=a/c; } } }); },
+  /* 0.11.3 Normalspur-Brücken (OSM bridge=yes): Gleis zwischen den Widerlagern gerade, über Straßen mindestens 5,6 m lichte Höhe, Rampen weich */
+  dbBridgeY(l){ const P=l.P, n=P.length, cum=l.cum; l.brs=[]; let i=0;
+    while (i<n){ if (!P[i].br){ i++; continue; } let j=i; while (j+1<n && P[j+1].br) j++; const a=Math.max(0,i-1), b=Math.min(n-1,j+1), ya=P[a].y, yb=P[b].y, sa=cum[a], sb=cum[b];
+      for (let k=a;k<=b;k++){ const t=(cum[k]-sa)/((sb-sa)||1); P[k].y=ya+(yb-ya)*t; P[k].deck=true; P[k].road=false; }
+      let lift=0, sc=0; for (let k=a;k<=b;k++){ const q=gnNear(P[k].x,P[k].z,20); if (q.k>=0 && q.d<q.w/2+2){ const need=q.y+5.6-P[k].y; if (need>lift){ lift=need; sc=cum[k]; } } }
+      l.brs.push({a,b,road:lift>0||false});
+      if (lift>0){ const Lt=Math.max(90,(sb-sa)/2+40); for (let k=0;k<n;k++){ const ds=Math.abs(cum[k]-sc); if (ds>Lt) continue; const u=clamp(1-ds/Lt,0,1), w=u*u*(3-2*u); if (k>=a&&k<=b) P[k].y+=lift*w; else { P[k].y+=lift*w; P[k].zt='ov'; P[k].zw=Math.max(P[k].zw||0,w); } } }
+      i=j+1; } },
+  dbBridges(g){ const con=new THREE.MeshLambertMaterial({color:0xa6a196}), steel=new THREE.MeshLambertMaterial({color:0x44564a}), M=new THREE.Matrix4(), Q=new THREE.Quaternion(), E=new THREE.Euler(0,0,0,'YXZ'), V=new THREE.Vector3(), S1=new THREE.Vector3(1,1,1), BX=new THREE.BoxGeometry(1,1,1);
+    const put=(L,w,h,d,x,y,z,ry,rx)=>{ E.set(rx||0,ry,0); Q.setFromEuler(E); M.compose(V.set(x,y,z),Q,new THREE.Vector3(w,h,d)); L.push([BX,M.clone()]); };
+    this.lines.forEach(l=>{ if (l.g!=='s' || !l.brs) return; const P=l.P;
+      l.brs.forEach(B=>{ const C=[], St=[]; let lastPier=-1e9;
+        for (let k=B.a;k<B.b;k++){ const p=P[k], q=P[k+1], dx=q.x-p.x, dz=q.z-p.z, sl=Math.hypot(dx,dz)||1, ry=Math.atan2(dx,dz), rx=-Math.atan2(q.y-p.y,sl), mx=(p.x+q.x)/2, mz=(p.z+q.z)/2, my=(p.y+q.y)/2, nx=dz/sl, nz=-dx/sl;
+          put(C,4.4,1.0,sl+0.15,mx,my-0.75,mz,ry,rx);   /* Überbau */
+          [-1,1].forEach(sd=>{ put(C,0.3,0.55,sl+0.15,mx+nx*2.15*sd,my+0.0,mz+nz*2.15*sd,ry,rx); put(St,0.06,1.0,sl+0.1,mx+nx*2.1*sd,my+0.75,mz+nz*2.1*sd,ry,rx); put(St,0.05,0.05,sl+0.1,mx+nx*2.1*sd,my+1.25,mz+nz*2.1*sd,ry,rx); });
+          /* Pfeiler etwa alle 20 m, wo das Gelände tiefer liegt (nicht auf der Straße) */
+          const cum=l.cum[k]; if (cum-lastPier>=20 && k>B.a && k<B.b-1){ const gy=terrainH(p.x,p.z), hh=p.y-1.25-gy; const rr=gnNear(p.x,p.z,20); if (hh>1.2 && !(rr.k>=0 && rr.d<rr.w/2+2.5)){ put(C,3.2,hh+0.6,1.4,p.x,gy+hh/2-0.3,p.z,ry,0); lastPier=cum; } } }
+        /* Widerlager an beiden Enden */
+        [B.a,B.b].forEach(k=>{ const p=P[k], o=P[k===B.a?Math.min(P.length-1,k+1):Math.max(0,k-1)], ry=Math.atan2(o.x-p.x,o.z-p.z), gy=Math.min(terrainH(p.x,p.z),p.y-1.2); put(C,5.0,p.y-0.25-gy+1.5,1.8,p.x,(p.y-0.25+gy-1.5)/2,p.z,ry,0); });
+        /* an Straßen: Widerlager links und rechts der Fahrbahn */
+        for (let k=B.a;k<=B.b;k++){ const p=P[k], rr=gnNear(p.x,p.z,15); if (!(rr.k>=0 && rr.d<1.5)) continue; const r=zgRoadAt(p.x,p.z); if (!r) break; const ryR=Math.atan2(r.tx,r.tz);
+          [-1,1].forEach(sd=>{ const ox=-r.tz*sd*(r.w/2+1.6), oz=r.tx*sd*(r.w/2+1.6), hh=p.y-1.25-r.y+0.5; put(C,1.0,hh,6.0,p.x+ox,r.y-0.5+hh/2,p.z+oz,ryR,0); }); break; }
+        const gc=mergeGeo(C), mc=new THREE.Mesh(gc,con); mc.castShadow=true; mc.receiveShadow=true; g.add(mc); if (St.length){ const ms=new THREE.Mesh(mergeGeo(St),steel); ms.castShadow=true; g.add(ms); } }); }); },
   build(){ const g=new THREE.Group(); g.name='zsb'; this.grp=g; this.chunks=[]; if (!this.init()) return g; this.heights();
     const mB=new THREE.MeshLambertMaterial({color:0x8d8578}), mR=new THREE.MeshLambertMaterial({color:0x5b4a3e}), mS=new THREE.MeshLambertMaterial({color:0x4a3a2c});
-    const sg=new THREE.BoxGeometry(1.5,0.12,0.22), CH=180;
-    this.lines.forEach(l=>{ const P=l.P;
+    const sg=new THREE.BoxGeometry(1.5,0.12,0.22), CH=180, sgS=new THREE.BoxGeometry(2.6,0.16,0.26), mSS=new THREE.MeshLambertMaterial({color:0x8e8b84}), mRS=new THREE.MeshLambertMaterial({color:0x5e544c}), mBS=new THREE.MeshLambertMaterial({color:0x8a8379});
+    this.lines.forEach(l=>{ const P=l.P, NG=l.g!=='s', GW=NG?0.4:0.7175, TOP=NG?1.4:1.9, BOT=NG?3.0:3.7, SP=NG?0.9:0.7;
       for (let c0=0;c0<P.length-1;c0+=CH/5){ const c1=Math.min(P.length-1,c0+CH/5+1), bp=[], bi=[], rp=[], ri=[]; let vb=0, vr=0;
         for (let i=c0;i<=c1;i++){ const p=P[i], q=P[Math.min(P.length-1,i+1)], o=P[Math.max(0,i-1)]; let tx=q.x-o.x, tz=q.z-o.z; const ll=Math.hypot(tx,tz)||1; tx/=ll; tz/=ll; const nx=-tz, nz=tx;
-          const top=p.road?0.0:1.4, bot=p.road?0.0:(p.deck?1.45:3.0), dy=p.road?0:(p.deck?0.3:(p.zt==='ov'&&p.zw>0.05?Math.max(1.6,p.y-terrainH(p.x,p.z)+0.4):1.6)); /* Schotterbett mit Böschung */
+          const top=p.road?0.0:TOP, bot=p.road?0.0:(p.deck?TOP+0.05:BOT), dy=p.road?0:(p.deck?0.3:(p.zt==='ov'&&p.zw>0.05?Math.max(1.6,p.y-terrainH(p.x,p.z)+0.4):1.6)); /* Schotterbett mit Böschung */
           bp.push(p.x-nx*bot, p.y-0.12-dy, p.z-nz*bot,  p.x-nx*top, p.y-0.02, p.z-nz*top,  p.x+nx*top, p.y-0.02, p.z+nz*top,  p.x+nx*bot, p.y-0.12-dy, p.z+nz*bot);
-          [-0.4,0.4].forEach(off=>{ const x=p.x+nx*off, z=p.z+nz*off; rp.push(x-nx*0.035, p.y+0.04, z-nz*0.035, x-nx*0.035, p.y+0.17, z-nz*0.035, x+nx*0.035, p.y+0.17, z+nz*0.035, x+nx*0.035, p.y+0.04, z+nz*0.035); });
+          [-GW,GW].forEach(off=>{ const x=p.x+nx*off, z=p.z+nz*off; rp.push(x-nx*0.035, p.y+0.04, z-nz*0.035, x-nx*0.035, p.y+0.17, z-nz*0.035, x+nx*0.035, p.y+0.17, z+nz*0.035, x+nx*0.035, p.y+0.04, z+nz*0.035); });
           if (i>c0){ const a=(i-c0-1)*4, b=(i-c0)*4; for (let k=0;k<3;k++) bi.push(a+k,b+k,a+k+1, a+k+1,b+k,b+k+1); for (let r2=0;r2<2;r2++){ const A=(i-c0-1)*8+r2*4, B=(i-c0)*8+r2*4; for (let k=0;k<3;k++) ri.push(A+k,B+k,A+k+1, A+k+1,B+k,B+k+1); } } }
         const mk=(pos,idx,mat)=>{ const ge=new THREE.BufferGeometry(); ge.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); ge.setIndex(idx); ge.computeVertexNormals(); const m=new THREE.Mesh(ge,mat); m.receiveShadow=true; return m; };
-        const ch=new THREE.Group(); ch.add(mk(bp,bi,mB)); const rm=mk(rp,ri,mR); rm.castShadow=true; ch.add(rm);
+        const ch=new THREE.Group(); ch.add(mk(bp,bi,NG?mB:mBS)); const rm=mk(rp,ri,NG?mR:mRS); rm.castShadow=true; ch.add(rm);
         /* Schwellen alle 0,9 m */
-        const s0=l.cum[c0], s1=l.cum[c1], n=Math.floor((s1-s0)/0.9), im=new THREE.InstancedMesh(sg,mS,n), M4=new THREE.Matrix4(), Q=new THREE.Quaternion(), V=new THREE.Vector3(), Y=new THREE.Vector3(0,1,0);
-        for (let k=0;k<n;k++){ const f=this.at(l,s0+k*0.9); Q.setFromAxisAngle(Y,Math.atan2(f.tx,f.tz)); M4.compose(V.set(f.x,f.y+0.0,f.z),Q,new THREE.Vector3(1,1,1)); im.setMatrixAt(k,M4); } im.receiveShadow=true; ch.add(im);
+        const s0=l.cum[c0], s1=l.cum[c1], n=Math.floor((s1-s0)/SP), im=new THREE.InstancedMesh(NG?sg:sgS,NG?mS:mSS,n), M4=new THREE.Matrix4(), Q=new THREE.Quaternion(), V=new THREE.Vector3(), Y=new THREE.Vector3(0,1,0);
+        for (let k=0;k<n;k++){ const f=this.at(l,s0+k*SP); Q.setFromAxisAngle(Y,Math.atan2(f.tx,f.tz)); M4.compose(V.set(f.x,f.y+0.0,f.z),Q,new THREE.Vector3(1,1,1)); im.setMatrixAt(k,M4); } im.receiveShadow=true; ch.add(im);
         const cp=P[(c0+c1)>>1]; ch.userData.c=cp; g.add(ch); this.chunks.push(ch); } });
+    try{ this.dbBridges(g); }catch(e){ console.warn('db brücken',e); }
     this.crosses(g); this._tr=false; try{ if (GT.mat) this.trench(); }catch(e){ this._tr=true; console.warn('zsb trench',e); } try{ this.bridges(g); }catch(e){ console.warn('zsb br',e); } return g; },
   at(l,s){ const P=l.P, cum=l.cum; s=Math.max(0,Math.min(l.L-0.01,s)); let lo=0, hi=cum.length-1; while (hi-lo>1){ const m=(lo+hi)>>1; if (cum[m]<=s) lo=m; else hi=m; } const p=P[lo], q=P[Math.min(P.length-1,lo+1)], t=(s-cum[lo])/((cum[lo+1]-cum[lo])||1); let tx=q.x-p.x, tz=q.z-p.z; const ll=Math.hypot(tx,tz)||1;
     return {x:p.x+(q.x-p.x)*t, y:p.y+(q.y-p.y)*t, z:p.z+(q.z-p.z)*t, tx:tx/ll, tz:tz/ll}; },
   /* Andreaskreuze an Bahnübergängen mit Spielstraßen */
   crosses(g){ const D=window.ZSBD; if (!D||!D.lc) return; const cv=document.createElement('canvas'); cv.width=256; cv.height=40; const x=cv.getContext('2d'); for (let i=0;i<8;i++){ x.fillStyle=i%2?'#f2f2f2':'#c8161d'; x.fillRect(i*32,0,32,40); } x.strokeStyle='#c8161d'; x.lineWidth=3; x.strokeRect(1,1,254,38);
     const tx=new THREE.CanvasTexture(cv), mt=new THREE.MeshLambertMaterial({map:tx}), bg=new THREE.BoxGeometry(1.1,0.16,0.03), pg=new THREE.CylinderGeometry(0.04,0.04,2.4,8), pm=new THREE.MeshLambertMaterial({color:0xd9dcdf});
-    this.lcs=[]; const runs=[]; this.lines.forEach((l,li)=>{ let a=-1; l.P.forEach((p,i)=>{ if (p.road && a<0) a=i; if (!p.road && a>=0){ if (i-a<=8) runs.push([li,(a+i-1)>>1]); a=-1; } }); });   /* Kreuzungen Gleis/Straße aus der Geometrie */
+    this.lcs=[]; this.dbVis=[]; const runs=[]; this.lines.forEach((l,li)=>{ let a=-1; l.P.forEach((p,i)=>{ if (p.road && a<0) a=i; if (!p.road && a>=0){ if (i-a<=8) runs.push([li,(a+i-1)>>1]); a=-1; } }); });   /* Kreuzungen Gleis/Straße aus der Geometrie */
     runs.forEach(([li,ci])=>{ const l=this.lines[li], q=l.P[ci]; let r=null; try{ r=zgRoadAt(q.x,q.z); }catch(e){} if (!r) return;
+      if (l.g==='s'){ try{ this.dbCross(g,r,li,l,ci,mt); }catch(e){ console.warn('bü',e); } return; }
       this.lcs.push({x:r.x,z:r.z,li,s:l.cum[ci]});
-      [-1,1].forEach(sd=>{ /* je Straßenseite, rechts vor dem Gleis */ const off=r.w/2+0.9, bx=r.x+(-r.tz)*off*sd - r.tx*3.2*sd, bz=r.z+(r.tx)*off*sd - r.tz*3.2*sd, y=terrainH(bx,bz); const s=new THREE.Group();
+      [-1,1].forEach(sd=>{ /* je Straßenseite, rechts vor dem Gleis (0.11.3: vor, nicht hinter dem Gleis) */ const off=r.w/2+0.9, bx=r.x+(-r.tz)*off*sd + r.tx*3.2*sd, bz=r.z+(r.tx)*off*sd + r.tz*3.2*sd, y=terrainH(bx,bz); const s=new THREE.Group();
         const pole=new THREE.Mesh(pg,pm); pole.position.y=1.2; s.add(pole); [Math.PI/5,-Math.PI/5].forEach(a=>{ const b=new THREE.Mesh(bg,mt); b.position.set(0,2.05,0.04); b.rotation.z=a; s.add(b); });
         s.position.set(bx,y,bz); s.rotation.y=Math.atan2(r.tx,r.tz)+(sd>0?Math.PI:0); g.add(s); }); }); },
+  /* 0.11.3 Bahnübergang Normalspur nach OSM (crossing:barrier / crossing:light): Andreaskreuz, Lichtzeichen gelb/rot, Halb- oder Vollschranken, Läutewerk */
+  dbCross(g,r,li,l,ci,mt){ const s0=l.cum[ci], f=this.at(l,s0); let V=this.dbVis.find(v=>Math.hypot(v.x-r.x,v.z-r.z)<16);
+    if (!V){ let t=0, bd=30; ((window.ZGDB&&window.ZGDB.lc)||[]).forEach(([x,z,tt])=>{ const d=Math.hypot(x-r.x,z-r.z); if (d<bd){ bd=d; t=tt; } }); if (t===0) t=(r.w>=6?1:4);
+      const G=new THREE.Group(); G.position.set(0,0,0); V={x:r.x,z:r.z,t,G,booms:[],k:99,on:false,ph:0,mats:null}; this.dbVis.push(V);
+      const sa=Math.max(0.4,Math.abs(r.tx*f.tz-r.tz*f.tx)), Dd=(3.6)/sa+1.2;
+      const pm=new THREE.MeshLambertMaterial({color:0xe4e6e8}), dk=new THREE.MeshLambertMaterial({color:0x1b1c1e}), pg=new THREE.CylinderGeometry(0.06,0.06,3.0,8), bg=new THREE.BoxGeometry(1.1,0.16,0.03);
+      const mY=new THREE.MeshStandardMaterial({color:0x332a10, emissive:0xffb000, emissiveIntensity:0.0, roughness:0.4}), mR=new THREE.MeshStandardMaterial({color:0x2a0d0d, emissive:0xff1a10, emissiveIntensity:0.0, roughness:0.4}), mBl=new THREE.MeshStandardMaterial({color:0x3a0d0d, emissive:0xff1a10, emissiveIntensity:0.0}); V.mats={mY,mR,mBl};
+      const lights=V.t>=1&&V.t<=4, bar=V.t>=1&&V.t<=3, full=V.t===2;
+      [1,-1].forEach(sg=>{ const dx=r.tx*sg, dz=r.tz*sg, rx=dz, rz=-dx, th=Math.atan2(-dx,-dz), off=r.w/2+1.0;
+        const px=r.x-dx*Dd+rx*off, pz=r.z-dz*Dd+rz*off, A=new THREE.Group(); A.position.set(px,terrainH(px,pz),pz); A.rotation.y=th;
+        const pole=new THREE.Mesh(pg,pm); pole.position.y=1.5; A.add(pole); [Math.PI/5,-Math.PI/5].forEach(a=>{ const b=new THREE.Mesh(bg,mt); b.position.set(0,2.75,0.07); b.rotation.z=a; A.add(b); });
+        if (lights){ const bp=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.82,0.06),dk); bp.position.set(0,1.95,0.08); A.add(bp); const ly=new THREE.Mesh(new THREE.CircleGeometry(0.11,14),mY); ly.position.set(0,2.17,0.115); A.add(ly); const lr=new THREE.Mesh(new THREE.CircleGeometry(0.13,14),mR); lr.position.set(0,1.82,0.115); A.add(lr);
+          [2.17,1.82].forEach(h=>{ const v=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.03,0.14),dk); v.position.set(0,h+0.15,0.17); A.add(v); }); }
+        if (bar){ const mk=(len,side)=>{ const pv=new THREE.Group(); pv.position.set(side*0.0,1.05,-0.25); const arm=new THREE.Group(); pv.add(arm); const bm=new THREE.Mesh(new THREE.BoxGeometry(len,0.11,0.07),mt); bm.position.x=side*len/2; arm.add(bm); const bl=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,6),mBl); bl.position.set(side*len*0.82,0.09,0); arm.add(bl);
+            const hb=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.55,0.35),pm); hb.position.set(0,-0.6,0); pv.add(hb); A.add(pv); V.booms.push({arm,side}); arm.rotation.z=side*1.45; };
+          mk(full?r.w/2+0.8:r.w/2+0.7,1);
+          if (full){ const qx=r.x-dx*Dd-rx*off, qz=r.z-dz*Dd-rz*off, B=new THREE.Group(); B.position.set(qx,terrainH(qx,qz),qz); B.rotation.y=th; const p2=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1.2,8),pm); p2.position.y=0.6; B.add(p2);
+            const pv=new THREE.Group(); pv.position.set(0,1.05,-0.25); const arm=new THREE.Group(); pv.add(arm); const len=r.w/2+0.8, bm=new THREE.Mesh(new THREE.BoxGeometry(len,0.11,0.07),mt); bm.position.x=-len/2; arm.add(bm); B.add(pv); V.booms.push({arm,side:-1}); arm.rotation.z=-1.45; G.add(B); } }
+        A.traverse(m=>{ if (m.isMesh) m.castShadow=true; }); G.add(A); });
+      /* Gleise in der Fahrbahn: Betonplatten zwischen den Schienen */
+      g.add(G); }
+    this.lcs.push({x:r.x,z:r.z,li,s:s0,V}); },
+  dbVisStep(dt,P){ const T=this.dbT; this.holdS=0; const rv=(typeof meP!=='undefined'&&meP.v)||0;
+    for (const V of this.dbVis){ let want=false; if (T){ for (const c of this.lcs){ if (c.V!==V || c.li!==T.li) continue; const dTr=(c.s-T.s)*T.dir; if (dTr< T.v*28+70 && dTr>-(T.len+10)) want=true; } }
+      if (want && !V.on){ V.on=true; V.k=0; } if (!want && V.on && V.k>12){ V.on=false; V.k=0; }
+      V.k+=dt; const near=Math.hypot(V.x-P.x,V.z-P.z);
+      if (near>900 && !V.on && V.idle) continue; V.idle=!V.on && V.k>8;
+      const M=V.mats; if (V.on){ M.mY.emissiveIntensity=V.k<3?2.4:0; M.mR.emissiveIntensity=V.k>=3?2.4:0; M.mBl.emissiveIntensity=(Math.floor(V.k*2)%2)?2.2:0.1; }
+      else { M.mY.emissiveIntensity=0; M.mR.emissiveIntensity=0; M.mBl.emissiveIntensity=V.k<6?((Math.floor(V.k*2)%2)?2.2:0.1):0; }
+      /* Schranken: senken ab 5 s nach Lichtbeginn in 7 s, öffnen nach Durchfahrt in 6 s */
+      const a=V.on?clamp((V.k-5)/7,0,1):1-clamp(V.k/6,0,1), ang=1.45*(1-(a*a*(3-2*a))); V.booms.forEach(b=>{ b.arm.rotation.z=b.side*ang; });
+      /* Läutewerk beim Schließen */
+      if (V.on && V.booms.length && V.k<12.5 && near<320) this.bell(V,near,dt);
+      /* Fahrer hält vor geschlossenem Übergang */
+      if ((V.on || (V.booms.length && V.k<5)) && near<60){ const ahead=(()=>{ try{ const q=posAt(S.dist+(S.dir||1)*8); return Math.hypot(V.x-q.x,V.z-q.z)<near; }catch(e){ return false; } })(); if (ahead && near<(this._hs?45:9+rv*rv/6.4)) this.holdS=1; } }
+    this._hs=this.holdS; },
+  bell(V,near,dt){ V.bt=(V.bt||0)-dt; if (V.bt>0) return; V.bt=0.62; const A=typeof AMB!=='undefined'?AMB:null; if (!A||!A.ctx||!A.master||A.on===false||!S.running) return; const c=A.ctx, cv=A.vol.sndTraffic??0.6, vol=Math.min(1,25/(near+8))*cv*0.5; if (vol<0.01) return;
+    const t0=c.currentTime+0.01, g=c.createGain(); g.gain.setValueAtTime(vol,t0); g.gain.exponentialRampToValueAtTime(0.0008,t0+0.55); const q=A.p3?A.p3(V.x,2.5+terrainH(V.x,V.z),V.z):null; if (q){ g.connect(q); q.connect(A.master); } else g.connect(A.master);
+    [[1318,1],[2637,0.5],[3520,0.25],[880,0.35]].forEach(([fq,a])=>{ const o=c.createOscillator(); o.type='sine'; o.frequency.value=fq; const og=c.createGain(); og.gain.value=a; o.connect(og); og.connect(g); o.start(t0); o.stop(t0+0.6); }); },
+  /* 0.11.3 Regionalzug (zweiteiliger Dieseltriebwagen, ohne echtes Logo) auf der Normalspur, ca. 80 km/h; kommt gern, wenn man auf einen Bahnübergang zufährt */
+  dbModel(){ if (this._dbm) return this._dbm.clone(); const car=new THREE.Group(), Lc=25, W=2.9;
+    const white=new THREE.MeshStandardMaterial({color:0xeef0f0, roughness:0.45, metalness:0.1}), band=new THREE.MeshStandardMaterial({color:0x1f6fb3, roughness:0.5}), glass=new THREE.MeshStandardMaterial({color:0x1a2226, roughness:0.15, metalness:0.5}), dark=new THREE.MeshLambertMaterial({color:0x26282a}), grey=new THREE.MeshLambertMaterial({color:0x8a8d90}), door=new THREE.MeshStandardMaterial({color:0xd8dadb, roughness:0.4}), hl=new THREE.MeshStandardMaterial({color:0xffffff, emissive:0xfff4dc, emissiveIntensity:2.0}), tl=new THREE.MeshStandardMaterial({color:0x550000, emissive:0xff1a1a, emissiveIntensity:1.6});
+    const box=(w,h,d,x,y,z,m)=>{ const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); b.position.set(x,y,z); b.castShadow=true; car.add(b); return b; };
+    const sh=new THREE.Shape(); sh.moveTo(-W/2,0); sh.lineTo(W/2,0); sh.lineTo(W/2,2.55); sh.quadraticCurveTo(W/2,3.05,W/2-0.5,3.12); sh.lineTo(-W/2+0.5,3.12); sh.quadraticCurveTo(-W/2,3.05,-W/2,2.55); sh.closePath();
+    const bodyG=new THREE.ExtrudeGeometry(sh,{depth:Lc-3.2, bevelEnabled:false}); bodyG.translate(0,0,-(Lc-3.2)/2); const body=new THREE.Mesh(bodyG,white); body.position.y=1.0; body.castShadow=true; car.add(body);
+    box(W+0.02,0.32,Lc-3.2,0,1.25,0,band); box(W+0.03,0.85,Lc-5.0,0,2.55,0,glass);
+    [-1,1].forEach(sd=>[-0.28,0.28].forEach(u=>{ box(0.04,1.9,1.3,sd*(W/2+0.01),1.95,u*Lc,door); box(0.05,0.9,0.5,sd*(W/2+0.02),2.55,u*Lc-0.33,glass); box(0.05,0.9,0.5,sd*(W/2+0.02),2.55,u*Lc+0.33,glass); }));
+    box(1.6,0.45,4.5,0,4.3,-Lc*0.2,grey); box(W-0.3,0.55,Lc-4,0,0.55,0,dark);
+    /* Bug: schräge Front mit Scheibe */ const nose=new THREE.Shape(); nose.moveTo(0,0); nose.lineTo(1.6,0); nose.lineTo(1.6,0.9); nose.quadraticCurveTo(1.1,2.6,0.0,3.12); nose.closePath();
+    const ng=new THREE.ExtrudeGeometry(nose,{depth:W, bevelEnabled:false}); ng.translate(0,0,-W/2); ng.rotateY(-Math.PI/2); const nm=new THREE.Mesh(ng,white); nm.position.set(0,1.0,(Lc-3.2)/2); nm.castShadow=true; car.add(nm);
+    const ws=new THREE.Mesh(new THREE.PlaneGeometry(W-0.5,1.35),glass); ws.position.set(0,3.05,(Lc-3.2)/2+0.95); ws.rotation.x=-0.62; car.add(ws);
+    const nb=new THREE.Mesh(new THREE.BoxGeometry(W-0.1,0.3,1.5),band); nb.position.set(0,1.25,(Lc-3.2)/2+0.8); car.add(nb);
+    [-0.85,0.85].forEach(x=>{ const l=new THREE.Mesh(new THREE.CircleGeometry(0.13,12),hl); l.position.set(x,1.75,(Lc-3.2)/2+1.45); l.rotation.x=-0.35; car.add(l); }); { const l=new THREE.Mesh(new THREE.CircleGeometry(0.11,12),hl); l.position.set(0,3.8,(Lc-3.2)/2+0.45); l.rotation.x=-0.62; car.add(l); }
+    /* Heck = Übergang zum zweiten Wagen */ box(W-0.4,2.9,1.6,0,2.4,-(Lc-3.2)/2-0.6,dark);
+    [-1,1].forEach(u=>{ box(2.4,0.7,2.8,0,0.55,u*(Lc/2-4.2),dark); [-1,1].forEach(sd=>[-0.9,0.9].forEach(o=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(0.43,0.43,0.14,14),grey); w.rotation.z=Math.PI/2; w.position.set(sd*0.72,0.43,u*(Lc/2-4.2)+o); car.add(w); })); });
+    /* je Material ein Netz (wenige Draw Calls) */ const byM=new Map(); car.children.slice().forEach(m=>{ if (!m.isMesh) return; m.updateMatrix(); let a=byM.get(m.material); if (!a) byM.set(m.material,a=[]); a.push([m.geometry,m.matrix.clone()]); });
+    const out=new THREE.Group(); byM.forEach((L,mat)=>{ const g=mergeGeo(L); g.computeBoundingSphere(); const m=new THREE.Mesh(g,mat); m.castShadow=mat!==hl&&mat!==tl&&mat!==glass; m.receiveShadow=true; out.add(m); });
+    this._dbm=out; return out.clone(); },
+  dbSpawn(P,cross){ const R=Math.random; let li=-1, s=0, dir=1;
+    if (cross){ li=cross.li; const l=this.lines[li], eta=cross.eta; dir=R()<0.5?1:-1; for (let tr=0;tr<2;tr++){ const ee=Math.max(eta,20); s=cross.s-dir*(22*ee+40); if (s>30 && s<l.L-30) break; dir=-dir; s=cross.s-dir*(22*ee+40); } if (s<30||s>l.L-30) return false; }
+    else { const n=this.near(P.x,P.z,300,'s'); if (n.d>280 || this.lines[n.li].side) return false; li=n.li; const l=this.lines[li], s0=l.cum[n.i]; dir=R()<0.5?1:-1; s=s0-dir*(900+R()*300); if (s<30||s>l.L-30){ dir=-dir; s=s0-dir*(900+R()*300); if (s<30||s>l.L-30) return false; } }
+    const l=this.lines[li], T={li, l, s, dir, v:22, vmax:22, cars:[], t:0, len:51}; for (let k=0;k<2;k++){ const o=this.dbModel(); if (k===1) o.rotation.order='YXZ'; this.grp.add(o); T.cars.push({o,len:25,rev:k===1}); } this.dbT=T; return true; },
+  dbKill(){ const T=this.dbT; if (!T) return; if (T.au){ try{ T.au.g.gain.setTargetAtTime(0,AMB.ctx.currentTime,0.1); T.au.s.stop(AMB.ctx.currentTime+0.5); T.au.o.stop(AMB.ctx.currentTime+0.5); }catch(e){} } T.cars.forEach(c=>this.grp.remove(c.o)); this.dbT=null; },
+  dbStep(dt,P){ this.dbCd=(this.dbCd||0)-dt; this.dbChk=(this.dbChk||0)-dt;
+    if (!this.dbT && this.dbChk<=0 && S.running){ this.dbChk=4; this.dbTried=this.dbTried||new Set();
+      /* Bahnübergang voraus auf der Route? */ let cross=null; try{ const v=Math.max(4,(typeof S!=='undefined'&&S.speed)||6); for (let d=60; d<=520 && !cross; d+=20){ const q=posAt(S.dist+(S.dir||1)*d); for (const c of this.lcs){ if (!c.V || this.lines[c.li].side) continue; if (Math.hypot(c.x-q.x,c.z-q.z)<12){ cross={li:c.li,s:c.s,eta:d/v,V:c.V}; break; } } } }catch(e){}
+      if (cross && !this.dbTried.has(cross.V) && this.dbCd<=0){ this.dbTried.add(cross.V); setTimeout(()=>this.dbTried&&this.dbTried.delete(cross.V),240000); if (window.DB_FORCE || Math.random()<0.45){ if (this.dbSpawn(P,cross)) this.dbCd=150; } }
+      else if (this.dbCd<=0 && Math.random()<(window.DB_FORCE?1:0.04)){ if (this.dbSpawn(P,null)) this.dbCd=200; } }
+    if (this.dbVis && this.dbVis.length) this.dbVisStep(dt,P);
+    const T=this.dbT; if (!T) return; T.t+=dt; T.s+=T.dir*T.v*dt; const l=T.l;
+    if (T.s<3 || T.s>l.L-3){ this.dbKill(); return; }
+    let off=0; T.cars.forEach(c=>{ const sc=T.s-T.dir*(off+c.len/2), a=this.at(l,sc+c.len*0.35), b=this.at(l,sc-c.len*0.35); off+=c.len+0.4;
+      c.o.position.set((a.x+b.x)/2,(a.y+b.y)/2+0.17,(a.z+b.z)/2); let hx=(a.x-b.x)*T.dir, hz=(a.z-b.z)*T.dir; if (c.rev){ hx=-hx; hz=-hz; } c.o.rotation.set(0,Math.atan2(hx,hz),0); c.o.rotateX(-Math.atan2((a.y-b.y)*T.dir*(c.rev?-1:1), Math.hypot(hx,hz))); });
+    const L0=T.cars[0].o.position, dist=Math.hypot(L0.x-P.x,L0.z-P.z); this.dbSound(T,dist,dt); if (T.t>25 && dist>1200) this.dbKill(); },
+  dbSound(T,dist,dt){ const A=typeof AMB!=='undefined'?AMB:null; if (!A||!A.ctx||!A.master||!A.noise) return; const c=A.ctx, cv=A.vol.sndTraffic??0.6, play=A.on!==false&&S.running;
+    if (!T.au && play){ try{ const s=c.createBufferSource(); s.buffer=A.noise; s.loop=true; const f=c.createBiquadFilter(); f.type='lowpass'; f.frequency.value=500; const g=c.createGain(); g.gain.value=0; const o=c.createOscillator(); o.type='sawtooth'; o.frequency.value=48; const of=c.createBiquadFilter(); of.type='lowpass'; of.frequency.value=200; const og=c.createGain(); og.gain.value=0.25; o.connect(of); of.connect(og); og.connect(f);
+        const L0=T.cars[0].o.position, q=A.p3?A.p3(L0.x,L0.y+2,L0.z):null; s.connect(f); if (q){ f.connect(q); q.connect(g); } else f.connect(g); g.connect(A.master); s.start(0,Math.random()*3); o.start(); T.au={s,o,f,g,q}; }catch(e){ T.au={}; } }
+    if (T.au && T.au.g){ const t=c.currentTime; if (T.au.q){ const L0=T.cars[0].o.position; A.p3set(T.au.q,L0.x,L0.y+2,L0.z); } T.au.g.gain.setTargetAtTime(play?Math.min(1,45/(dist+15))*cv*0.9:0,t,0.12); T.au.f.frequency.setTargetAtTime(400+5000*Math.min(1,Math.pow(30/(dist+10),1.2)),t,0.15); }
+    /* Schienenstöße: Doppelklack je Drehgestell */ T.clk=(T.clk||0)-dt; if (T.clk<=0 && play && dist<260){ T.clk=0.55+Math.random()*0.5; const t0=c.currentTime+0.01, vol=Math.min(1,30/(dist+10))*cv*0.6; [0,0.11].forEach(dd=>{ const n=c.createBufferSource(), L=Math.floor(c.sampleRate*0.05), b=c.createBuffer(1,L,c.sampleRate), d=b.getChannelData(0); for (let i=0;i<L;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/L,3); n.buffer=b; const f=c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=900; const g=c.createGain(); g.gain.value=vol; n.connect(f); f.connect(g); g.connect(A.master); n.start(t0+dd); }); }
+    /* Signalhorn vor Übergängen ohne Schranken */ T.hn=T.hn||new Set(); for (const q of this.lcs){ if (q.li!==T.li || T.hn.has(q) || !q.V) continue; const dTr=(q.s-T.s)*T.dir; if (dTr>250 && dTr<330){ T.hn.add(q); if (q.V.t>=4 && play && dist<1500) this.dbHorn(Math.min(1,120/(dist+40))*cv); } } },
+  dbHorn(vol){ const A=AMB, c=A.ctx, t0=c.currentTime+0.02, g=c.createGain(); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol*0.22,t0+0.05); g.gain.setValueAtTime(vol*0.22,t0+1.1); g.gain.linearRampToValueAtTime(0,t0+1.3); g.connect(A.master);
+    [[370,0],[311,0.65]].forEach(([fq,dt0])=>{ const o=c.createOscillator(); o.type='sawtooth'; o.frequency.value=fq; const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1500; const og=c.createGain(); og.gain.setValueAtTime(0,t0); og.gain.setValueAtTime(1,t0+dt0); og.gain.setValueAtTime(0,t0+dt0+0.6); o.connect(lp); lp.connect(og); og.connect(g); o.start(t0); o.stop(t0+1.4); }); },
   step(dt){ if (!this.grp || typeof me==='undefined' || !me.g) return; if (!this._tr && GT.mat) try{ this.trench(); }catch(e){ this._tr=true; console.warn('zsb trench',e); } const P=me.g.position;
     /* Gleise nur im Umkreis zeigen */
     if ((this._cT=(this._cT||0)-dt)<=0){ this._cT=0.5; const R=GFX_BUILD_R>=260?700:450, Cp=(typeof camera!=="undefined"&&camera)?camera.position:P; this.chunks.forEach(c=>{ const p=c.userData.c; c.visible=Math.hypot(p.x-Cp.x,p.z-Cp.z)<R; }); }
-    this.trainStep(dt, P); },
+    if (this._lcT===undefined || (this._lcT-=dt)<=0){ this._lcT=0.7; (this.dbVis||[]).forEach(V=>{ const Cp=(typeof camera!=="undefined"&&camera)?camera.position:P; V.G.visible=Math.hypot(V.x-Cp.x,V.z-Cp.z)<650; }); }
+    this.trainStep(dt, P); try{ this.dbStep(dt,P); }catch(e){ if (!window._dbErr){ window._dbErr=1; console.warn('db',e); } } },
   /* Zug: Lok + Wagen, ca. 25 km/h, sehr selten (Hicore) */
-  spawn(P, fx){ let l, s, dir; if (fx){ l=this.lines[fx.li]; s=fx.s; dir=fx.dir; } else { const n=this.near(P.x,P.z,260); if (n.d>220) return false; l=this.lines[n.li]; const s0=l.cum[n.i]; dir=Math.random()<0.5?1:-1; s=s0-dir*(380+Math.random()*120); if (s<20 || s>l.L-20){ dir=-dir; s=s0-dir*(380+Math.random()*120); if (s<20 || s>l.L-20) return false; } }
+  spawn(P, fx){ let l, s, dir; if (fx){ l=this.lines[fx.li]; s=fx.s; dir=fx.dir; } else { const n=this.near(P.x,P.z,260,'n'); if (n.d>220) return false; l=this.lines[n.li]; const s0=l.cum[n.i]; dir=Math.random()<0.5?1:-1; s=s0-dir*(380+Math.random()*120); if (s<20 || s>l.L-20){ dir=-dir; s=s0-dir*(380+Math.random()*120); if (s<20 || s>l.L-20) return false; } }
     const T={l, s, dir, v:0, vmax:25/3.6, cars:[], t:0, whT:2+Math.random()*3}; const spec=[['zsb_lok',10.2],['zsb_gruen',10.6],['zsb_gruen',10.6],['zsb_rot',11.2]];
     spec.forEach(([m,len])=>{ const o=propObject(m); if (!o) return; this.grp.add(o); T.cars.push({o,len}); }); if (!T.cars.length) return false;
     T.smoke=[]; if (!this.smTex){ const cv=document.createElement('canvas'); cv.width=cv.height=64; const x=cv.getContext('2d'), gr=x.createRadialGradient(32,32,2,32,32,31); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.5,'rgba(240,240,240,0.55)'); gr.addColorStop(1,'rgba(230,230,230,0)'); x.fillStyle=gr; x.fillRect(0,0,64,64); this.smTex=new THREE.CanvasTexture(cv); } const sm=new THREE.SpriteMaterial({map:this.smTex, color:0xf2f2f2, transparent:true, opacity:0.5, depthWrite:false}); for (let i=0;i<(LITE?40:90);i++){ const sp=new THREE.Sprite(sm.clone()); sp.visible=false; sp.renderOrder=3; this.grp.add(sp); T.smoke.push({sp,a:0,v:new THREE.Vector3()}); }
@@ -10594,7 +10706,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -10663,14 +10775,14 @@ async function start(){
     if (window.__resume){ const r=window.__resume; window.__resume=null; try{ Object.assign(S,r.S); track=r.track||[]; rideStart=r.rs||null; lastLapDist=r.ll||0; if (S.dist>=L) S.dist=0; snapCam=true; toast('Fahrt fortgesetzt: '+((S.odo||S.dist)/1000).toFixed(2)+' km'); }catch(e){ console.warn('resume',e); } }
   }
   $('menu').style.display='none'; $('simbox').style.display=S.sim?'flex':'none';
-  try{ TRAFFIC.reset(); ZSB.kill(); ZSB.nextT=60+Math.random()*60; ZSB.cd=0; }catch(e){}
+  try{ TRAFFIC.reset(); ZSB.kill(); ZSB.dbKill(); ZSB.nextT=60+Math.random()*60; ZSB.cd=0; ZSB.dbCd=0; }catch(e){}
   S.running=true; S.paused=false; $('bPause').classList.remove('on'); $('bGo').textContent='Losfahren';
   try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
 }
 function endRide(){
   if (!S.running) return; try{ localStorage.removeItem('hicoreRide.resume'); }catch(e){}
   captureShot();
-  try{ TRAFFIC.act.slice().forEach(c=>TRAFFIC.kill(c)); ZSB.kill(); }catch(e){}
+  try{ TRAFFIC.act.slice().forEach(c=>TRAFFIC.kill(c)); ZSB.kill(); ZSB.dbKill(); }catch(e){}
   S.running=false; S.paused=false; $('bPause').classList.remove('on');
   const km=(S.odo||S.dist)/1000, before=totalKm; totalKm+=km; store.set('totalKm', totalKm);
   const avg=S.time>0?Math.round(S.energy/S.time):0;
@@ -10832,7 +10944,7 @@ function frame(now){
       else if (F.cap && now>F.next){ F.cap=false; F.probe=true; }
       else if (F.probe){ F.probe=false; if (fps<54){ F.cap=true; F.next=now+90000; } } } } }
   if (window.LOADT && LOADT.ff){ const L=LOADT; L.ff=0; const tot=(performance.now()-L.t0)/1000; try{ toast('Geladen in '+tot.toFixed(1)+' s (Welt '+(L.b/1000).toFixed(1)+' s, Shader '+((L.c||0)/1000).toFixed(1)+' s, erstes Bild '+((L.w||0)/1000).toFixed(1)+' s)'); }catch(e){} }
-  if (FRN<=60){ FRN++; if (FRN===1||FRN===2||FRN===10||FRN===60) STG('Bild '+FRN+(window.glbRiderReady?' mit Fahrer':'')); }
+  window.FRC=(window.FRC||0)+1; if (FRN<=60){ FRN++; if (FRN===1||FRN===2||FRN===10||FRN===60) STG('Bild '+FRN+(window.glbRiderReady?' mit Fahrer':'')); }
   const dt=Math.min(0.1,(now-last)/1000); last=now;
   if (S.running) S.segT=(S.segT||0)+dt;   /* 0.9.10 (Hicore): Wertungszeit läuft auch in der Pause gnadenlos weiter */
   const active = S.running && !S.paused;
@@ -10854,7 +10966,7 @@ function frame(now){
     if (!S.ut){ const vm=curveVmax(); if (meP.v>vm) meP.v=Math.max(vm, meP.v-5*dt); }   /* 0.9.5: vor engen Kurven/Abbiegungen von selbst bremsen */
     if (S.ut){ meP.v=Math.min(meP.v,5); S.ut.t+=dt; if (S.ut.t>=S.ut.D){ S.ut=null; if (NET && NET.graph && (S.dir||1)<0) try{ gReverse(); }catch(e){ console.warn('wenden',e); } } }
     if (TRAFFIC.hold) meP.v=Math.max(0, meP.v-(TRAFFIC.hold>1?6:2.6)*dt);
-    if (ZSB.hold) meP.v=Math.max(0, meP.v-3.2*dt);   /* Schmalspurbahn hat Vorrang am Bahnübergang */   /* Polizei bremst den Fahrer aus */
+    if (ZSB.hold || ZSB.holdS) meP.v=Math.max(0, meP.v-3.2*dt);   /* Schmalspurbahn hat Vorrang am Bahnübergang */   /* Polizei bremst den Fahrer aus */
     S.speed = meP.v; if (!S.ut) S.dist += (S.dir||1)*meP.v*dt; S.odo = (S.odo||0) + meP.v*dt; S.time += dt; S.energy += S.power*dt;
     if (S.dist<0) S.dist+=L;
     netStep();
