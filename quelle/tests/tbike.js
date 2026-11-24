@@ -3,7 +3,7 @@ const {chromium}=require('playwright'); const serve=require('./serve');
 (async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']}); const W=+(process.env.W||900), H=+(process.env.H||620);
  const ctx=await b.newContext({viewport:{width:W,height:H}}); await serve(ctx);
  const p=await ctx.newPage(); p.on('pageerror',e=>console.log('PE',e.message)); p.on('console',m=>{ if (m.type()==='error'||m.type()==='warning') console.log('C',m.text().slice(0,200)); });
- const t0=Date.now(); await p.goto('http://127.0.0.1:8765/index.html?gl=1'+(process.env.QS||'')); await p.waitForFunction(()=>window.glbRiderReady && GPU_READY,null,{timeout:800000});
+ const t0=Date.now(); await p.addInitScript(s=>{ window.__STAND=s; }, process.env.STAND||'0'); await p.goto('http://127.0.0.1:8765/index.html?gl=1'+(process.env.QS||'')); await p.waitForFunction(()=>window.glbRiderReady && GPU_READY,null,{timeout:800000});
  console.log('bereit', (Date.now()-t0)/1000);
  await p.evaluate(()=>{ const cv=renderer.domElement; document.querySelectorAll('body *').forEach(e=>{ if(e!==cv && !e.contains(cv)) e.style.visibility='hidden'; }); cv.style.visibility='visible'; cv.style.zIndex=99999;
    const st=new THREE.Scene(); st.background=new THREE.Color(0xc8d4de); scene.remove(me.g); st.add(me.g); me.g.position.set(0,0,0); me.g.rotation.set(0,0,0);
@@ -14,7 +14,7 @@ const {chromium}=require('playwright'); const serve=require('./serve');
  const CAM={ side:[[3.6,0.95,0.1],[0,0.85,0.05]], side2:[[-3.6,0.95,0.1],[0,0.85,0.05]], q34:[[2.6,1.5,2.6],[0,0.8,0.1]], front:[[0,1.15,3.4],[0,0.95,0.2]], top:[[0.01,3.2,0.6],[0,0.8,0.45]],
    hands:[[0.9,1.25,1.25],[0.1,0.9,0.5]], handsF:[[0,1.05,1.45],[0,0.9,0.5]], back:[[1.5,1.4,-2.6],[0,0.8,0]] };
  for (const bk of bikes) for (const gi of grips){
-   const ok=await p.evaluate(([bk,gi,STOP,DRINK])=>{ if (window.setRiderBike) setRiderBike(me,bk); window.GRIP_FORCE=gi; window.STOP_FORCE=+(STOP||0); if (DRINK){ GEST.id="drink"; GEST.t=+DRINK; GEST.dur=4.6; S.running=true; } for (let i=0;i<40;i++) animRider(me, 85, 8, 0.05, 200); return !!me.g; },[bk,gi,process.env.STOP,process.env.DRINK]);
+   const ok=await p.evaluate(([bk,gi,STOP,DRINK])=>{ if (window.setRiderBike) setRiderBike(me,bk); window.GRIP_FORCE=gi; window.STOP_FORCE=+(STOP||0); if (DRINK){ GEST.id="drink"; GEST.t=+DRINK; GEST.dur=4.6; S.running=true; } const ST=+(window.__STAND||0); if (ST) me.gr=0.13; for (let i=0;i<40;i++) animRider(me, ST?70:85, ST?3:8, 0.05, ST?260:200); return !!me.g; },[bk,gi,process.env.STOP,process.env.DRINK]);
    for (const v of views){ await p.evaluate(([c])=>{ _SC.position.set(...c[0]); _SC.lookAt(...c[1]); renderer.setRenderTarget(null); renderer.render(_ST,_SC); },[CAM[v]]);
      await p.waitForTimeout(300); await p.screenshot({path:(process.env.OUT||'.')+`/${bk}_${gi}_${v}.jpg`,quality:88}); console.log('bild',bk,gi,v); }
  }

@@ -22,7 +22,7 @@ body.hHud .hud,body.hSide .side,body.hProf .prof,body.hBoard .board,body.hCtrl .
 #bGest{position:fixed;right:122px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bGest:hover{opacity:1}#gestMenu{position:fixed;right:12px;top:50px;z-index:8;display:none;flex-direction:column;gap:4px;padding:8px;border-radius:12px;background:rgba(13,17,23,.88);border:1px solid var(--line);min-width:210px}#gestMenu button{text-align:left;padding:7px 10px;border-radius:8px;border:0;background:rgba(255,255,255,.07);color:#fff;font-size:14px}#gestMenu button:hover{background:rgba(255,255,255,.18)}#gestMenu small{opacity:.6;font-size:11px;margin:4px 2px 0}#sayBub{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:9;display:none;background:#fff;color:#111;font:700 20px/1.3 system-ui,sans-serif;padding:10px 18px;border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
 #bKeys{position:fixed;right:232px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75;display:none}#bKeys:hover{opacity:1}body.kbd #bKeys{display:block}#keysBox{position:fixed;right:12px;top:50px;z-index:8;display:none;padding:12px 16px;border-radius:12px;background:rgba(13,17,23,.9);border:1px solid var(--line);color:#fff;font:14px/1.5 system-ui,sans-serif;min-width:260px}#keysBox b{display:inline-block;min-width:74px;padding:0 6px;margin:2px 8px 2px 0;border-radius:6px;background:rgba(255,255,255,.14);text-align:center;font-weight:700}#keysBox h4{margin:2px 0 6px;font-size:14px;opacity:.8}
 #bHud{position:fixed;right:12px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bHud:hover{opacity:1}
-#junc{display:none;position:fixed;left:50%;top:124px;transform:translateX(-50%);z-index:6;background:rgba(13,17,23,.62);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px 6px;color:#fff;text-align:center;max-width:min(430px,92vw);backdrop-filter:blur(3px)}#junc .jt{font-weight:600;font-size:12px;margin-bottom:4px;opacity:.9}#junc .jb{display:flex;gap:5px;justify-content:center}#junc button{flex:1 1 0;min-width:0;max-width:200px;padding:4px 8px;font-size:13px;font-weight:700;border-radius:7px;border:1.5px solid rgba(255,255,255,.18);background:rgba(27,35,45,.75);color:#fff;display:flex;flex-direction:column;align-items:center;gap:1px}#junc button small{font-size:10px;font-weight:400;opacity:.75;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#junc button.on{border-color:#ff7a1a;background:rgba(58,36,20,.85)}
+#junc{display:none;position:fixed;left:50%;top:124px;transform:translateX(-50%);z-index:6;background:rgba(13,17,23,.62);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px 6px;color:#fff;text-align:center;max-width:min(430px,92vw);backdrop-filter:blur(3px)}#junc .jt{font-weight:600;font-size:12px;margin-bottom:4px;opacity:.9}#junc .jb{display:flex;gap:5px;justify-content:center}#junc button{flex:1 1 0;min-width:0;max-width:200px;padding:4px 8px;font-size:13px;font-weight:700;border-radius:7px;border:1.5px solid rgba(255,255,255,.18);background:rgba(27,35,45,.75);color:#fff;display:flex;flex-direction:column;align-items:center;gap:1px}#junc button small{font-size:10px;font-weight:400;opacity:.75;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#junc button.on{border-color:#ff7a1a;background:rgba(58,36,20,.85)}#junc.jmin{opacity:.7;transform:translateX(-50%) scale(.8);transform-origin:50% 0}
 .side{position:fixed;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .side .tile{min-width:120px;text-align:left}
 .side .tile .v{font-size:20px}
@@ -5429,7 +5429,20 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
     const scl=ly2=>T.select(ly2.lessThan(0.5),float(3.0),T.select(ly2.lessThan(1.5),float(1.3),T.select(ly2.lessThan(2.5),float(1.6),T.select(ly2.lessThan(3.5),float(3.2),float(2.4)))));
     const qm=vec2(uvv.x.mul(wl.z).add(wl.w.mul(7.3)), uvv.y.add(wl.w.mul(13.1))), F=448.0/1536.0, O=32.0/1536.0;
     const samp=ly2=>{ const q=qm.div(scl(ly2)), cx=T.mod(ly2,3.0), cy=T.floor(ly2.div(3.0)), base=vec2(cx,cy).div(3.0).add(O); return texture(A, base.add(T.fract(q).mul(F))).grad(T.dFdx(q).mul(F), T.dFdy(q).mul(F)).rgb; };
-    let c=samp(ly).mul(T.select(ly.greaterThan(3.5),vec3(0.80),vec3(0.95)));
+    const samp2=ly2=>{ const q=T.mat2(0.8,-0.6,0.6,0.8).mul(qm).div(scl(ly2).mul(2.37)).add(vec2(0.37,0.61)), cx=T.mod(ly2,3.0), cy=T.floor(ly2.div(3.0)), base=vec2(cx,cy).div(3.0).add(O); return texture(A, base.add(T.fract(q).mul(F))).grad(T.dFdx(q).mul(F), T.dFdy(q).mul(F)).rgb; };
+    /* 0.16.1 (Hicore): Kachelwiederholung brechen. Zweite Abtastung (gedreht, anderer Maßstab) nach Welt-Rauschen eingemischt, darüber großflächige Helligkeitsflecken,
+       auf Asphalt/Beton zusätzlich Flickstellen, feine Risse und leicht dunklere Fahrspuren (alles prozedural, keine Downloads). Aus: window.NO_WAYVAR */
+    const VAR=!window.NO_WAYVAR, wn1=H.vnz(P.mul(0.11).add(vec2(3.1,7.7))), wn2=H.vnz(P.mul(0.043).add(vec2(11.3,2.9)));
+    let c0=samp(ly); if (VAR) c0=mix(c0, samp2(ly), smoothstep(0.25,0.75,wn1).mul(0.7).add(0.15));
+    let c=c0.mul(T.select(ly.greaterThan(3.5),vec3(0.80),vec3(0.95)));
+    if (VAR){ const pav=ly.lessThan(3.5).and(T.abs(ly.sub(1.0)).greaterThan(0.5)), acx=T.abs(uvv.x.sub(0.5)).mul(2.0);
+      c=c.mul(wn2.mul(0.22).add(0.89)).mul(H.vnz(P.mul(0.27).add(vec2(5.0,1.0))).mul(0.10).add(0.95));
+      const patch=smoothstep(0.70,0.73,H.vnz(P.mul(0.09).add(vec2(17.0,4.0)))).mul(T.select(pav,float(1.0),float(0.0)));
+      c=mix(c, c.mul(vec3(0.70,0.71,0.73)), patch);
+      const ck=float(1.0).sub(smoothstep(0.0,0.018,T.abs(H.vnz(P.mul(0.42).add(vec2(9.0,23.0))).sub(0.5)))).mul(smoothstep(0.55,0.75,H.vnz(P.mul(0.06).add(vec2(1.0,31.0))))).mul(T.select(pav,float(1.0),float(0.0)));
+      c=c.mul(float(1.0).sub(ck.mul(0.45)));
+      const trk=smoothstep(0.22,0.0,T.abs(acx.sub(0.5))).mul(T.select(pav,float(0.07),float(0.0)));
+      c=c.mul(float(1.0).sub(trk)); }
     c=T.select(T.abs(ly.sub(7.0)).lessThan(0.5), c.mul(vec3(0.6,0.56,0.47)), c);
     c=T.select(T.abs(ly.sub(2.0)).lessThan(0.5), mix(c, vec3(dot(c,vec3(0.3,0.59,0.11))).mul(1.05), 0.65), c);   /* Verbundpflaster: eher grau als rötlich */   /* Waldboden: dunkler, weniger Orange */
     const ac=T.abs(uvv.x.sub(0.5)).mul(2.0), nz=H.vnz(P.mul(1.3)).mul(0.6).add(H.vnz(P.mul(4.1)).mul(0.4));
@@ -6104,7 +6117,10 @@ function planGraphNet(def){ const D=gnData(); const main={pts,cum,L,segs:[{s0:0,
     if (ROADMARK) for (let i=0;i<N;i++){ const R=gnRBAt(pts[i].x,pts[i].z,1.5); if (R){ ROADMARK[i]=0; SHW[i]=0.1; } } }
   const C=16, h=new Map(); XR.forEach((r,k)=>{ for (let i=0;i<r.P.length-1;i++){ const a=r.P[i], b=r.P[i+1]; const x0=Math.floor(Math.min(a.x,b.x)/C), x1=Math.floor(Math.max(a.x,b.x)/C), z0=Math.floor(Math.min(a.z,b.z)/C), z1=Math.floor(Math.max(a.z,b.z)/C);
     for (let x=x0;x<=x1;x++) for (let z=z0;z<=z1;z++){ const kk=hashKey(x,z); let l=h.get(kk); if(!l) h.set(kk,l=[]); l.push([k,i]); } } }); XH={C,h};
-  if (JUNC){ main.ents.forEach(en=>{ if ((D.adj[en.n0]||[]).length<3) return; const ci=idxAt(en.r0)[0], R=XW/2+6; for (let o=0;o<N;o++){ const j=(ci+o)%N; let dd=cum[j]-cum[ci]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } for (let o=1;o<N;o++){ const j=(ci-o+N)%N; let dd=cum[ci]-cum[j]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } }); for (let i=0;i<N;i++) if (gnRBAt(pts[i].x,pts[i].z,6)) JUNC[i]=1; smoothArr(JUNC,2,2); }
+  if (JUNC){ main.ents.forEach(en=>{ if ((D.adj[en.n0]||[]).length<3) return; const ci=idxAt(en.r0)[0], R=XW/2+6; for (let o=0;o<N;o++){ const j=(ci+o)%N; let dd=cum[j]-cum[ci]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } for (let o=1;o<N;o++){ const j=(ci-o+N)%N; let dd=cum[ci]-cum[j]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } }); for (let i=0;i<N;i++) if (gnRBAt(pts[i].x,pts[i].z,6)) JUNC[i]=1;
+    /* 0.16.1: auch an Einmündungen von Wegen/Nebenstraßen kein Graben und keine Leitpfosten (Weg läuft durchgehend bis an die Fahrbahn) */
+    try{ const RG=gnRG(), AW=RG.adjW||[]; main.ents.forEach(en=>{ const a=AW[en.n0]; if (!a || !a.some(k=>{ const K=RG.edges[k]; return K.kind && K.kind!=='r'; })) return; const ci=idxAt(en.r0)[0], R=5; for (let o=0;o<N;o++){ const j=(ci+o)%N; let dd=cum[j]-cum[ci]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } for (let o=1;o<N;o++){ const j=(ci-o+N)%N; let dd=cum[ci]-cum[j]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } }); }catch(e){ console.warn('junc wege',e); }
+    smoothArr(JUNC,2,2); }
   NET={main, cur:main, junc:[], graph:true, pick:null, pend:null, appl:new Set(), rc:{'':main}}; }
 /* 0.10.5 (Hicore): Fahrbahnbreite je Strecke. Vorher galt nach dem Abbiegen weiter die Breite der Hauptrunde -> Fahrer fuhr auf schmalen Straßen auf dem Bankett */
 function useCourse(c){ pts=c.pts; cum=c.cum; L=c.L;
@@ -6451,21 +6467,25 @@ let BIKE=(()=>{ try{ const v=JSON.parse(localStorage.getItem('hicoreRide.bike'))
 const SURF_DE=['Asphalt','Kopfsteinpflaster','Pflaster','Beton','Schotter','Feinschotter','Schotter grob','Erde','Gras','Sand','Fels','Holz','unbefestigt','befestigt'];
 /* Rollwiderstand je Untergrund (Index wie WAY_SURF) für [Rennrad, Gravel, MTB] (Hicore 24.11.): Asphalt Rennrad < Gravel < MTB; Schotter/Feldweg Gravel vor MTB knapp dahinter;
    grobe Pfade, Wurzeln, Fels: MTB vorn, Gravel deutlich langsamer. Schätzwerte aus Rollwiderstandsmessungen (Reifenbreite/Druck), keine Messung im Spiel. */
-const BIKE_CRR=[[.004,.0055,.008],[.014,.011,.011],[.007,.008,.010],[.0045,.006,.0085],[.012,.0075,.0085],[.013,.008,.009],[.020,.010,.011],[.026,.013,.012],[.035,.020,.016],[.060,.035,.026],[.045,.030,.016],[.006,.007,.009],[.018,.010,.011],[.005,.0065,.0085]];
+/* 0.16.1 (Hicore): grober Untergrund merklich langsamer (wirksamer Rollwiderstand inkl. Erschütterung). Spalten Rennrad/Gravel/MTB, Zeilen = sf (siehe WAY_SURF). Ca. 200 W, flach: Rennrad Asphalt 34 km/h, Gravel Schotter 25, Feldweg Erde 23, Waldweg 21, Wiese 19, Waldpfad 15–19, Fels-Pfad 11–18 */
+const BIKE_CRR=[[.004,.006,.008],[.016,.013,.012],[.007,.008,.010],[.0045,.0065,.0085],[.016,.012,.013],[.018,.015,.016],[.030,.022,.022],[.035,.026,.024],[.050,.040,.034],[.080,.060,.045],[.060,.050,.035],[.006,.007,.009],[.028,.022,.021],[.005,.0065,.0085]];
 const ROOT_CRR=[.09,.075,.028];
 function bikeIx(){ return BIKE==='gravel'?1:BIKE==='mtb'?2:0; }
 function gEdgeCrr(E){ const b=bikeIx(); if (!E || E.kind==='r' || E.sf==null) return BIKE_CRR[0][b]; let c=(BIKE_CRR[E.sf]||BIKE_CRR[12])[b];
-  if (E.kind==='w' && (E.c===11||E.c===14) && [7,8,10,12].indexOf(E.sf)>=0) c*=[1.3,1.5,0.95][b];   /* schmaler Pfad: Gravel deutlich langsamer, MTB im Vorteil */
+  if (E.kind==='w' && (E.c===11||E.c===14) && [7,8,10,12].indexOf(E.sf)>=0) c*=[1.3,1.6,1.2][b];   /* schmaler Pfad: Gravel deutlich langsamer, MTB im Vorteil */
+  if (E.kind==='w' && [7,12].indexOf(E.sf)>=0){ if (E.fo==null){ const xz=E.xz||[], m=(xz.length/4|0)*2; E.fo=xz.length?gnForest(xz[m],xz[m+1]):0; } if (E.fo) c*=1.3; }   /* 0.16.1: Waldboden (Laub, Wurzeln, weich) */
   return c; }
 function gAdj(R){ R=R||gnRG(); if (!R) return []; const m=window.GADJ||(BIKE==='road'?'S':'W'); return m==='R'?R.adjR:m==='S'?R.adjS:R.adjW; }
 function gAdjKey(){ return window.GADJ||(BIKE==='road'?'S':'W'); }
-function gNodeY(n){ if (n.y==null) n.y=terrainH(n.x,n.z)+0.08; return n.y; }
+/* 0.16.1 (Hicore): Wege/Nebenstraßen nahe einer Straße auf Fahrbahnhöhe anheben (über Bankett, Graben und Grasrand bis an die Fahrbahn), nach 9 m wieder Gelände. Gilt für Optik und Fahrlinie. */
+function wayLiftY(x,z,base){ if (window.NO_WAYLIFT || !(WORLD&&WORLD.graph&&GN.d)) return base; const n=gnNear(x,z,14); if (n.k<0) return base; const o=n.d-n.w/2; if (o>=9) return base; const t=smooth01(Math.max(0,o)/9); return Math.max(base, (n.y+0.04)*(1-t)+base*t); }
+function gNodeY(n){ if (n.y==null) n.y=wayLiftY(n.x,n.z,terrainH(n.x,n.z)+0.08); return n.y; }
 /* Punkte eines Weg-Stücks erst bei Bedarf (Höhe aus dem Gelände wie das Wege-Netz, an Straßen auf Fahrbahnhöhe übergeblendet, Brücken gerade) */
 function rgPts(E){ const R=GN.rg, xz=E.xz, n=xz.length/2, Q=[]; for (let i=0;i<n;i++){ const x=xz[2*i], z=xz[2*i+1]; if (i){ const px=xz[2*i-2], pz=xz[2*i-1], l=Math.hypot(x-px,z-pz), m=Math.ceil(l/6); for (let k=1;k<m;k++) Q.push([px+(x-px)*k/m, pz+(z-pz)*k/m]); } Q.push([x,z]); }
   const na=R.nodes[E.a], nb=R.nodes[E.b], ya=gNodeY(na), yb=gNodeY(nb), s=[0]; for (let i=1;i<Q.length;i++) s.push(s[i-1]+Math.hypot(Q[i][0]-Q[i-1][0],Q[i][1]-Q[i-1][1])); const T=s[s.length-1]||1;
   const P=Q.map(([x,z],i)=>new THREE.Vector3(x, E.br?ya+(yb-ya)*s[i]/T:terrainH(x,z)+0.08, z));
   if (!E.br){ for (let it=0;it<2;it++){ const y=P.map(p=>p.y); for (let i=1;i<P.length-1;i++) P[i].y=(y[i-1]+2*y[i]+y[i+1])/4; }
-    P.forEach((p,i)=>{ if (na.road){ const w=clamp(s[i]/10,0,1); p.y=ya*(1-w)+p.y*w; } if (nb.road){ const w=clamp((T-s[i])/10,0,1); p.y=yb*(1-w)+p.y*w; } }); }
+    P.forEach((p,i)=>{ p.y=wayLiftY(p.x,p.z,p.y); if (na.road){ const w=clamp(s[i]/10,0,1); p.y=ya*(1-w)+p.y*w; } if (nb.road){ const w=clamp((T-s[i])/10,0,1); p.y=yb*(1-w)+p.y*w; } }); }
   P[0].y=ya; P[P.length-1].y=yb; return P; }
 class RGE{ constructor(o){ Object.assign(this,o); this._P=null; } get P(){ return this._P||(this._P=rgPts(this)); } set P(v){ this._P=v; } }
 function gnRG(){ const D=gnData(); if (!D) return null; if (GN.rg && GN.rg.D===D) return GN.rg; const t0=performance.now();
@@ -7079,10 +7099,12 @@ function gtSideIdx(){ if (SIDE_IDX) return SIDE_IDX; SIDE_IDX=new Map(); if (!wi
   /* Stücke auf befahrbaren Straßen fallen weg, an Kachelgrenzen und bei Wechsel der Atlas-Kachel (z. B. Waldrand) wird geteilt */
   const cut=(P,ww,sf,lyF,rut,fine,seg)=>{ const Q=[]; for (let j=0;j<P.length-1;j++){ const a=P[j], b=P[j+1], L=Math.hypot(b[0]-a[0],b[1]-a[1]), m=Math.max(1,Math.ceil(L/seg)); for (let t=0;t<m;t++) Q.push([a[0]+(b[0]-a[0])*t/m, a[1]+(b[1]-a[1])*t/m]); } Q.push(P[P.length-1]);
     let run=[], tile=null, ly=-1;
+    /* 0.16.1: Ende genau am Fahrbahnrand (0,3 m hinein) statt am nächsten 6-m-Punkt; vorher blieb Gras dazwischen oder der Weg ragte weit in die Straße */
+    const edgePt=(a,b)=>{ let lo=0, hi=1; for (let it=0;it<9;it++){ const m=(lo+hi)/2, g=gnNear(a[0]+(b[0]-a[0])*m, a[1]+(b[1]-a[1])*m, 30); if (g.k>=0 && g.d<g.w/2-0.3) hi=m; else lo=m; } return [a[0]+(b[0]-a[0])*hi, a[1]+(b[1]-a[1])*hi]; };
     for (let qi=0;qi<Q.length;qi++){ const q=Q[qi]; const nn=gnNear(q[0],q[1],30), on=nn.k>=0 && nn.d<nn.w/2+0.15+(fine?ww/2:0); const tk=Math.floor(q[0]/S)+','+Math.floor(q[1]/S), l=lyF(q[0],q[1]);
-      if (on){ if (run.length){ run.push(q); add(run,ww,sf,ly,rut,fine); } run=[]; tile=null; continue; }
+      if (on){ if (run.length){ run.push(edgePt(run[run.length-1],q)); add(run,ww,sf,ly,rut,fine); } run=[]; tile=null; continue; }
       if (run.length && ((tile && tk!==tile) || l!==ly)){ run.push(q); add(run,ww,sf,ly,rut,fine); run=[run[run.length-2]]; }
-      if (!run.length && qi>0) run.push(Q[qi-1]);
+      if (!run.length && qi>0) run.push(edgePt(q,Q[qi-1]));
       run.push(q); tile=tk; ly=l; }
     add(run,ww,sf,ly,rut,fine); };
   const bin=atob(window.ZGSIDE), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer); const N=dv.getUint32(0,true); let o=4;
@@ -7111,7 +7133,7 @@ function gtSideMesh(i,j,fineOnly){ const L=gtSideIdx().get(i+','+j); if (!L || !
   L.forEach(({P,w,sf,ly,rut,fine})=>{ if (!!fine!==!!fineOnly) return; if (!wm && fine) return; const cc=C[sf]||C[0], b0=pos.length/3; let along=0; rs=(rs*9301+49297)%233280; const ro=rs/233280;
     for (let k=0;k<P.length;k++){ const a=P[Math.max(0,k-1)], b=P[Math.min(P.length-1,k+1)]; let tx=b[0]-a[0], tz=b[1]-a[1]; const l=Math.hypot(tx,tz)||1; tx/=l; tz/=l; const nx=-tz*w/2, nz=tx*w/2;
       if (k) along+=Math.hypot(P[k][0]-P[k-1][0],P[k][1]-P[k-1][1]);
-      [[P[k][0]+nx,P[k][1]+nz,0],[P[k][0]-nx,P[k][1]-nz,1]].forEach(([x,z,s])=>{ pos.push(x,terrainH(x,z)+(fine?0.07:0.09),z); if (wm){ uv.push(s,along); wl.push(ly,rut,w,ro); } else { const f=0.94+Math.random()*0.08; col.push(cc[0]*f,cc[1]*f,cc[2]*f); } });
+      [[P[k][0]+nx,P[k][1]+nz,0],[P[k][0]-nx,P[k][1]-nz,1]].forEach(([x,z,s])=>{ pos.push(x,wayLiftY(x,z,terrainH(x,z)+(fine?0.07:0.09)),z); if (wm){ uv.push(s,along); wl.push(ly,rut,w,ro); } else { const f=0.94+Math.random()*0.08; col.push(cc[0]*f,cc[1]*f,cc[2]*f); } });
       if (k){ const v=b0+k*2; idx.push(v-2,v,v-1, v-1,v,v+1); } } });
   if (!idx.length) return null;
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); if (wm){ g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('wl',new THREE.Float32BufferAttribute(wl,4)); } else g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
@@ -7235,6 +7257,16 @@ function gOfferable(D,e,node){ const C=D._off||(D._off=new Map()), A=D===GN.rg?g
 /* 0.8.0: kurzes Anschlussstück (z. B. 32 m Grenzstraße) zeigt auch die weiterführende Straße (Hochwaldweg) */
 function gStreetVia(D,e,node){ const E=D.edges[e]; if (E.kind && E.kind!=='r') return gWayName(E); const n0=gStreet(E); if (E.len>90) return n0; const far=E.a===node?E.b:E.a, nx=((D===GN.rg?gAdj(D):D.adj)[far]||[]).filter(k=>k!==e && (!D.edges[k].kind || D.edges[k].kind==='r')).map(k=>D.edges[k]).sort((a,b)=>b.len-a.len)[0]; const n1=nx?gStreet(nx):''; return n1&&n1!==n0?(n0?n0+' → ':'')+n1:n0; }
 function gStreet(E){ const r=/^\d+$/.test(E.ref||'')?'':E.ref; return E.street&&r?r+' '+E.street:(E.street||r||''); }
+/* 0.16.1 (Hicore): Rang einer Kante (kleiner = wichtiger): Straßen nach OSM-Klasse 0..4, Nebenstraßen, dann Wirtschafts-/Radwege, Pfade, Fußwege */
+function gRank(E){ if (!E) return 9; return E.kind==='w'?({10:6.5,13:6.5,11:7.5}[E.c]||8):E.kind==='s'?4.5+0.25*((E.c|0)-20):Math.min(E.c==null?4:E.c,5); }
+/* natürliche Weiterfahrt: gleiche Straße (Name/ref) bzw. gleicher Weg, höhere Klasse, möglichst gerade; Kehrtwenden nie */
+function gNatural(D, arr, opts){ const A=D.edges[arr]; let best=null, bs=1e9;
+  for (const o of opts){ if (Math.abs(o.a)>150) continue; const E=D.edges[o.e]; let s=Math.abs(o.a)/30+1.5*gRank(E);
+    if (A.kind==='r' && E.kind==='r'){ if (A.street && E.street===A.street) s-=3; if (A.ref && E.ref===A.ref) s-=2; }
+    else if (A.kind && A.kind!=='r' && E.kind===A.kind && A.id && E.id===A.id) s-=3;
+    if (s<bs){ bs=s; best=o.e; } }
+  return best; }
+function gMainSet(){ const M=NET.main; return M._es||(M._es=new Set(M.ents.map(x=>x.e))); }
 /* Richtung einer Option an der Kreuzung relativ zur Ankunft */
 function gTurnInfo(arrE, node, e){ const D=gnRG(), A=D.edges[arrE], E=D.edges[e], n=D.nodes[node];
   const ap=A.b===node?A.P:A.P.slice().reverse(), q=ap[Math.max(0,ap.length-1-Math.ceil(20/5))], fx=n.x-q.x, fz=n.z-q.z, fl=Math.hypot(fx,fz)||1;
@@ -7252,17 +7284,22 @@ function gNetStep(){ const C=NET, D=gnRG(), A=gAdj(D);
   if (!C.pend || C.pend.tag!==best.tag){ const arr=R.ents[best.i].e, nx=R.ents[best.i+1]||(best.node===R.ents[0].n0?(R.rev?gRevMain():C.main).ents[0]:null), planned=nx?nx.e:null;
     const opts=A[best.node].filter(e=>e!==arr || D.edges[e].a===D.edges[e].b).filter(e=>e===planned || (gOfferable(D,e,best.node) && (!D.canGo || D.canGo(e,best.node)))).map(e=>Object.assign({e, name:gStreetVia(D,e,best.node), dest:D.dest(e,best.node), km:(D.destInfo(best.node,e)||{}).km, len:D.edges[e].len, plan:e===planned}, gTurnInfo(arr,best.node,e))).sort((a,b)=>a.a-b.a);
     if (opts.length<2){ C.appl.add(best.tag); return; }
-    C.pend=Object.assign({}, best, {opts, planned}); C.pick=planned; }
+    /* 0.16.1 (Hicore): vorgewählt ist die natürliche Weiterfahrt (durchgehende/höherwertige Straße bzw. Weg). Auf der Hauptrunde bleibt die Runde, am Kreisel der Plan. */
+    const nd=D.nodes[best.node], ms=gMainSet(), onLoop=planned!=null && ms.has(arr) && ms.has(planned), nat=gNatural(D,arr,opts);
+    const pick=(window.NO_NATURAL || onLoop || nat==null || gnRBAt(nd.x,nd.z,8))?planned:nat;
+    const pr=gRank(D.edges[pick!=null?pick:arr]), minor=pick!=null && opts.every(o=>o.e===pick || gRank(D.edges[o.e])>pr+0.4);
+    C.pend=Object.assign({}, best, {opts, planned, nat:pick, minor}); C.pick=pick; }
   else Object.assign(C.pend, {ah:best.ah, rd:best.rd});
   const RBn=gnRBAt(D.nodes[best.node].x,D.nodes[best.node].z,2), thr=RBn?RBn.r+Math.hypot(D.nodes[best.node].x-RBn.x,D.nodes[best.node].z-RBn.z)+(+(window.RB_PRE||32)):10;   /* 0.10.21: am Kreisel vor der Einfahrt entscheiden, sonst springt man im Ring */
-  if (best.ah<thr){ C.appl.add(best.tag); const p=C.pend; if (C.pick!=null && C.pick!==p.planned){ const o=p.opts.find(o=>o.e===C.pick); { const old=posAt(S.dist), nr=gTurn(R,p,C.pick); setRoute(nr); S.dist=gSnapDist(old,S.dist); } toast((o?o.label:'Abgebogen')+': '+([o&&o.name, o&&o.dest?'Richtung '+o.dest:''].filter(Boolean).join(' ')||'neue Straße')); } junUI(null); C.pend=null; return; }
+  if (best.ah<thr){ C.appl.add(best.tag); const p=C.pend; if (C.pick!=null && C.pick!==p.planned){ const o=p.opts.find(o=>o.e===C.pick); { const old=posAt(S.dist), nr=gTurn(R,p,C.pick); setRoute(nr); S.dist=gSnapDist(old,S.dist); } if (C.pick!==p.nat) toast((o?o.label:'Abgebogen')+': '+([o&&o.name, o&&o.dest?'Richtung '+o.dest:''].filter(Boolean).join(' ')||'neue Straße')); } junUI(null); C.pend=null; return; }
+  if (C.pend.minor && C.pick===C.pend.nat && best.ah>Math.max(70, S.speed*5)){ junUI(null); return; }   /* 0.16.1: Abzweige in untergeordnete Wege erst kurz vorher und dezent */
   gJunUI(C.pend, best.ah); }
 /* 0.10.21: nach dem Umschalten der Strecke an genau derselben Stelle weiterfahren (Punkte der neuen Strecke liegen anders verteilt, Strecke davor kann um Meter abweichen) */
 function gSnapDist(old, d0){ let bd=1e9, bs=d0; for (let s=Math.max(0,d0-80); s<=Math.min(L,d0+80); s+=0.5){ const q=posAt(s), dd=Math.hypot(q.x-old.x,q.z-old.z); if (dd<bd){ bd=dd; bs=s; } } return bs; }
 function gJunUI(p, ah){ let el=$('junc'); if (!el){ el=document.createElement('div'); el.id='junc'; document.body.appendChild(el); }
   if (el.dataset.g!==p.tag){ el.dataset.g=p.tag; el.innerHTML='<div class="jt"></div><div class="jb"></div>'; const jb=el.querySelector('.jb'); jb.style.flexDirection='row';
     p.opts.forEach(o=>{ const b=document.createElement('button'); b.dataset.v=o.e; b.innerHTML=o.icon+' '+o.label+'<small>'+([o.dest?o.dest+(o.km>=1?' '+Math.round(o.km)+' km':''):o.name,o.plan?'Runde':''].filter(Boolean).join(' · ')||'Straße')+'</small>'; b.onclick=()=>{ NET.pick=o.e; gJunUI(NET.pend,null); }; jb.appendChild(b); }); }
-  el.style.display='block'; if (ah!=null) el.querySelector('.jt').textContent='Kreuzung in '+Math.max(0,Math.round(ah))+' m';
+  el.style.display='block'; el.classList.toggle('jmin', !!(p.minor && NET.pick===p.nat)); if (ah!=null) el.querySelector('.jt').textContent=(p.minor?'Abzweig in ':'Kreuzung in ')+Math.max(0,Math.round(ah))+' m';
   el.querySelectorAll('button').forEach(b=>b.classList.toggle('on', +b.dataset.v===NET.pick)); }
 
 function b64i16(s){ const bin=atob(s), n=bin.length>>1, out=new Int16Array(n); for (let i=0;i<n;i++) out[i]=(bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8))<<16>>16; return out; }
@@ -8889,7 +8926,10 @@ function animRider(r, cad, spd, dt, watt){
     r.avgW = r.avgW==null?watt:r.avgW+(watt-r.avgW)*Math.min(1,dt/20);   // ca. 20-s-Mittel
     // Sprint = deutlicher Antritt über dem Schnitt (ab ca. 450 W) oder sehr hohe Leistung
     const surge=Math.max(clamp((watt-Math.max(450,r.avgW*1.3))/120,0,1), clamp((watt-650)/150,0,1));
-    const tl=postureFromPower(watt), ts=surge*(cad>40?1:0);
+    /* 0.16.1 (Hicore): ab ca. 12 % Steigung (oder bergauf mit Kadenz unter 58) zeitweise Wiegetritt: kurze Phasen (4-9 s) aus dem Sattel, dann wieder 8-20 s sitzen. Aus: window.NO_CLIMBSTAND */
+    const g0=r.gr||0, steep=!window.NO_CLIMBSTAND && cad>30 && (spd||0)<6 && (g0>(r.cst2?0.105:0.12) || (g0>0.05 && cad<(r.cst2?64:58)));
+    r._cst=(r._cst||0)-dt; if (!steep){ r.cst2=0; r._cst=Math.min(r._cst,3); } else if (r._cst<=0){ r.cst2=r.cst2?0:1; const h=Math.abs(Math.sin((r.crankAng||0)*12.9898+(r._cn=(r._cn||0)+1)*78.233))%1; r._cst=r.cst2?4+5*h:8+12*h; }
+    const tl=postureFromPower(watt), ts=Math.max(surge*(cad>40?1:0), r.cst2?0.85:0);
     r.low = r.low==null?tl:r.low+(tl-r.low)*Math.min(1,dt*1.2);
     r.stand = r.stand==null?ts:r.stand+(ts-r.stand)*Math.min(1,dt*(ts>r.stand?3:1.5));
     const amp = 0.004 + 0.025*clamp((watt-350)/250,0,1) + 0.11*r.stand;   // Rad schaukelt mehr bei Druck
@@ -11483,7 +11523,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.16.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.16.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -11635,8 +11675,16 @@ function placeTurn(r, U){ const e=Math.min(1,U.t/U.D), sg=U.od, [f,l]=uturnPath(
 function placeRider(r, d, lane, rev){
   const p=posAt(d,tmp), hd=headingAt(d)+(rev?Math.PI:0); const gr=gradeAt(d)*(rev?-1:1); r.gr=gr;
   const Wr=roadWAt(d); const hd0=hd-(rev?Math.PI:0), ln=rev?-lane:lane; r.g.position.set(p.x+Math.cos(hd0)*ln, p.y+roadCrown(clamp(0.5-ln/Wr,0,1))+0.009, p.z-Math.sin(hd0)*ln);
-  r.g.rotation.set(0,hd,0); r.g.rotateX(-Math.atan(gr)); if (r.lean) r.g.rotateZ(r.lean);
+  r.g.rotation.set(0,hd,0); r.g.rotateX(-Math.atan(gr)); curveLean(r, d, rev); if (r.lean || r.cl) r.g.rotateZ((r.lean||0)+(r.cl||0));
 }
+/* 0.16.1 (Hicore): in Kurven neigen sich Fahrer und Rad (Neigung = atan(v²·k/g), k = Krümmung der Fahrlinie), das Vorderrad lenkt leicht ein (Lenkwinkel ≈ Radstand·k).
+   Krümmung über ±12 m gemittelt, Tempo aus der Bewegung, alles weich nachgeführt und begrenzt (max. ca. 23° Neigung, 7° Lenkeinschlag). Aus: window.NO_CURVELEAN */
+function curveLean(r, d, rev){ if (window.NO_CURVELEAN){ r.cl=0; return; } const now=performance.now(), dt=r._clt?Math.min(0.25,(now-r._clt)/1000):0; r._clt=now; if (!(dt>0)){ r._cld=d; return; }
+  let dd=d-(r._cld==null?d:r._cld); r._cld=d; if (Math.abs(dd)>40) dd=0; const vi=Math.min(30,Math.abs(dd)/dt); r._clv=r._clv==null?vi:r._clv+(vi-r._clv)*Math.min(1,dt*2);
+  const wr=a=>Math.atan2(Math.sin(a),Math.cos(a)); let k=0; try{ k=(wr(headingAt(d+6)-headingAt(d-6))*0.5+wr(headingAt(d+12)-headingAt(d-12))*0.25)/12*(rev?-1:1); }catch(e){}
+  if (!isFinite(k)) k=0; k=clamp(k,-0.2,0.2); const v=r._clv, tl=clamp(-Math.atan(v*v*k/9.81),-0.4,0.4), ts=clamp(Math.atan(1.02*k)*clamp(1.4-v/12,0.35,1),-0.12,0.12);
+  r.cl=(r.cl||0)+(tl-(r.cl||0))*Math.min(1,dt*2.5); r.cst=(r.cst||0)+(ts-(r.cst||0))*Math.min(1,dt*3);
+  if (r.wF){ if (r.wF.rotation.order!=='YXZ') r.wF.rotation.order='YXZ'; r.wF.rotation.y=r.cst; } }
 // Grafikstufen: Auflösung, Schatten, Sichtweite detaillierter Bäume
 function applyGfx(q){ LITE=q<0.4; const dpr=Math.min(devicePixelRatio,2); renderer.setPixelRatio(LITE?(MINI?Math.min(0.7,dpr*0.35):Math.min(0.9,dpr*0.45)):dpr*Math.min(1,q)); renderer.shadowMap.enabled=q>0.5; if (window.RIDER_BLOBS) RIDER_BLOBS.forEach(b=>b.visible=!renderer.shadowMap.enabled);
   const sm=q>1.1?4096:q>0.9?2048:1024; if (sun.shadow.mapSize.x!==sm){ sun.shadow.mapSize.set(sm,sm); if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map=null; } }
@@ -11798,7 +11846,7 @@ function frame(now){
   AMB.update(dt, S.running, builtWorld||selWorld);   /* Umgebung bleibt hörbar, Fahrgeräusche hängen am Tempo */
   try{ if (!LITE || (LEAVES.im && LEAVES.im.count)) LEAVES.update(dt, active && !LITE); }catch(e){ if(!LEAVES.err){ LEAVES.err=1; console.warn('Blätter',e); } }
   animRider(me, active?S.cadence:0, (active||S.brk)?S.speed:0, dt, active?S.power:0);
-  withMain(()=>{ for (const b of bots){ placeRider(b.r, b.d, b.lane); animRider(b.r, active?b.cad:0, active&&b.st?b.st.v:0, dt); } });
+  withMain(()=>{ for (const b of bots){ placeRider(b.r, b.d, b.lane); animRider(b.r, active?b.cad:0, active&&b.st?b.st.v:0, dt, active?(b.pw!=null?b.pw:b.watts):null); } });
   try{ MP.frame(dt, now, active); }catch(e){ if (!MP.err){ MP.err=1; console.warn('MP',e); } }
 
   // camera
