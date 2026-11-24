@@ -2550,7 +2550,7 @@ function rockKit(){ if (GT.rkKit) return GT.rkKit; const T=sandstoneTexture(), n
       if (!d){ const dx=x-ctr[0], dy=y-ctr[1], dz=z-ctr[2], l=Math.hypot(dx,dy,dz)||1, n=(nz(x,y,z,seed)-0.5)*2*amp+(nz(x*2.3,y*2.1,z*2.7,seed+3)-0.5)*amp*0.6, top=y>0.98?0.06:0, bot=y<0.02?0:1; d=[dx/l*n*bot, dy/l*n*0.5-top*(Math.abs(dx)+Math.abs(dz)), dz/l*n*bot]; M.set(key,d); }
       P.setXYZ(i,x+d[0],y+d[1],z+d[2]); } g.computeVertexNormals(); return g; };
   const blk=s=>{ const g=new THREE.BoxGeometry(1,1,1,3,4,2); g.translate(0,0.5,0); return disp(g,0.16,s,[0,0.5,0]); }, bou=s=>{ const g=new THREE.IcosahedronGeometry(0.5,1); g.translate(0,0.5,0); return disp(g,0.12,s,[0,0.5,0]); };
-  const mat=new THREE.MeshLambertMaterial({map:T, color:0xffffff}); mat.userData.pbr={n:1.1, r:0.95};
+  const mat=new THREE.MeshLambertMaterial({map:T, color:0xc4bbb1}); mat.userData.pbr={n:1.1, r:0.95};   /* Zittauer Sandstein grauer als Elbsandstein (wie zgGreyRock) */
   GT.rkKit={blk:[blk(1.3),blk(2.7),blk(4.1)], bou:[bou(1.7),bou(3.3)], mat}; return GT.rkKit; }
 function gtRockList(i,j,BL){ const L=GT.rk&&GT.rk.get(i+','+j); if (!L || !L.length) return null; const out=[];
   for (const r of L){ const [x,z,ty,w]=r, R=ty===2?w*0.5:w*0.55, n=gnNear(x,z,40); if (n.k>=0 && n.d<n.w/2+R+0.8) continue; if (waysNear(x,z,ty===2?0.5:Math.min(2.2,R*0.6))) continue;
@@ -2558,7 +2558,7 @@ function gtRockList(i,j,BL){ const L=GT.rk&&GT.rk.get(i+','+j); if (!L || !L.len
     let inB=false; for (const o of BL){ const dx=x-o.cx, dz=z-o.cz, RR=o.r+R; if (dx*dx+dz*dz<RR*RR){ inB=true; break; } } if (inB) continue; out.push(r); }
   return out.length?out:null; }
 function gtRockMesh(RL, grp, bs, rnd){ const K=rockKit(), by=new Map(), m=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), sc=new THREE.Vector3(), p=new THREE.Vector3(), col=new THREE.Color();
-  for (const [x,z,ty,w,h,ang] of RL){ const cliff=ty===0||ty===3, g=cliff?K.blk[Math.floor(rnd()*3)]:K.bou[Math.floor(rnd()*2)], d=cliff?(ty===0?Math.max(2.2,w*0.75)+rnd()*1.5:w*(0.7+rnd()*0.4)):w*(0.75+rnd()*0.4), rot=ty===0?Math.PI/2-ang:ang;
+  for (const [x,z,ty,w,h,ang] of RL){ const cliff=ty===0||(ty===3&&h>=4), g=cliff?K.blk[Math.floor(rnd()*3)]:K.bou[Math.floor(rnd()*2)], d=cliff?(ty===0?Math.max(2.2,w*0.75)+rnd()*1.5:w*(0.7+rnd()*0.4)):w*(0.75+rnd()*0.4), rot=ty===0?Math.PI/2-ang:ang;
     const cs=Math.cos(rot), sn=Math.sin(rot); let lo=1e9, hi=-1e9; for (const [a,b] of [[0,0],[0.5,0.5],[-0.5,0.5],[0.5,-0.5],[-0.5,-0.5]]){ const ax=a*w, bz=b*d, hh=terrainH(x+ax*cs+bz*sn, z-ax*sn+bz*cs); lo=Math.min(lo,hh); hi=Math.max(hi,hh); }
     const base=lo-(cliff?0.9:Math.min(0.35*h,0.6)), H=cliff?Math.max(h, hi-base+0.8+rnd()*1.2):h;
     e.set((rnd()-0.5)*(cliff?0.06:0.3), rot, (rnd()-0.5)*(cliff?0.06:0.3)); q.setFromEuler(e); sc.set(w,H,d); p.set(x,base,z); m.compose(p,q,sc);
@@ -6560,7 +6560,7 @@ const ZSB={ lines:null, grid:null, C:25, grp:null, chunks:[], train:null, nextT:
 window.ZSBC=(x,z,h)=>ZSB.carve(x,z,h);
 /* zufällige Begegnungen in der Nähe des Fahrers */
 const EGG={cops:[], talkers:[], list:[], cd:{}, vill:new Set(), idle:[], walk:[], climbers:[], acc:0, climber:null, scenes:null};
-function eggReset(){ EGG.list.forEach(e=>e.o.parent&&e.o.parent.remove(e.o)); EGG.list=[]; EGG.cd={}; EGG.vill=new Set(); EGG.idle=[]; EGG.cops=[]; EGG.talkers=[]; EGG.belay=null; if (window.CHAT) CHAT.clear(); EGG.walk=[]; EGG.climbers=[]; EGG.climber=null; }
+function eggReset(){ try{ hikeReset(); }catch(e){}  EGG.list.forEach(e=>e.o.parent&&e.o.parent.remove(e.o)); EGG.list=[]; EGG.cd={}; EGG.vill=new Set(); EGG.idle=[]; EGG.cops=[]; EGG.talkers=[]; EGG.belay=null; if (window.CHAT) CHAT.clear(); EGG.walk=[]; EGG.climbers=[]; EGG.climber=null; }
 function eggSpawn(name,x,z,yaw,extra){ const o=propObject(name); if (!o) return null; o.position.set(x,groundAt(x,z),z); o.rotation.y=yaw; worldGroup.add(o); const e=Object.assign({o,kind:name,t:0},extra||{}); EGG.list.push(e); return e; }
 /* 0.10.7 Polizist an der Kontrolle (Hicore): steht, bewegt sich leicht, schaut zum Fahrer. Hält man daneben: „Bitte weiterfahren, hier gibt es nichts zu sehen.“ Bleibt man ca. 1 Minute weiter stehen: zweite, strengere Ansage. */
 function copSay(cop, key, txt){ const A=typeof AMB!=='undefined'?AMB:null, b=A&&A.buf&&A.buf[key]; let dur=3;
@@ -6575,6 +6575,29 @@ function copStep(dt, P){ if (!EGG.cops.length) return; const v=(typeof S!=='unde
       if (!c.said && c.st>1.5){ c.said=1; c.t1=0; copSay(c,'pol_weiter','„Bitte weiterfahren, hier gibt es nichts zu sehen.“'); }
       else if (c.said===1 && c.t1>60){ c.said=2; copSay(c,'pol_weiter2','„Ich habe Ihnen doch gesagt, Sie sollen weiterfahren, hier gibt es nichts zu sehen! Oder soll ich Sie extra kontrollieren?“'); } }
     else { c.st=0; if (d>45){ c.said=0; c.t1=0; } } } }
+/* 0.17.0 (Hicore): ab und zu Wanderer auf Wald-, Feld- und Fußwegen. Wenige gleichzeitig (iPad 3, LITE 2, MINI 1), tauchen 150-380 m entfernt auf einem Weg auf, gehen ihn entlang,
+   treten an den Rand und bleiben stehen, wenn der Fahrer vorbeikommt. Figuren werden wiederverwendet (kein neues Laden). Aus: window.NO_HIKE */
+const HIKE={list:[], pool:[], t:6, figs:['wanderer_w','wanderer_m','spaziergaengerin']};
+function hikePts(E){ if (E._hc) return E._hc; const P=E.P, c=[0]; for (let i=1;i<P.length;i++) c.push(c[i-1]+Math.hypot(P[i].x-P[i-1].x,P[i].z-P[i-1].z)); return (E._hc={P,c,L:c[c.length-1]}); }
+function hikeAt(H,s){ const {P,c}=H; let i=1; while (i<c.length-1 && c[i]<s) i++; const f=clamp((s-c[i-1])/Math.max(1e-6,c[i]-c[i-1]),0,1), a=P[i-1], b=P[i]; return {x:a.x+(b.x-a.x)*f, y:a.y+(b.y-a.y)*f, z:a.z+(b.z-a.z)*f, tx:b.x-a.x, tz:b.z-a.z}; }
+function hikeFig(cb){ const f=HIKE.pool.pop(); if (f) return cb(f); const name=HIKE.figs[Math.floor(Math.random()*HIKE.figs.length)]; try{ WALK.make(W=>{ W.G.traverse(m=>{ if (m.isMesh) m.castShadow=!LITE; }); cb(W); }, {fig:name, v:1.3}); }catch(e){} }
+function hikeStep(dt){ if (window.NO_HIKE || !WORLD || WORLD.id!=='zittau' || !GN.rg || !S.running || typeof me==='undefined') return; const P=me.g.position, D=GN.rg, A=gAdj(D), MAX=MINI?1:LITE?2:3;
+  HIKE.t-=dt;
+  if (HIKE.t<=0 && HIKE.list.length<MAX && !HIKE.busy){ HIKE.t=14+Math.random()*26;
+    const hd=me.g.rotation.y, fx=Math.sin(hd), fz=Math.cos(hd), C=[];
+    for (const E of D.edges){ if (!E || E.kind!=='w' || E.br || E.len<60) continue; const n=D.nodes[E.a], m=D.nodes[E.b], mx=(n.x+m.x)/2, mz=(n.z+m.z)/2, dx=mx-P.x, dz=mz-P.z, d=Math.hypot(dx,dz); if (d<150 || d>380) continue; if ((dx*fx+dz*fz)/d<0.2) continue; C.push(E); }
+    if (C.length){ const E=C[Math.floor(Math.random()*C.length)]; HIKE.busy=true; hikeFig(W=>{ HIKE.busy=false; if (!S.running){ HIKE.pool.push(W); return; } const H=hikePts(E), h={W, E, H, s:H.L*(0.2+Math.random()*0.6), dir:Math.random()<0.5?1:-1, v:1.1+Math.random()*0.35, off:0, stop:0}; W.v=h.v; worldGroup.add(W.G); HIKE.list.push(h); }); } }
+  for (let k=HIKE.list.length-1;k>=0;k--){ const h=HIKE.list[k], G=h.W.G; let q=hikeAt(h.H,h.s); const dR=Math.hypot(q.x-P.x,q.z-P.z);
+    if (dR>520){ worldGroup.remove(G); HIKE.pool.push(h.W); HIKE.list.splice(k,1); continue; }
+    /* Fahrer kommt: an den Rand treten und warten */ const near=dR<16 && (S.speed||0)>1, ow=Math.min(2.2,(h.E.w||2)/2+0.7); h.off+=((near?ow:0.25)-h.off)*Math.min(1,dt*2.5); h.stop=near?1.2:Math.max(0,h.stop-dt);
+    if (h.stop<=0 && dR<220){ h.s+=h.dir*h.v*dt;
+      if (h.s<0 || h.s>h.H.L){ const end=h.s<0?h.E.a:h.E.b, nx=(A[end]||[]).filter(e=>e!==h.E.k && D.edges[e].kind==='w' && !D.edges[e].br); if (nx.length && Math.random()<0.85){ const E2=D.edges[nx[Math.floor(Math.random()*nx.length)]]; h.E=E2; h.H=hikePts(E2); if (E2.a===end){ h.dir=1; h.s=0; } else { h.dir=-1; h.s=h.H.L; } } else { h.dir=-h.dir; h.s=clamp(h.s,0,h.H.L); } }
+      q=hikeAt(h.H,h.s); }
+    const tl=Math.hypot(q.tx,q.tz)||1, tx=q.tx/tl*h.dir, tz=q.tz/tl*h.dir, x=q.x-tz*h.off, z=q.z+tx*h.off;   /* rechts gehen */
+    G.position.set(x, Math.max(q.y-0.08, terrainH(x,z))+0.02, z);
+    if (dR<220){ const want=h.stop>0?Math.atan2(P.x-x,P.z-z):Math.atan2(tx,tz); let dy=want-G.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); G.rotation.y+=dy*Math.min(1,dt*4);
+      if (h.stop>0){ h.W.look=new THREE.Vector3(P.x,P.y+1.4,P.z); WALK.idle(h.W, Math.min(dt,0.1)); } else { h.W.look=null; h.W.v=h.v; WALK.step(h.W, Math.min(dt,0.1)); } } } }
+function hikeReset(){ HIKE.list.forEach(h=>{ h.W.G.parent&&h.W.G.parent.remove(h.W.G); HIKE.pool.push(h.W); }); HIKE.list=[]; HIKE.t=6; }
 function eggStep(dt){ if (!WORLD || !WORLD.graph || !GN.d || typeof me==='undefined') return; const P=me.g.position, R=Math.random;
   for (const k in EGG.cd) EGG.cd[k]-=dt;
   for (const it of EGG.idle){ it.t+=dt; it.o.rotation.z=Math.sin(it.t*0.9)*0.012; }
@@ -7189,7 +7212,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.16.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.17.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7550,7 +7573,7 @@ function frame(now){
   if (skyDome) skyDome.position.copy(camera.position);
   if (cloudLayer) cloudLayer.position.set(camera.position.x, 0, camera.position.z);
   for (const fn of animated) fn(dt);
-  animateCritters(dt); try{ eggStep(dt); }catch(err){ if (!window._eggErr){ window._eggErr=1; console.warn('egg',err); } }
+  animateCritters(dt); try{ eggStep(dt); }catch(err){ if (!window._eggErr){ window._eggErr=1; console.warn('egg',err); } } try{ hikeStep(Math.min(dt,0.1)); }catch(err){ if (!window._hikeErr){ window._hikeErr=1; console.warn('wanderer',err); } }
   if (window.camAbs){ const o=window.camAbs; camera.position.set(o[0],o[1],o[2]); camera.lookAt(o[3],o[4],o[5]); } else
   if (window._camFix){ const o=window._camFix; camera.position.set(o[0],o[1],o[2]); camera.lookAt(o[3],o[4],o[5]); }
   if (window.camOverride){ const o=window.camOverride; me.g.localToWorld(camera.position.set(o[0],o[1],o[2])); camera.lookAt(me.g.localToWorld(tmp.set(o[3],o[4],o[5]))); }
