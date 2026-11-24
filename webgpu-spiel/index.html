@@ -4701,7 +4701,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   window.R187=true; })();
 </script>
 <script>window.PROP_GLB={};window.PROP_LIST=["amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
-<script src="data/media.js?h=afc7bcb6"></script>
+<script src="data/media.js?h=23599faf"></script>
 <script src="data/zittau.js?h=10401a87"></script>
 <script>
 "use strict";
@@ -4818,7 +4818,9 @@ const AZ0=Math.atan2(SUN_DIR.z,SUN_DIR.x);
 let PBR_SAFE=false, PBR_Q0=0.7; try{ PBR_SAFE=localStorage.getItem('hicoreRide.pbrSafe')==='1'; PBR_Q0=+JSON.parse(localStorage.getItem('hicoreRide.gfx')||'0.7'); }catch(e){}
 // ================= Foto-Texturen (Higgsfield, eingebettet als JPEG in window.TEX_JPG) =================
 const PHOTO={};
-(function(){ const T=window.TEX_JPG||{}; for (const k in T){ const im=new Image(); im.src='data:image/jpeg;base64,'+T[k]; PHOTO[k]=im; } })();
+/* 0.11.6: Bilder liegen als eigene Dateien unter data/img (Browser lädt parallel und speichert zwischen), alte Einbettung als base64 geht weiter */
+function jpgSrc(v){ return (v.length<300 && v.indexOf('/')>=0) ? v : 'data:image/jpeg;base64,'+v; }
+window.PHOTO_READY=new Promise(res=>{ const T=window.TEX_JPG||{}, ks=Object.keys(T); let n=ks.length; if (!n) return res(); const done=()=>{ if (--n<=0) res(); }; ks.forEach(k=>{ const im=new Image(); im.onload=done; im.onerror=done; im.src=jpgSrc(T[k]); PHOTO[k]=im; }); setTimeout(res,15000); });
 function photo(k){ const im=PHOTO[k]; return (im && im.complete && im.naturalWidth) ? im : null; }
 // Foto gekachelt in einen Canvas-Bereich zeichnen (tw = Kachelbreite in px)
 function photoFill(g, k, x, y, w, h, tw, th){ const im=photo(k); if (!im) return false; th=th||tw; for (let yy=y; yy<y+h; yy+=th) for (let xx=x; xx<x+w; xx+=tw) g.drawImage(im, xx, yy, tw, th); return true; }
@@ -8554,7 +8556,7 @@ function applyJersey(id, r){ r=r||me;
   if (JERSEY_TEX[id]){ m.map=JERSEY_TEX[id]; m.needsUpdate=true; return; }
   const img=new Image(); img.onload=()=>{ const t=new THREE.Texture(img), o=m.userData.map0; t.flipY=false; t.encoding=o.encoding; t.wrapS=o.wrapS; t.wrapT=o.wrapT;
     t.anisotropy=Math.min(4, renderer.capabilities.getMaxAnisotropy()); t.needsUpdate=true; JERSEY_TEX[id]=t; m.map=t; m.needsUpdate=true; };
-  img.src='data:image/jpeg;base64,'+J[id].tex;
+  img.src=jpgSrc(J[id].tex);
 }
 const me = makeRider({jersey:0xff7a1a, accent:0x15171c, frame:0x15171c, frameAccent:0xff7a1a, helmet:0xffffff, num:'1'}); scene.add(me.g);
 // Realistische Figur nachladen; ohne Internet bleibt die gebaute Figur
@@ -10641,7 +10643,7 @@ addEventListener('pagehide',()=>{ try{ MP.leave(false); }catch(e){} });
 if (store.get('mpAuto',0)===1 && store.get('mpName','') && store.get('mpRoom','')) setTimeout(()=>MP.join(),1500);
 // Trikot-Auswahl: tauscht die Farbtextur der Fahrerfigur
 function showJerseyThumb(){ const J=window.JERSEY_JPG||{}, id=$('jersey').value, im=$('jerseyThumb');
-  if (J[id]&&J[id].thumb){ im.src='data:image/jpeg;base64,'+J[id].thumb; im.style.display=''; } else im.style.display='none'; }
+  if (J[id]&&J[id].thumb){ im.src=jpgSrc(J[id].thumb); im.style.display=''; } else im.style.display='none'; }
 $('jersey').addEventListener('change',()=>{ showJerseyThumb(); applyJersey(LEAD.jerseyFor('me',$('jersey').value)); });
 /* Wertungstrikots: grünes Sprint- und gepunktetes Bergtrikot trägt, wer gerade die schnellste Zeit der Wertung hält
    (eigene Bestzeit gegen die Bestzeiten der Leute im selben Raum). Wird man überboten, kommt das eigene Trikot zurück. Sprint vor Berg. */
@@ -10710,7 +10712,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.6 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -10771,7 +10773,7 @@ async function start(){
   if (!midRide){
     if (builtWorld!==def.id || BUILT_R!==GFX_BUILD_R){ const lb=$('loadbox'); $('loadname').textContent=def.name; $('loadstep').textContent='Modelle werden vorbereitet …'; lb.style.display='flex'; $('menu').style.display='none';
       const paint=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-      try{ await paint(); await (window.PROPS_READY||Promise.resolve()); await (window.LC_READY||Promise.resolve()); await (window.PARK_READY||Promise.resolve()); $('loadstep').textContent='Gelände, Straße, Bäume und Felsen werden gebaut …'; await paint();
+      try{ await paint(); await (window.PROPS_READY||Promise.resolve()); await (window.LC_READY||Promise.resolve()); await (window.PARK_READY||Promise.resolve()); await (window.PHOTO_READY||Promise.resolve()); $('loadstep').textContent='Gelände, Straße, Bäume und Felsen werden gebaut …'; await paint();
         window.LOADING=!!window.GPU_MODE; const tB0=performance.now(); buildWorld(def); gpuFixInst(scene); builtWorld=def.id; window.LOADT={b:performance.now()-tB0, t0:tB0}; $('loadstep').textContent='Grafik wird vorbereitet …'; await paint();
         if (window.GPU_MODE){ const tC0=performance.now(); try{ await GPU_INIT; await renderer.compileAsync(scene,camera); }catch(e){ console.warn('compile',e); } if (window.LOADT){ LOADT.c=performance.now()-tC0; } const tW0=performance.now(); try{ POST.render(); }catch(e){} await paint(); if (window.LOADT){ LOADT.w=performance.now()-tW0; LOADT.ff=1; } } else try{ stageCompile(); renderer.compile(scene,camera); }catch(e){} $('world').style.visibility='visible'; await paint(); }
       finally{ lb.style.display='none'; window.LOADING=false; } }
