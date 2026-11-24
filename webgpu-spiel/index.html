@@ -6919,7 +6919,7 @@ function gNetStep(){ const C=NET, D=gnData();
     if (opts.length<2){ C.appl.add(best.tag); return; }
     C.pend=Object.assign({}, best, {opts, planned}); C.pick=planned; }
   else Object.assign(C.pend, {ah:best.ah, rd:best.rd});
-  const RBn=gnRBAt(D.nodes[best.node].x,D.nodes[best.node].z,2), thr=RBn?RBn.r+Math.hypot(D.nodes[best.node].x-RBn.x,D.nodes[best.node].z-RBn.z)+16:10;   /* 0.10.21: am Kreisel vor der Einfahrt entscheiden, sonst springt man im Ring */
+  const RBn=gnRBAt(D.nodes[best.node].x,D.nodes[best.node].z,2), thr=RBn?RBn.r+Math.hypot(D.nodes[best.node].x-RBn.x,D.nodes[best.node].z-RBn.z)+(+(window.RB_PRE||32)):10;   /* 0.10.21: am Kreisel vor der Einfahrt entscheiden, sonst springt man im Ring */
   if (best.ah<thr){ C.appl.add(best.tag); const p=C.pend; if (C.pick!=null && C.pick!==p.planned){ const o=p.opts.find(o=>o.e===C.pick); { const old=posAt(S.dist), nr=gTurn(R,p,C.pick); setRoute(nr); S.dist=gSnapDist(old,S.dist); } toast((o?o.label:'Abgebogen')+': '+([o&&o.name, o&&o.dest?'Richtung '+o.dest:''].filter(Boolean).join(' ')||'neue Straße')); } junUI(null); C.pend=null; return; }
   gJunUI(C.pend, best.ah); }
 /* 0.10.21: nach dem Umschalten der Strecke an genau derselben Stelle weiterfahren (Punkte der neuen Strecke liegen anders verteilt, Strecke davor kann um Meter abweichen) */
@@ -10710,7 +10710,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
