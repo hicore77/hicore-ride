@@ -1,5 +1,7 @@
 # Hicore Ride
 
-Browser-Radspiel (Three.js, Web Bluetooth). Spielen: https://hicore77.github.io/Hicore-ride/
+Browser-Radspiel (Three.js, Web Bluetooth). Spielen: https://hicore77.github.io/hicore-ride/webgpu-spiel/
 
 Auf dem iPad in der App „Bluefy“ öffnen (Safari kann kein Web Bluetooth).
+
+Quellcode: `quelle/` · Übergabe-Doku: `UEBERGABE.md`
