@@ -2213,7 +2213,7 @@ function gnNear(x,z,R){ const d=GN.d, best={d:1e9,y:0,w:6.5,k:-1,i:0}; if (!d||!
 /* Landbedeckung ESA WorldCover 2021 (Sentinel-Satellit, 10 m, CC BY 4.0): 1 Baum, 2 Wiese, 3 Acker, 4 Siedlung, 5 Wasser */
 window.LC_READY=window.ZGLC?new Promise(res=>{ const im=new Image(); im.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; const g=c.getContext('2d'); g.drawImage(im,0,0); const d=g.getImageData(0,0,c.width,c.height).data, n=c.width*c.height, u=new Uint8Array(n), R0=[0,20,120,230,200,40];
   for (let i=0;i<n;i++){ const r=d[i*4], gg=d[i*4+1]; let k=0; if (r>215) k=3; else if (r>160) k=4; else if (r>80) k=2; else if (gg>100 && r>10) k=1; else if (r>30) k=5; u[i]=k; }
-  window.LCD={x0:-9000,z0:-13400,c:10,w:c.width,h:c.height,b:u}; }catch(e){ console.warn('LC',e); } res(); }; im.onerror=()=>res(); im.src='data:image/png;base64,'+window.ZGLC; }):Promise.resolve();
+  window.LCD={x0:(window.ZGLCO||[-9000,-13400])[0],z0:(window.ZGLCO||[-9000,-13400])[1],c:10,w:c.width,h:c.height,b:u}; }catch(e){ console.warn('LC',e); } res(); }; im.onerror=()=>res(); im.src='data:image/png;base64,'+window.ZGLC; }):Promise.resolve();
 /* Bodenfarbe nach Landbedeckung; Äcker je Schlag leicht verschieden (Stoppel, Wintersaat, umgepflügt) */
 function lcCol(c,k,x,z,t,def){ if (k===1) c.setHSL(0.24,0.42,0.16+0.03*t); else if (k===3){ const f=Math.sin(Math.floor(x/140)*12.9898+Math.floor(z/110)*78.233)*43758.5453, v=f-Math.floor(f); if (v<0.4) c.setHSL(0.24,0.42,0.34); else if (v<0.75) c.setHSL(0.13,0.42,0.42); else c.setHSL(0.08,0.32,0.30); } else if (k===4) c.setHSL(0.2,0.12,0.36); else if (k===5) c.setHSL(0.55,0.3,0.25); else c.setHSL(def.grass[0]-0.05*t, def.grass[1], 0.30+0.12*t); }
 /* 0.11.4 (Hicore): Zittauer Grünring und Parks nach OSM (leisure=park/garden/playground, landuse=grass/cemetery): dort Rasen statt Siedlungsfläche, Bäume nur aus OSM-Einzelbäumen */
@@ -2409,7 +2409,7 @@ function gtMiniTree(k, far){ const bb=new THREE.Box3(); let col=null, best=-1; f
 function gtForest(i,j){ const g=gtForestGen(i,j); let r; do r=g.next(); while(!r.done); return r.value; }
 /* 0.10.19 (Hicore): echte Einzelbäume, Baumreihen, Hecken, Gebüsch und Obstwiesen aus OpenStreetMap (natural=tree/tree_row/hedge/scrub, landuse=orchard).
    Arten: 0 Laubbaum, 1 Nadelbaum, 2 Linde, 3 Eiche, 4 Baumreihe, 5 Obstbaum, 6 Hecke, 7 Gebüsch */
-function gtOsmTrees(){ if (GT.ot!==undefined) return GT.ot; GT.ot=null; const B=window.ZGTREES; if (!B) return null;
+function gtOsmTrees(){ if (window.ZGKC) return GT.ot||(GT.ot=new Map()); if (GT.ot!==undefined) return GT.ot; GT.ot=null; const B=window.ZGTREES; if (!B) return null;
   const bin=atob(B), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer), n=dv.getUint32(4,true), M=new Map();
   for (let k=0;k<n;k++){ const x=dv.getInt16(8+k*4,true)/2, z=dv.getInt16(10+k*4,true)/2, t=u[8+n*4+k], key=Math.floor(x/GT.S)+','+Math.floor(z/GT.S); let l=M.get(key); if (!l) M.set(key,l=[]); l.push(x,z,t); }
   GT.ot=M; return M; }
@@ -2420,11 +2420,12 @@ function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S
   /* 0.10.19: keine Bäume in oder direkt an Häusern (Satellitenpixel sind 10 m groß) */
   const BI=gtBldIndex(), BL=[]; if (BI) for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=BI.get((i+a)+','+(j+b)); if (l) l.forEach(o=>{ if (o.r==null){ let r=0; o.P.forEach(pp=>{ r=Math.max(r,Math.hypot(pp[0]-o.cx,pp[1]-o.cz)); }); o.r=r; } BL.push(o); }); }
   const nearB=(x,z)=>{ for (const o of BL){ const dx=x-o.cx, dz=z-o.cz, R=o.r+3.5; if (dx*dx+dz*dz<R*R) return true; } return false; };
-  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; if (BL.length && nearB(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; { const zn=ZSB.near(x,z,10); if (zn.d<(zn.g==='s'?7:5)) continue; } if (ZSB.cuts){ const cd=ZSB.cutD(x,z); if (cd && cd.r<6) continue; } if (ZG_NOTREE.length && ZG_NOTREE.some(q=>{ const u=(x-q.x)/q.ax, v=(z-q.z)/q.az; return u*u+v*v<1; })) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; if (waysNear(x,z,2.2)) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
+  /* 0.17.0: Felsen (OSM) dieser Kachel; dort keine Bäume */ let RL=null; try{ RL=gtRockList(i,j,BL); }catch(e){ console.warn('felsen',e); } const rkHit=RL?gtRockHash(RL):null;
+  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; if (BL.length && nearB(x,z)) continue; if (rkHit && rkHit(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; { const zn=ZSB.near(x,z,10); if (zn.d<(zn.g==='s'?7:5)) continue; } if (ZSB.cuts){ const cd=ZSB.cutD(x,z); if (cd && cd.r<6) continue; } if (ZG_NOTREE.length && ZG_NOTREE.some(q=>{ const u=(x-q.x)/q.ax, v=(z-q.z)/q.az; return u*u+v*v<1; })) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; if (waysNear(x,z,2.2)) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
     const h=terrainH(x,z), k=pick(h>440?GT.mixHi:h>380?(rnd()<0.5?GT.mixHi:GT.mixLo):GT.mixLo), s0=(inner?1.25:1.0)+rnd()*0.6; e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(0.85+rnd()*0.4),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
     const f=0.72+rnd()*0.35; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[k]=by[k]||[]).push([m.clone(),col.clone()]); } }
   { const OT=gtOsmTrees(), L=OT&&OT.get(i+','+j); if (L) for (let k=0;k<L.length;k+=3){ if (k%300===0) yield 0; const x=L[k], z=L[k+1], t=L[k+2], bush=t>=6;
-      const n=gnNear(x,z,30); if (n.d<n.w/2+(bush?2.0:2.6)) continue; if (waysNear(x,z,bush?0.6:1.6)) continue; if (BL.length && (()=>{ for (const o of BL){ const R=o.r+(bush?0.6:1.8), dx=x-o.cx, dz=z-o.cz; if (dx*dx+dz*dz<R*R) return true; } return false; })()) continue;
+      const n=gnNear(x,z,30); if (n.d<n.w/2+(bush?2.0:2.6)) continue; if (rkHit && rkHit(x,z)) continue; if (waysNear(x,z,bush?0.6:1.6)) continue; if (BL.length && (()=>{ for (const o of BL){ const R=o.r+(bush?0.6:1.8), dx=x-o.cx, dz=z-o.cz; if (dx*dx+dz*dz<R*R) return true; } return false; })()) continue;
       if (bush && (MINI || (LITE && rnd()<0.4))) continue; const fr4=t===4 && !gnInner(x,z) && (Math.sin(Math.floor(x/120)*12.9898+Math.floor(z/120)*78.233)*43758.5453%1+1)%1<0.4;   /* Obstbaumreihen an Landstraßen */
       const r=rnd(), kt=t===1?(r<0.75?'spruce':'pine'):t===2?'linden2':t===3?'oak':t===4?(fr4?FRU[Math.floor(rnd()*4)]:r<0.4?'linden2':r<0.7?'maple':r<0.85?'oak':'ash'):t===5?FRU[Math.floor(r*5)%5]:t===6?(r<0.6?'bushA':'bushB'):t===7?(r<0.45?'bushA':r<0.85?'bushB':'birch'):(r<0.3?'beech':r<0.5?'maple':r<0.65?'ash':r<0.8?'oak':'birch');
       if (!fk[kt]) continue; const h=terrainH(x,z), s0=(t===5||fr4)?0.85+rnd()*0.3:bush?(t===6?0.75:0.9)+rnd()*0.5:0.8+rnd()*0.45;
@@ -2434,17 +2435,19 @@ function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S
   Object.entries(by).forEach(([k,L])=>{ const c=L.length, mk=(parts,mats,far)=>parts.map(([g],pi)=>{ const geo=new THREE.BufferGeometry(); for (const nm in g.attributes) if (nm!=='iLodR') geo.setAttribute(nm,g.attributes[nm]); if (g.index) geo.setIndex(g.index); geo.groups=g.groups; geo.boundingSphere=g.boundingSphere;   /* Puffer teilen statt kopieren */ geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(c).fill(RT),1)); const im=mkIM(geo,mats[pi],c); im.castShadow=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ im.setMatrixAt(ii,mm); im.setColorAt(ii,cc); }); im.count=0; im.frustumCulled=true; im.boundingSphere=bs; grp.add(im); return im; });
     const mi=mkIM(fk[k].mini[0],fk[k].mini[1],c); mi.castShadow=false; mi.frustumCulled=true; mi.boundingSphere=bs; mi.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ mi.setMatrixAt(ii,mm); mi.setColorAt(ii,cc); }); mi.count=c; grp.add(mi);
     out.types.push({L, st:'m', mini:mi, near:mk(fk[k].near,fk[k].nearM,false), far:mk(fk[k].far,fk[k].farM,true)}); });
+  if (RL) try{ gtRockMesh(RL, grp, bs, rnd); }catch(e){ console.warn('felsen',e); }
+  try{ gtFenceMesh(i,j,grp,bs); }catch(e){ console.warn('zaun',e); }
   GT.grp.add(grp); return out; }
-function gtFoDrop(t){ if (!t.fo) return; GT.grp.remove(t.fo.grp); t.fo.grp.children.forEach(im=>{ im.dispose&&im.dispose(); }); t.fo=null; }   /* Geometrie geteilt: nicht freigeben */
+function gtFoDrop(t){ if (!t.fo) return; GT.grp.remove(t.fo.grp); t.fo.grp.children.forEach(im=>{ if (im.userData.fence){ im.geometry.dispose(); return; } im.dispose&&im.dispose(); }); t.fo=null; }   /* Geometrie geteilt: nicht freigeben */
 /* Bäume nur bis ca. 1,2 km (LITE 0,7 km) als Instanzen, dahinter zeigt die dunkle Bodenfarbe den Wald */
 function gtForestRange(cp, ms){ const RF=MINI?450:LITE?700:1200; let best=null, bd=1e9;
-  GT.tiles.forEach(t=>{ const d=Math.hypot(cp.x-(t.i+0.5)*GT.S, cp.z-(t.j+0.5)*GT.S); if (t.fo && d>RF+GT.S){ gtFoDrop(t); GT.flast=null; } else if (!t.fo && !t.noFo && d<RF+GT.S*0.5 && d<bd){ bd=d; best=t; } });
+  GT.tiles.forEach(t=>{ const d=Math.hypot(cp.x-(t.i+0.5)*GT.S, cp.z-(t.j+0.5)*GT.S); if (t.fo && d>RF+GT.S){ gtFoDrop(t); GT.flast=null; } else if (!t.fo && !t.noFo && d<RF+GT.S*0.5 && d<bd && kcReady(t.i,t.j)){ bd=d; best=t; } });
   if (best){ if (ms){ if (!GT.fj || GT.fj.t!==best) GT.fj={t:best, g:gtForestGen(best.i,best.j)}; const t0=performance.now(); let r; try{ do r=GT.fj.g.next(); while(!r.done && performance.now()-t0<ms); }catch(e){ console.warn('wald',e); r={done:true,value:null}; } if (!r.done) return false; best.fo=r.value; GT.fj=null; }
     else { try{ best.fo=gtForest(best.i,best.j); }catch(e){ console.warn('wald',e); } }
     if (!best.fo) best.noFo=true; GT.flast=null; return true; } return false; }
 /* Häuser je Kachel nachbauen, nächste zuerst, in Zeitscheiben */
-function gtHouseStepPending(cp){ for (const t of GT.tiles.values()) if (t.hs===undefined){ gtHouseStep(cp, MINI?2:3); return true; } return false; }
-function gtHouseStep(cp, ms){ let best=null, bd=1e9; GT.tiles.forEach(t=>{ if (t.hs!==undefined) return; const d=Math.hypot(cp.x-(t.i+0.5)*GT.S, cp.z-(t.j+0.5)*GT.S); if (d<bd){ bd=d; best=t; } }); if (!best) return false;
+function gtHouseStepPending(cp){ for (const t of GT.tiles.values()) if (t.hs===undefined && kcReady(t.i,t.j)){ gtHouseStep(cp, MINI?2:3); return true; } return false; }
+function gtHouseStep(cp, ms){ let best=null, bd=1e9; GT.tiles.forEach(t=>{ if (t.hs!==undefined || !kcReady(t.i,t.j)) return; const d=Math.hypot(cp.x-(t.i+0.5)*GT.S, cp.z-(t.j+0.5)*GT.S); if (d<bd){ bd=d; best=t; } }); if (!best) return false;
   if (!ms){ try{ best.hs=gtHouses(best.i,best.j); }catch(e){ console.warn('haeuser',e); best.hs=null; } return true; }
   if (!GT.hj || GT.hj.t!==best) GT.hj={t:best, g:gtHousesGen(best.i,best.j)}; const t0=performance.now(); let r; try{ do r=GT.hj.g.next(); while(!r.done && performance.now()-t0<ms); }catch(e){ console.warn('haeuser',e); r={done:true,value:null}; }
   if (!r.done) return false; best.hs=r.value; GT.hj=null; return true; }
@@ -2483,7 +2486,7 @@ function fvStep(cp){ if (!FV.on || !GT.on) return; const S=GT.S, R=FV.R, ci=Math
   /* 1) fehlende Zelldaten nachrechnen (nächste zuerst, ca. 2 ms je Bild, eine Zelle braucht etwa 1 ms) */
   const t0=performance.now(), bud=window.FV_MS||2;
   while (performance.now()-t0<bud){ if (!FV.gen){ if (FV.full && FV.last && Math.hypot(cp.x-FV.full.x,cp.z-FV.full.z)<200) break; let best=null, bd=1e9;
-      for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const i=ci+a, j=cj+b, d=Math.hypot((i+0.5)*S-cp.x,(j+0.5)*S-cp.z); if (d>R+S*0.7 || d<GT.S*1.5) continue; const k=i+','+j; if (!FV.cells.has(k) && d<bd){ bd=d; best=[i,j,k]; } }
+      for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const i=ci+a, j=cj+b, d=Math.hypot((i+0.5)*S-cp.x,(j+0.5)*S-cp.z); if (d>R+S*0.7 || d<GT.S*1.5) continue; const k=i+','+j; if (!FV.cells.has(k) && d<bd && kcReady(i,j)){ bd=d; best=[i,j,k]; } }
       if (!best){ FV.full={x:cp.x,z:cp.z}; break; } FV.full=null; FV.gen={k:best[2], g:fvCellGen(best[0],best[1])}; }
     let q; do q=FV.gen.g.next(); while(!q.done && performance.now()-t0<bud); if (q.done){ FV.cells.set(FV.gen.k,q.value); FV.gen=null; FV.dirty=true; } }
   if (FV.dirty && FV.gen && performance.now()-(FV.tf||0)<500) return;
@@ -2506,10 +2509,75 @@ function fvFill(cp){ const [mc,mb,mw,mr]=FV.mk, S=GT.S, R=FV.R, R2=R*R, D0=LITE?
 function gtNearR(){ return window.__NR||(MINI?45:LITE?80:150); }
 function gtMidR(){ return MINI?110:LITE?160:280; }
 /* Gebäude aus Overture Maps (OpenStreetMap + Gebäudeerkennung), je Kachel: echte Grundrisse, Satteldach über dem ausgerichteten Rechteck */
-function gtBldIndex(){ if (GT.bi!==undefined) return GT.bi; GT.bi=null; if (!window.ZGBLD) return null; const a=b64i16(window.ZGBLD), M=new Map(); let i=0;
-  while (i<a.length){ const n=a[i], k=a[i+1], hd=a[i+2]; let x=a[i+3], z=a[i+4]; const P=[[x,z]]; let qx=Math.round(x*4), qz=Math.round(z*4); i+=5; for (let j=1;j<n;j++){ qx+=a[i]; qz+=a[i+1]; i+=2; P.push([qx/4,qz/4]); }
-    let cx=0, cz=0; P.forEach(p=>{ cx+=p[0]/n; cz+=p[1]/n; }); if (WORLD&&WORLD.id==='zittau' && (Math.hypot(cx-HW.x,cz-HW.z)<50 || Math.hypot(cx-HWT.x,cz-HWT.z)<24 || ZG_NOBLD.some(q=>Math.hypot(cx-q[0],cz-q[1])<3))) continue; const key=Math.floor(cx/GT.S)+','+Math.floor(cz/GT.S); let l=M.get(key); if (!l) M.set(key,l=[]); l.push({P,k,h:hd/10,cx,cz}); }
-  GT.bi=M; return M; }
+function gtBldIndex(){ if (window.ZGKC) return GT.bi||(GT.bi=new Map()); if (GT.bi!==undefined) return GT.bi; GT.bi=null; if (!window.ZGBLD) return null; const M=new Map(); bldDecode(b64i16(window.ZGBLD), o=>{ const key=Math.floor(o.cx/GT.S)+','+Math.floor(o.cz/GT.S); let l=M.get(key); if (!l) M.set(key,l=[]); l.push(o); }); GT.bi=M; return M; }
+/* ================= 0.17.0 (Hicore): Weltdaten Zittau in 2-km-Kacheln (data/kacheln). Nur die Umgebung wird geladen (ca. Fernsicht + 2 km), der Rest während der Fahrt; weit entfernte Kacheln werden freigegeben.
+   Inhalt: Gebäude, OSM-Bäume/Hecken/Gebüsch/Obst, Felsen (OSM natural=cliff/bare_rock/rock/stone/scree), Zäune/Mauern (OSM barrier). Aus: window.NO_KC (dann bleibt alles leer) ================= */
+const KC={st:new Map(), busy:0, t:0};
+function kcOn(){ return !!(window.ZGKC && WORLD && WORLD.id==='zittau'); }
+function kcOf(g){ return Math.floor(g*GT.S/window.ZGKC.S); }
+function bldDecode(a, add){ let i=0; while (i<a.length){ const n=a[i], k=a[i+1], hd=a[i+2]; let x=a[i+3], z=a[i+4]; const P=[[x,z]]; let qx=Math.round(x*4), qz=Math.round(z*4); i+=5; for (let j=1;j<n;j++){ qx+=a[i]; qz+=a[i+1]; i+=2; P.push([qx/4,qz/4]); }
+    let cx=0, cz=0; P.forEach(p=>{ cx+=p[0]/n; cz+=p[1]/n; }); if (WORLD&&WORLD.id==='zittau' && (Math.hypot(cx-HW.x,cz-HW.z)<50 || Math.hypot(cx-HWT.x,cz-HWT.z)<24 || ZG_NOBLD.some(q=>Math.hypot(cx-q[0],cz-q[1])<3))) continue; add({P,k,h:hd/10,cx,cz}); } }
+function kcApply(I,J,buf,st){ const dv=new DataView(buf), u8=new Uint8Array(buf), h=[]; for (let q=0;q<8;q++) h.push(dv.getUint32(4+q*4,true)); let o=36; const keys=new Set(), S=GT.S;
+  const put=(M,x,z,v)=>{ const k=Math.floor(x/S)+','+Math.floor(z/S); keys.add(k); let l=M.get(k); if (!l) M.set(k,l=[]); l.push(v); };
+  const BI=GT.bi||(GT.bi=new Map()); if (h[0]) bldDecode(new Int16Array(buf.slice(o,o+h[0])), b=>put(BI,b.cx,b.cz,b)); o+=h[0];
+  const OT=GT.ot||(GT.ot=new Map()), nt=h[3]; for (let k=0;k<nt;k++){ const x=dv.getInt16(o+k*4,true)/2, z=dv.getInt16(o+k*4+2,true)/2, t=u8[o+nt*4+k], key=Math.floor(x/S)+','+Math.floor(z/S); keys.add(key); let l=OT.get(key); if (!l) OT.set(key,l=[]); l.push(x,z,t); } o+=h[2];
+  const RK=GT.rk||(GT.rk=new Map()); for (let k=0;k<h[5];k++){ const b=o+k*8, x=dv.getInt16(b,true)/2, z=dv.getInt16(b+2,true)/2; put(RK,x,z,[x,z,u8[b+4],u8[b+5]/10,u8[b+6]/4,u8[b+7]/256*Math.PI*2]); } o+=h[4];
+  const FN=GT.fn||(GT.fn=new Map()); let p=o; for (let k=0;k<h[7];k++){ const ty=u8[p], n=u8[p+1]; p+=2; const P=[]; let mx=0, mz=0; for (let q=0;q<n;q++){ const x=dv.getInt16(p,true)/2, z=dv.getInt16(p+2,true)/2; p+=4; P.push(x,z); mx+=x/n; mz+=z/n; } put(FN,mx,mz,{ty,P}); }
+  st.keys=keys; st.ok=true; if (window.FV){ FV.full=null; FV.dirty=true; } }
+function kcLoad(i,j){ const k=i+','+j, I=window.ZGKC.t; if (KC.st.has(k)) return; if (!I[k] || window.NO_KC){ KC.st.set(k,{ok:true, empty:true}); return; }
+  const st={ok:false}; KC.st.set(k,st); KC.busy++;
+  fetch('data/kacheln/k_'+i+'_'+j+'.bin?h='+I[k]).then(r=>{ if (!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer(); }).then(buf=>kcApply(i,j,buf,st)).catch(e=>{ console.warn('kachel',k,e); st.retry=performance.now()+8000; }).finally(()=>{ KC.busy--; }); }
+function kcDist(cp,i,j){ const S=window.ZGKC.S; return Math.hypot(Math.max(0,Math.abs(cp.x-(i+0.5)*S)-S/2), Math.max(0,Math.abs(cp.z-(j+0.5)*S)-S/2)); }
+function kcRad(){ return (FV.on?FV.R:GT.R)+1500; }
+function kcTick(cp, force){ if (!kcOn()) return; const now=performance.now(); if (!force && now<KC.t) return; KC.t=now+350; const S=window.ZGKC.S, R=kcRad(), ci=Math.floor(cp.x/S), cj=Math.floor(cp.z/S), r=Math.ceil(R/S)+1, want=[];
+  KC.st.forEach((s,k)=>{ if (!s.ok && s.retry && now>s.retry) KC.st.delete(k); });
+  for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const i=ci+a, j=cj+b; if (KC.st.has(i+','+j)) continue; const d=kcDist(cp,i,j); if (d<R) want.push([d,i,j]); }
+  want.sort((p,q)=>p[0]-q[0]); for (const [d,i,j] of want){ if (KC.busy>=4) break; kcLoad(i,j); }
+  KC.st.forEach((s,k)=>{ if (!s.ok) return; const [i,j]=k.split(',').map(Number); if (kcDist(cp,i,j)>R+2*S) kcDrop(k,s); }); }
+function kcDrop(k,s){ (s.keys||[]).forEach(key=>{ GT.bi&&GT.bi.delete(key); GT.ot&&GT.ot.delete(key); GT.rk&&GT.rk.delete(key); GT.fn&&GT.fn.delete(key); if (window.FV&&FV.cells) FV.cells.delete(key); }); KC.st.delete(k); }
+/* GT-Kachel (500 m) samt Nachbarn geladen? Sonst Häuser/Wald/Fernsicht dort noch nicht bauen */
+function kcReady(gi,gj){ if (!kcOn()) return true; let ok=true; for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const i=kcOf(gi+a), j=kcOf(gj+b), s=KC.st.get(i+','+j); if (!s){ kcLoad(i,j); ok=false; } else if (!s.ok) ok=false; } return ok; }
+/* Start: Kacheln um die Startpunkte laden und abwarten (höchstens ms) */
+function kcWait(pts, rad, ms){ if (!kcOn()) return Promise.resolve(); const S=window.ZGKC.S, need=[]; pts.forEach(p=>{ if (!p) return; const r=Math.ceil(rad/S)+1, ci=Math.floor(p.x/S), cj=Math.floor(p.z/S); for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const i=ci+a, j=cj+b; if (kcDist(p,i,j)<rad){ need.push(i+','+j); kcLoad(i,j); } } });
+  const t0=performance.now(); return new Promise(res=>{ const chk=()=>{ if (need.every(k=>{ const s=KC.st.get(k); return s && (s.ok || s.retry); }) || performance.now()-t0>ms) return res(); setTimeout(chk,40); }; chk(); }); }
+/* ---------- Felsen am echten Ort (OSM). Typen: 0 Felswand an natural=cliff, 1 Einzelfels, 2 Geröll, 3 Felsblock in Felsfläche ---------- */
+function rockKit(){ if (GT.rkKit) return GT.rkKit; const T=sandstoneTexture(), nz=(x,y,z,s)=>{ const v=Math.sin(x*12.9898*s+y*78.233+z*37.719*s)*43758.5453; return v-Math.floor(v); };
+  const disp=(g,amp,seed,ctr)=>{ const P=g.attributes.position, M=new Map(); for (let i=0;i<P.count;i++){ const x=P.getX(i), y=P.getY(i), z=P.getZ(i), key=x.toFixed(3)+','+y.toFixed(3)+','+z.toFixed(3); let d=M.get(key);
+      if (!d){ const dx=x-ctr[0], dy=y-ctr[1], dz=z-ctr[2], l=Math.hypot(dx,dy,dz)||1, n=(nz(x,y,z,seed)-0.5)*2*amp+(nz(x*2.3,y*2.1,z*2.7,seed+3)-0.5)*amp*0.6, top=y>0.98?0.06:0, bot=y<0.02?0:1; d=[dx/l*n*bot, dy/l*n*0.5-top*(Math.abs(dx)+Math.abs(dz)), dz/l*n*bot]; M.set(key,d); }
+      P.setXYZ(i,x+d[0],y+d[1],z+d[2]); } g.computeVertexNormals(); return g; };
+  const blk=s=>{ const g=new THREE.BoxGeometry(1,1,1,3,4,2); g.translate(0,0.5,0); return disp(g,0.16,s,[0,0.5,0]); }, bou=s=>{ const g=new THREE.IcosahedronGeometry(0.5,1); g.translate(0,0.5,0); return disp(g,0.12,s,[0,0.5,0]); };
+  const mat=new THREE.MeshLambertMaterial({map:T, color:0xffffff}); mat.userData.pbr={n:1.1, r:0.95};
+  GT.rkKit={blk:[blk(1.3),blk(2.7),blk(4.1)], bou:[bou(1.7),bou(3.3)], mat}; return GT.rkKit; }
+function gtRockList(i,j,BL){ const L=GT.rk&&GT.rk.get(i+','+j); if (!L || !L.length) return null; const out=[];
+  for (const r of L){ const [x,z,ty,w]=r, R=ty===2?w*0.5:w*0.55, n=gnNear(x,z,40); if (n.k>=0 && n.d<n.w/2+R+0.8) continue; if (waysNear(x,z,ty===2?0.5:Math.min(2.2,R*0.6))) continue;
+    if (ZG_NOTREE.some(q=>{ const u=(x-q.x)/(q.ax*1.12), v=(z-q.z)/(q.az*1.12); return u*u+v*v<1; }) || Math.hypot(x-113,z-1880)<40) continue;
+    let inB=false; for (const o of BL){ const dx=x-o.cx, dz=z-o.cz, RR=o.r+R; if (dx*dx+dz*dz<RR*RR){ inB=true; break; } } if (inB) continue; out.push(r); }
+  return out.length?out:null; }
+function gtRockMesh(RL, grp, bs, rnd){ const K=rockKit(), by=new Map(), m=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), sc=new THREE.Vector3(), p=new THREE.Vector3(), col=new THREE.Color();
+  for (const [x,z,ty,w,h,ang] of RL){ const cliff=ty===0||ty===3, g=cliff?K.blk[Math.floor(rnd()*3)]:K.bou[Math.floor(rnd()*2)], d=cliff?(ty===0?Math.max(2.2,w*0.75)+rnd()*1.5:w*(0.7+rnd()*0.4)):w*(0.75+rnd()*0.4), rot=ty===0?Math.PI/2-ang:ang;
+    const cs=Math.cos(rot), sn=Math.sin(rot); let lo=1e9, hi=-1e9; for (const [a,b] of [[0,0],[0.5,0.5],[-0.5,0.5],[0.5,-0.5],[-0.5,-0.5]]){ const ax=a*w, bz=b*d, hh=terrainH(x+ax*cs+bz*sn, z-ax*sn+bz*cs); lo=Math.min(lo,hh); hi=Math.max(hi,hh); }
+    const base=lo-(cliff?0.9:Math.min(0.35*h,0.6)), H=cliff?Math.max(h, hi-base+0.8+rnd()*1.2):h;
+    e.set((rnd()-0.5)*(cliff?0.06:0.3), rot, (rnd()-0.5)*(cliff?0.06:0.3)); q.setFromEuler(e); sc.set(w,H,d); p.set(x,base,z); m.compose(p,q,sc);
+    const f=0.72+rnd()*0.3, gr=rnd()<0.35?0.92:1; col.setRGB(f*gr*0.98, f*gr*0.95, f*(gr<1?0.95:0.86)); let l=by.get(g); if (!l) by.set(g,l=[]); l.push(m.clone(), col.clone()); }
+  by.forEach((L,g)=>{ const c=L.length/2, im=mkIM(g,K.mat,c); im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3),3); for (let k=0;k<c;k++){ im.setMatrixAt(k,L[2*k]); im.setColorAt(k,L[2*k+1]); } im.count=c; im.castShadow=false; im.receiveShadow=true; im.frustumCulled=true; im.boundingSphere=bs; im.userData.rock=true; grp.add(im); }); }
+/* Hash der Felsen, damit keine Bäume in Felsen wachsen */
+function gtRockHash(RL){ const M=new Map(); for (const r of RL){ const R=r[2]===2?0:r[3]*0.6+0.8; if (!R) continue; const k=Math.floor(r[0]/10)+','+Math.floor(r[1]/10); let l=M.get(k); if (!l) M.set(k,l=[]); l.push(r[0],r[1],R); }
+  return (x,z)=>{ const cx=Math.floor(x/10), cz=Math.floor(z/10); for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=M.get((cx+a)+','+(cz+b)); if (!l) continue; for (let k=0;k<l.length;k+=3){ const dx=x-l[k], dz=z-l[k+1]; if (dx*dx+dz*dz<l[k+2]*l[k+2]) return true; } } return false; }; }
+/* ---------- Zäune und Mauern (OSM barrier). Typen: 0 Industriezaun 2 m, 1 Holzzaun 1,1 m, 2 Mauer 1,4 m, 3 Stützmauer 1 m ---------- */
+function gtFenceMesh(i,j,grp,bs){ const L=GT.fn&&GT.fn.get(i+','+j); if (!L || !L.length || MINI) return; const V={post:[], mesh:[], wood:[], wall:[]};
+  const box=(arr,ax,az,bx,bz,y0,y1,t)=>{ const dx=bx-ax, dz=bz-az, l=Math.hypot(dx,dz)||1, nx=-dz/l*t/2, nz=dx/l*t/2; const c=[[ax+nx,az+nz],[bx+nx,bz+nz],[bx-nx,bz-nz],[ax-nx,az-nz]], ya=[terrainH(ax,az),terrainH(bx,bz)];
+    const yb=k=>ya[k===0||k===3?0:1]; const P=(k,top)=>[c[k][0], yb(k)+(top?y1:y0), c[k][1]];
+    for (let s=0;s<4;s++){ const k0=s, k1=(s+1)%4; arr.push(...P(k0,0),...P(k1,0),...P(k1,1), ...P(k0,0),...P(k1,1),...P(k0,1)); } arr.push(...P(0,1),...P(1,1),...P(2,1), ...P(0,1),...P(2,1),...P(3,1)); };
+  const quad=(arr,ax,az,bx,bz,y0,y1)=>{ const ha=terrainH(ax,az), hb=terrainH(bx,bz); arr.push(ax,ha+y0,az, bx,hb+y0,bz, bx,hb+y1,bz, ax,ha+y0,az, bx,hb+y1,bz, ax,ha+y1,az); };
+  for (const {ty,P} of L){ for (let k=0;k+3<P.length;k+=2){ const ax=P[k], az=P[k+1], bx=P[k+2], bz=P[k+3], sl=Math.hypot(bx-ax,bz-az); if (sl<0.3) continue; const n=Math.max(1,Math.round(sl/(ty===0?2.6:2.2)));
+      for (let s=0;s<n;s++){ const x0=ax+(bx-ax)*s/n, z0=az+(bz-az)*s/n, x1=ax+(bx-ax)*(s+1)/n, z1=az+(bz-az)*(s+1)/n, mx=(x0+x1)/2, mz=(z0+z1)/2, g=gnNear(mx,mz,30); if (g.k>=0 && g.d<g.w/2+1.2) continue; if (waysNear(mx,mz,0.9)) continue;
+        if (ty===0){ box(V.post,x0,z0,x0+0.06*(x1-x0)/sl*n,z0+0.06*(z1-z0)/sl*n,-0.2,2.05,0.06); quad(V.mesh,x0,z0,x1,z1,0.05,2.0); }
+        else if (ty===1){ box(V.wood,x0,z0,x0+0.1*(x1-x0)/sl*n,z0+0.1*(z1-z0)/sl*n,-0.2,1.1,0.1); box(V.wood,x0,z0,x1,z1,0.42,0.5,0.04); box(V.wood,x0,z0,x1,z1,0.85,0.93,0.04); }
+        else box(V.wall,x0,z0,x1,z1,-0.4,ty===2?1.4:1.0,ty===2?0.35:0.45); } } }
+  const K=GT.fnKit||(GT.fnKit={post:new THREE.MeshLambertMaterial({color:0x6f757a, side:THREE.DoubleSide}), mesh:new THREE.MeshLambertMaterial({color:0x4a5056, transparent:true, opacity:0.42, side:THREE.DoubleSide, depthWrite:false}), wood:new THREE.MeshLambertMaterial({color:0x7a5a3c, side:THREE.DoubleSide}), wall:(()=>{ const m=new THREE.MeshLambertMaterial({color:0xb5aea3, side:THREE.DoubleSide}); try{ m.map=sandstoneTexture(); }catch(e){} return m; })()});
+  for (const k in V){ if (!V[k].length) continue; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(V[k],3)); if (k==='wall'){ const n=V[k].length/3, uv=new Float32Array(n*2); for (let q=0;q<n;q++){ uv[q*2]=(V[k][q*3]+V[k][q*3+2])*0.25; uv[q*2+1]=V[k][q*3+1]*0.25; } g.setAttribute('uv',new THREE.BufferAttribute(uv,2)); } g.computeVertexNormals(); g.boundingSphere=bs;
+    const me=new THREE.Mesh(g,K[k]); me.receiveShadow=true; me.castShadow=k!=='mesh' && !LITE; me.userData.fence=true; grp.add(me); } }
+
 /* 0.9.0 Haustypen: Zellen im Atlas (W = Wand, G = Giebel), Dach r = Ziegel, s = Schiefer/Eternit, Walmdach hip */
 const HT={
   U_turk:{w:8,g:1,H:[5.4,6.2],p:[0.9,1.05],rf:'rs',ug:1}, U_redu:{w:9,g:2,H:[5.4,6.2],p:[0.9,1.05],rf:'rs',ug:1}, U_fach:{w:10,g:3,H:[5.4,6.2],p:[0.85,1.0],rf:'r',ug:1}, U_ocker:{w:11,g:10,H:[5.4,6.2],p:[0.9,1.05],rf:'rs',ug:1},
@@ -2530,6 +2598,8 @@ const HT_OVR={ '-2427,-415':{t:'JONS',c:[1,1,1],r:[0.86,0.42,0.3]}, '-2432,-389'
   '-2333,782':{t:'U_fach'}, '-2304,807':{t:'JONS',c:[1,0.97,0.9]}, '-2293,777':{t:'EFH',c:[1,0.93,0.78]} };
 function htPick(b, area, asp, rnd, city, mtn){ const W=(o)=>{ let t=0; for (const k in o) t+=o[k]; let r=rnd()*t; for (const k in o){ r-=o[k]; if (r<=0) return k; } return Object.keys(o)[0]; };
   const k=b.k;
+  /* 0.17.0: Gebäude in OSM-Industrieflächen (landuse=industrial/works): Hallen, Blechbauten */
+  if (k===5) return area>300?(asp>1.2?'HALLE':W({HALLE:2,STALL:0.6})):area<60?W({BLECH:1,GARAGE:1}):W({HALLE:1,STALL:0.7,BLECH:0.4});
   if (k===3) return area>230?W({SCHEUNE:1,SCHEUNE2:1.2}):W({SCHEUNE:1,STALL:1,SCHEUNE2:0.5});
   if (k===1) return area<22?W({SCHUPPEN:2,BLECH:1}):area<55?W({GARAGE:2,SCHUPPEN:1}):W({STALL:1,SCHEUNE:1,HALLE:0.6});
   if (area<16) return 'SCHUPPEN';
@@ -3662,7 +3732,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   /* 0.11.7 Fernsicht: im Zittauer Gebirge weiter sehen (Dunst erst ab 6–7 km dicht), Kamera reicht entsprechend weiter */
   camera.far=3000; if (def.graph && !MINI && !window.NO_FV){ if (LITE){ scene.fog.near=150; scene.fog.far=2700; } else { scene.fog.near=350; scene.fog.far=6800; camera.far=7200; } } camera.updateProjectionMatrix();
   G = def.graph ? 320 : 200; GT.on=false; if (nearD.length!==(G+1)*(G+1)){ nearD=new Float32Array((G+1)*(G+1)); nearY=new Float32Array((G+1)*(G+1)); }
-  EXT = def.graph ? 2*Math.max(...gnData().reg.map(Math.abs))+1200 : def.R*2.9+700; CELL=EXT/G; OFF=-EXT/2;
+  EXT = def.graph ? 2*Math.max(...gnData().reg.map(Math.abs), def.id==='zittau'&&window.ZGKC?14300:0)+1200 : def.R*2.9+700; CELL=EXT/G; OFF=-EXT/2;
   initRoadNet(def); planCross(def);
   // nächste-Straße-Raster
   const step=4;
@@ -5332,7 +5402,7 @@ const PROP_PLAN = {
 let critters=[];
 let VILL=null;
 // Weiler vorab planen (vor den Bäumen), damit Hofstellen Gärten mit Obstbäumen bekommen
-function planVillages(def){ VILL=null; if (def.graph && window.ZGBLD){ window.HOUSE_PTS=[]; return null; }   /* echte Gebäude kommen je Kachel */ const plan=PROP_PLAN[def.id]; if (!plan || !Object.keys(PROP_LIB).length) return null;
+function planVillages(def){ VILL=null; if (def.graph && (window.ZGBLD||window.ZGKC)){ window.HOUSE_PTS=[]; return null; }   /* echte Gebäude kommen je Kachel */ const plan=PROP_PLAN[def.id]; if (!plan || !Object.keys(PROP_LIB).length) return null;
   const km=L/1000, nV=Math.max(1,Math.round(plan.villages*km)), hm=[], mb=[];
   const VD=[]; if (def.graph){ const D=gnData(); D.vill.forEach(v=>{ let bd=1e9, bi=0; for (let i=0;i<N;i+=2){ const dd=Math.hypot(pts[i].x-v.x,pts[i].z-v.z); if (dd<bd){ bd=dd; bi=i; } } if (bd<450) for (let o=-2;o<=2;o++) VD.push([cum[bi]+o*120, 4+Math.floor(rand()*3)]); }); }
   else for (let v=0; v<nV; v++) VD.push([(v+0.3+rand()*0.4)/nV*L, 3+Math.floor(rand()*3)]);
@@ -5859,7 +5929,7 @@ function zgExtras097(g){ const wood=new THREE.MeshLambertMaterial({color:0x5a3c2
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,3.0,8),new THREE.MeshLambertMaterial({color:0x9a9a9a})); pole.position.y=1.5; S.add(pole);
     [['Zittau 9 km',-1],['Petersdorf / Petrovice CZ',1],['Luftkurort Lückendorf 1 km',1]].forEach(([t,d],i)=>{ const c=document.createElement('canvas'); c.width=512; c.height=96; const x=c.getContext('2d'); x.fillStyle='#e8c227'; x.beginPath(); if (d>0){ x.moveTo(4,4); x.lineTo(450,4); x.lineTo(508,48); x.lineTo(450,92); x.lineTo(4,92); } else { x.moveTo(508,4); x.lineTo(62,4); x.lineTo(4,48); x.lineTo(62,92); x.lineTo(508,92); } x.closePath(); x.fill(); x.strokeStyle='#222'; x.lineWidth=5; x.stroke(); x.fillStyle='#111'; x.font='bold 40px sans-serif'; { const mw=x.measureText(t).width; if (mw>420) x.font='bold '+Math.floor(40*420/mw)+'px sans-serif'; } x.textAlign='center'; x.textBaseline='middle'; x.fillText(t,256,50);
       const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace; const b=new THREE.Mesh(new THREE.PlaneGeometry(1.7,0.32),new THREE.MeshLambertMaterial({map:tex, transparent:true, side:THREE.DoubleSide})); b.position.set(d*0.85,2.6-i*0.38,0.06); S.add(b); }); g.add(S); } }
-function buildLandmarks(){ const g=new THREE.Group(); g.name='landmarks'; const M=gtBldIndex(); if (!M) return g; const D=gnData();
+function buildLandmarks(){ const g=new THREE.Group(); g.name='landmarks'; const M=window.ZGLMB!=null?(()=>{ const l=[]; bldDecode(b64i16(window.ZGLMB), o=>l.push(o)); return new Map([['lm',l]]); })():gtBldIndex(); if (!M) return g; const D=gnData();
   LANDMARKS.forEach(L=>{ const o=propObject(L.m); if (!o) return; let B=null, bd=1e9; M.forEach(l=>l.forEach(b=>{ const d=Math.hypot(b.cx-L.cx,b.cz-L.cz); if (d<bd){ bd=d; B=b; } })); if (!B || bd>6) return;
     const P=B.P, n=P.length; let bl=0, ang=0; for (let q=0;q<n;q++){ const A=P[q], C=P[(q+1)%n], l=Math.hypot(C[0]-A[0],C[1]-A[1]); if (l>bl){ bl=l; ang=Math.atan2(C[1]-A[1],C[0]-A[0]); } }
     const ax=Math.cos(ang), az=Math.sin(ang); let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9; P.forEach(([x,z])=>{ const pu=x*ax+z*az, pv=-x*az+z*ax; u0=Math.min(u0,pu); u1=Math.max(u1,pu); v0=Math.min(v0,pv); v1=Math.max(v1,pv); });
@@ -7159,7 +7229,7 @@ async function start(){
     if (builtWorld!==def.id || BUILT_R!==GFX_BUILD_R){ const lb=$('loadbox'); $('loadname').textContent=def.name; $('loadstep').textContent='Modelle werden vorbereitet …'; lb.style.display='flex'; $('menu').style.display='none';
       const paint=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
       try{ await paint(); await (window.PROPS_READY||Promise.resolve()); await (window.LC_READY||Promise.resolve()); await (window.PARK_READY||Promise.resolve()); await (window.PHOTO_READY||Promise.resolve()); $('loadstep').textContent='Gelände, Straße, Bäume und Felsen werden gebaut …'; await paint();
-        window.LOADING=!!window.GPU_MODE; const tB0=performance.now(); buildWorld(def); gpuFixInst(scene); builtWorld=def.id; window.LOADT={b:performance.now()-tB0, t0:tB0}; $('loadstep').textContent='Grafik wird vorbereitet …'; await paint();
+        window.LOADING=!!window.GPU_MODE; const tB0=performance.now(); buildWorld(def); if (def.id==='zittau' && window.ZGKC && GT.on){ $('loadstep').textContent='Umgebung wird geladen …'; const p0=posAt(0); let sp=null; try{ sp=START_PICK||null; }catch(e){} await kcWait([p0,sp], 2600, 15000); gtStream(p0, 999); } gpuFixInst(scene); builtWorld=def.id; window.LOADT={b:performance.now()-tB0, t0:tB0}; $('loadstep').textContent='Grafik wird vorbereitet …'; await paint();
         if (window.GPU_MODE){ const tC0=performance.now(); try{ await GPU_INIT; await renderer.compileAsync(scene,camera); }catch(e){ console.warn('compile',e); } if (window.LOADT){ LOADT.c=performance.now()-tC0; }
           { const tA0=performance.now(); try{ TRAFFIC.prebuild(true); }catch(e){ console.warn('autos',e); } if (window.LOADT) LOADT.a=performance.now()-tA0; }
           { const tV0=performance.now(); try{ const n=await warmShaders(); if (window.LOADT){ LOADT.v=performance.now()-tV0; LOADT.vn=n; } }catch(e){ console.warn('warm',e); } } const tW0=performance.now(); try{ POST.render(); }catch(e){} await paint(); if (window.LOADT){ LOADT.w=performance.now()-tW0; LOADT.ff=1; } } else try{ stageCompile(); renderer.compile(scene,camera); }catch(e){} $('world').style.visibility='visible'; await paint(); }
@@ -7480,7 +7550,7 @@ function frame(now){
   }
   drawProfile();
   if (ENV_Q.length || ENV_JOB) captureWaterEnv();
-  updateTreeLOD(camera.position); if (GT.on){ gtStream(camera.position); if (FV.on) try{ fvStep(camera.position); }catch(e){ console.warn('fernsicht',e); FV.on=false; } }
+  updateTreeLOD(camera.position); if (GT.on){ try{ kcTick(camera.position); }catch(e){ console.warn('kacheln',e); } gtStream(camera.position); if (FV.on) try{ fvStep(camera.position); }catch(e){ console.warn('fernsicht',e); FV.on=false; } }
   POST.render();
   fpsN++; if (now-fpsT>1000){ const el=$('fps'); if (el){ el.textContent=Math.round(fpsN*1000/(now-fpsT))+' FPS'+(DRES.k<0.999?' · '+Math.round(DRES.k*100)+' %':''); el.style.display=$('fpsShow')&&$('fpsShow').value==='0'?'none':'block'; } fpsN=0; fpsT=now; }
 }
