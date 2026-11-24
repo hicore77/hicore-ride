@@ -3,7 +3,7 @@ const {chromium}=require('playwright');
  const ctx=await b.newContext({viewport:{width:640,height:360}}); await require("./serve")(ctx); const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push('PE '+e.stack.slice(0,300)));
  await p.goto((process.env.BASE||'http://127.0.0.1:8765/')+'index.html?gl=1'); await p.waitForFunction(()=>window.glbRiderReady,null,{timeout:300000});
  await p.evaluate(()=>{ selWorld='zittau'; WORLD=WORLDS.find(x=>x.id==='zittau'); });
- const r=await p.evaluate(()=>{ window.requestAnimationFrame=()=>0; const D=gnData(); gnRB(); const bad=[], stat={pairs:0,nodes:0,rbPairs:0,notOffered:0};
+ const r=await p.evaluate(()=>{ window.requestAnimationFrame=()=>0; window.GADJ='R'; const D=gnRG(); gnRB(); const bad=[], stat={pairs:0,nodes:0,rbPairs:0,notOffered:0};
    const ang=(a,b)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
    D.nodes.forEach((n,ni)=>{ const A=D.adj[ni]; if (!A || A.length<3) return; stat.nodes++; const R=gnRBAt(n.x,n.z,2);
      for (const a of A) for (const e of A){ if (e===a) continue; const Ea=D.edges[a], Ee=D.edges[e]; if (Ea.a===Ea.b||Ee.a===Ee.b) continue;

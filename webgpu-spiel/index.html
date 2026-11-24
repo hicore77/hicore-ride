@@ -185,6 +185,9 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
         <div class="mpgrid"><select id="tod"><option value="morgen">🌅 Morgen</option><option value="mittag">☀️ Mittag</option><option value="nachm" selected>🌤️ Nachmittag</option><option value="abend">🌇 Abend</option><option value="nacht">🌙 Nacht</option><option value="echt">🌐 Echte Tageszeit</option></select>
         <select id="wx"><option value="sonne" selected>☀️ Sonnig</option><option value="wolken">☁️ Bewölkt</option><option value="regen">🌧️ Regen</option><option value="gewitter">⛈️ Gewitter</option><option value="nebel">🌫️ Nebel</option><option value="schnee">🌨️ Schneefall</option><option value="graupel">🧊 Graupel</option><option value="echt">🌐 Echtes Wetter</option></select></div>
         <div class="mpgrid" style="margin-top:6px"><select id="snow"><option value="keine" selected>Schneelage: keine</option><option value="flecken">❄️ Schneeflecken</option><option value="angezuckert">❄️ Angezuckert</option><option value="viel">☃️ Viel Schnee</option><option value="tauwetter">💧 Tauwetter</option></select><select id="snowRd"><option value="geraeumt" selected>🛣️ Straßen geräumt</option><option value="fest">🛷 Straßen festgefahren</option></select></div><div id="realWx" style="font-size:12px;opacity:.8;margin-top:6px;display:none"></div></div>
+      <div class="mpbox"><h4>Fahrrad</h4>
+        <div class="mpgrid"><select id="bike"><option value="road" selected>🚴 Rennrad: nur Straßen</option><option value="gravel">🚵 Gravelbike: Straßen und Wege</option><option value="mtb">🌲 Mountainbike: überall</option></select></div>
+        <div id="bikeInfo" style="font-size:12px;opacity:.8;margin-top:6px"></div></div>
       <div class="mpbox"><h4>Gruppenfahrt (Multiplayer)</h4>
         <div class="mpgrid"><input id="mpName" maxlength="16" placeholder="Dein Name" autocomplete="off"><input id="mpRoom" maxlength="16" placeholder="Raum-Code" autocomplete="off" autocapitalize="characters"></div>
         <div class="mpbtn"><button id="mpJoin">Raum beitreten</button><button id="mpLeave" style="display:none">Raum verlassen</button></div>
@@ -4760,7 +4763,7 @@ function mergePassHeights(){ const C=8, h=new Map(), R=7, GAP=15;
       if (bd<R){ const w=0.5*(1-smooth01((bd-4)/(R-4))); pts[i].y=ys[i]*(1-w)+by*w; } } }
 }
 function buildCourse(def){
-  if (def.graph){ const R=gRoute(gnData().loop.map(([e,dir])=>({e,dir})),''); pts=R.pts; GN.mainEnts=R.ents; }
+  if (def.graph){ const R=gRoute(gnRG().loop.map(([e,dir])=>({e,dir})),''); pts=R.pts; GN.mainEnts=R.ents; }
   else if (def.real){ pts=realCoursePts(N).map(([x,y,z])=>new THREE.Vector3(x,y,z)); mergePassHeights(); }
   else { const [a,b,c,d] = def.shape, R=def.R;
   pts=[];
@@ -6090,9 +6093,9 @@ function planCross(def){ NET=null; XR=[]; XH=null; if (def.graph) return planGra
   if (JUNC){ XR.forEach(r=>[r.d1,r.d2].forEach(d=>{ const ci=idxAt(d)[0], k=Math.ceil((XW/2+6)/(L/N)); for (let o=-k;o<=k;o++) JUNC[(ci+o+N)%N]=1; })); smoothArr(JUNC,2,2); }
   NET={main, cur:main, junc:XR, pick:null, pend:null, appl:new Set(), rc:{'':main}}; }
 function planGraphNet(def){ const D=gnData(); const main={pts,cum,L,segs:[{s0:0,s1:L,r0:0}],main:true,key:'',ents:GN.mainEnts};
-  const onLoop=new Set(main.ents.map(en=>en.e));
+  const RG0=gnRG(), onLoop=new Set(main.ents.map(en=>RG0.edges[en.e].src));
   D.edges.forEach(E=>{ if (onLoop.has(E.k)) return; XR.push({k:XR.length, e:E.k, g:true, w:E.w, mk:gMark(E), name:gStreet(E), P:E.P, len:E.len, A:E.P[0], B:E.P[E.P.length-1]}); });
-  if (ROADW){ main.ents.forEach(en=>{ const E=D.edges[en.e], w=E.w, mk=gMark(E)?1:0, i0=Math.max(0,idxAt(en.r0)[0]), i1=Math.min(N-1,idxAt(en.r1)[0]+1); for (let i=i0;i<=i1;i++){ ROADW[i]=w; if (ROADMARK) ROADMARK[i]=mk; } }); smoothArr(ROADW,3,3); main.RW0=ROADW; main.RM0=ROADMARK; main.RW=ROADW; main.RM=ROADMARK;
+  if (ROADW){ main.ents.forEach(en=>{ const E=RG0.edges[en.e], w=E.w, mk=gMark(E)?1:0, i0=Math.max(0,idxAt(en.r0)[0]), i1=Math.min(N-1,idxAt(en.r1)[0]+1); for (let i=i0;i<=i1;i++){ ROADW[i]=w; if (ROADMARK) ROADMARK[i]=mk; } }); smoothArr(ROADW,3,3); main.RW0=ROADW; main.RM0=ROADMARK; main.RW=ROADW; main.RM=ROADMARK;
     /* 0.9.5 Randstreifen nach Straßenart: Hauptstraßen 1,2 m Bankett, Kreis- und Nebenstraßen schmal, im Ort fast keiner; im Wald leichte Mulde neben der Fahrbahn */
     SHW=new Float32Array(N); DMIN=new Float32Array(N); for (let i=0;i<N;i++){ const p=pts[i], q=pts[(i+1)%N], dx=q.x-p.x, dz=q.z-p.z, l=Math.hypot(dx,dz)||1, nx=-dz/l, nz=dx/l;
       const inner=gnInner(p.x,p.z), fo=gnForest(p.x+nx*9,p.z+nz*9)||gnForest(p.x-nx*9,p.z-nz*9), mk=ROADMARK?ROADMARK[i]:1;
@@ -6101,11 +6104,11 @@ function planGraphNet(def){ const D=gnData(); const main={pts,cum,L,segs:[{s0:0,
     if (ROADMARK) for (let i=0;i<N;i++){ const R=gnRBAt(pts[i].x,pts[i].z,1.5); if (R){ ROADMARK[i]=0; SHW[i]=0.1; } } }
   const C=16, h=new Map(); XR.forEach((r,k)=>{ for (let i=0;i<r.P.length-1;i++){ const a=r.P[i], b=r.P[i+1]; const x0=Math.floor(Math.min(a.x,b.x)/C), x1=Math.floor(Math.max(a.x,b.x)/C), z0=Math.floor(Math.min(a.z,b.z)/C), z1=Math.floor(Math.max(a.z,b.z)/C);
     for (let x=x0;x<=x1;x++) for (let z=z0;z<=z1;z++){ const kk=hashKey(x,z); let l=h.get(kk); if(!l) h.set(kk,l=[]); l.push([k,i]); } } }); XH={C,h};
-  if (JUNC){ main.ents.forEach(en=>{ if (D.adj[en.n0].length<3) return; const ci=idxAt(en.r0)[0], R=XW/2+6; for (let o=0;o<N;o++){ const j=(ci+o)%N; let dd=cum[j]-cum[ci]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } for (let o=1;o<N;o++){ const j=(ci-o+N)%N; let dd=cum[ci]-cum[j]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } }); for (let i=0;i<N;i++) if (gnRBAt(pts[i].x,pts[i].z,6)) JUNC[i]=1; smoothArr(JUNC,2,2); }
+  if (JUNC){ main.ents.forEach(en=>{ if ((D.adj[en.n0]||[]).length<3) return; const ci=idxAt(en.r0)[0], R=XW/2+6; for (let o=0;o<N;o++){ const j=(ci+o)%N; let dd=cum[j]-cum[ci]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } for (let o=1;o<N;o++){ const j=(ci-o+N)%N; let dd=cum[ci]-cum[j]; if (dd<0) dd+=L; if (dd>R) break; JUNC[j]=1; } }); for (let i=0;i<N;i++) if (gnRBAt(pts[i].x,pts[i].z,6)) JUNC[i]=1; smoothArr(JUNC,2,2); }
   NET={main, cur:main, junc:[], graph:true, pick:null, pend:null, appl:new Set(), rc:{'':main}}; }
 /* 0.10.5 (Hicore): Fahrbahnbreite je Strecke. Vorher galt nach dem Abbiegen weiter die Breite der Hauptrunde -> Fahrer fuhr auf schmalen Straßen auf dem Bankett */
 function useCourse(c){ pts=c.pts; cum=c.cum; L=c.L;
-  try{ if (c.ents && WORLD && WORLD.graph && ROADW){ if (!c.RW){ if (c===NET.main && NET.main.RW0){ c.RW=NET.main.RW0; c.RM=NET.main.RM0; } else { const D=gnData(), RW=new Float32Array(N).fill(6), RM=new Uint8Array(N).fill(1); c.ents.forEach(en=>{ const E=D.edges[en.e]; if (!E) return; const ix=d=>{ let lo=0,hi=N; while(hi-lo>1){ const m=(lo+hi)>>1; if (c.cum[m]<=d) lo=m; else hi=m; } return lo; }, i0=Math.max(0,ix(en.r0)), i1=Math.min(N-1,ix(en.r1)+1); for (let i=i0;i<=i1;i++){ RW[i]=E.w; RM[i]=gMark(E)?1:0; } }); for (let k=0;k<3;k++){ const b=Float32Array.from(RW); for (let i=0;i<N;i++){ let a=0,m=0; for (let o=-3;o<=3;o++){ const j=i+o; if (j<0||j>=N) continue; a+=b[j]; m++; } RW[i]=a/m; } } c.RW=RW; c.RM=RM; } }
+  try{ if (c.ents && WORLD && WORLD.graph && ROADW){ if (!c.RW){ if (c===NET.main && NET.main.RW0){ c.RW=NET.main.RW0; c.RM=NET.main.RM0; } else { const D=gnRG(), RW=new Float32Array(N).fill(6), RM=new Uint8Array(N).fill(1); c.ents.forEach(en=>{ const E=D.edges[en.e]; if (!E) return; const ix=d=>{ let lo=0,hi=N; while(hi-lo>1){ const m=(lo+hi)>>1; if (c.cum[m]<=d) lo=m; else hi=m; } return lo; }, i0=Math.max(0,ix(en.r0)), i1=Math.min(N-1,ix(en.r1)+1); for (let i=i0;i<=i1;i++){ RW[i]=E.w; RM[i]=gMark(E)?1:0; } }); for (let k=0;k<3;k++){ const b=Float32Array.from(RW); for (let i=0;i<N;i++){ let a=0,m=0; for (let o=-3;o<=3;o++){ const j=i+o; if (j<0||j>=N) continue; a+=b[j]; m++; } RW[i]=a/m; } } c.RW=RW; c.RM=RM; } }
     ROADW=c.RW; if (c.RM) ROADMARK=c.RM; } }catch(e){ console.warn('roadW',e); } }
 function withCourse(c,fn){ if (!NET || !c || (c===NET.cur && !NET._in)) return fn(); const sv=[pts,cum,L], was=NET._in; NET._in=true; useCourse(c); try{ return fn(); } finally{ pts=sv[0]; cum=sv[1]; L=sv[2]; NET._in=was; } }
 /* Strecke eines Mitfahrers aus seinem Schlüssel (genommene Querwege dieser Runde) nachbauen, damit man ihm auf den Querweg folgen kann */
@@ -6434,6 +6437,137 @@ function gnData(){ if (GN.d) return GN.d; const D=window.ZGNET; if (!D) return n
   const dc=new Map(); d.destInfo=(node,e)=>{ const key=node+':'+e; if (dc.has(key)) return dc.get(key); const E=d.edges[e], f=E.a===node, n=d.nodes[node]; const r=d.destFrom(e,f,f?0:E.P.length-1,d.ownAt(n.x,n.z,900)); dc.set(key,r); return r; };
   d.dest=(e,from)=>{ const r=d.destInfo(from,e); return r?r.name:''; };
   return (GN.d=d); }
+/* ===== 0.15.0 (Hicore): ein zusammenhängendes, befahrbares Netz aus Straßen, Nebenstraßen und Wegen =====
+   gnData() bleibt das Straßennetz für Darstellung, Verkehr und Gelände (unverändert). Fürs Fahren und Abbiegen gibt es das Routing-Netz gnRG():
+   dieselben Knoten (gleiche Nummern) und Straßenkanten, dazu alle Nebenstraßen (side2.bin) und Feld-, Wald-, Fuß-, Rad- und Reitwege (ways.bin).
+   - Wege werden an Straßen angebunden, wo sie die Fahrbahn kreuzen oder darauf enden. Die Straßenkante wird dafür nur im Routing-Netz geteilt
+     (erstes Teilstück behält die Nummer, weitere hinten angehängt; R.split[k]). Nie an Kreisel oder Doppelfahrbahnen.
+   - Wege untereinander: gemeinsame Endpunkte, T-Einmündungen (Endpunkt auf einem anderen Weg) und Kreuzungen (Schnitt zweier Wege). Knoten unter 0,9 m werden zusammengelegt.
+   - Brücken (OSM bridge) liegen gerade zwischen ihren Enden (Brückendeck, buildWayBridges), Tunnel fehlen. Unter hohen Straßen (Straße > 3 m über dem Gelände) gibt es keine Anbindung.
+   - Welche Kanten man angeboten bekommt, hängt vom Rad ab (gAdj): Rennrad Straßen + asphaltierte Nebenstraßen/Wirtschafts-/Radwege, Gravel und MTB alles.
+   - window.GADJ='R' erzwingt das alte reine Straßennetz (Pflicht-Straßentests tturn/tjump/tjun). */
+const BIKES={road:{n:'Rennrad',cda:0.32}, gravel:{n:'Gravelbike',cda:0.34}, mtb:{n:'Mountainbike',cda:0.37}};   /* 0.16.0 hängt hier Modell und Sitzhaltung ein */
+let BIKE=(()=>{ try{ const v=JSON.parse(localStorage.getItem('hicoreRide.bike')); return BIKES[v]?v:'road'; }catch(e){ return 'road'; } })();
+const SURF_DE=['Asphalt','Kopfsteinpflaster','Pflaster','Beton','Schotter','Feinschotter','Schotter grob','Erde','Gras','Sand','Fels','Holz','unbefestigt','befestigt'];
+/* Rollwiderstand je Untergrund (Index wie WAY_SURF) für [Rennrad, Gravel, MTB] (Hicore 24.11.): Asphalt Rennrad < Gravel < MTB; Schotter/Feldweg Gravel vor MTB knapp dahinter;
+   grobe Pfade, Wurzeln, Fels: MTB vorn, Gravel deutlich langsamer. Schätzwerte aus Rollwiderstandsmessungen (Reifenbreite/Druck), keine Messung im Spiel. */
+const BIKE_CRR=[[.004,.0055,.008],[.014,.011,.011],[.007,.008,.010],[.0045,.006,.0085],[.012,.0075,.0085],[.013,.008,.009],[.020,.010,.011],[.026,.013,.012],[.035,.020,.016],[.060,.035,.026],[.045,.030,.016],[.006,.007,.009],[.018,.010,.011],[.005,.0065,.0085]];
+const ROOT_CRR=[.09,.075,.028];
+function bikeIx(){ return BIKE==='gravel'?1:BIKE==='mtb'?2:0; }
+function gEdgeCrr(E){ const b=bikeIx(); if (!E || E.kind==='r' || E.sf==null) return BIKE_CRR[0][b]; let c=(BIKE_CRR[E.sf]||BIKE_CRR[12])[b];
+  if (E.kind==='w' && (E.c===11||E.c===14) && [7,8,10,12].indexOf(E.sf)>=0) c*=[1.3,1.5,0.95][b];   /* schmaler Pfad: Gravel deutlich langsamer, MTB im Vorteil */
+  return c; }
+function gAdj(R){ R=R||gnRG(); if (!R) return []; const m=window.GADJ||(BIKE==='road'?'S':'W'); return m==='R'?R.adjR:m==='S'?R.adjS:R.adjW; }
+function gAdjKey(){ return window.GADJ||(BIKE==='road'?'S':'W'); }
+function gNodeY(n){ if (n.y==null) n.y=terrainH(n.x,n.z)+0.08; return n.y; }
+/* Punkte eines Weg-Stücks erst bei Bedarf (Höhe aus dem Gelände wie das Wege-Netz, an Straßen auf Fahrbahnhöhe übergeblendet, Brücken gerade) */
+function rgPts(E){ const R=GN.rg, xz=E.xz, n=xz.length/2, Q=[]; for (let i=0;i<n;i++){ const x=xz[2*i], z=xz[2*i+1]; if (i){ const px=xz[2*i-2], pz=xz[2*i-1], l=Math.hypot(x-px,z-pz), m=Math.ceil(l/6); for (let k=1;k<m;k++) Q.push([px+(x-px)*k/m, pz+(z-pz)*k/m]); } Q.push([x,z]); }
+  const na=R.nodes[E.a], nb=R.nodes[E.b], ya=gNodeY(na), yb=gNodeY(nb), s=[0]; for (let i=1;i<Q.length;i++) s.push(s[i-1]+Math.hypot(Q[i][0]-Q[i-1][0],Q[i][1]-Q[i-1][1])); const T=s[s.length-1]||1;
+  const P=Q.map(([x,z],i)=>new THREE.Vector3(x, E.br?ya+(yb-ya)*s[i]/T:terrainH(x,z)+0.08, z));
+  if (!E.br){ for (let it=0;it<2;it++){ const y=P.map(p=>p.y); for (let i=1;i<P.length-1;i++) P[i].y=(y[i-1]+2*y[i]+y[i+1])/4; }
+    P.forEach((p,i)=>{ if (na.road){ const w=clamp(s[i]/10,0,1); p.y=ya*(1-w)+p.y*w; } if (nb.road){ const w=clamp((T-s[i])/10,0,1); p.y=yb*(1-w)+p.y*w; } }); }
+  P[0].y=ya; P[P.length-1].y=yb; return P; }
+class RGE{ constructor(o){ Object.assign(this,o); this._P=null; } get P(){ return this._P||(this._P=rgPts(this)); } set P(v){ this._P=v; } }
+function gnRG(){ const D=gnData(); if (!D) return null; if (GN.rg && GN.rg.D===D) return GN.rg; const t0=performance.now();
+  const R={D, nN:D.nodes.length, nR:D.edges.length, split:{}, roots:new Map(), stat:{}};
+  R.nodes=D.nodes.map(n=>({x:n.x,z:n.z,y:n.y,road:true}));
+  R.edges=D.edges.map(E=>({k:E.k,a:E.a,b:E.b,c:E.c,nm:E.nm,w:E.w,P:E.P,len:E.len,ref:E.ref,street:E.street,ow:E.ow,lanes:E.lanes,dup:E.dup,kind:'r',src:E.k,i0:0,i1:E.P.length-1}));
+  GN.rg=R;
+  try{ if (!window.NO_WAYNET) rgBuildWays(R,D); }catch(err){ console.warn('wegenetz',err); }
+  R.loop=(D.loop||[]).flatMap(([e,dir])=>{ const L=R.split[e]||[e]; return (dir?L.slice().reverse():L).map(x=>[x,dir]); });
+  const paved=E=>[0,3,13].indexOf(E.sf)>=0, okS=E=>E.kind==='r' || (E.kind==='s' && (paved(E)||E.sf===2)) || (E.kind==='w' && (E.c===10||E.c===13) && paved(E));
+  R.adjR=R.nodes.map(()=>[]); R.adjS=R.nodes.map(()=>[]); R.adjW=R.nodes.map(()=>[]);
+  R.edges.forEach(e=>{ if (e.dup!=null) return; const L=[R.adjW]; if (e.kind==='r') L.push(R.adjR); if (okS(e)) L.push(R.adjS); L.forEach(A=>{ A[e.a].push(e.k); if (e.b!==e.a) A[e.b].push(e.k); }); });
+  Object.defineProperty(R,'adj',{get(){ return gAdj(R); }});
+  R.canGo=(k,from)=>{ const E=R.edges[k]; if (!E || !E.ow) return true; return E.ow>0 ? E.a===from : E.b===from; };
+  R.town=D.town; R.ownAt=D.ownAt; const dc=new Map();
+  R.destInfo=(node,e)=>{ const key=node+':'+e; if (dc.has(key)) return dc.get(key); const E=R.edges[e]; let r=null; if (E && E.kind==='r'){ const f=E.a===node, n=R.nodes[node]; r=D.destFrom(E.src,f,f?E.i0:E.i1,D.ownAt(n.x,n.z,900)); } dc.set(key,r); return r; };
+  R.dest=(e,from)=>{ const r=R.destInfo(from,e); return r?r.name:''; };
+  R.pieceOf=(k,j)=>{ const L=R.split[k]; if (!L) return k; for (const p of L){ const E=R.edges[p]; if (j>=E.i0 && j<=E.i1) return p; } return L[L.length-1]; };
+  R.stat.ms=Math.round(performance.now()-t0); R.stat.nodes=R.nodes.length; R.stat.edges=R.edges.length; return R; }
+function rgBuildWays(R,D){ const ST=R.stat; const RBL=(()=>{ try{ return ZG_RB0; }catch(e){ return []; } })(), nearRB=(x,z)=>RBL.some(r=>Math.hypot(x-r[0],z-r[1])<(r[2]||12)+9);
+  /* 1. Linien sammeln */
+  const SRC=[], WY=(WAYS_ON && window.ZGWAYS)?waysData():null;
+  if (WY) WY.forEach(W=>{ if (W.fl&16 || W.P.length<4) return; SRC.push({kind:'w', c:W.c, w:W.w, sf:W.sf, tt:W.tt, br:!!(W.fl&8), id:W.id, xz:W.P}); });
+  if (window.ZGSIDE){ const bin=atob(window.ZGSIDE), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer), N=dv.getUint32(0,true); let o=4;
+    for (let r=0;r<N;r++){ const c=dv.getUint8(o), w=dv.getUint8(o+1)/10, sf=dv.getUint8(o+2), fl=dv.getUint8(o+3), n=dv.getUint16(o+4,true); o+=6; const P=new Float32Array(n*2); let x=0,z=0; for (let j=0;j<n;j++){ x+=dv.getInt16(o,true); z+=dv.getInt16(o+2,true); o+=4; P[2*j]=x/2; P[2*j+1]=z/2; }
+      if (fl&16 || n<2) continue; if (WY && (c===8||c===9)) continue; const ww=c===9?Math.max(1.4,Math.min(5,w)):Math.max(2.4,Math.min(9,w*(c>=7?0.85:0.9)));
+      SRC.push({kind:'s', c:20+c, w:ww, sf:[0,1,6][sf]||0, br:!!(fl&8), id:900000000+r, xz:P}); } }
+  if (!SRC.length) return;
+  /* Straßen-Projektion über das 40-m-Raster des Straßennetzes */
+  const cumOf=E=>{ if (E._cum) return E._cum; const c=[0]; for (let i=1;i<E.P.length;i++) c.push(c[i-1]+Math.hypot(E.P[i].x-E.P[i-1].x,E.P[i].z-E.P[i-1].z)); return (E._cum=c); };
+  const roadProj=(x,z,Rm)=>{ let best=null; const C=40, cx=Math.floor(x/C), cz=Math.floor(z/C), r=Math.ceil((Rm||12)/C);
+    for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const l=D.sh.get(hashKey(cx+a,cz+b)); if (!l) continue; for (let m=0;m<l.length;m+=2){ const E=D.edges[l[m]]; if (E.dup!=null) continue; const i=l[m+1], p=E.P[i], q=E.P[i+1], dx=q.x-p.x, dz=q.z-p.z, ll=dx*dx+dz*dz||1, t=clamp(((x-p.x)*dx+(z-p.z)*dz)/ll,0,1), d=Math.hypot(x-p.x-dx*t,z-p.z-dz*t);
+      if (!best || d<best.d) best={d,k:E.k,i,t,y:p.y+(q.y-p.y)*t,w:E.w||6.5}; } } return best; };
+  const ATT=[], newAtt=(pr)=>{ const E=D.edges[pr.k], c=cumOf(E), s=c[pr.i]+(c[pr.i+1]-c[pr.i])*pr.t, A={k:pr.k,s,node:-1}; ATT.push(A); return A; };
+  const elevated=(pr,x,z)=>pr.y-gdemH(x,z)>3;
+  /* Knoten der Wege (zusammengelegt unter 0,9 m) */
+  const NG=new Map(), nodeAt=(x,z)=>{ const cx=Math.floor(x/2), cz=Math.floor(z/2); for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=NG.get((cx+a)+','+(cz+b)); if (l) for (const id of l){ const q=R.nodes[id]; if (Math.hypot(q.x-x,q.z-z)<0.9) return id; } }
+    const id=R.nodes.length; R.nodes.push({x,z,y:null,road:false}); const k=cx+','+cz; let l=NG.get(k); if (!l) NG.set(k,l=[]); l.push(id); return id; };
+  /* Segment-Raster aller Linien (30 m) */
+  const SC=30, SH=new Map(); SRC.forEach((L,p)=>{ if (L.br) return; const xz=L.xz, n=xz.length/2; for (let i=0;i<n-1;i++){ const x0=Math.floor(Math.min(xz[2*i],xz[2*i+2])/SC), x1=Math.floor(Math.max(xz[2*i],xz[2*i+2])/SC), z0=Math.floor(Math.min(xz[2*i+1],xz[2*i+3])/SC), z1=Math.floor(Math.max(xz[2*i+1],xz[2*i+3])/SC);
+    for (let a=x0;a<=x1;a++) for (let b=z0;b<=z1;b++){ const k=hashKey(a,b); let l=SH.get(k); if (!l) SH.set(k,l=[]); l.push(p,i); } } });
+  const EV=SRC.map(()=>[]);   /* Ereignisse je Linie: [Segment, t, x, z, node|att] */
+  SRC.forEach(L=>{ const n=L.xz.length/2; L.cum=new Float32Array(n); for (let i=1;i<n;i++) L.cum[i]=L.cum[i-1]+Math.hypot(L.xz[2*i]-L.xz[2*i-2],L.xz[2*i+1]-L.xz[2*i-1]); });
+  /* 2. Endpunkte: Knoten; liegt ein Endpunkt auf einer anderen Linie, wird diese dort geteilt (T-Einmündung) */
+  SRC.forEach((L,p)=>{ const n=L.xz.length/2; L.na=nodeAt(L.xz[0],L.xz[1]); L.nb=nodeAt(L.xz[2*n-2],L.xz[2*n-1]);
+    [[L.xz[0],L.xz[1],L.na],[L.xz[2*n-2],L.xz[2*n-1],L.nb]].forEach(([x,z,nd])=>{ const l=SH.get(hashKey(Math.floor(x/SC),Math.floor(z/SC))); if (!l) return; const seen=new Set();
+      for (let m=0;m<l.length;m+=2){ const q=l[m], i=l[m+1]; if (q===p || seen.has(q)) continue; const M=SRC[q], xz=M.xz, ax=xz[2*i], az=xz[2*i+1], dx=xz[2*i+2]-ax, dz=xz[2*i+3]-az, ll=dx*dx+dz*dz||1, t=clamp(((x-ax)*dx+(z-az)*dz)/ll,0,1);
+        if (Math.hypot(ax+dx*t-x,az+dz*t-z)<0.6){ seen.add(q); const nm=M.xz.length/2; if ((i===0&&t<0.02)||(i===nm-2&&t>0.98)) continue; EV[q].push([i,t,ax+dx*t,az+dz*t,nd]); } } }); });
+  /* 3. Kreuzungen zweier Linien (ohne gemeinsamen Punkt in den vereinfachten Daten) */
+  const xs=(ax,az,bx,bz,cx,cz,dx,dz)=>{ const rx=bx-ax, rz=bz-az, sx=dx-cx, sz=dz-cz, den=rx*sz-rz*sx; if (Math.abs(den)<1e-9) return null; const t=((cx-ax)*sz-(cz-az)*sx)/den, u=((cx-ax)*rz-(cz-az)*rx)/den; return (t<0||t>1||u<0||u>1)?null:[t,u]; };
+  let nX=0; SH.forEach(l=>{ for (let m=0;m<l.length;m+=2) for (let o=m+2;o<l.length;o+=2){ const p=l[m], q=l[o]; if (p===q) continue; const i=l[m+1], j=l[o+1], A=SRC[p].xz, B=SRC[q].xz;
+      const r=xs(A[2*i],A[2*i+1],A[2*i+2],A[2*i+3],B[2*j],B[2*j+1],B[2*j+2],B[2*j+3]); if (!r) continue; const [t,u]=r, x=A[2*i]+(A[2*i+2]-A[2*i])*t, z=A[2*i+1]+(A[2*i+3]-A[2*i+1])*t;
+      const key=p<q?p+'|'+q+'|'+Math.round(x)+'|'+Math.round(z):q+'|'+p+'|'+Math.round(x)+'|'+Math.round(z); if (SH._s && SH._s.has(key)) continue; (SH._s=SH._s||new Set()).add(key);
+      const nd=nodeAt(x,z); EV[p].push([i,t,x,z,nd]); EV[q].push([j,u,x,z,nd]); nX++; } }); SH._s=null;
+  /* 4. Straßen: Punkte auf der Fahrbahn fallen weg, Kreuzen der Fahrbahn = Anbindung */
+  SRC.forEach((L,p)=>{ if (L.br) return; const xz=L.xz, n=xz.length/2; L.on=new Uint8Array(n);
+    for (let i=0;i<n;i++){ const x=xz[2*i], z=xz[2*i+1], pr=roadProj(x,z,12); if (pr && pr.d<pr.w/2+0.3 && !elevated(pr,x,z)) L.on[i]=1; }
+    for (let i=0;i<n-1;i++){ if (L.on[i]||L.on[i+1]) continue; const ax=xz[2*i], az=xz[2*i+1], bx=xz[2*i+2], bz=xz[2*i+3], C=40, seen=new Set();
+      const x0=Math.floor(Math.min(ax,bx)/C), x1=Math.floor(Math.max(ax,bx)/C), z0=Math.floor(Math.min(az,bz)/C), z1=Math.floor(Math.max(az,bz)/C);
+      for (let a=x0;a<=x1;a++) for (let b=z0;b<=z1;b++){ const l=D.sh.get(hashKey(a,b)); if (!l) continue; for (let m=0;m<l.length;m+=2){ const E=D.edges[l[m]], j=l[m+1]; if (E.dup!=null || seen.has(E.k+':'+j)) continue; seen.add(E.k+':'+j);
+        const P0=E.P[j], P1=E.P[j+1], r=xs(ax,az,bx,bz,P0.x,P0.z,P1.x,P1.z); if (!r) continue; const x=ax+(bx-ax)*r[0], z=az+(bz-az)*r[0], y=P0.y+(P1.y-P0.y)*r[1]; if (y-gdemH(x,z)>3) continue;
+        EV[p].push([i,r[0],x,z,newAtt({k:E.k,i:j,t:r[1]})]); } } } });
+  /* 5. Stücke bilden */
+  const PC=[]; SRC.forEach((L,p)=>{ const xz=L.xz, n=xz.length/2, ev=EV[p].sort((a,b)=>a[0]-b[0]||a[1]-b[1]); let e=0, cur=null, st=null, prevOn=-1;
+    const emit=(end)=>{ if (cur && cur.length>=4) PC.push({L, a:st, b:end, xz:cur}); };
+    const attV=i=>{ const pr=roadProj(xz[2*i],xz[2*i+1],12); return pr?{att:newAtt(pr)}:null; };
+    for (let i=0;i<n;i++){ const x=xz[2*i], z=xz[2*i+1], on=L.on&&L.on[i];
+      if (on){ if (cur){ cur.push(x,z); emit(attV(i)); cur=null; } prevOn=i; }
+      else { if (!cur){ if (prevOn>=0 && prevOn===i-1){ st=attV(prevOn); cur=[xz[2*prevOn],xz[2*prevOn+1]]; } else { st={node:i===0?L.na:nodeAt(x,z)}; cur=[]; } } cur.push(x,z); if (i===n-1){ emit({node:L.nb}); cur=null; } }
+      while (e<ev.length && ev[e][0]===i){ const [,, ex, ez, ref]=ev[e++]; if (!cur) continue; cur.push(ex,ez); const r=typeof ref==='number'?{node:ref}:{att:ref}; emit(r); st=r; cur=[ex,ez]; } } });
+  /* 6. Anbindungen je Straßenkante bündeln (8 m), an den Enden der Kante deren Knoten, Kreisel nie */
+  const byK=new Map(); ATT.forEach(A=>{ let l=byK.get(A.k); if (!l) byK.set(A.k,l=[]); l.push(A); });
+  byK.forEach((l,k)=>{ const E=R.edges[k]; if (E.a===E.b) return;   /* Schleifen (Wendeschleifen) nicht teilen */
+    const c=cumOf(D.edges[k]), len=c[c.length-1]; l.sort((a,b)=>a.s-b.s); const cl=[]; l.forEach(A=>{ const g=cl[cl.length-1]; if (g && A.s-g.s1<8){ g.L.push(A); g.s1=A.s; } else cl.push({L:[A], s0:A.s, s1:A.s}); });
+    const cuts=[]; cl.forEach(g=>{ const s=g.L.reduce((a,A)=>a+A.s,0)/g.L.length, P=D.edges[k].P; let i=0; while (i<P.length-2 && c[i+1]<s) i++; const f=clamp((s-c[i])/Math.max(1e-6,c[i+1]-c[i]),0,1), x=P[i].x+(P[i+1].x-P[i].x)*f, z=P[i].z+(P[i+1].z-P[i].z)*f;
+      if (nearRB(x,z)) return; let nd; if (s<7) nd=E.a; else if (s>len-7) nd=E.b; else { const last=cuts[cuts.length-1]; if (last && s-last.s<12){ g.L.forEach(A=>A.node=last.nd); return; } nd=R.nodes.length; R.nodes.push({x,z,y:P[i].y+(P[i+1].y-P[i].y)*f,road:true}); cuts.push({s,i,f,nd}); } g.L.forEach(A=>A.node=nd); });
+    if (!cuts.length) return;
+    /* Straßenkante teilen */
+    const P=D.edges[k].P, ids=[k]; let a=E.a, pi=0; const mk=(from,to,P2,i0,i1)=>({k:0,a:from,b:to,c:E.c,nm:E.nm,w:E.w,P:P2,len:0,ref:E.ref,street:E.street,ow:E.ow,lanes:E.lanes,kind:'r',src:k,i0,i1});
+    let prevPt=P[0], prevI=0; cuts.forEach((C,ci)=>{ const sp=P[C.i].clone().lerp(P[C.i+1],C.f), P2=[prevPt, ...P.slice(prevI+1, C.i+1), sp]; const ed=mk(a,C.nd,P2,prevI,C.i);
+      if (ci===0){ Object.assign(E,ed,{k}); } else { ed.k=R.edges.length; R.edges.push(ed); ids.push(ed.k); } a=C.nd; prevPt=sp; prevI=C.i; });
+    const ed=mk(a,D.edges[k].b,[prevPt, ...P.slice(prevI+1)],prevI,P.length-1); ed.k=R.edges.length; R.edges.push(ed); ids.push(ed.k);
+    ids.forEach(id=>{ const X=R.edges[id]; let l2=0; for (let i=1;i<X.P.length;i++) l2+=Math.hypot(X.P[i].x-X.P[i-1].x,X.P[i].z-X.P[i-1].z); X.len=l2; }); R.split[k]=ids; });
+  /* 7. Kanten der Wege */
+  let nW=0; const ROOTS=R.roots; PC.forEach(pc=>{ const L=pc.L, rf=r=>r? (r.node!=null?r.node:r.att.node):-1; let a=rf(pc.a), b=rf(pc.b); const xz=pc.xz, m=xz.length/2;
+    if (a<0) a=nodeAt(xz[0],xz[1]); if (b<0) b=nodeAt(xz[2*m-2],xz[2*m-1]);
+    const na=R.nodes[a], nb=R.nodes[b]; xz[0]=na.x; xz[1]=na.z; xz[2*m-2]=nb.x; xz[2*m-1]=nb.z; let len=0; for (let i=1;i<m;i++) len+=Math.hypot(xz[2*i]-xz[2*i-2],xz[2*i+1]-xz[2*i-1]);
+    if (len<0.5 || (a===b && len<30)) return;
+    const E=new RGE({k:R.edges.length,a,b,c:L.c,nm:'',w:L.w,len,ref:'',street:'',kind:L.kind,sf:L.sf,tt:L.tt,br:L.br,wid:L.id,src:-1,xz:Float32Array.from(xz)}); R.edges.push(E); nW++;
+    /* Wurzelstellen auf schmalen Pfaden (Erde, Fels, Gras, unbefestigt), alle 70-220 m; ob im Wald, wird erst bei Bedarf geprüft */
+    if (L.kind==='w' && (L.c===11||L.c===14) && [7,8,10,12].indexOf(L.sf)>=0 && len>40){ let sd=((L.id*2654435761)^(a*97))>>>0||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647); let s=25+rnd()*90, acc=0;
+      for (let i=1;i<m && s<len-15;i++){ const ax=xz[2*i-2], az=xz[2*i-1], bx=xz[2*i], bz=xz[2*i+1], l=Math.hypot(bx-ax,bz-az); while (s<=acc+l && s<len-15){ const f=(s-acc)/(l||1), x=ax+(bx-ax)*f, z=az+(bz-az)*f, k=Math.floor(x/50)+','+Math.floor(z/50); let rl=ROOTS.get(k); if (!rl) ROOTS.set(k,rl=[]); rl.push([x,z,(bx-ax)/(l||1),(bz-az)/(l||1),L.w,-1,(sd%1000)/1000]); s+=70+rnd()*150; } acc+=l; } } });
+  ST.lines=SRC.length; ST.crossings=nX; ST.att=ATT.length; ST.splitEdges=Object.keys(R.split).length; ST.wayEdges=nW; }
+/* liegt (x,z) auf einer Wurzelstelle (im Wald)? */
+function gRootAt(x,z){ const R=GN.rg; if (!R || !R.roots.size) return false; const cx=Math.floor(x/50), cz=Math.floor(z/50);
+  for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=R.roots.get((cx+a)+','+(cz+b)); if (!l) continue; for (const r of l){ const dx=x-r[0], dz=z-r[1], al=dx*r[2]+dz*r[3]; if (Math.abs(al)>2.8) continue; const lt=Math.abs(-dx*r[3]+dz*r[2]); if (lt>r[4]/2+0.8) continue;
+      if (r[5]<0) r[5]=gnForest(r[0],r[1])?1:0; if (r[5]) return true; } } return false; }
+function gWayName(E){ if (!E) return ''; if (E.kind==='r') return gStreet(E); if (E.kind==='s') return E.c===27?'Zufahrt':E.c===24?'Wohnstraße':'Nebenstraße';
+  if (E.fo==null){ const xz=E.xz, m=(xz.length/4|0)*2; E.fo=gnForest(xz[m],xz[m+1]); }
+  const base={10:E.fo?'Waldweg':'Feldweg',11:E.fo?'Waldpfad':'Pfad',12:'Fußweg',13:'Radweg',14:'Reitweg'}[E.c]||'Weg'; return base+(E.br?' (Brücke)':'')+' · '+(SURF_DE[E.sf]||''); }
+/* Kante an der Streckenposition d der aktuellen Strecke */
+function gEdgeAt(d, R){ R=R||(NET&&NET.cur); const en=R&&R.ents; if (!en || !en.length || !GN.rg) return null; let lo=0, hi=en.length-1; if (d<en[0].r0) return GN.rg.edges[en[0].e]; while (hi>lo){ const m=(lo+hi+1)>>1; if (en[m].r0<=d) lo=m; else hi=m-1; } return GN.rg.edges[en[lo].e]; }
 /* nächstes Straßenstück (alle Straßen des Netzes): Abstand, Höhe, Breite */
 /* 0.10.3 Kreisverkehre aus OpenStreetMap (Kreismittelpunkt x, z, Radius der Ringfahrbahn). Gefahren wird wie in Deutschland gegen den Uhrzeigersinn. */
 const ZG_RB0=[[2049.1,-5578.7,11.6],[6477.0,-1833.1,14.3],[-3603.3,-9685.5,14.7],[1765.8,-2210.2,13.8],[-5531.9,-5179.6,10.6],[-2203.7,-13000.3,11.3],[7326.2,-2752.8,21.3],[1376.4,-1669.0,11.2],[-8551.2,-6493.9,14.9],[-5944.0,-5363.1,12.4],[4076.8,-4889.6,11.7],[7358.0,-1924.2,18.2],[-8540.7,-9228.9,13.2],[7421.5,-5642.0,22.0],[3708.4,-4741.8,14.2],[6876.7,-6364.8,18.3],[7810.0,-4735.6,21.3],[7734.6,-1626.6,26.9]];   /* 0.10.21: alle OSM-Kreisel (junction=roundabout) im Kartenbereich */
@@ -6954,6 +7088,7 @@ function gtSideIdx(){ if (SIDE_IDX) return SIDE_IDX; SIDE_IDX=new Map(); if (!wi
   const bin=atob(window.ZGSIDE), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer); const N=dv.getUint32(0,true); let o=4;
   for (let r=0;r<N;r++){ const c=dv.getUint8(o), w=dv.getUint8(o+1)/10, sf=dv.getUint8(o+2), fl=dv.getUint8(o+3), n=dv.getUint16(o+4,true); o+=6; let x=0, z=0; const P=[]; for (let j=0;j<n;j++){ x+=dv.getInt16(o,true); z+=dv.getInt16(o+2,true); o+=4; P.push([x/2,z/2]); }
     if (fl&16) continue;   /* Tunnel */
+    if ((fl&8) && !window.NO_WAYNET) continue;   /* 0.15.0: Brücken der Nebenstraßen als Brückendeck (buildWayBridges) */
     if (WY && (c===8 || c===9)) continue;   /* 0.14.0: befestigte Wirtschaftswege und Zittauer Fußwege kommen jetzt aus ways.bin (mit Untergrund) */
     const ww=c===9?Math.max(1.4,Math.min(5,w)):Math.max(2.4,Math.min(9,w*(c>=7?0.85:0.9)));   /* 0.11.4: Klasse 9 = Fuß-/Radwege (Zittau, Parks am Ring) */
     const ly=[0,1,4][sf]||0; cut(P,ww,sf,()=>ly,0,false,6); }
@@ -6980,7 +7115,30 @@ function gtSideMesh(i,j,fineOnly){ const L=gtSideIdx().get(i+','+j); if (!L || !
       if (k){ const v=b0+k*2; idx.push(v-2,v,v-1, v-1,v,v+1); } } });
   if (!idx.length) return null;
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); if (wm){ g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('wl',new THREE.Float32BufferAttribute(wl,4)); } else g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
-  const m=new THREE.Mesh(g,wm||SIDE_MAT); m.receiveShadow=true; m.name=fineOnly?'pfade':'nebenstrassen'; return m; }
+  const m=new THREE.Mesh(g,wm||SIDE_MAT); m.receiveShadow=true; m.name=fineOnly?'pfade':'nebenstrassen'; if (fineOnly){ try{ const rm=gtRootMesh(i,j); if (rm) m.add(rm); }catch(e){ console.warn('wurzeln',e); } } return m; }
+/* 0.15.0: sichtbare Wurzelstellen auf Waldpfaden (dieselben Stellen, die beim Fahren bremsen: gRootAt). Je Stelle 4-6 flache Wurzeln quer über den Pfad */
+let ROOT_MAT=null;
+function gtRootMesh(i,j){ const R=GN.rg; if (!R || !R.roots.size) return null; const S=GT.S, pos=[], idx=[];
+  for (let a=Math.floor(i*S/50); a<=Math.floor(((i+1)*S-0.01)/50); a++) for (let b=Math.floor(j*S/50); b<=Math.floor(((j+1)*S-0.01)/50); b++){ const l=R.roots.get(a+','+b); if (!l) continue;
+    for (const r of l){ if (r[0]<i*S || r[0]>=(i+1)*S || r[1]<j*S || r[1]>=(j+1)*S) continue; if (r[5]<0) r[5]=gnForest(r[0],r[1])?1:0; if (!r[5]) continue; let sd=Math.floor(r[6]*1e6)+7; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
+      const n=6+Math.floor(rnd()*5); for (let k=0;k<n;k++){ const al=(rnd()-0.5)*5, yaw=(rnd()-0.5)*1.3, full=r[4]/2+0.6, hw=full*(0.35+rnd()*0.65), th=0.025+rnd()*0.035, c0=(rnd()-0.5)*(full-hw)*2, cx=r[0]+r[2]*al, cz=r[1]+r[3]*al, ux=-r[3]*Math.cos(yaw)+r[2]*Math.sin(yaw), uz=r[2]*Math.cos(yaw)+r[3]*Math.sin(yaw), vx=-uz, vz=ux, wa=(rnd()-0.5)*0.5, wf=2+rnd()*3;
+        const b0=pos.length/3, M=8; for (let q=0;q<=M;q++){ const f=q/M, t=c0+(f*2-1)*hw, wig=Math.sin(f*wf+k)*wa*0.4, x=cx+ux*t+vx*wig, z=cz+uz*t+vz*wig, y=terrainH(x,z)+0.07, tp=Math.min(1,Math.sin(f*Math.PI)*2.2), w2=th*(0.4+0.6*tp); pos.push(x+vx*w2, y-0.01, z+vz*w2, x, y+w2*1.6, z, x-vx*w2, y-0.01, z-vz*w2); if (q){ const v=b0+q*3; idx.push(v-3,v,v-2, v-2,v,v+1, v-2,v+1,v-1, v-1,v+1,v+2); } } } } }
+  if (!idx.length) return null; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals();
+  if (!ROOT_MAT) ROOT_MAT=new THREE.MeshStandardMaterial({color:0x3e2c1d, roughness:0.85}); const m=new THREE.Mesh(g,ROOT_MAT); m.name='wurzeln'; m.receiveShadow=true; return m; }
+/* 0.15.0: Brücken auf Wegen und Nebenstraßen (OSM bridge): gerades Deck zwischen den Brückenenden, Holz oder Beton, mit Geländer. Je 1-km-Feld ein Netz. */
+function buildWayBridges(){ const grp=new THREE.Group(); grp.name='wegbruecken'; const R=gnRG(); if (!R) return grp; const cells=new Map();
+  R.edges.forEach(E=>{ if (E.kind==='r' || !E.br || E.len<1.5) return; const P=E.P, ck=Math.floor(P[0].x/1000)+','+Math.floor(P[0].z/1000); let C=cells.get(ck); if (!C) cells.set(ck,C={v:[],c:[]});
+    const wood=E.sf===11 || (E.kind==='w' && E.c!==13 && E.sf!==0 && E.sf!==3), col=wood?[0.42,0.31,0.21]:[0.58,0.57,0.55], rc=wood?[0.33,0.24,0.16]:[0.36,0.37,0.39], hw=Math.max(0.9,(E.w||2)/2+0.25), v=C.v, cc=C.c;
+    const quad=(a,b,c2,d,cl)=>{ v.push(...a,...b,...c2, ...a,...c2,...d); for (let k=0;k<6;k++) cc.push(...cl); };
+    let acc=0; for (let i=0;i<P.length-1;i++){ const p=P[i], q=P[i+1], dx=q.x-p.x, dz=q.z-p.z, l=Math.hypot(dx,dz)||1, nx=-dz/l*hw, nz=dx/l*hw, yp=p.y-0.03, yq=q.y-0.03;
+      const L1=[p.x+nx,yp,p.z+nz], R1=[p.x-nx,yp,p.z-nz], L2=[q.x+nx,yq,q.z+nz], R2=[q.x-nx,yq,q.z-nz];
+      quad(R1,L1,L2,R2,col); quad(L1,[L1[0],yp-0.35,L1[2]],[L2[0],yq-0.35,L2[2]],L2,col.map(x=>x*0.8)); quad(R2,[R2[0],yq-0.35,R2[2]],[R1[0],yp-0.35,R1[2]],R1,col.map(x=>x*0.8));
+      [1,-1].forEach(sg=>{ const ax=p.x+nx*sg, az=p.z+nz*sg, bx=q.x+nx*sg, bz=q.z+nz*sg; quad([ax,yp+0.95,az],[ax,yp+1.05,az],[bx,yq+1.05,bz],[bx,yq+0.95,bz],rc);
+        for (let s2=(2.2-acc%2.2)%2.2; s2<=l; s2+=2.2){ const x=ax+(bx-ax)*s2/l, z=az+(bz-az)*s2/l, y=yp+(yq-yp)*s2/l, ex=dx/l*0.05, ez=dz/l*0.05;
+          quad([x-ex,y,z-ez],[x-ex,y+1.05,z-ez],[x+ex,y+1.05,z+ez],[x+ex,y,z+ez],rc); } }); acc+=l; } });
+  const mat=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.85, side:THREE.DoubleSide});
+  cells.forEach(C=>{ if (!C.v.length) return; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(C.v,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(C.c,3)); g.computeVertexNormals(); const m=new THREE.Mesh(g,mat); m.castShadow=true; m.receiveShadow=true; grp.add(m); });
+  return grp; }
 function gtBuild(i,j){ const J=gtStart(i,j); gtStep(J,0); return gtFinish(J); }
 function gtMask(){ const c=GT.cv; if (!c || !GT.tex) return; const g=c.getContext('2d'), S=c.width, px=EXT/S; g.fillStyle='#000'; g.fillRect(0,0,S,S); g.fillStyle='#fff';
   GT.tiles.forEach(t=>{ g.fillRect((t.i*GT.S-OFF)/px+1, (t.j*GT.S-OFF)/px+1, GT.S/px-2, GT.S/px-2); }); GT.tex.needsUpdate=true; }
@@ -6994,13 +7152,13 @@ function gtStream(cam, budget){ if (!GT.on) return; const S=GT.S, R=GT.R, ci=Mat
   else { if (GT.job && !want.some(w=>w[1]===GT.job.i&&w[2]===GT.job.j)){ GT.job.geo.dispose(); GT.job=null; }
     if (!GT.job){ for (const [dd,i,j] of want){ if (!GT.tiles.has(i+','+j)){ GT.job=gtStart(i,j); break; } } }
     if (GT.job && gtStep(GT.job, MINI?2:3)){ GT.tiles.set(GT.job.i+','+GT.job.j, gtFinish(GT.job)); GT.job=null; changed=true; } }
-  GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>rr(t.i,t.j)+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } if (t.sr){ GT.grp.remove(t.sr); t.sr.geometry.dispose(); } if (t.sp){ GT.grp.remove(t.sp); t.sp.geometry.dispose(); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
+  GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>rr(t.i,t.j)+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } if (t.sr){ GT.grp.remove(t.sr); t.sr.geometry.dispose(); } if (t.sp){ GT.grp.remove(t.sp); t.sp.geometry.dispose(); t.sp.children.forEach(c=>c.geometry&&c.geometry.dispose()); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
   GT.tiles.forEach(t=>{ if (t.sp){ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); t.sp.visible=Math.hypot(dx,dz)<(MINI?300:LITE?450:650); } });   /* 0.14.0: schmale Pfade nur in der Nähe */
   if (changed){ gtMask(); GT.flast=null; } if (budget>1){ while (gtHouseStep(cam)); while (gtForestRange(cam)); } else if (!GT.job){ if (!gtHouseStepPending(cam)) gtForestRange(cam, MINI?2:3); } gtForestLOD(cam); }
 function gdemH(x,z){ const d=GN.dem; if (!d) return 0; const gx=clamp((x-d.x0)/d.cell,0,d.nx-1.001), gz=clamp((z-d.z0)/d.cell,0,d.nz-1.001); const ix=gx|0, iz=gz|0, fx=gx-ix, fz=gz-iz, n=d.nx, H=d.H;
   return (H[iz*n+ix]*(1-fx)+H[iz*n+ix+1]*fx)*(1-fz)+(H[(iz+1)*n+ix]*(1-fx)+H[(iz+1)*n+ix+1]*fx)*fz; }
 /* Weg (Liste gerichteter Kanten) -> Kurs mit N Punkten; ents merkt sich, wo welche Kante liegt (r0..r1) */
-function gRoute(path, key){ const D=gnData(), dense=[], ents=[]; let acc=0;
+function gRoute(path, key){ const D=gnRG(), dense=[], ents=[]; let acc=0;
   path.forEach(({e,dir},pi)=>{ const E=D.edges[e], P=dir?E.P.slice().reverse():E.P;
     /* Sackgasse (z. B. Hochwald, Lausche): oben eine Wendeschleife statt Kehrtwende auf der Stelle */
     if (pi>0 && path[pi-1].e===e && path[pi-1].dir!==dir && dense.length>4){ const T=dense[dense.length-1], Q=dense[dense.length-4], hx=T.x-Q.x, hz=T.z-Q.z, hl=Math.hypot(hx,hz)||1, R=7, cx=T.x+hx/hl*R, cz=T.z+hz/hl*R, a0=Math.atan2(T.z-cz,T.x-cx); (window.GLOOPS=window.GLOOPS||new Map()).set(Math.round(cx/20)+','+Math.round(cz/20),{x:cx,z:cz,y:T.y});
@@ -7025,23 +7183,27 @@ function gRoute(path, key){ const D=gnData(), dense=[], ents=[]; let acc=0;
   ents.forEach(en=>{ en.r0=toCum(en.r0); en.r1=toCum(en.r1); });
   return {pts:np, cum:c2, L:c2[N], segs:[{s0:0,s1:c2[N],r0:0}], ents, key:key||'', main:!key}; }
 /* kürzester Weg vom Knoten s zu einem der Zielknoten (Dijkstra), verbotene Kanten werden gemieden */
-function gPath(s, targets, banned){ const D=gnData(), dist=new Map([[s,0]]), prev=new Map(), pq=[[0,s]], done=new Set();
-  while (pq.length){ pq.sort((a,b)=>a[0]-b[0]); const [du,u]=pq.shift(); if (done.has(u)) continue; done.add(u); if (targets.has(u)){ const out=[]; let v=u; while (v!==s){ const [pu,e]=prev.get(v), E=D.edges[e]; out.push({e, dir:E.a===pu?0:1}); v=pu; } return {node:u, path:out.reverse(), d:du}; }
-    for (const e of D.adj[u]){ if (banned && banned.has(e)) continue; if (D.canGo && !D.canGo(e,u)) continue; const E=D.edges[e], v=E.a===u?E.b:E.a, nd=du+E.len; if (nd<(dist.get(v)??1e18)){ dist.set(v,nd); prev.set(v,[u,e]); pq.push([nd,v]); } } }
+/* 0.15.0: Binärheap statt Sortieren (Routing-Netz mit Wegen hat ca. 40.000 Knoten). Nur Kanten, die das gewählte Rad fahren darf (gAdj);
+   Nebenstraßen und Wege zählen beim Rückweg zur Runde etwas länger, damit er über Straßen führt, solange es ähnlich weit ist. */
+function gPath(s, targets, banned){ const D=gnRG(), A=gAdj(D), dist=new Map([[s,0]]), prev=new Map(), done=new Set(), H=[[0,s]];
+  const push=x=>{ H.push(x); let i=H.length-1; while (i>0){ const p=(i-1)>>1; if (H[p][0]<=H[i][0]) break; [H[p],H[i]]=[H[i],H[p]]; i=p; } };
+  const pop=()=>{ const top=H[0], last=H.pop(); if (H.length){ H[0]=last; let i=0; for (;;){ const l=2*i+1, r=l+1; let m=i; if (l<H.length && H[l][0]<H[m][0]) m=l; if (r<H.length && H[r][0]<H[m][0]) m=r; if (m===i) break; [H[m],H[i]]=[H[i],H[m]]; i=m; } } return top; };
+  while (H.length){ const [du,u]=pop(); if (done.has(u)) continue; done.add(u); if (targets.has(u)){ const out=[]; let v=u; while (v!==s){ const [pu,e]=prev.get(v), E=D.edges[e]; out.push({e, dir:E.a===pu?0:1}); v=pu; } return {node:u, path:out.reverse(), d:du}; }
+    for (const e of (A[u]||[])){ if (banned && banned.has(e)) continue; if (!D.canGo(e,u)) continue; const E=D.edges[e], v=E.a===u?E.b:E.a, nd=du+E.len*(E.kind==='r'?1:E.kind==='s'?1.25:1.6); if (nd<(dist.get(v)??1e18)){ dist.set(v,nd); prev.set(v,[u,e]); push([nd,v]); } } }
   return null; }
 /* Abbiegen: bisherige Strecke bis zur Kreuzung + gewählte Straße + kürzester Weg zurück auf die Hauptrunde + Rest der Hauptrunde bis zum Ziel */
-function gTurn(cur, at, e){ const D=gnData(), M=cur.rev?gRevMain():NET.main, E=D.edges[e], node=at.node, dir=E.a===node?0:1, far=dir?E.a:E.b;
+function gTurn(cur, at, e){ const D=gnRG(), A=gAdj(D), M=cur.rev?gRevMain():NET.main, E=D.edges[e], node=at.node, dir=E.a===node?0:1, far=dir?E.a:E.b;
   const prefix=cur.ents.slice(0,at.i+1).map(x=>({e:x.e,dir:x.dir}));
   const start=M.ents[0].n0, idx=new Map(); M.ents.forEach((en,j)=>{ if (!idx.has(en.n0)) idx.set(en.n0,j); });
   /* 0.8.0: kurzes Anschlussstück (unter 90 m) läuft automatisch in die längste weiterführende Straße, sonst bleibt keine Zeit für den nächsten Hinweis */
-  const via=[{e,dir}], ex=new Set([e]); let fn=far; if (E.len<90 && !idx.has(far)){ const e2=(D.adj[far]||[]).filter(k=>k!==e).sort((a,b)=>D.edges[b].len-D.edges[a].len)[0]; if (e2!==undefined){ const E2=D.edges[e2], d2=E2.a===far?0:1; via.push({e:e2,dir:d2}); ex.add(e2); fn=d2?E2.a:E2.b; } }
+  const via=[{e,dir}], ex=new Set([e]); let fn=far; if (E.kind==='r' && E.len<90 && !idx.has(far)){ const e2=(A[far]||[]).filter(k=>k!==e && D.edges[k].kind==='r').sort((a,b)=>D.edges[b].len-D.edges[a].len)[0]; if (e2!==undefined){ const E2=D.edges[e2], d2=E2.a===far?0:1; via.push({e:e2,dir:d2}); ex.add(e2); fn=d2?E2.a:E2.b; } }
   /* 0.9.6: Knoten ohne Abzweig (nur eine weiterführende Straße) einfach weiterfahren, z. B. Windgasse -> An der Lausche bis hoch zur Hubertusbaude, statt unten zu wenden */
-  for (let g=0; g<12 && !idx.has(fn); g++){ const nx=(D.adj[fn]||[]).filter(k=>!ex.has(k)); if (nx.length!==1) break; const E3=D.edges[nx[0]], d3=E3.a===fn?0:1; via.push({e:nx[0],dir:d3}); ex.add(nx[0]); fn=d3?E3.a:E3.b; }
+  for (let g=0; g<200 && !idx.has(fn); g++){ const nx=(A[fn]||[]).filter(k=>!ex.has(k)); if (nx.length!==1) break; const E3=D.edges[nx[0]], d3=E3.a===fn?0:1; via.push({e:nx[0],dir:d3}); ex.add(nx[0]); fn=d3?E3.a:E3.b; }
   let back=gPath(fn, new Set(idx.keys()), ex);
   /* 0.10.17: führt die gewählte Straße in ein Stück Netz ohne Rückweg (z. B. bis an den Rand der Karte), nicht gleich am ersten Knoten wenden,
      sondern der Straße möglichst geradeaus bis zu ihrem Ende folgen; erst dort Wendeschleife */
-  if (!back){ for (let g=0; g<40 && (D.adj[fn]||[]).length>1; g++){ const lv=via[via.length-1], LE=D.edges[lv.e], LP=lv.dir?LE.P.slice().reverse():LE.P, q1=LP[LP.length-1], q0=LP[Math.max(0,LP.length-5)], hx=q1.x-q0.x, hz=q1.z-q0.z, hl=Math.hypot(hx,hz)||1;
-      let best=-1, bs=-9; for (const k of D.adj[fn]){ if (ex.has(k)) continue; const K=D.edges[k], f=K.a===fn, Q=f?K.P:K.P.slice().reverse(), r=Q[Math.min(Q.length-1,4)], ox=r.x-q1.x, oz=r.z-q1.z, ol=Math.hypot(ox,oz)||1, sc=(hx*ox+hz*oz)/hl/ol+(K.nm===LE.nm&&LE.nm!=='|'?0.5:0); if (sc>bs){ bs=sc; best=k; } }
+  if (!back){ for (let g=0; g<120 && (A[fn]||[]).length>1; g++){ const lv=via[via.length-1], LE=D.edges[lv.e], LP=lv.dir?LE.P.slice().reverse():LE.P, q1=LP[LP.length-1], q0=LP[Math.max(0,LP.length-5)], hx=q1.x-q0.x, hz=q1.z-q0.z, hl=Math.hypot(hx,hz)||1;
+      let best=-1, bs=-9; for (const k of A[fn]){ if (ex.has(k)) continue; const K=D.edges[k], f=K.a===fn, Q=f?K.P:K.P.slice().reverse(), r=Q[Math.min(Q.length-1,4)], ox=r.x-q1.x, oz=r.z-q1.z, ol=Math.hypot(ox,oz)||1, sc=(hx*ox+hz*oz)/hl/ol+(K.nm===LE.nm&&LE.nm!=='|'?0.5:0); if (sc>bs){ bs=sc; best=k; } }
       if (best<0) break; const K=D.edges[best], d4=K.a===fn?0:1; via.push({e:best,dir:d4}); ex.add(best); fn=d4?K.a:K.b; if (idx.has(fn)) break; }
     back=gPath(fn, new Set(idx.keys()), ex); }
   back=back || gPath(fn, new Set(idx.keys()), null);
@@ -7054,7 +7216,7 @@ function gTurn(cur, at, e){ const D=gnData(), M=cur.rev?gRevMain():NET.main, E=D
   let list=[...prefix, ...via, ...back.path, ...rest];
   /* 0.10.17: verbleibende Kehrtwenden mitten im Netz (nicht an Sackgassen) umfahren: vom Wendepunkt auf anderem Weg zur Runde, dort in der passenden Richtung weiter */
   { const endN=x=>{ const E=D.edges[x.e]; return x.dir?E.a:E.b; };
-    for (let it=0; it<4; it++){ let j=-1; for (let k=Math.max(0,prefix.length-1); k<list.length-1; k++){ if (list[k].e===list[k+1].e && (D.adj[endN(list[k])]||[]).length>1){ j=k; break; } } if (j<0) break;
+    for (let it=0; it<4; it++){ let j=-1; for (let k=Math.max(0,prefix.length-1); k<list.length-1; k++){ if (list[k].e===list[k+1].e && (A[endN(list[k])]||[]).length>1){ j=k; break; } } if (j<0) break;
       const X=endN(list[j]), last=list[j].e, MM=flip?(cur.rev?NET.main:gRevMain()):M, OM=MM===NET.main?gRevMain():NET.main, ids=new Set(MM.ents.map(en=>en.n0)), bk=gPath(X, ids, new Set([last])); if (!bk) break;
       const L2=bk.path.length?bk.path[bk.path.length-1].e:last; let jj=MM.ents.findIndex(en=>en.n0===bk.node && en.e!==L2), R2=MM; if (jj<0){ R2=OM; jj=OM.ents.findIndex(en=>en.n0===bk.node && en.e!==L2); if (jj>=0) flip=!flip; } if (jj<0) break;
       list=[...list.slice(0,j+1), ...bk.path, ...R2.ents.slice(jj).map(x=>({e:x.e,dir:x.dir}))]; } }
@@ -7067,28 +7229,28 @@ function gReverse(){ const C=NET, R=C.cur, old=posAt(S.dist), f=S.dist/L; const 
   S.dist=cum[bi]; S.dir=1; meP.dir=1; C.appl.clear(); C.pend=null; junUI(null); }
 function gRouteOfKey(key){ let cur=NET.main; for (const t of key.split(',')){ const [rd,e]=t.split(':').map(Number); const i=cur.ents.findIndex(en=>Math.abs(en.r1-rd)<2); if (i<0 || isNaN(e)) break; cur=gTurn(cur,{i,node:cur.ents[i].n1,rd},e); } return cur; }
 /* 0.8.0 (Hicore): Sackgassen bleiben als Straße sichtbar, bekommen aber keinen Abbiegehinweis. Ausnahme: echte Anstiege (ab 800 m und 60 Hm, z. B. Lausche, Hochwald) */
-function gOfferable(D,e,node){ const C=D._off||(D._off=new Map()), k=e+'|'+node; if (C.has(k)) return C.get(k); const E=D.edges[e], far=E.a===node?E.b:E.a, seen=new Set([far]), st=[far], used=new Set([e]); let len=E.len, top=-1e9, loop=false;
-  while (st.length && !loop){ const n=st.pop(); for (const k2 of (D.adj[n]||[])){ if (used.has(k2)) continue; used.add(k2); const E2=D.edges[k2]; len+=E2.len; E2.P.forEach(q=>{ if (q.y>top) top=q.y; }); const o=E2.a===n?E2.b:E2.a; if (o===node){ loop=true; break; } if (!seen.has(o)){ seen.add(o); st.push(o); } if (seen.size>400){ loop=true; break; } } }
-  E.P.forEach(q=>{ if (q.y>top) top=q.y; }); const y0=D.nodes[node].y!==undefined?D.nodes[node].y:(E.a===node?E.P[0].y:E.P[E.P.length-1].y), ok=loop || (len>=800 && top-y0>=60) || (E.c<=1 && len>=1500);   /* 0.9.8: lange Staatsstraße bis zur Grenze (Lückendorf -> Petrovice) wird angeboten, am Ende Wende */ C.set(k,ok); return ok; }
+function gOfferable(D,e,node){ const C=D._off||(D._off=new Map()), A=D===GN.rg?gAdj(D):D.adj, k=e+'|'+node+'|'+(D===GN.rg?gAdjKey():''); if (C.has(k)) return C.get(k); const E=D.edges[e], far=E.a===node?E.b:E.a, seen=new Set([far]), st=[far], used=new Set([e]); let len=E.len, top=-1e9, loop=false;
+  while (st.length && !loop){ const n=st.pop(); for (const k2 of (A[n]||[])){ if (used.has(k2)) continue; used.add(k2); const E2=D.edges[k2]; len+=E2.len; if (!E2.xz||E2._P) E2.P.forEach(q=>{ if (q.y>top) top=q.y; }); const o=E2.a===n?E2.b:E2.a; if (o===node){ loop=true; break; } if (!seen.has(o)){ seen.add(o); st.push(o); } if (seen.size>400){ loop=true; break; } } }
+  if (!E.xz||E._P) E.P.forEach(q=>{ if (q.y>top) top=q.y; }); const y0=D.nodes[node].y!=null?D.nodes[node].y:(E.a===node?E.P[0].y:E.P[E.P.length-1].y), ok=loop || (len>=800 && top-y0>=60) || (E.c<=1 && len>=1500);   /* 0.9.8: lange Staatsstraße bis zur Grenze (Lückendorf -> Petrovice) wird angeboten, am Ende Wende */ C.set(k,ok); return ok; }
 /* 0.8.0: kurzes Anschlussstück (z. B. 32 m Grenzstraße) zeigt auch die weiterführende Straße (Hochwaldweg) */
-function gStreetVia(D,e,node){ const E=D.edges[e], n0=gStreet(E); if (E.len>90) return n0; const far=E.a===node?E.b:E.a, nx=(D.adj[far]||[]).filter(k=>k!==e).map(k=>D.edges[k]).sort((a,b)=>b.len-a.len)[0]; const n1=nx?gStreet(nx):''; return n1&&n1!==n0?(n0?n0+' → ':'')+n1:n0; }
+function gStreetVia(D,e,node){ const E=D.edges[e]; if (E.kind && E.kind!=='r') return gWayName(E); const n0=gStreet(E); if (E.len>90) return n0; const far=E.a===node?E.b:E.a, nx=((D===GN.rg?gAdj(D):D.adj)[far]||[]).filter(k=>k!==e && (!D.edges[k].kind || D.edges[k].kind==='r')).map(k=>D.edges[k]).sort((a,b)=>b.len-a.len)[0]; const n1=nx?gStreet(nx):''; return n1&&n1!==n0?(n0?n0+' → ':'')+n1:n0; }
 function gStreet(E){ const r=/^\d+$/.test(E.ref||'')?'':E.ref; return E.street&&r?r+' '+E.street:(E.street||r||''); }
 /* Richtung einer Option an der Kreuzung relativ zur Ankunft */
-function gTurnInfo(arrE, node, e){ const D=gnData(), A=D.edges[arrE], E=D.edges[e], n=D.nodes[node];
+function gTurnInfo(arrE, node, e){ const D=gnRG(), A=D.edges[arrE], E=D.edges[e], n=D.nodes[node];
   const ap=A.b===node?A.P:A.P.slice().reverse(), q=ap[Math.max(0,ap.length-1-Math.ceil(20/5))], fx=n.x-q.x, fz=n.z-q.z, fl=Math.hypot(fx,fz)||1;
   const ep=E.a===node?E.P:E.P.slice().reverse(), r=ep[Math.min(ep.length-1,Math.ceil(20/5))], ox=r.x-n.x, oz=r.z-n.z, ol=Math.hypot(ox,oz)||1;
   const cr=(fx/fl)*(oz/ol)-(fz/fl)*(ox/ol), dt=(fx/fl)*(ox/ol)+(fz/fl)*(oz/ol), ang=Math.atan2(cr,dt)*180/Math.PI;   /* x Ost, z Süd: cr>0 = rechts */
   const a=ang; const label=Math.abs(a)<28?'Geradeaus':a<0?(a<-120?'Scharf links':'Links'):(a>120?'Scharf rechts':'Rechts');
   return {a, label, icon:Math.abs(a)<28?'⬆':a<0?'⬅':'➡'}; }
-function gNetStep(){ const C=NET, D=gnData();
+function gNetStep(){ const C=NET, D=gnRG(), A=gAdj(D);
   if (S.dist>=L){ S.dist-=L; if ((S.dir||1)>0){ lastLapDist=S.odo||0; S.lap++; toast('Runde '+(S.lap-1)+' geschafft!'); } C.appl.clear(); const base=C.cur.rev?gRevMain():C.main; if (C.cur!==base) setRoute(base); }
   if ((S.dir||1)<0 || S.ut || !S.running){ junUI(null); return; }
   const R=C.cur; let best=null;
-  for (let i=0;i<R.ents.length;i++){ const en=R.ents[i]; if (en.r1<S.dist-2) continue; if (D.adj[en.n1].length<3) continue; const tag=i+':'+en.n1+':'+Math.round(en.r1); if (C.appl.has(tag)) continue; best={i, rd:en.r1, node:en.n1, tag, ah:en.r1-S.dist}; break; }
+  for (let i=0;i<R.ents.length;i++){ const en=R.ents[i]; if (en.r1<S.dist-2) continue; if ((A[en.n1]||[]).length<3) continue; const tag=i+':'+en.n1+':'+Math.round(en.r1); if (C.appl.has(tag)) continue; best={i, rd:en.r1, node:en.n1, tag, ah:en.r1-S.dist}; break; }
   const lead=Math.max(160, S.speed*12);
   if (!best || best.ah>lead){ junUI(null); C.pend=null; return; }
   if (!C.pend || C.pend.tag!==best.tag){ const arr=R.ents[best.i].e, nx=R.ents[best.i+1]||(best.node===R.ents[0].n0?(R.rev?gRevMain():C.main).ents[0]:null), planned=nx?nx.e:null;
-    const opts=D.adj[best.node].filter(e=>e!==arr || D.edges[e].a===D.edges[e].b).filter(e=>e===planned || (gOfferable(D,e,best.node) && (!D.canGo || D.canGo(e,best.node)))).map(e=>Object.assign({e, name:gStreetVia(D,e,best.node), dest:D.dest(e,best.node), km:(D.destInfo(best.node,e)||{}).km, len:D.edges[e].len, plan:e===planned}, gTurnInfo(arr,best.node,e))).sort((a,b)=>a.a-b.a);
+    const opts=A[best.node].filter(e=>e!==arr || D.edges[e].a===D.edges[e].b).filter(e=>e===planned || (gOfferable(D,e,best.node) && (!D.canGo || D.canGo(e,best.node)))).map(e=>Object.assign({e, name:gStreetVia(D,e,best.node), dest:D.dest(e,best.node), km:(D.destInfo(best.node,e)||{}).km, len:D.edges[e].len, plan:e===planned}, gTurnInfo(arr,best.node,e))).sort((a,b)=>a.a-b.a);
     if (opts.length<2){ C.appl.add(best.tag); return; }
     C.pend=Object.assign({}, best, {opts, planned}); C.pick=planned; }
   else Object.assign(C.pend, {ah:best.ah, rd:best.rd});
@@ -8119,7 +8281,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   if (def.graph && window.ZGZT) try{ const zm=buildZtMarks(); if (zm) worldGroup.add(zm); }catch(e){ console.warn('zittau-markierungen',e); }
   if (def.graph && def.id==='zittau') try{ worldGroup.add(buildHochwaldTurm()); }catch(e){ console.warn('hochwaldturm',e); }
   try{ eggReset(); }catch(e){}
-  if (def.graph && def.id==='zittau'){ try{ worldGroup.add(buildSchanze()); }catch(e){ console.warn('schanze',e); } try{ worldGroup.add(buildHainFelsen(def)); }catch(e){ console.warn('felsen',e); } try{ worldGroup.add(buildZgScenes()); }catch(e){ console.warn('szenen',e); } try{ worldGroup.add(buildOybinFelsen(def)); }catch(e){ console.warn('oybin',e); } try{ worldGroup.add(buildLandmarks()); }catch(e){ console.warn('landmarks',e); } try{ ZSB.kill(); worldGroup.add(ZSB.build()); }catch(e){ console.warn('schmalspur',e); } }
+  if (def.graph && def.id==='zittau'){ try{ worldGroup.add(buildSchanze()); }catch(e){ console.warn('schanze',e); } try{ worldGroup.add(buildHainFelsen(def)); }catch(e){ console.warn('felsen',e); } try{ worldGroup.add(buildZgScenes()); }catch(e){ console.warn('szenen',e); } try{ worldGroup.add(buildWayBridges()); }catch(e){ console.warn('wegbruecken',e); } try{ worldGroup.add(buildOybinFelsen(def)); }catch(e){ console.warn('oybin',e); } try{ worldGroup.add(buildLandmarks()); }catch(e){ console.warn('landmarks',e); } try{ ZSB.kill(); worldGroup.add(ZSB.build()); }catch(e){ console.warn('schmalspur',e); } }
   try{ SNOW.y0.value=def.graph&&window.ZGNET&&ZGNET.Y0!=null?ZGNET.Y0:420-(minY+maxY)/2; }catch(e){}
   STG('Materialien'); try{ pbrWorldAO(def); if (!MINI) pbrEnv(def); else scene.environment=null; pbrApply(scene); }catch(e){ console.warn('pbr',e); } STG('Welt fertig');
   profImg=null; snapCam=true; try{ POST.hn=0; }catch(e){}
@@ -8965,6 +9127,9 @@ $('wx').onchange=()=>{ ATMO.wx=$('wx').value; store.set('wx',ATMO.wx); snowUI();
 function snowUI(){ const e=ATMO.wx==='echt', s=$('snow'); if (!s) return; s.disabled=e; s.title=e?'Stellt sich nach dem echten Wetter selbst ein':''; s.style.opacity=e?0.55:1; }
 $('snow').value=ATMO.sn; $('snowRd').value=ATMO.snRd; snowUI();
 $('snow').onchange=()=>{ ATMO.sn=$('snow').value; store.set('snow',ATMO.sn); ATMO.apply(); };
+/* 0.15.0: Radwahl. Bestimmt, welche Abzweige angeboten werden (gAdj) und den Rollwiderstand je Untergrund (gEdgeCrr) */
+{ const bi=()=>{ const t={road:'Schnellstes Rad auf Asphalt. Abzweige nur in Straßen und asphaltierte Wege.',gravel:'Etwas langsamer auf Asphalt, am schnellsten auf Schotter und Feldwegen. Biegt auch in Wald- und Feldwege ab, auf groben Pfaden und Wurzeln langsam.',mtb:'Langsamste auf Asphalt, knapp hinter dem Gravelbike auf Schotter, am schnellsten auf Pfaden, Wurzeln und Fels. Biegt überall ab.'}; const el=$('bikeInfo'); if (el) el.textContent=t[BIKE]||''; };
+  try{ $('bike').value=BIKE; bi(); $('bike').onchange=()=>{ BIKE=BIKES[$('bike').value]?$('bike').value:'road'; try{ localStorage.setItem('hicoreRide.bike',JSON.stringify(BIKE)); }catch(e){} bi(); try{ if (NET){ NET.pend=null; NET.appl&&NET.appl.clear(); junUI(null); } }catch(e){} }; }catch(e){ console.warn('rad',e); } }
 $('snowRd').onchange=()=>{ ATMO.snRd=$('snowRd').value; store.set('snowRd',ATMO.snRd); ATMO.apply(); };
 try{ RWX.tick(true); }catch(e){} try{ ATMO.setup(); }catch(e){ console.warn('Wetter-Setup',e); }
 // ---------- Segmente mit Bestzeiten: zählen NUR mit echtem Rollentrainer (nicht im Testmodus ohne Trainer) ----------
@@ -9068,7 +9233,7 @@ const RHO=1.2, CDA=0.32, CRR=0.004, GRAV=9.81;
 function curveVmax(){ const dir=S.dir||1; let vmax=1e9; for (let s=4;s<=72;s+=4){ const d1=S.dist+dir*s, ha=headingAt(d1-dir*5), hb=headingAt(d1+dir*5); let dh=hb-ha; dh=Math.atan2(Math.sin(dh),Math.cos(dh)); const k=Math.abs(dh)/10; if (k<0.005) continue; const vs=Math.sqrt(4.0/k), va=Math.sqrt(vs*vs+2*3.0*Math.max(0,s-5)); if (va<vmax) vmax=va; } return vmax; }
 function stepPhysics(state, P, d, dt){
   const gr = gradeAt(d)*(state.dir||1), th=Math.atan(gr), v=Math.max(state.v,0.5);
-  const Fd = P/v; const Fa = 0.5*RHO*CDA*state.v*state.v*(state.draft||1); const Fr = state.m*GRAV*(CRR*Math.cos(th)+Math.sin(th));
+  const Fd = P/v; const Fa = 0.5*RHO*(state.cda||CDA)*state.v*state.v*(state.draft||1); const Fr = state.m*GRAV*((state.crr||CRR)*Math.cos(th)+Math.sin(th));
   const a = (Fd - Fa - Fr)/(state.m*1.04);
   state.v = Math.max(0, state.v + a*dt);
   if (P<1 && state.v<0.3) state.v=0;
@@ -10095,14 +10260,16 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
     for (const c of [...this.act]){ const x=c.o.position.x, z=c.o.position.z; let bd=1e9, bi=-1; for (let i=0;i<N;i++){ const p=pts[i], dd=(p.x-x)*(p.x-x)+(p.z-z)*(p.z-z); if (dd<bd){ bd=dd; bi=i; } }
       if (bi<0 || bd>14*14){ this.kill(c); continue; } const a=pts[bi], b=pts[(bi+1)%N]; const nd=cum[bi], hd=Math.atan2(b.x-a.x,b.z-a.z);
       const fw=Math.cos(c.hd-hd)>0?1:-1; c.d=nd; c.cd=fw; } },
-  step(dt, active){ if (this.waveBy>0) this.waveBy-=dt; if (!this.on || !scene || !pts || !pts.length || !S.running){ if (pts&&pts.length) this.rLane=-Math.max(0.3, roadWAt(S.dist)/2-0.5); return; }
+  step(dt, active){ if (this.waveBy>0) this.waveBy-=dt; if (!this.on || !scene || !pts || !pts.length || !S.running){ if (pts&&pts.length){ const W1=roadWAt(S.dist); this.rLane=W1<3.4?-Math.max(0,Math.min(0.3,W1/2-0.6)):-Math.max(0.3, W1/2-0.5); } return; }
     if (this.pk!==pts){ if (this.pk) this.remap(); this.pk=pts; }
     const s=S.dir||1, rp=posAt(S.dist), rv=meP.v, W0=roadWAt(S.dist);
     /* Spawnen nach Verkehrsdichte am Fahrer */
-    if (active){ this.nextT-=dt; if (this.nextT<=0){ const tw=this.town(rp.x,rp.z), k=this.klass(rp.x,rp.z), mean=tw?16:(k<=2?42:95); this.nextT=mean*(0.4+Math.random()*1.2); if (!(tw && !(this.polCd>0) && Math.random()<0.3 && this.spawnPolice())) this.spawn(); } }
+    const offR=(e=>e&&e.kind!=='r'); let onW=false; try{ onW=offR(gEdgeAt(S.dist)); }catch(e){}   /* 0.15.0: auf Wegen und Nebenstraßen kein Verkehr, Autos fahren nie auf Wege */
+    if (active && !onW){ this.nextT-=dt; if (this.nextT<=0){ const tw=this.town(rp.x,rp.z), k=this.klass(rp.x,rp.z), mean=tw?16:(k<=2?42:95); this.nextT=mean*(0.4+Math.random()*1.2); if (!(tw && !(this.polCd>0) && Math.random()<0.3 && this.spawnPolice())) this.spawn(); } }
     this.polCd=(this.polCd||0)-dt;
     let near=0, drf=1, rTgt=-0.3, pass=false, snd=0, sndV=0;
     for (const c of [...this.act]){ const T=this.types[c.ti], r=this.rel(c.d), same=c.cd===s, W=roadWAt(c.d), half=W/2;
+      if (onW || (NET && NET.graph && offR(gEdgeAt(c.d)))){ try{ this.kill(c); }catch(e){} continue; }
       if ((r<-450 || r>1700 || (L<2600 && Math.abs(r)>L/2-40)) && !(c.police && c.mode!=='drive' && Math.abs(r)<600)){ this.kill(c); continue; }
       const p=posAt(c.d), tw=this.town(p.x,p.z); let vt=T.slow?c.vS:(tw?c.vU:c.vR);
       if (c.lights){ const on=ATMO.dark(); if (c.lights.visible!==on) c.lights.visible=on; }
@@ -10169,7 +10336,7 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
       const vol=(T.slow?1.3:1)*Math.min(1,c.v/12+0.15)/(1+(dist/14)*(dist/14)); if (vol>snd){ snd=vol; sndV=c.v*(c.cd===s?1:-1)*(r>0?-1:1); }
     }
     /* Ziel-Spur des Fahrers */
-    this.rLaneT = pass ? Math.min(W0/4, W0/2-0.9) : -Math.max(0.3, W0/2-0.5);   /* Hicore: rechts fahren, ca. 50 cm vom Fahrbahnrand */
+    this.rLaneT = pass ? Math.min(W0/4, W0/2-0.9) : W0<3.4 ? -Math.max(0, Math.min(0.3, W0/2-0.6)) : -Math.max(0.3, W0/2-0.5);   /* 0.15.0: schmale Wege mittig */   /* Hicore: rechts fahren, ca. 50 cm vom Fahrbahnrand */
     this.rLane += Math.sign(this.rLaneT-this.rLane)*Math.min(Math.abs(this.rLaneT-this.rLane), 0.9*dt);
     this.hornCd=(this.hornCd||0)-dt; this.draft=drf; try{ this._smp=this.carAudio(dt, (typeof me!=='undefined'&&me.g)?me.g.position:rp); }catch(e){ this._smp=false; } this.sound(snd, sndV, dt); },
   talkLen:14,
@@ -10888,9 +11055,10 @@ setInterval(()=>{ try{ if (BM.on && !BM.pick) bmDraw(); }catch(e){} }, 500);
   addEventListener('resize',()=>bmDraw()); })();
 function spRender(){ const el=$('startPick'); if (!el) return; el.style.display=selWorld==='zittau'?'block':'none'; $('spName').textContent=START_PICK?START_PICK.n:'Jonsdorf (Standard)'; $('bPickReset').style.display=START_PICK?'':'none'; }
 /* Startroute: vom gewählten Punkt auf kürzestem Weg zur Hauptrunde, einmal herum und zurück; wird zur neuen Hauptrunde, damit Abbiegen und Wenden wie gewohnt gehen */
-function zgApplyStart(sp){ if (!sp || !NET || !NET.graph) return false; const D=gnData(), M=NET.base||NET.main; NET.base=M; let bi=0, bd=1e9; for (let i=0;i<M.pts.length;i++){ const d=Math.hypot(M.pts[i].x-sp.x,M.pts[i].z-sp.z); if (d<bd){ bd=d; bi=i; } }
+function zgApplyStart(sp){ const g0=window.GADJ; window.GADJ='R'; try{ return zgApplyStart0(sp); } finally{ window.GADJ=g0; } }   /* 0.15.0: Startrunde nur über Straßen bilden */
+function zgApplyStart0(sp){ if (!sp || !NET || !NET.graph) return false; const D=gnRG(), M=NET.base||NET.main; NET.base=M; let bi=0, bd=1e9; for (let i=0;i<M.pts.length;i++){ const d=Math.hypot(M.pts[i].x-sp.x,M.pts[i].z-sp.z); if (d<bd){ bd=d; bi=i; } }
   if (bd<25){ if (NET.main!==M){ NET.main=M; NET.rc={'':M}; NET.revMain=null; } setRoute(M); S.dist=M.cum[bi]; return true; }
-  const n=bmNearest(sp.x,sp.z); if (!n) return false; const E=D.edges[n.k], idx=new Map(); M.ents.forEach((en,j)=>{ if (!idx.has(en.n0)) idx.set(en.n0,j); });
+  const n0=bmNearest(sp.x,sp.z); if (!n0) return false; const n={k:D.pieceOf(n0.k,n0.j)}, E=D.edges[n.k], idx=new Map(); M.ents.forEach((en,j)=>{ if (!idx.has(en.n0)) idx.set(en.n0,j); });
   const MN=new Set(idx.keys()), toMain=(nd,ban)=>idx.has(nd)?{node:nd,path:[]}:gPath(nd,MN,ban), rev=p=>p.slice().reverse().map(x=>({e:x.e,dir:x.dir?0:1}));
   /* 0.10.19 (Hicore, Windgasse): echter Rundkurs ohne Kehrtwende. Vom Startpunkt in eine Richtung zur Runde, Runde ein Stück entlang, auf anderem Weg zurück zum Startpunkt.
      Nur wenn das nicht geht (Startpunkt in einer Sackgasse), wie bisher hin und am Ende denselben Weg zurück. */
@@ -11065,7 +11233,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.14.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.15.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -11344,6 +11512,9 @@ function frame(now){
     // drafting: if close behind a bot, less air drag
     let draft=1; if ((S.dir||1)>0) for (const b of [...bots, ...MP.list()]){ const gap=((b.d-S.dist)%L+L)%L; if (gap>0.5 && gap<6) draft=Math.min(draft, 0.7+gap*0.03); }
     meP.draft=Math.min(draft, TRAFFIC.draft||1);
+    /* 0.15.0: Rollwiderstand nach Untergrund und Rad, Wurzelstellen auf Waldpfaden; beim Wechsel des Untergrunds kurzer Hinweis */
+    try{ meP.cda=(BIKES[BIKE]||BIKES.road).cda; let crr=CRR; if (NET && NET.graph && GN.rg){ const E=gEdgeAt(S.dist); crr=gEdgeCrr(E); const p=posAt(S.dist); const rt=E && E.kind==='w' && gRootAt(p.x,p.z); if (rt) crr=ROOT_CRR[bikeIx()];
+        const sk=E?(E.kind==='r'?'r':gWayName(E)):'r'; if (sk!==S.surfK){ if (S.surfK!=null && sk!=='r' && S.running) toast(sk.replace(' · ',' – ')); S.surfK=sk; } } else crr=BIKE_CRR[0][bikeIx()]; meP.crr=crr; }catch(e){ meP.crr=CRR; }
     S.grade = stepPhysics(meP, S.power, S.dist, dt);
     if (!S.ut){ const vm=curveVmax(); if (meP.v>vm) meP.v=Math.max(vm, meP.v-5*dt); }   /* 0.9.5: vor engen Kurven/Abbiegungen von selbst bremsen */
     if (S.ut){ meP.v=Math.min(meP.v,5); S.ut.t+=dt; if (S.ut.t>=S.ut.D){ S.ut=null; if (NET && NET.graph && (S.dir||1)<0) try{ gReverse(); }catch(e){ console.warn('wenden',e); } } }

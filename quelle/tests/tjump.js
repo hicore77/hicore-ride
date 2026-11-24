@@ -3,7 +3,7 @@ const {chromium}=require('playwright'); const fs=require('fs');
  p.on('pageerror',e=>console.log('PE',e.message));
  await p.goto((process.env.BASE||'http://127.0.0.1:8765/')+'index.html?gl=1'); await p.waitForFunction(()=>window.glbRiderReady,null,{timeout:300000});
  await p.evaluate((rbp)=>{ selWorld='zittau'; buildWorld(WORLDS.find(w=>w.id==='zittau')); builtWorld='zittau'; window.requestAnimationFrame=()=>0; window.RB_PRE=rbp; },+(process.env.RBP||16));
- const r=await p.evaluate(()=>{ const D=gnData(), M=NET.main, s0=M.ents[0].n0, bad=[], st={pairs:0,ok:0,dead:0,noPath:0,notOff:0};
+ const r=await p.evaluate(()=>{ window.GADJ='R'; const D=gnRG(), M=NET.main, s0=M.ents[0].n0, bad=[], st={pairs:0,ok:0,dead:0,noPath:0,notOff:0};
    for (let n=0;n<D.nodes.length;n++){ const A=D.adj[n]; if (!A||A.length<3) continue;
      for (const a of A){ const Ea=D.edges[a]; if (Ea.a===Ea.b) continue; const far=Ea.a===n?Ea.b:Ea.a;
        const pre=gPath(s0,new Set([far]),new Set([a])); if (!pre){ st.noPath++; continue; }
