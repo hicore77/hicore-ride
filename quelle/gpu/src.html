@@ -265,7 +265,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
     <h1>Fahrt beendet</h1>
     <div class="sumgrid" id="sumgrid"></div>
     <p id="sumUnlock"></p>
-    <div class="export"><b>Für Strava &amp; Co.</b><span>FIT-Datei mit Watt, Puls, Trittfrequenz und GPS-Strecke im Hicore-Archipel (Südpazifik). Strava erkennt sie als virtuelle Radfahrt. Hochladen: strava.com → „+“ → Aktivität hochladen → Datei.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="bFit">FIT-Datei speichern</button><button id="bImg">Fahrtbild speichern</button></div><span>Das Fahrtbild kannst du in Strava als Foto an die Aktivität hängen.</span><img id="sumImg" alt="Fahrtbild" style="width:100%;border-radius:8px;margin-top:4px"></div>
+    <div class="export"><b>Für Strava &amp; Co.</b><span>FIT-Datei mit Watt, Puls, Trittfrequenz und GPS-Strecke (Zittauer Gebirge und echte Orte: echte Koordinaten und Höhen, Fantasiewelten im Hicore-Archipel, Südpazifik). Strava erkennt sie als virtuelle Radfahrt. Hochladen: strava.com → „+“ → Aktivität hochladen → Datei.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="bFit">FIT-Datei speichern</button><button id="bImg">Fahrtbild speichern</button></div><span>Das Fahrtbild kannst du in Strava als Foto an die Aktivität hängen.</span><img id="sumImg" alt="Fahrtbild" style="width:100%;border-radius:8px;margin-top:4px"></div>
     <div class="row2"><button class="pri" id="bBack">Zum Hauptmenü</button></div>
   </div>
 </div>
@@ -2077,13 +2077,14 @@ function gEdgeCrr(E){ const b=bikeIx(); if (!E || E.kind==='r' || E.sf==null) re
 function gAdj(R){ R=R||gnRG(); if (!R) return []; const m=window.GADJ||(BIKE==='road'?'S':'W'); return m==='R'?R.adjR:m==='S'?R.adjS:R.adjW; }
 function gAdjKey(){ return window.GADJ||(BIKE==='road'?'S':'W'); }
 /* 0.16.1 (Hicore): Wege/Nebenstraßen nahe einer Straße auf Fahrbahnhöhe anheben (über Bankett, Graben und Grasrand bis an die Fahrbahn), nach 9 m wieder Gelände. Gilt für Optik und Fahrlinie. */
-function wayLiftY(x,z,base){ if (window.NO_WAYLIFT || !(WORLD&&WORLD.graph&&GN.d)) return base; const n=gnNear(x,z,14); if (n.k<0) return base; const o=n.d-n.w/2; if (o>=9) return base; const t=smooth01(Math.max(0,o)/9); return Math.max(base, (n.y+0.04)*(1-t)+base*t); }
+function wayLiftY(x,z,base){ return wayLiftY0(x,z,stairBlend(x,z,base)); }
+function wayLiftY0(x,z,base){ if (window.NO_WAYLIFT || !(WORLD&&WORLD.graph&&GN.d)) return base; const n=gnNear(x,z,14); if (n.k<0) return base; const o=n.d-n.w/2; if (o>=9) return base; const t=smooth01(Math.max(0,o)/9); return Math.max(base, (n.y+0.04)*(1-t)+base*t); }
 function gNodeY(n){ if (n.y==null) n.y=wayLiftY(n.x,n.z,terrainH(n.x,n.z)+0.08); return n.y; }
 /* Punkte eines Weg-Stücks erst bei Bedarf (Höhe aus dem Gelände wie das Wege-Netz, an Straßen auf Fahrbahnhöhe übergeblendet, Brücken gerade) */
 function rgPts(E){ const R=GN.rg, xz=E.xz, n=xz.length/2, Q=[]; for (let i=0;i<n;i++){ const x=xz[2*i], z=xz[2*i+1]; if (i){ const px=xz[2*i-2], pz=xz[2*i-1], l=Math.hypot(x-px,z-pz), m=Math.ceil(l/6); for (let k=1;k<m;k++) Q.push([px+(x-px)*k/m, pz+(z-pz)*k/m]); } Q.push([x,z]); }
   const na=R.nodes[E.a], nb=R.nodes[E.b], ya=gNodeY(na), yb=gNodeY(nb), s=[0]; for (let i=1;i<Q.length;i++) s.push(s[i-1]+Math.hypot(Q[i][0]-Q[i-1][0],Q[i][1]-Q[i-1][1])); const T=s[s.length-1]||1;
-  const P=Q.map(([x,z],i)=>new THREE.Vector3(x, E.br?ya+(yb-ya)*s[i]/T:terrainH(x,z)+0.08, z));
-  if (!E.br){ for (let it=0;it<2;it++){ const y=P.map(p=>p.y); for (let i=1;i<P.length-1;i++) P[i].y=(y[i-1]+2*y[i]+y[i+1])/4; }
+  const P=Q.map(([x,z],i)=>new THREE.Vector3(x, E.st?stairY(E.st,E.stS0+(E.stS1-E.stS0)*s[i]/T):E.br?ya+(yb-ya)*s[i]/T:terrainH(x,z)+0.08, z));
+  if (!E.br && !E.st){ for (let it=0;it<2;it++){ const y=P.map(p=>p.y); for (let i=1;i<P.length-1;i++) P[i].y=(y[i-1]+2*y[i]+y[i+1])/4; }
     P.forEach((p,i)=>{ p.y=wayLiftY(p.x,p.z,p.y); if (na.road){ const w=clamp(s[i]/10,0,1); p.y=ya*(1-w)+p.y*w; } if (nb.road){ const w=clamp((T-s[i])/10,0,1); p.y=yb*(1-w)+p.y*w; } }); }
   P[0].y=ya; P[P.length-1].y=yb; return P; }
 class RGE{ constructor(o){ Object.assign(this,o); this._P=null; } get P(){ return this._P||(this._P=rgPts(this)); } set P(v){ this._P=v; } }
@@ -2108,6 +2109,7 @@ function rgBuildWays(R,D){ const ST=R.stat; const RBL=(()=>{ try{ return ZG_RB0;
   /* 1. Linien sammeln */
   const SRC=[], WY=(WAYS_ON && window.ZGWAYS)?waysData():null;
   if (WY) WY.forEach(W=>{ if (W.fl&16 || W.P.length<4) return; SRC.push({kind:'w', c:W.c, w:W.w, sf:W.sf, tt:W.tt, br:!!(W.fl&8), id:W.id, xz:W.P}); });
+  { const ST=WY?stairsData():null; if (ST) ST.forEach(T=>{ if (T.P.length<4) return; SRC.push({kind:'w', c:15, w:Math.max(1,T.w), sf:T.sf, tt:0, br:false, id:T.id, xz:T.P.slice(), st:T}); }); }   /* 0.18.0 Treppen */
   if (window.ZGSIDE){ const bin=atob(window.ZGSIDE), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer), N=dv.getUint32(0,true); let o=4;
     for (let r=0;r<N;r++){ const c=dv.getUint8(o), w=dv.getUint8(o+1)/10, sf=dv.getUint8(o+2), fl=dv.getUint8(o+3), n=dv.getUint16(o+4,true); o+=6; const P=new Float32Array(n*2); let x=0,z=0; for (let j=0;j<n;j++){ x+=dv.getInt16(o,true); z+=dv.getInt16(o+2,true); o+=4; P[2*j]=x/2; P[2*j+1]=z/2; }
       if (fl&16 || n<2) continue; if (WY && (c===8||c===9)) continue; const ww=c===9?Math.max(1.4,Math.min(5,w)):Math.max(2.4,Math.min(9,w*(c>=7?0.85:0.9)));
@@ -2174,6 +2176,7 @@ function rgBuildWays(R,D){ const ST=R.stat; const RBL=(()=>{ try{ return ZG_RB0;
     const na=R.nodes[a], nb=R.nodes[b]; xz[0]=na.x; xz[1]=na.z; xz[2*m-2]=nb.x; xz[2*m-1]=nb.z; let len=0; for (let i=1;i<m;i++) len+=Math.hypot(xz[2*i]-xz[2*i-2],xz[2*i+1]-xz[2*i-1]);
     if (len<0.5 || (a===b && len<30)) return;
     const E=new RGE({k:R.edges.length,a,b,c:L.c,nm:'',w:L.w,len,ref:'',street:'',kind:L.kind,sf:L.sf,tt:L.tt,br:L.br,wid:L.id,src:-1,xz:Float32Array.from(xz)}); R.edges.push(E); nW++;
+    if (L.st){ const T=stairInit(L.st); E.st=T; E.stS0=stairProj(T,na.x,na.z); E.stS1=stairProj(T,nb.x,nb.z); E.nv=clamp(Math.round(T.nv*Math.abs(E.stS1-E.stS0)/Math.max(0.01,T.s1-T.s0)),1,T.nv); if (!na.road) na.y=stairY(T,E.stS0); if (!nb.road) nb.y=stairY(T,E.stS1); ST.stairs=(ST.stairs||0)+1; }
     /* Wurzelstellen auf schmalen Pfaden (Erde, Fels, Gras, unbefestigt), alle 70-220 m; ob im Wald, wird erst bei Bedarf geprüft */
     if (L.kind==='w' && (L.c===11||L.c===14) && [7,8,10,12].indexOf(L.sf)>=0 && len>40){ let sd=((L.id*2654435761)^(a*97))>>>0||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647); let s=25+rnd()*90, acc=0;
       for (let i=1;i<m && s<len-15;i++){ const ax=xz[2*i-2], az=xz[2*i-1], bx=xz[2*i], bz=xz[2*i+1], l=Math.hypot(bx-ax,bz-az); while (s<=acc+l && s<len-15){ const f=(s-acc)/(l||1), x=ax+(bx-ax)*f, z=az+(bz-az)*f, k=Math.floor(x/50)+','+Math.floor(z/50); let rl=ROOTS.get(k); if (!rl) ROOTS.set(k,rl=[]); rl.push([x,z,(bx-ax)/(l||1),(bz-az)/(l||1),L.w,-1,(sd%1000)/1000]); s+=70+rnd()*150; } acc+=l; } } });
@@ -2182,7 +2185,7 @@ function rgBuildWays(R,D){ const ST=R.stat; const RBL=(()=>{ try{ return ZG_RB0;
 function gRootAt(x,z){ const R=GN.rg; if (!R || !R.roots.size) return false; const cx=Math.floor(x/50), cz=Math.floor(z/50);
   for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=R.roots.get((cx+a)+','+(cz+b)); if (!l) continue; for (const r of l){ const dx=x-r[0], dz=z-r[1], al=dx*r[2]+dz*r[3]; if (Math.abs(al)>2.8) continue; const lt=Math.abs(-dx*r[3]+dz*r[2]); if (lt>r[4]/2+0.8) continue;
       if (r[5]<0) r[5]=gnForest(r[0],r[1])?1:0; if (r[5]) return true; } } return false; }
-function gWayName(E){ if (!E) return ''; if (E.kind==='r') return gStreet(E); if (E.kind==='s') return E.c===27?'Zufahrt':E.c===24?'Wohnstraße':'Nebenstraße';
+function gWayName(E){ if (!E) return ''; if (E.kind==='r') return gStreet(E); if (E.c===15) return 'Treppe · '+(E.nv||'?')+' Stufen'; if (E.kind==='s') return E.c===27?'Zufahrt':E.c===24?'Wohnstraße':'Nebenstraße';
   if (E.fo==null){ const xz=E.xz, m=(xz.length/4|0)*2; E.fo=gnForest(xz[m],xz[m+1]); }
   const base={10:E.fo?'Waldweg':'Feldweg',11:E.fo?'Waldpfad':'Pfad',12:'Fußweg',13:'Radweg',14:'Reitweg'}[E.c]||'Weg'; return base+(E.br?' (Brücke)':'')+' · '+(SURF_DE[E.sf]||''); }
 /* Kante an der Streckenposition d der aktuellen Strecke */
@@ -2759,7 +2762,7 @@ function gtChurch(C){ const {P,area,u0,u1,v0,v1,p3,gmin,y0,rnd,isCity,quad,tri,l
 function gtFinish(J){ const geo=J.geo, i=J.i, j=J.j; geo.setAttribute('color',new THREE.BufferAttribute(J.col,3)); geo.setAttribute('luk',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count).fill(1),1)); geo.computeVertexNormals();
   const m=new THREE.Mesh(geo, GT.mat); m.receiveShadow=true; GT.grp.add(m);
   let sg=null; const l=GT.sig.get(i+','+j); if (l){ sg=new THREE.Group(); l.forEach(o=>{ try{ sg.add(buildSign(o)); }catch(e){ console.warn('schild',e); } }); GT.grp.add(sg); }
-  let sr=null, sp=null; try{ sr=gtSideMesh(i,j); if (sr) GT.grp.add(sr); sp=gtSideMesh(i,j,true); if (sp){ sp.visible=false; GT.grp.add(sp); } }catch(e){ console.warn('nebenstr',e); }
+  let sr=null, sp=null; try{ sr=gtSideMesh(i,j); if (sr) GT.grp.add(sr); sp=gtSideMesh(i,j,true); { let stm=null; try{ stm=stairsMesh(i,j); }catch(e){ console.warn('treppen',e); } if (stm){ if (sp) sp.add(stm); else sp=stm; } } if (sp){ sp.visible=false; GT.grp.add(sp); } }catch(e){ console.warn('nebenstr',e); }
   return {i,j,m,sg,sr,sp,fo:null,hs:undefined}; }
 /* 0.11.0 (Hicore): alle übrigen Straßen aus OSM sichtbar (nicht befahrbar): Wohnstraßen, Nebenstraßen, Zufahrten, feste Wege. Pro 500-m-Kachel ein Netz,
    Stücke, die auf befahrbaren Straßen liegen, fallen weg; Einmündungen enden am Fahrbahnrand. Belag: Asphalt, Pflaster oder Schotter (OSM surface). */
@@ -2775,6 +2778,67 @@ function waysData(){ if (window.WAYS!==undefined) return window.WAYS; window.WAY
     const N=dv.getUint32(4,true); let o=8; const W=[]; for (let r=0;r<N;r++){ const c=u[o], w=u[o+1]/10, sf=u[o+2], tt=u[o+3]&15, sm=u[o+3]>>4, fl=u[o+4], n=dv.getUint16(o+6,true), id=dv.getUint32(o+8,true); o+=12; let x=0,z=0; const P=new Float32Array(n*2); for (let j=0;j<n;j++){ x+=dv.getInt16(o,true); z+=dv.getInt16(o+2,true); o+=4; P[j*2]=x/2; P[j*2+1]=z/2; } W.push({c,w,sf,tt,sm,fl,id,P}); }
     window.WAYS=W; }catch(e){ console.warn('wege',e); } return window.WAYS; }
 const WAYS_ON=!/[?&]oldways=1/.test(location.search) && !window.OLD_WAYS;
+/* 0.18.0 (Hicore): Treppen aus OSM (highway=steps, steps.bin wie ways.bin, Klasse 15, Byte 6 = step_count, Flags 1 incline bekannt, 2 incline=up in Punktrichtung, 4 Handlauf).
+   Höhe: Enden aus dem Gelände (25-m-DEM ist an Treppen zu grob), Steigung aus Stufenzahl x 16,5 cm, höchstens 1 m Abweichung vom Gelände, Mitte bleibt.
+   Wege an den Treppenenden werden auf 7 m an die Treppenhöhe geblendet (wayLiftY, Optik und Fahrlinie gleich). Aus: window.NO_STAIRS */
+const STAIRS_ON=!window.NO_STAIRS;
+function stairsData(){ if (window.STAIRS!==undefined) return window.STAIRS; window.STAIRS=null; if (!STAIRS_ON || !window.ZGSTEPS) return null;
+  try{ const bin=atob(window.ZGSTEPS), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer); if (String.fromCharCode(u[0],u[1],u[2],u[3])!=='WAY1') return null;
+    const N=dv.getUint32(4,true); let o=8; const W=[]; for (let r=0;r<N;r++){ const c=u[o], w=u[o+1]/10, sf=u[o+2], fl=u[o+4], n=u[o+5], np=dv.getUint16(o+6,true), id=dv.getUint32(o+8,true); o+=12; let x=0,z=0; const P=new Float32Array(np*2); for (let j=0;j<np;j++){ x+=dv.getInt16(o,true); z+=dv.getInt16(o+2,true); o+=4; P[j*2]=x/2; P[j*2+1]=z/2; }
+      const cum=new Float32Array(np); for (let j=1;j<np;j++) cum[j]=cum[j-1]+Math.hypot(P[2*j]-P[2*j-2],P[2*j+1]-P[2*j-1]); W.push({c,w,sf,fl,n,id,P,cum,L:cum[np-1],y0:null}); }
+    window.STAIRS=W; }catch(e){ console.warn('treppen',e); } return window.STAIRS; }
+/* Höhen einer Treppe (erst bei Bedarf, braucht das Gelände) */
+function stairInit(T){ if (T.y0!=null) return T;
+  /* Stücke auf der Fahrbahn abschneiden (OSM-Linie endet oft in der Straßenmitte) */
+  const onR=s=>{ const q=stairPt(T,s), n=gnNear(q[0],q[1],20); return n.k>=0 && n.d<n.w/2+0.15; }; let s0=0, s1=T.L; while (s0<T.L*0.45 && onR(s0)) s0+=0.25; while (s1>T.L*0.55 && onR(s1)) s1-=0.25; T.s0=s0; T.s1=s1;
+  const L=Math.max(0.3,s1-s0), pa=stairPt(T,s0), pb=stairPt(T,s1);
+  const ta=wayLiftY0(pa[0],pa[1],terrainH(pa[0],pa[1])+0.08), tb=wayLiftY0(pb[0],pb[1],terrainH(pb[0],pb[1])+0.08), dl=tb-ta;
+  const sg=(T.fl&1)?((T.fl&2)?1:-1):(dl>=0?1:-1), dp=sg*dl;
+  let n=T.n; if (!n) n=clamp(Math.round(Math.max(Math.abs(dl),L*0.22)/0.165),2,Math.max(2,Math.floor(L/0.26)));
+  let R=clamp(n*0.165, dp-0.4, dp+0.4); R=Math.max(R, n*0.07, 0.12);   /* Gelände gewinnt: höchstens 40 cm Abweichung, Stufen dann flacher */
+  const nv=Math.max(n, Math.ceil(R/0.22)); T.up=sg; T.nv=nv; T.R=R; T.h=R/nv; T.t=L/nv;
+  /* an einer Straße endet die Treppe genau auf Fahrbahnhöhe, sonst mittig zum Gelände */
+  const r0=s0>0.05, r1=s1<T.L-0.05; let mid=(ta+tb)/2; if (r1 && !r0) mid=tb-sg*R/2; else if (r0 && !r1) mid=ta+sg*R/2;
+  T.y0=mid-sg*R/2; T.y1=mid+sg*R/2; T.yLo=Math.min(T.y0,T.y1); T.yHi=Math.max(T.y0,T.y1); return T; }
+/* Fahrlinie (gerade von unten nach oben, berührt die hinteren Stufenkanten) und Stufenoberkante an Bogenlänge s (in Punktrichtung) */
+function stairY(T,s){ stairInit(T); return T.y0+(T.y1-T.y0)*clamp((s-T.s0)/Math.max(0.01,T.s1-T.s0),0,1); }
+function stairTop(T,s){ stairInit(T); const u=T.up>0?s-T.s0:T.s1-s; if (u<=0) return T.yLo; const i=Math.floor(u/T.t); return i>=T.nv?T.yHi:T.yLo+(i+1)*T.h; }
+function stairPt(T,s){ const P=T.P, c=T.cum, m=c.length; s=clamp(s,0,T.L); let i=0; while (i<m-2 && c[i+1]<s) i++; const f=clamp((s-c[i])/Math.max(1e-6,c[i+1]-c[i]),0,1); return [P[2*i]+(P[2*i+2]-P[2*i])*f, P[2*i+1]+(P[2*i+3]-P[2*i+1])*f]; }
+function stairProj(T,x,z){ const P=T.P, c=T.cum; let best=1e18, bs=0; for (let i=0;i<c.length-1;i++){ const ax=P[2*i], az=P[2*i+1], dx=P[2*i+2]-ax, dz=P[2*i+3]-az, ll=dx*dx+dz*dz||1e-9, t=clamp(((x-ax)*dx+(z-az)*dz)/ll,0,1), d=Math.hypot(ax+dx*t-x,az+dz*t-z); if (d<best){ best=d; bs=c[i]+(c[i+1]-c[i])*t; } } return bs; }
+/* Treppenenden: Raster 20 m, [x,z,y] */
+let STAIR_END=null;
+function stairEnds(){ if (STAIR_END) return STAIR_END; STAIR_END=new Map(); const ST=stairsData(); if (!ST || !(WORLD&&WORLD.id==='zittau')) return STAIR_END;
+  ST.forEach(T=>{ stairInit(T); const pa=stairPt(T,T.s0), pb=stairPt(T,T.s1); [[pa[0],pa[1],T.y0],[pb[0],pb[1],T.y1]].forEach(([x,z,y])=>{ const k=Math.floor(x/20)+','+Math.floor(z/20); let l=STAIR_END.get(k); if (!l) STAIR_END.set(k,l=[]); l.push(x,z,y); }); }); return STAIR_END; }
+function stairBlend(x,z,base){ if (!STAIRS_ON || !window.ZGSTEPS || !(WORLD&&WORLD.id==='zittau')) return base; const E=stairEnds(); if (!E.size) return base; const cx=Math.floor(x/20), cz=Math.floor(z/20); let bd=7, by=0;
+  for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=E.get((cx+a)+','+(cz+b)); if (!l) continue; for (let i=0;i<l.length;i+=3){ const d=Math.hypot(x-l[i],z-l[i+1]); if (d<bd){ bd=d; by=l[i+2]; } } }
+  if (bd>=7) return base; const w=1-smooth01(bd/7); return base+(by-base)*w; }
+/* Bäume/Nahgras von Treppen fernhalten (wie Wege) */
+function stairsIdx(){ const ST=stairsData(); if (!ST) return; ST.forEach(T=>{ const P=T.P; for (let q=0;q<P.length/2-1;q++){ const a=[P[2*q],P[2*q+1]], b=[P[2*q+2],P[2*q+3]], hk=Math.floor((a[0]+b[0])/40)+','+Math.floor((a[1]+b[1])/40); let hl=WAYS_H.get(hk); if (!hl) WAYS_H.set(hk,hl=[]); hl.push(a[0],a[1],b[0],b[1],Math.max(1,T.w)/2+0.3); } }); }
+/* 3D-Stufen je 500-m-Kachel (hängt am Pfad-Netz der Kachel, sichtbar wie Pfade bis ca. 650 m). Je Stufe ein Block (Trittfläche, Setzstufe, Seiten). Handlauf, wenn OSM einen kennt. */
+let STAIR_MAT=null;
+function stairsMesh(i,j){ const ST=stairsData(); if (!ST || !(WORLD&&WORLD.id==='zittau')) return null; const S=GT.S, pos=[], col=[], idx=[];
+  const quad=(a,b,c,d,cl)=>{ const v=pos.length/3; pos.push(...a,...b,...c,...d); for (let k=0;k<4;k++) col.push(cl[0],cl[1],cl[2]); idx.push(v,v+1,v+2, v,v+2,v+3); };
+  ST.forEach(T=>{ const m=T.P.length/2, mx=(T.P[0]+T.P[2*m-2])/2, mz=(T.P[1]+T.P[2*m-1])/2; if (Math.floor(mx/S)!==i || Math.floor(mz/S)!==j) return; stairInit(T);
+    const earth=[7,8,9,12].indexOf(T.sf)>=0, wood=T.sf===11, rock=T.sf===10||T.sf===4||T.sf===5||T.sf===6;
+    let sd=(T.id%100000)+11; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
+    const cT=wood?[0.45,0.33,0.22]:earth?[0.40,0.33,0.25]:rock?[0.58,0.54,0.47]:T.sf===1||T.sf===2?[0.55,0.53,0.50]:[0.62,0.61,0.59];
+    const cR=earth?[0.33,0.24,0.16]:[cT[0]*0.8,cT[1]*0.8,cT[2]*0.8], cS=earth?[0.36,0.30,0.23]:[cT[0]*0.72,cT[1]*0.72,cT[2]*0.72];
+    const hw=Math.max(0.5, Math.min(3, (earth?Math.min(T.w,1.2):T.w))/2);
+    for (let k=0;k<T.nv;k++){ const ua=k*T.t, ub=(k+1)*T.t, sa=T.up>0?T.s0+ua:T.s1-ua, sb=T.up>0?T.s0+ub:T.s1-ub, A=stairPt(T,sa), Bp=stairPt(T,sb);
+      let dx=Bp[0]-A[0], dz=Bp[1]-A[1]; const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l; const nx=-dz*hw, nz=dx*hw, y=T.yLo+(k+1)*T.h, yb=y-T.h-0.45, f=0.93+rnd()*0.1;
+      const ct=cT.map(c=>c*f), cr=cR.map(c=>c*f), cs=cS.map(c=>c*f);
+      const aL=[A[0]+nx,y,A[1]+nz], aR=[A[0]-nx,y,A[1]-nz], bL=[Bp[0]+nx,y,Bp[1]+nz], bR=[Bp[0]-nx,y,Bp[1]-nz], D=v=>[v[0],yb,v[2]];
+      quad(aL,bL,bR,aR,ct);                 /* Trittfläche */
+      quad(D(aR),aR,aL,D(aL),earth?cR:cr);  /* Setzstufe (bei Erdstufen Holzbalken) */
+      quad(D(aL),aL,bL,D(bL),cs); quad(D(bR),bR,aR,D(aR),cs);
+      if (k===T.nv-1) quad(D(bL),bL,bR,D(bR),cs); }
+    if (T.fl&4){ const rc=[0.22,0.23,0.24], Le=T.s1-T.s0, n=Math.max(2,Math.ceil(Le/1.4)); let prev=null;
+      for (let q=0;q<=n;q++){ const s=T.s0+Le*q/n, p=stairPt(T,s), s2=stairPt(T,Math.min(T.L,s+0.05)), s1=stairPt(T,Math.max(0,s-0.05)); let dx=s2[0]-s1[0], dz=s2[1]-s1[1]; const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
+        const x=p[0]-dz*(hw+0.05), z=p[1]+dx*(hw+0.05), y0=stairTop(T,s), y1=stairY(T,s)+0.95+T.h*0.5, ex=dx*0.025, ez=dz*0.025, fx=-dz*0.025, fz=dx*0.025;
+        quad([x-ex,y0-0.1,z-ez],[x-ex,y1,z-ez],[x+ex,y1,z+ez],[x+ex,y0-0.1,z+ez],rc); quad([x-fx,y0-0.1,z-fz],[x-fx,y1,z-fz],[x+fx,y1,z+fz],[x+fx,y0-0.1,z+fz],rc);
+        const cur=[x,y1,z]; if (prev){ quad([prev[0],prev[1]-0.04,prev[2]],prev,cur,[cur[0],cur[1]-0.04,cur[2]],rc); } prev=cur; } } });
+  if (!idx.length) return null; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
+  if (!STAIR_MAT) STAIR_MAT=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.9, side:THREE.DoubleSide}); const ms=new THREE.Mesh(g,STAIR_MAT); ms.name='treppen'; ms.castShadow=true; ms.receiveShadow=true; return ms; }
 /* Atlas-Kachel je Untergrund: 0 Asphalt, 1 Pflaster, 2 Verbundpflaster, 3 Beton, 4 Schotter fein/wassergebunden, 5 Erde, 6 Gras, 7 Waldboden, 8 Grobschotter/Fels */
 function waysLayer(sf,c,x,z){ let l=[0,1,2,3,4,4,8,5,6,5,8,5,5,c===10?0:2][sf]; if (l===undefined) l=5; if (sf===12) l=c===10?5:4; if ((l===5) && gnLC(x,z)===1) l=7; return l; }
 function gtSideIdx(){ if (SIDE_IDX) return SIDE_IDX; SIDE_IDX=new Map(); if (!window.ZGSIDE || !(WORLD&&WORLD.id==='zittau')) return SIDE_IDX; const D=gnData(); if (!D) return SIDE_IDX;
@@ -2803,6 +2867,7 @@ function gtSideIdx(){ if (SIDE_IDX) return SIDE_IDX; SIDE_IDX=new Map(); if (!wi
     const fine=W.c!==10 && W.c!==13, ww=fine?Math.max(1.1,Math.min(3,W.w)):Math.max(2.2,Math.min(5,W.w));
     const rut=W.c===10 && [4,5,6,7,12].indexOf(W.sf)>=0 && (W.tt>=3 || W.sf===7 || W.sf===12) ? 1 : 0;   /* Feldweg mit Grasnarbe in der Mitte */
     cut(P,ww,W.sf,(x,z)=>waysLayer(W.sf,W.c,x,z),rut,fine,fine?5:6); }
+  try{ stairsIdx(); }catch(e){ console.warn('treppen',e); }
   return SIDE_IDX; }
 function waysMat(){ if (WAYS_MAT) return WAYS_MAT; const src=window.WAYS_TEX; if (!src) return null;
   const im=new Image(); const t=new THREE.Texture(im); t.flipY=false; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); t.generateMipmaps=true; t.minFilter=THREE.LinearMipmapLinearFilter;
@@ -2864,19 +2929,20 @@ function gtStream(cam, budget){ if (!GT.on) return; const S=GT.S, R=GT.R, ci=Mat
 function gdemH(x,z){ const d=GN.dem; if (!d) return 0; const gx=clamp((x-d.x0)/d.cell,0,d.nx-1.001), gz=clamp((z-d.z0)/d.cell,0,d.nz-1.001); const ix=gx|0, iz=gz|0, fx=gx-ix, fz=gz-iz, n=d.nx, H=d.H;
   return (H[iz*n+ix]*(1-fx)+H[iz*n+ix+1]*fx)*(1-fz)+(H[(iz+1)*n+ix]*(1-fx)+H[(iz+1)*n+ix+1]*fx)*fz; }
 /* Weg (Liste gerichteter Kanten) -> Kurs mit N Punkten; ents merkt sich, wo welche Kante liegt (r0..r1) */
-function gRoute(path, key){ const D=gnRG(), dense=[], ents=[]; let acc=0;
+function gRoute(path, key){ const D=gnRG(), dense=[], ents=[], FIXP=new Set(); let acc=0;
   path.forEach(({e,dir},pi)=>{ const E=D.edges[e], P=dir?E.P.slice().reverse():E.P;
     /* Sackgasse (z. B. Hochwald, Lausche): oben eine Wendeschleife statt Kehrtwende auf der Stelle */
     if (pi>0 && path[pi-1].e===e && path[pi-1].dir!==dir && dense.length>4){ const T=dense[dense.length-1], Q=dense[dense.length-4], hx=T.x-Q.x, hz=T.z-Q.z, hl=Math.hypot(hx,hz)||1, R=7, cx=T.x+hx/hl*R, cz=T.z+hz/hl*R, a0=Math.atan2(T.z-cz,T.x-cx); (window.GLOOPS=window.GLOOPS||new Map()).set(Math.round(cx/20)+','+Math.round(cz/20),{x:cx,z:cz,y:T.y});
       for (let k=1;k<=26;k++){ const a=a0-k/26*Math.PI*2, q=new THREE.Vector3(cx+Math.cos(a)*R, T.y, cz+Math.sin(a)*R), l=dense[dense.length-1]; acc+=Math.hypot(q.x-l.x,q.z-l.z); dense.push(q); } }
-    const r0=acc;
+    const r0=acc, di0=dense.length;
     for (let j=0;j<P.length;j++){ if (dense.length){ const q=dense[dense.length-1], dl=Math.hypot(P[j].x-q.x,P[j].z-q.z); if (dl<0.05) continue; acc+=dl; } dense.push(P[j].clone()); }
+    if (E.c===15) for (let q=Math.max(0,di0-1); q<dense.length; q++) FIXP.add(q);   /* 0.18.0: Treppen nicht abrunden (Fahrlinie = Stufen) */
     ents.push({e, dir, r0, r1:acc, n0:dir?E.b:E.a, n1:dir?E.a:E.b}); });
   { const nl=gRBArcs(dense, ents); if (nl!=null) acc=nl; }
   /* 0.10.21 (Hicore: Kreisel und Kreuzungen nicht abkürzen): früher 3000 gleich weite Punkte (bei 42 km alle 14 m) und danach geglättet -> Ecken um 20-40 m abgeschnitten.
      Jetzt: erst die feine Linie an den Ecken leicht runden (wenige Meter), dann die 3000 Punkte nach Krümmung verteilen: in Kreiseln und an Kreuzungen dicht, auf Geraden weit. */
   const M=dense.length, dl=[0]; for (let i=1;i<M;i++) dl.push(dl[i-1]+Math.hypot(dense[i].x-dense[i-1].x,dense[i].z-dense[i-1].z));
-  for (let it=0;it<2;it++){ const o=dense.map(p=>[p.x,p.z]); for (let i=1;i<M-1;i++){ const A=o[i-1], B=o[i], C=o[i+1]; if (Math.hypot(A[0]-B[0],A[1]-B[1])>9 || Math.hypot(C[0]-B[0],C[1]-B[1])>9) continue; dense[i].x=(A[0]+2*B[0]+C[0])/4; dense[i].z=(A[1]+2*B[1]+C[1])/4; } }
+  for (let it=0;it<2;it++){ const o=dense.map(p=>[p.x,p.z]); for (let i=1;i<M-1;i++){ if (FIXP.has(i)) continue; const A=o[i-1], B=o[i], C=o[i+1]; if (Math.hypot(A[0]-B[0],A[1]-B[1])>9 || Math.hypot(C[0]-B[0],C[1]-B[1])>9) continue; dense[i].x=(A[0]+2*B[0]+C[0])/4; dense[i].z=(A[1]+2*B[1]+C[1])/4; } }
   const q0=dense[0], ql=dense[M-1], close=Math.hypot(q0.x-ql.x,q0.z-ql.z);
   const sl=[]; for (let i=0;i<M;i++){ const p=dense[i], q=i<M-1?dense[i+1]:q0; sl.push(Math.hypot(q.x-p.x,q.z-p.z)); }
   const ang=new Float64Array(M); for (let i=1;i<M-1;i++){ const A=dense[i-1], B=dense[i], C=dense[i+1]; if (sl[i-1]<1e-3||sl[i]<1e-3) continue; const h0=Math.atan2(B.z-A.z,B.x-A.x), h1=Math.atan2(C.z-B.z,C.x-B.x); let d=Math.abs(Math.atan2(Math.sin(h1-h0),Math.cos(h1-h0))); const g0=(B.y-A.y)/sl[i-1], g1=(C.y-B.y)/sl[i]; d+=Math.abs(g1-g0)*1.5; ang[i]=Math.min(d,1.2); }
@@ -2895,7 +2961,7 @@ function gPath(s, targets, banned){ const D=gnRG(), A=gAdj(D), dist=new Map([[s,
   const push=x=>{ H.push(x); let i=H.length-1; while (i>0){ const p=(i-1)>>1; if (H[p][0]<=H[i][0]) break; [H[p],H[i]]=[H[i],H[p]]; i=p; } };
   const pop=()=>{ const top=H[0], last=H.pop(); if (H.length){ H[0]=last; let i=0; for (;;){ const l=2*i+1, r=l+1; let m=i; if (l<H.length && H[l][0]<H[m][0]) m=l; if (r<H.length && H[r][0]<H[m][0]) m=r; if (m===i) break; [H[m],H[i]]=[H[i],H[m]]; i=m; } } return top; };
   while (H.length){ const [du,u]=pop(); if (done.has(u)) continue; done.add(u); if (targets.has(u)){ const out=[]; let v=u; while (v!==s){ const [pu,e]=prev.get(v), E=D.edges[e]; out.push({e, dir:E.a===pu?0:1}); v=pu; } return {node:u, path:out.reverse(), d:du}; }
-    for (const e of (A[u]||[])){ if (banned && banned.has(e)) continue; if (!D.canGo(e,u)) continue; const E=D.edges[e], v=E.a===u?E.b:E.a, nd=du+E.len*(E.kind==='r'?1:E.kind==='s'?1.25:1.6); if (nd<(dist.get(v)??1e18)){ dist.set(v,nd); prev.set(v,[u,e]); push([nd,v]); } } }
+    for (const e of (A[u]||[])){ if (banned && banned.has(e)) continue; if (!D.canGo(e,u)) continue; const E=D.edges[e], v=E.a===u?E.b:E.a, nd=du+E.len*(E.kind==='r'?1:E.kind==='s'?1.25:E.c===15?6:1.6); if (nd<(dist.get(v)??1e18)){ dist.set(v,nd); prev.set(v,[u,e]); push([nd,v]); } } }
   return null; }
 /* Abbiegen: bisherige Strecke bis zur Kreuzung + gewählte Straße + kürzester Weg zurück auf die Hauptrunde + Rest der Hauptrunde bis zum Ziel */
 function gTurn(cur, at, e){ const D=gnRG(), A=gAdj(D), M=cur.rev?gRevMain():NET.main, E=D.edges[e], node=at.node, dir=E.a===node?0:1, far=dir?E.a:E.b;
@@ -2942,7 +3008,7 @@ function gOfferable(D,e,node){ const C=D._off||(D._off=new Map()), A=D===GN.rg?g
 function gStreetVia(D,e,node){ const E=D.edges[e]; if (E.kind && E.kind!=='r') return gWayName(E); const n0=gStreet(E); if (E.len>90) return n0; const far=E.a===node?E.b:E.a, nx=((D===GN.rg?gAdj(D):D.adj)[far]||[]).filter(k=>k!==e && (!D.edges[k].kind || D.edges[k].kind==='r')).map(k=>D.edges[k]).sort((a,b)=>b.len-a.len)[0]; const n1=nx?gStreet(nx):''; return n1&&n1!==n0?(n0?n0+' → ':'')+n1:n0; }
 function gStreet(E){ const r=/^\d+$/.test(E.ref||'')?'':E.ref; return E.street&&r?r+' '+E.street:(E.street||r||''); }
 /* 0.16.1 (Hicore): Rang einer Kante (kleiner = wichtiger): Straßen nach OSM-Klasse 0..4, Nebenstraßen, dann Wirtschafts-/Radwege, Pfade, Fußwege */
-function gRank(E){ if (!E) return 9; return E.kind==='w'?({10:6.5,13:6.5,11:7.5}[E.c]||8):E.kind==='s'?4.5+0.25*((E.c|0)-20):Math.min(E.c==null?4:E.c,5); }
+function gRank(E){ if (!E) return 9; if (E.c===15) return 9; return E.kind==='w'?({10:6.5,13:6.5,11:7.5}[E.c]||8):E.kind==='s'?4.5+0.25*((E.c|0)-20):Math.min(E.c==null?4:E.c,5); }
 /* natürliche Weiterfahrt: gleiche Straße (Name/ref) bzw. gleicher Weg, höhere Klasse, möglichst gerade; Kehrtwenden nie */
 function gNatural(D, arr, opts){ const A=D.edges[arr]; let best=null, bs=1e9;
   for (const o of opts){ if (Math.abs(o.a)>150) continue; const E=D.edges[o.e]; let s=Math.abs(o.a)/30+1.5*gRank(E);
@@ -4588,7 +4654,8 @@ function poseRider(r, effort){
   const CL=0.172;
   if (r.glb){   // echte Figur: nur Pedale setzen, Skelett per IK
     [-1,1].forEach(s=>{ const a=r.crankAng+(s>0?0:Math.PI); r.pedals[s>0?1:0].position.set(s*0.125, r.BB.y-Math.cos(a)*CL, r.BB.z-Math.sin(a)*CL); });
-    { const g4=r.gw||[0,1,0,0], l=r.low==null?0.33:r.low, le=(r.rig&&r.rig.flat)?l:g4[0]*Math.min(l,0.12)+g4[1]*Math.max(l,0.42)+g4[3]*Math.max(l,0.95)+g4[2]*Math.max(l,0.82), gw=[g4[0],g4[1]+(g4[3]||0),g4[2]]; poseGLB(r.glb, r.g, r.crankAng, effort, {rig:r.rig, low:le, stand:r.stand||0, lean:r.lean||0, gw, stop:r.stopK||0, look:r.look||0, lookP:r.lookPi||0, gest:gestState(r)}); } return;
+    { const g4=r.gw||[0,1,0,0], l=r.low==null?0.33:r.low, le=(r.rig&&r.rig.flat)?l:g4[0]*Math.min(l,0.12)+g4[1]*Math.max(l,0.42)+g4[3]*Math.max(l,0.95)+g4[2]*Math.max(l,0.82), gw=[g4[0],g4[1]+(g4[3]||0),g4[2]]; const cy=(r===me && r.stairK>0.001 && r.stairM && r.stairM!=='ride')?stairCarry(r):null; if (!cy && r.bikeG && r.bikeG.userData.cm){ r.bikeG.position.set(0,0,0); r.bikeG.quaternion.identity(); r.bikeG.userData.cm=false; }
+      poseGLB(r.glb, r.g, r.crankAng, effort, {rig:r.rig, low:le, stand:r.stand||0, lean:r.lean||0, gw, stop:r.stopK||0, look:r.look||0, lookP:r.lookPi||0, gest:gestState(r), carry:cy}); } return;
   }
   // Vorwärts treten: oben nach vorn, unten nach hinten.
   // Winkel 0 = rechtes Pedal unten. Pedal-Position: y = -cos(a), z = -sin(a)
@@ -4622,7 +4689,7 @@ function poseRider(r, effort){
     A.hand.position.copy(_t); A.hand.quaternion.copy(A.fore.quaternion);
   });
 }
-function animRider(r, cad, spd, dt, watt){
+function animRider(r, cad, spd, dt, watt){ const stK=r.stairK||0; if (stK>0.02) cad=0;
   const dCr = cad/60*Math.PI*2*dt; r.crankAng += dCr;
   if (watt!=null){   // Haltung folgt der Leistung (weich), Wiegetritt ab ca. 550 W
     r.avgW = r.avgW==null?watt:r.avgW+(watt-r.avgW)*Math.min(1,dt/20);   // ca. 20-s-Mittel
@@ -4631,7 +4698,7 @@ function animRider(r, cad, spd, dt, watt){
     /* 0.16.1 (Hicore): ab ca. 12 % Steigung (oder bergauf mit Kadenz unter 58) zeitweise Wiegetritt: kurze Phasen (4-9 s) aus dem Sattel, dann wieder 8-20 s sitzen. Aus: window.NO_CLIMBSTAND */
     const g0=r.gr||0, steep=!window.NO_CLIMBSTAND && cad>30 && (spd||0)<6 && (g0>(r.cst2?0.105:0.12) || (g0>0.05 && cad<(r.cst2?64:58)));
     r._cst=(r._cst||0)-dt; if (!steep){ r.cst2=0; r._cst=Math.min(r._cst,3); } else if (r._cst<=0){ r.cst2=r.cst2?0:1; const h=Math.abs(Math.sin((r.crankAng||0)*12.9898+(r._cn=(r._cn||0)+1)*78.233))%1; r._cst=r.cst2?4+5*h:8+12*h; }
-    const tl=postureFromPower(watt), ts=Math.max(surge*(cad>40?1:0), r.cst2?0.85:0);
+    const tl=postureFromPower(watt), ts=Math.max(surge*(cad>40?1:0), r.cst2?0.85:0, r.stairM==='ride'?stK*0.95:0);
     r.low = r.low==null?tl:r.low+(tl-r.low)*Math.min(1,dt*1.2);
     r.stand = r.stand==null?ts:r.stand+(ts-r.stand)*Math.min(1,dt*(ts>r.stand?3:1.5));
     const amp = 0.004 + 0.025*clamp((watt-350)/250,0,1) + 0.11*r.stand;   // Rad schaukelt mehr bei Druck
@@ -4643,14 +4710,15 @@ function animRider(r, cad, spd, dt, watt){
     if (want!==m){ r.gripT=(r.gripT||0)+dt; if (r.gripT>(window.GRIP_FORCE!=null?0:1.5)){ m=want; r.gripT=0; } } else r.gripT=0;   /* erst nach 1,5 s wechseln, kein Zappeln */
     r.gripM=m; const gw=r.gw||(r.gw=[0,1,0,0]); const k=Math.min(1,dt*(window.GRIP_FORCE!=null?100:1.6)); for (let i=0;i<4;i++) gw[i]+=((i===m?1:0)-gw[i])*k; }
   /* 0.9.8 (Hicore): im Stand (Pause oder ausgerollt) linken Fuß auf den Boden, rechtes Pedal vorn oben, ab und zu gelangweilt umschauen */
-  { const still=(spd||0)<0.25 && cad<3; r.stillT=still?(r.stillT||0)+dt:0; const want=window.STOP_FORCE!=null?window.STOP_FORCE:(r.stillT>0.5?1:0), k0=r.stopK||0;
+  { const still=(spd||0)<0.25 && cad<3 && !(stK>0.02); r.stillT=still?(r.stillT||0)+dt:0; const want=window.STOP_FORCE!=null?window.STOP_FORCE:(r.stillT>0.5?1:0), k0=r.stopK||0;
     r.stopK=k0+(want-k0)*Math.min(1,dt*(want>k0?1.7:5));
     if (want>0.5){ const d=(((Math.PI*0.25-r.crankAng)%(2*Math.PI))+3*Math.PI)%(2*Math.PI)-Math.PI; r.crankAng+=d*Math.min(1,dt*3); }
     r.lookT=(r.lookT||0)-dt; if (r.lookT<=0){ const z=Math.random(); r.lookT=window.LOOK_FORCE!=null?1e9:1.8+Math.random()*4.5; r.lookY=window.LOOK_FORCE!=null?window.LOOK_FORCE:(z<0.3?0:(Math.random()<0.5?-1:1)*(0.45+Math.random()*0.6)); r.lookP=z<0.15?-0.3:(Math.random()-0.45)*0.3; }
     const on=r.stopK>0.85?1:0, kl=Math.min(1,dt*(window.LOOK_FORCE!=null?50:2.2)); r.look=(r.look||0)+((r.lookY||0)*on-(r.look||0))*kl; r.lookPi=(r.lookPi||0)+((r.lookP||0)*on-(r.lookPi||0))*kl; }
+  if (stK>0.02){ const dl=(((Math.PI*0.5-r.crankAng)%Math.PI)+1.5*Math.PI)%Math.PI-Math.PI/2; r.crankAng+=dl*Math.min(1,dt*4); }   /* 0.18.0: Kurbel waagrecht beim Tragen/Treppe-Fahren */
   r.crank.rotation.x = r.crankAng;
   if (r.chainUpd) r.chainUpd(r.crankAng);
-  const wr = spd/(r.wheelR||0.335)*dt; r.wF.rotation.x += wr; r.wR.rotation.x += wr;
+  const wr = ((stK>0.3 && r.stairM!=='ride')?0:spd)/(r.wheelR||0.335)*dt; r.wF.rotation.x += wr; r.wR.rotation.x += wr;
   poseRider(r, clamp(cad/100,0,1));
 }
 // ================= Realistische Fahrerfigur (GLB mit Skelett, Higgsfield/Meshy) =================
@@ -4686,7 +4754,7 @@ const GEST={id:null, t:0, dur:0};
 const GEST_DUR={wave:1.9, thumb:1.7, vorbei:2.3, drink:4.6, stretch:2.8};
 function gestStart(id){ if (!S || !S.running) return; if (id==='stretch' && !(me && me.stopK>0.7)){ toast('Strecken geht nur im Stand'); return; } GEST.id=id; GEST.t=0; GEST.dur=GEST_DUR[id]||2; try{ TRAFFIC.gesture(id); }catch(e){} }
 function gestStep(dt){ if (!GEST.id) return; GEST.t+=dt; if (GEST.t>GEST.dur) GEST.id=null; }
-function gestState(r){ if (r!==me || !GEST.id) return null; const t=GEST.t, d=GEST.dur, w=Math.min(1, t/0.35, Math.max(0,(d-t)/0.45)); return {id:GEST.id, t, w:w*w*(3-2*w)}; }
+function gestState(r){ if (r!==me || !GEST.id || r.stairK>0.05) return null; const t=GEST.t, d=GEST.dur, w=Math.min(1, t/0.35, Math.max(0,(d-t)/0.45)); return {id:GEST.id, t, w:w*w*(3-2*w)}; }
 function gestTarget(GT, side, shL, G, B){ const V=(x,y,z)=>new THREE.Vector3(x,y,z), t=GT.t, L=side>0;
   switch(GT.id){
     case 'wave': if (!L) return null; return {h:V(0.30+0.035*Math.sin(t*10), shL.y+0.16, shL.z+0.10), f:V(0.0,0.11,0.03), pole:V(0.8,-0.4,-0.1)};
@@ -4716,10 +4784,11 @@ function placeGripHands(R, G, gw, low){ if (!R._gh){ const geo=gripHandGeo(), mG
     for (let i=0;i<3;i++){ c.addScaledVector(GP[i].c,gw[i]); X.addScaledVector(GP[i].X,gw[i]); Y.addScaledVector(GP[i].Y,gw[i]); Z.addScaledVector(GP[i].Z,gw[i]); }
     X.normalize(); Y.sub(X.clone().multiplyScalar(Y.dot(X))).normalize(); Z.sub(X.clone().multiplyScalar(Z.dot(X))).sub(Y.clone().multiplyScalar(Z.dot(Y))).normalize();
     [c,X,Y,Z].forEach(v=>{ v.x*=side; });
+    const OV=R._ghF&&R._ghF[s]; if (OV && OV.w>0){ c.lerp(OV.c,OV.w); X.lerp(OV.X,OV.w).normalize(); Y.lerp(OV.Y,OV.w); Y.sub(X.clone().multiplyScalar(Y.dot(X))).normalize(); Z.lerp(OV.Z,OV.w); Z.sub(X.clone().multiplyScalar(Z.dot(X))).sub(Y.clone().multiplyScalar(Z.dot(Y))).normalize(); }
     const hid=!!(R._ghHide&&R._ghHide[s]); H.g.visible=!hid; H.palm.visible=!hid;
     H.g.matrix.makeBasis(X,Y,Z).setPosition(c); H.g.matrixWorldNeedsUpdate=true;
     /* Handballen/Handrücken: vom Rohr zum Handgelenk */
-    const p0=c.clone().addScaledVector(Y,0.022).addScaledVector(X,0.024), w=new THREE.Vector3(side*R._hand.x,R._hand.y,R._hand.z), d=w.clone().sub(p0), l=d.length();
+    const p0=c.clone().addScaledVector(Y,0.022).addScaledVector(X,0.024), w=(OV&&R._wr&&R._wr[s])?R._wr[s].clone():new THREE.Vector3(side*R._hand.x,R._hand.y,R._hand.z), d=w.clone().sub(p0), l=d.length();
     H.palm.position.copy(p0).addScaledVector(d,0.5); H.palm.quaternion.setFromUnitVectors(UPV,d.normalize()); H.palm.scale.set(0.036,Math.max(0.03,l*0.62),0.02);
     H.palm.rotateY(Math.atan2(X.x,X.z)*0); });
 }
@@ -4806,6 +4875,24 @@ function aimBone(bone, child, targetWorld){
 function postureFromPower(w){ const pts=[[0,0],[130,0],[200,0.33],[300,0.66],[500,1]]; if(w>=500) return 1;
   for(let i=1;i<pts.length;i++) if(w<=pts[i][0]){ const [a,va]=pts[i-1],[b,vb]=pts[i]; return va+(vb-va)*(w-a)/(b-a); } return 1; }
 const _lerp=(a,b,t)=>a+(b-a)*t;
+/* 0.18.0 Treppen: Becken/Schultern beim Gehen neben dem Rad, Rad-Lage (anheben bzw. auf der rechten Schulter) und Handgriffe */
+function bikeTT(T){ const G=(BIKE_GEO[T]&&BIKE_GEO[T].HT)?BIKE_GEO[T]:BIKE_GEO.gravel, sd=new THREE.Vector3(0,0.66,-0.205).normalize(), STt=G.BB.clone().addScaledVector(sd,G.stL); return {a:STt.clone().addScaledVector(sd,-G.ttJ), b:G.HT.clone().lerp(G.HB,T==='mtb'?0.1:0.12)}; }
+function carryBody(CY,L,hipL,sh){ const w=_sst(0,1,CY.k), hipH=0.085+0.95*(L.thigh+L.shin)+(L.hipDrop||0)*0.5, bob=0.014*Math.abs(Math.cos(Math.PI*CY.u)), sw=0.018*Math.sin(Math.PI*CY.u);
+  const hp=new THREE.Vector3(CY.xr+sw, CY.yb+hipH-bob, CY.hz), lean=(CY.mode==='shoulder'?0.05:0.11)+(CY.up>0?0.07:-0.02);
+  const s2=new THREE.Vector3(CY.xr+sw*0.5+(CY.mode==='shoulder'?0.015:-0.035), hp.y+(L.spine||0.5)*0.96, CY.hz+lean);
+  hipL.lerp(hp,w); sh.lerp(s2,w); return w; }
+function carryRig(R,G,K,CY,hipY){ const B=R.B, V3=THREE.Vector3, w=_sst(0,1,CY.k), bg=CY.bg; if (!bg) return null;
+  const T=K.T||'gravel', TT=bikeTT(T), q=new THREE.Quaternion(), p=new V3();
+  if (CY.mode==='lift') p.set(0,CY.lift,0);
+  else { q.setFromEuler(new THREE.Euler(-0.10,0,-0.30)); const shR=G.worldToLocal(B.RightArm.getWorldPosition(new V3())), c=TT.a.clone().lerp(TT.b,0.45); p.copy(shR).add(new V3(0.035,0.075,0)).sub(c.applyQuaternion(q)); }
+  const wS=CY.mode==='shoulder'?_sst(0.12,1,CY.k):w; bg.position.set(0,0,0).lerp(p,wS); bg.quaternion.identity().slerp(q,wS); bg.updateMatrix(); bg.userData.cm=true;
+  const bq=bg.quaternion, bp=bg.position, tf=F=>({c:F.c.clone().applyQuaternion(bq).add(bp), X:F.X.clone().applyQuaternion(bq), Y:F.Y.clone().applyQuaternion(bq), Z:F.Z.clone().applyQuaternion(bq)});
+  const gf=(K.gripf||GRIPF)[0], mir=F=>({c:F.c.clone(), X:new V3(-F.X.x,F.X.y,F.X.z), Y:new V3(-F.Y.x,F.Y.y,F.Y.z), Z:new V3(-F.Z.x,F.Z.y,F.Z.z)}), H={};
+  if (CY.mode==='lift'){ H.Left={F:tf(gf), pole:new V3(0.6,-0.4,-0.5)};
+    const t=TT.b.clone().sub(TT.a).normalize(), c=TT.a.clone().lerp(TT.b,0.42), Y=new V3(0.35,0.94,0), Z=new V3(-0.94,0.35,0); Y.addScaledVector(t,-Y.dot(t)).normalize(); Z.addScaledVector(t,-Z.dot(t)).addScaledVector(Y,-Z.dot(Y)).normalize();
+    H.Right={F:tf({c, X:t.clone().negate(), Y, Z}), pole:new V3(-0.5,-0.6,-0.4)}; }
+  else { H.Right={F:tf(mir(gf)), pole:new V3(-0.3,-0.6,0.5)}; H.Left={h:new V3(CY.xr+0.24, hipY-0.03, CY.hz+0.13*Math.sin(Math.PI*CY.u)), f:new V3(0,-0.1,0.03), pole:new V3(0.6,-0.3,-0.6)}; }
+  return {w, H}; }
 // Pose pro Bild. G = Rider-Gruppe (lokale Koordinaten: +z vorn), crank = Kurbelwinkel
 function poseGLB(R, G, crank, effort, opt){
   const {B, rest, L}=R; opt=opt||{};
@@ -4821,6 +4908,7 @@ function poseGLB(R, G, crank, effort, opt){
   const sh=new THREE.Vector3(sx, _lerp(1.37,1.12,low)+bob*0.6+0.07*st, _lerp(0.36,0.50,low)+0.05*st);
   if (!K.road){ const th=_lerp(K.th[0],K.th[1],low)*Math.PI/180; sh.y=K.hipY+0.64*Math.sin(th)+bob*0.6+0.07*st; sh.z=-0.21+0.64*Math.cos(th)+0.05*st; }   /* 0.16.0: Gravel/MTB aufrechter, Winkel je Rad */
   const kS=opt.stop||0, lkY=opt.look||0, lkP=opt.lookP||0; const _dg=opt.gest&&opt.gest.id==='drink'?opt.gest:null, _dUp=_dg?drinkUp(_dg.t)*_dg.w:0, _dRe=_dg?_dg.w*(1-drinkUp(_dg.t))*(_sst(0.2,0.8,_dg.t)*(1-_sst(3.7,4.3,_dg.t))):0; if (_dRe>0){ sh.y-=0.2*_dRe; sh.x-=0.09*_dRe; sh.z+=0.04*_dRe; } if (kS>0){ hipL.lerp(new THREE.Vector3(0.035,1.0,-0.06),kS); sh.lerp(new THREE.Vector3(0.025,1.49,0.19),kS); }   /* Stand: vom Sattel nach vorn über das Oberrohr, aufrechter */
+  const CY=opt.carry&&opt.carry.k>0.001?opt.carry:null; R._ghF=null; R._wr={}; if (CY) carryBody(CY,L,hipL,sh);
   const gw=opt.gw||[0,1,0], GP=K.road?(window.GRIPS||GRIPS):K.grips; R._hand=new THREE.Vector3(); R._fing=new THREE.Vector3();
   for (let i=0;i<3;i++){ R._hand.addScaledVector(GP[i].w,gw[i]); R._fing.addScaledVector(GP[i].f,gw[i]); }
   if (kS>0){ const hc=new THREE.Vector3(sh.x,R._hand.y,R._hand.z), mx=(L.upper+L.fore)*0.9, d=sh.distanceTo(hc); if (d>mx) sh.lerp(hc,(d-mx)/d); }   /* Stand: Schultern nur so weit zurück, dass die Arme den Lenker erreichen (sonst Hand vom Unterarm getrennt) */
@@ -4840,12 +4928,13 @@ function poseGLB(R, G, crank, effort, opt){
   const tdir=new THREE.Vector3().subVectors(sh,ctrl).normalize();
   const nd=tdir.clone().lerp(new THREE.Vector3(0,_lerp(0.62,0.55,low),0.79).normalize(),0.6).normalize();
   const neckP=B.neck.getWorldPosition(new THREE.Vector3());
-  if (kS>0) nd.lerp(new THREE.Vector3(0,0.93,0.36),kS).normalize(); if (_dUp>0) nd.lerp(new THREE.Vector3(0,1,0.05),_dUp*0.8).normalize();
+  if (kS>0) nd.lerp(new THREE.Vector3(0,0.93,0.36),kS).normalize(); if (CY) nd.lerp(new THREE.Vector3(0,0.95,0.3),_sst(0,1,CY.k)).normalize(); if (_dUp>0) nd.lerp(new THREE.Vector3(0,1,0.05),_dUp*0.8).normalize();
   aimBone(B.neck, B.Head, neckP.clone().add(dirW(nd)));
   const headP=B.Head.getWorldPosition(new THREE.Vector3());
-  { const hv=new THREE.Vector3(-lean*0.6,_lerp(0.86,0.8,low),_lerp(0.5,0.6,low)); if (kS>0) hv.lerp(new THREE.Vector3(0,0.97,0.22+lkP),kS); if (_dUp>0) hv.lerp(new THREE.Vector3(0,0.8,-0.6),_dUp).normalize();
+  { const hv=new THREE.Vector3(-lean*0.6,_lerp(0.86,0.8,low),_lerp(0.5,0.6,low)); if (kS>0) hv.lerp(new THREE.Vector3(0,0.97,0.22+lkP),kS); if (CY) hv.lerp(new THREE.Vector3(0,0.86,0.48),_sst(0,1,CY.k)); if (_dUp>0) hv.lerp(new THREE.Vector3(0,0.8,-0.6),_dUp).normalize();
     aimBone(B.Head, B.head_end, headP.clone().add(dirW(hv)));
     if (lkY){ const up=dirW(new THREE.Vector3(0,1,0)); const yaw=(bn,an)=>{ bn.parent.updateMatrixWorld(true); const pq=bn.parent.getWorldQuaternion(new THREE.Quaternion()).invert(); bn.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(up.clone().applyQuaternion(pq).normalize(),an)); bn.updateMatrixWorld(true); }; yaw(B.neck,lkY*0.35); yaw(B.Head,lkY*0.75); } }   /* Kopf nach links/rechts drehen (Umschauen) */
+  const CR=CY?carryRig(R,G,K,CY,hipL.y):null; if (CR) R._ghF={};
   // Beine
   [['Left',1],['Right',-1]].forEach(([s,side])=>{
     const a=crank+(side>0?0:Math.PI);                              // wie Kurbel/Pedale des Rads
@@ -4858,6 +4947,8 @@ function poseGLB(R, G, crank, effort, opt){
     const ankle=ball.clone().addScaledVector(dir,-L.foot);
     const toe=ball.clone().addScaledVector(dir,0.05);
     if (kS>0 && side>0){ const gA=new THREE.Vector3(0.30,0.085,-0.03), gB=new THREE.Vector3(0.315,0.02,0.105); ankle.lerp(gA,kS); ball.lerp(gB,kS); toe.lerp(gB.clone().add(new THREE.Vector3(0.005,-0.005,0.05)),kS); }   /* linker Fuß steht auf der Straße */
+    if (CR){ const Fh=CY.feet[s], w=CR.w, bA=new THREE.Vector3(Fh.x,Fh.y+0.02,Fh.z+0.04); ankle.lerp(new THREE.Vector3(Fh.x,Fh.y+0.085+Fh.heel,Fh.z-0.095),w); ball.lerp(bA,w); toe.lerp(bA.clone().add(new THREE.Vector3(0,-0.005,0.05)),w);
+      if (side<0 && w<1){ const o=new THREE.Vector3(0,0.6,-0.42).multiplyScalar(Math.sin(Math.PI*w)); ankle.add(o); ball.add(o); toe.add(o); } }   /* 0.18.0: Gehen auf den Stufen, rechtes Bein beim Ab-/Aufsteigen hinten über den Sattel */
     const hipW=B[s+'UpLeg'].getWorldPosition(new THREE.Vector3());
     const hipLoc=G.worldToLocal(hipW.clone());
     const knee=ik3(hipLoc, ankle, L.thigh, L.shin, new THREE.Vector3(side*0.12,0.1,1), new THREE.Vector3());
@@ -4880,6 +4971,13 @@ function poseGLB(R, G, crank, effort, opt){
     /* 0.10.1 Gesten (Hicore): Grüßen, Daumen hoch, Vorbei-Wink, Trinken, Strecken */
     let gOpen=null; R._ghHide=R._ghHide||{}; R._ghHide[s]=false;
     { const GT=opt.gest; if (GT && GT.w>0.001){ const tg=gestTarget(GT, side, shL, G, B); if (tg && tg.keep){ elbow=ik3(shL, hand, L.upper, L.fore, pole.clone().lerp(tg.pole,GT.w), new THREE.Vector3()); } else if (tg){ hand.lerp(tg.h, GT.w); elbow=ik3(shL, hand, L.upper, L.fore, pole.clone().lerp(tg.pole||new THREE.Vector3(side*0.7,-0.5,-0.2),GT.w), new THREE.Vector3()); if (GT.w>0.45){ gOpen=tg.f; R._ghHide[s]=true; } } } }
+    if (CR && CR.H[s]){ const Hh=CR.H[s], pl=pole.clone().lerp(Hh.pole,CR.w); let hc;
+      if (Hh.F){ const F=Hh.F, pc=F.c.clone().addScaledVector(F.Y,0.022).addScaledVector(F.X,0.024); hc=pc.clone(); let ec=ik3(shL,hc,L.upper,L.fore,pl,new THREE.Vector3());
+        for (let it=0;it<3;it++){ const dd=pc.clone().sub(ec).normalize(), up=new THREE.Vector3(0,1,0).addScaledVector(dd,-dd.y).normalize(); hc=pc.clone().addScaledVector(dd,-WRIST_HL).addScaledVector(up,WRIST_FLEX); ec=ik3(shL,hc,L.upper,L.fore,pl,new THREE.Vector3()); }
+        R._ghF[s]={c:F.c, X:F.X, Y:F.Y, Z:F.Z, w:CR.w}; }
+      else { hc=Hh.h.clone(); if (CR.w>0.5){ gOpen=Hh.f; R._ghHide[s]=true; } }
+      hand.lerp(hc,CR.w); elbow=ik3(shL,hand,L.upper,L.fore,pl,new THREE.Vector3()); }   /* 0.18.0: Griffe beim Tragen */
+    R._wr[s]=hand.clone();
     aimBone(B[s+'Arm'], B[s+'ForeArm'], W(elbow));
     aimBone(B[s+'ForeArm'], B[s+'Hand'], W(hand));
     const fing=gOpen?hand.clone().add(gOpen):hand.clone().add(new THREE.Vector3(side*R._fing.x,R._fing.y,R._fing.z));   // Finger umgreifen Oberlenker / Bremsgriff / Unterlenker
@@ -5061,7 +5159,7 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), sn:_ls('snow','keine'
 const RWX={ W:null, T:null, night:false, last:0, ll:null, cat:'', info:'', windF:1, busy:false,
   want(){ return ATMO.wx==='echt'||ATMO.tod==='echt'; },
   pos(){ try{ if (me && me.g){ const p=me.g.position, Z=window.ZGNET;
-      if (WORLD.graph && Z && Z.lat0) return [Z.lat0 - p.z/110574, Z.lon0 + p.x/(111320*Math.cos(Z.lat0*Math.PI/180))];
+      if (WORLD.graph && Z && Z.lat0) return [Z.lat0 - p.z/111320, Z.lon0 + p.x/(111320*Math.cos(Z.lat0*Math.PI/180))];
       if (WORLD.real && realData()) return geoOf(p.x, p.z); } }catch(e){} return [50.85,14.74]; },
   here(){ return WORLD && (WORLD.graph||WORLD.real); },
   sun(lat,lon,d){ const R=Math.PI/180, n=d.getTime()/864e5-10957.5, L=280.46+0.9856474*n, g=(357.528+0.9856003*n)*R, lam=(L+1.915*Math.sin(g)+0.02*Math.sin(2*g))*R, eps=(23.439-4e-7*n)*R;
@@ -6706,7 +6804,8 @@ function animateCritters(dt){
 // Fiktive GPS-Lage der Welten: offener Südpazifik („Hicore-Archipel“), weit weg von echten Inseln.
 const GEO = { insel:[-27.05,-128.40], huegel:[-27.30,-127.20], pass:[-26.60,-126.10] };
 let track = [], trackAcc = 0, rideStart = null;
-function geoOf(x,z){ if (WORLD.real && realData()){ const D=realData(); return [D.lat0 - z/110574, D.lon0 + x/(111320*Math.cos(D.lat0*Math.PI/180))]; } const o=GEO[WORLD.id]||[-27,-128]; const lat=o[0]-z/111320; const lon=o[1]+x/(111320*Math.cos(o[0]*Math.PI/180)); return [lat,lon]; }
+function geoOf(x,z){ const Z=window.ZGNET; if (WORLD.graph && Z && Z.lat0!=null) return [Z.lat0 - z/111320, Z.lon0 + x/(111320*Math.cos(Z.lat0*Math.PI/180))];   /* 0.18.0 (Hicore): Zittauer Gebirge mit echten Koordinaten (gleiche Umrechnung wie die OSM-Daten), Strava zeigt die echten Straßen */
+  if (WORLD.real && realData()){ const D=realData(); return [D.lat0 - z/110574, D.lon0 + x/(111320*Math.cos(D.lat0*Math.PI/180))]; } const o=GEO[WORLD.id]||[-27,-128]; const lat=o[0]-z/111320; const lon=o[1]+x/(111320*Math.cos(o[0]*Math.PI/180)); return [lat,lon]; }
 /* laufende Fahrt sichern, damit sie nach einem Absturz oder Neuladen weitergehen kann */
 function rideSave(){ try{ if (!S.running || !builtWorld) return; localStorage.setItem('hicoreRide.resume', JSON.stringify({w:builtWorld, at:Date.now(), S:{dist:S.dist, odo:S.odo, time:S.time, climb:S.climb, lap:S.lap, energy:S.energy}, track, rs:rideStart, ll:lastLapDist})); }catch(e){} }
 function recordSample(dt){
@@ -6714,7 +6813,7 @@ function recordSample(dt){
   if (track.length && track.length%15===0) rideSave();
   const p=posAt(S.dist); const [lat,lon]=geoOf(p.x,p.z);
   if (!rideStart) rideStart = Date.now() - S.time*1000;
-  track.push({ t: rideStart + Math.round(S.time)*1000, lat, lon, alt: p.y + 20, dist: (S.odo||S.dist), v: S.speed, pw: Math.round(S.power), cad: Math.round(S.cadence), hr: S.hr ? Math.round(S.hr) : 0 });
+  track.push({ t: rideStart + Math.round(S.time)*1000, lat, lon, alt: (WORLD.graph && window.ZGNET && window.ZGNET.lat0!=null) ? p.y + (window.ZGNET.Y0||300) : p.y + 20, dist: (S.odo||S.dist), v: S.speed, pw: Math.round(S.power), cad: Math.round(S.cadence), hr: S.hr ? Math.round(S.hr) : 0 });
 }
 const FIT_CRC=[0x0000,0xCC01,0xD801,0x1400,0xF001,0x3C00,0x2800,0xE401,0xA001,0x6C00,0x7800,0xB401,0x5000,0x9C01,0x8801,0x4400];
 function fitCrc(bytes, from, to){ let crc=0; for (let i=from;i<to;i++){ const b=bytes[i]; let tmp=FIT_CRC[crc&0xF]; crc=(crc>>4)&0x0FFF; crc=crc^tmp^FIT_CRC[b&0xF]; tmp=FIT_CRC[crc&0xF]; crc=(crc>>4)&0x0FFF; crc=crc^tmp^FIT_CRC[(b>>4)&0xF]; } return crc; }
@@ -7250,7 +7349,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.17.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.18.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7403,7 +7502,7 @@ function placeRider(r, d, lane, rev){
   const p=posAt(d,tmp), hd=headingAt(d)+(rev?Math.PI:0); const gr=gradeAt(d)*(rev?-1:1); r.gr=gr;
   const Wr=roadWAt(d); const hd0=hd-(rev?Math.PI:0), ln=rev?-lane:lane; r.g.position.set(p.x+Math.cos(hd0)*ln, p.y+roadCrown(clamp(0.5-ln/Wr,0,1))+0.009, p.z-Math.sin(hd0)*ln);
   if (r===me && !S.ut){ const wf=WF, a=wf.slipA||0, fa=0.6; r.g.position.y+=wf.y; if (a){ const sx=-fa*Math.sin(a); r.g.position.x+=Math.cos(hd)*sx; r.g.position.z-=Math.sin(hd)*sx; }
-    r.g.rotation.set(0,hd+wf.yaw+a,0); r.g.rotateX(-Math.atan(gr)-wf.pitch); curveLean(r, d, rev); r.g.rotateZ((r.lean||0)+(r.cl||0)+wf.roll); if (r.wF) r.wF.rotation.y=(r.cst||0)-a*0.8; return; }
+    const ck=(r.stairM && r.stairM!=='ride')?(r.stairK||0):0; r.g.position.y+=STAIR.bump||0; r.g.rotation.set(0,hd+wf.yaw+a,0); r.g.rotateX((-Math.atan(gr)-wf.pitch)*(1-ck)); curveLean(r, d, rev); r.g.rotateZ(((r.lean||0)+(r.cl||0)+wf.roll)*(1-ck)); if (r.wF) r.wF.rotation.y=(r.cst||0)-a*0.8; return; }
   r.g.rotation.set(0,hd,0); r.g.rotateX(-Math.atan(gr)); curveLean(r, d, rev); if (r.lean || r.cl) r.g.rotateZ((r.lean||0)+(r.cl||0));
 }
 /* 0.16.1 (Hicore): in Kurven neigen sich Fahrer und Rad (Neigung = atan(v²·k/g), k = Krümmung der Fahrlinie), das Vorderrad lenkt leicht ein (Lenkwinkel ≈ Radstand·k).
@@ -7414,6 +7513,53 @@ function curveLean(r, d, rev){ if (window.NO_CURVELEAN){ r.cl=0; return; } const
   if (!isFinite(k)) k=0; k=clamp(k,-0.2,0.2); const v=r._clv, tl=clamp(-Math.atan(v*v*k/9.81),-0.4,0.4), ts=clamp(Math.atan(1.02*k)*clamp(1.4-v/12,0.35,1),-0.12,0.12);
   r.cl=(r.cl||0)+(tl-(r.cl||0))*Math.min(1,dt*2.5); r.cst=(r.cst||0)+(ts-(r.cst||0))*Math.min(1,dt*3);
   if (r.wF){ if (r.wF.rotation.order!=='YXZ') r.wF.rotation.order='YXZ'; r.wF.rotation.y=r.cst; } }
+/* 0.18.0 (Hicore): Treppen fahren/tragen (nur eigener Fahrer).
+   Rennrad: Treppen sind nicht wählbar (gAdj). Gravel: hoch und runter tragen. MTB: runter fahren (stehend, Kurbel waagrecht), hoch tragen.
+   Bis 3 Stufen: absteigen, Rad an Lenker und Oberrohr greifen, anheben und drübertragen. Längere Treppe: Rad schultern (Oberrohr auf der rechten Schulter, rechter Arm um das Steuerrohr an den Lenker), hochlaufen, oben wieder aufsitzen (Cyclocross).
+   Ablauf nach Strecke: ab ca. 3 m vor der Treppe absteigen (rechtes Bein über den Sattel), Schritttempo nach Leistung (bergauf 0,5-1,25 m/s, bergab 0,7-1,3), danach aufsitzen. Füße treffen die Stufenmitten.
+   Trainer bekommt währenddessen 0 % (sendGrade). Aus: window.NO_STAIRS */
+const STAIR={k:0, mode:null, sp:null, lift:0, bump:0, tst:null};
+function stairSpans(){ const C=NET&&NET.cur, R=GN.rg; if (!C || !C.ents || !R) return []; if (C._stSp) return C._stSp; const out=[]; let cur=null;
+  C.ents.forEach(en=>{ const E=R.edges[en.e]; if (!E || E.c!==15 || !E.st){ cur=null; return; } const sA=en.dir?E.stS1:E.stS0, sB=en.dir?E.stS0:E.stS1;
+    if (cur && cur.T===E.st && Math.abs(en.r0-cur.r1)<0.6 && Math.abs(sA-cur.sB)<0.6){ cur.r1=en.r1; cur.sB=sB; } else { cur={T:E.st, r0:en.r0, r1:en.r1, sA, sB}; out.push(cur); } });
+  out.forEach(sp=>{ const T=stairInit(sp.T); sp.up=stairY(T,sp.sB)>=stairY(T,sp.sA)?1:-1; sp.nv=clamp(Math.round(T.nv*Math.abs(sp.sB-sp.sA)/Math.max(0.01,T.s1-T.s0)),1,T.nv); const xs=v=>sp.r0+(v-sp.sA)/((sp.sB-sp.sA)||1e-6)*(sp.r1-sp.r0), rho=Math.abs((sp.r1-sp.r0)/((sp.sB-sp.sA)||1e-6)), a=xs(T.s0), b=xs(T.s1);
+    sp.q0=clamp(Math.min(a,b),sp.r0,sp.r1); sp.q1=clamp(Math.max(a,b),sp.r0,sp.r1); sp.tr=T.t*rho; sp.xc0=xs(sp.sB>sp.sA?T.s0+0.5*T.t:T.s1-0.5*T.t); });
+  return (C._stSp=out); }
+function stairMode(sp){ return (BIKE==='mtb' && sp.up<0) ? 'ride' : (sp.nv<=3 ? 'lift' : 'shoulder'); }
+/* Stufenoberkante an Streckenposition x (außerhalb der Treppe: Fahrlinie) */
+function stairGround(sp, x){ if (!sp || x<sp.r0 || x>sp.r1) return posAt(x,tmp2).y; const f=(x-sp.r0)/Math.max(0.01,sp.r1-sp.r0); return stairTop(sp.T, sp.sA+(sp.sB-sp.sA)*f); }
+function stairZone(m){ return m==='ride'?[4,3]:m==='lift'?[2.4,2.2]:[3.2,2.8]; }
+function stairStep(dt){ const on=STAIRS_ON && S.running && !S.ut && NET && NET.graph && GN.rg && (S.dir||1)>0;
+  if (!on){ STAIR.k=0; STAIR.sp=null; STAIR.lc=0; if (me){ me.stairK=0; me.stairM=null; } return; }
+  const sps=stairSpans(), d=S.dist; let best=null, kb=0, next=null;
+  for (const sp of sps){ const m=stairMode(sp), [pre,post]=stairZone(m), k=Math.min(_sst(sp.q0-pre, sp.q0-0.3, d), 1-_sst(sp.q1+0.3, sp.q1+post, d));
+    if (k>kb || (k>0 && !best)){ kb=k; best=sp; } if (!next && sp.q1>d) next=sp; }
+  { let lc=0; for (const sp of sps) lc=Math.max(lc, Math.min(_sst(sp.q0-12, sp.q0-3, d), 1-_sst(sp.q1+2, sp.q1+9, d))); STAIR.lc=lc; }   /* zur Treppe hin in die Wegmitte */
+  STAIR.k=kb; STAIR.sp=best||null; STAIR.mode=best?stairMode(best):null; me.stairK=kb; me.stairM=STAIR.mode;
+  const pw=clamp(S.power/350,0,1), go=clamp((S.power-5)/25,0,1);
+  /* vor der Treppe von selbst abbremsen (Absteigen im Laufen bzw. MTB mit Schritttempo an die Kante) */
+  if (next && next.q0>d){ const m=stairMode(next), [pre]=stairZone(m), ve=m==='ride'?2.8:m==='lift'?1.7:2.1, vm=Math.sqrt(ve*ve+2*2.2*Math.max(0,next.q0-pre-d)); if (meP.v>vm) meP.v=Math.max(vm, meP.v-5*dt); }
+  if (best && kb>0){ const m=STAIR.mode, inS=d>=best.q0 && d<=best.q1; let vt;
+    if (m==='ride') vt=inS?2.4+0.5*pw:null;
+    else if (inS) vt=(m==='lift'?1.0+0.4*pw:best.up>0?0.5+0.75*pw:0.7+0.6*pw)*go;
+    else vt=(1.6+0.6*pw)*go;
+    if (vt!=null){ if (!STAIR.vOn){ STAIR.v=meP.v; STAIR.vOn=true; } STAIR.v+=(vt-STAIR.v)*Math.min(1,dt*3); meP.v=STAIR.v; } else STAIR.vOn=false;
+    if (m!=='ride') S.grade=0;
+    if (STAIR.tst!==best){ STAIR.tst=best; toast('Treppe · '+best.nv+' Stufen: '+(m==='ride'?'runterfahren':m==='lift'?'Rad drübertragen':'Rad schultern')); }
+    /* MTB: kleine Stöße an jeder Stufenkante */
+    if (m==='ride' && inS){ const u=(((d-best.xc0)/Math.max(0.05,best.tr)+0.5)%1+1)%1; STAIR.bump=-0.03*Math.pow(1-u,3)*kb; } else STAIR.bump=0;
+    /* Anheben beim Drübertragen: Räder über die Stufen */
+    if (m==='lift'){ const gy=me.g.position.y, gF=stairGround(best,d+0.6)-gy, gR=stairGround(best,d-0.5)-gy, near=d>best.q0-1.0 && d<best.q1+0.9;
+      const tl=near?Math.max(0.13, Math.max(gF,gR)+0.08):(Math.max(gF,gR)>0.03?Math.max(gF,gR)+0.08:0); STAIR.lift+=(tl-STAIR.lift)*Math.min(1,dt*5); } else STAIR.lift*=Math.max(0,1-dt*5); }
+  else { STAIR.bump=0; STAIR.lift=0; STAIR.vOn=false; } }
+/* Ziele für Füße, Becken und Rad im Fahrer-Koordinatensystem (G ist beim Tragen waagrecht) */
+function stairCarry(r){ const sp=STAIR.sp; if (!sp) return null; const m=STAIR.mode, d=S.dist, gy=r.g.position.y, tr=sp.tr;
+  const sl=tr<0.22?2*tr:tr>1.0?tr/2:tr, base=sp.xc0-(tr>1.0?tr/4:0), xr=m==='lift'?0.32:0.22, hz=m==='lift'?-0.02:0.02, xh=d+hz, u=(xh-base)/sl+0.5;
+  const g=x=>stairGround(sp,x)-gy, feet={};
+  [['Left',0,1],['Right',1,-1]].forEach(([s,p,side])=>{ const w=(u-p)/2, F=Math.floor(w), f=w-F, xA=base+(2*F+p)*sl, xB=xA+2*sl, gA=g(xA), gB=g(xB);
+    if (f<0.5) feet[s]={x:xr+side*0.11, y:gA, gr:gA, z:xA-d, heel:0.05*_sst(0.3,0.5,f)};
+    else { const e=_sst(0,1,(f-0.5)*2), arc=Math.sin(Math.PI*e)*(0.09+0.55*Math.abs(gB-gA)); feet[s]={x:xr+side*0.11, y:gA+(gB-gA)*e+arc, gr:gA+(gB-gA)*e, z:xA+(xB-xA)*e-d, heel:0.05*(1-e)}; } });
+  return {k:STAIR.k, mode:m, xr, hz, yb:(feet.Left.gr+feet.Right.gr)/2, feet, u, up:sp.up, lift:STAIR.lift, bg:r.bikeG}; }
 /* 0.17.1 (Hicore): Fahrgefühl auf Wegen (nur eigener Fahrer).
    - Unbefestigt: Linie schlängelt leicht, kleine Stöße (Höhe, Nicken, Rollen) je nach Untergrund; MTB dank Federung ruhiger, Asphalt nichts. Aus: window.NO_WAYFEEL
    - Pfützen (WET.p, Zellen wie im Wege-Shader): vorausschauend seitlich ausweichen, wenn der Weg breit genug ist, sonst durch und es spritzt. Aus: window.NO_PUDDLE
@@ -7433,7 +7579,7 @@ function wayPudHit(x,z,unp,PU,m){ const cx=Math.floor(x/6), cz=Math.floor(z/6), 
     const d=Math.hypot(x-o.x,z-o.z)-(r*1.2+m); if (d<best) best=d; } return best; }
 function wfLanePos(d,lane,rev,out){ const p=posAt(d,out||tmp2), h=headingAt(d), ln=rev?-lane:lane; p.x+=Math.cos(h)*ln; p.z-=Math.sin(h)*ln; return p; }
 function wayFeelStep(dt){ WF.add=0; WF.lat=WF.yaw=WF.roll=WF.pitch=WF.y=0; if (!(dt>0)) return; dt=Math.min(dt,0.1);
-  let E=null; const on=S.running && !S.ut && NET && NET.graph && GN.rg; try{ if (on) E=gEdgeAt(S.dist); }catch(e){}
+  let E=null; const on=S.running && !S.ut && NET && NET.graph && GN.rg; try{ if (on) E=gEdgeAt(S.dist); }catch(e){} if (E && (E.c===15 || STAIR.k>0.01)) E=null;
   const bk=bikeIx(), v=Math.max(0,meP.v||0), rev=(S.dir||1)<0, PU=WET.p.value; let rough=0, mud=0, unp=false;
   if (E && E.kind!=='r'){ const sf=E.sf==null?12:E.sf; const q=posAt(S.dist,tmp2);
     const ly=E.kind==='s'?([0,1,4][sf]||0):waysLayer(sf,E.c,q.x,q.z); unp=ly>3.5;
@@ -7628,7 +7774,8 @@ function frame(now){
     try{ meP.cda=(BIKES[BIKE]||BIKES.road).cda; let crr=CRR; if (NET && NET.graph && GN.rg){ const E=gEdgeAt(S.dist); crr=gEdgeCrr(E); const p=posAt(S.dist); const rt=E && E.kind==='w' && gRootAt(p.x,p.z); if (rt) crr=ROOT_CRR[bikeIx()];
         const sk=E?(E.kind==='r'?'r':gWayName(E)):'r'; if (sk!==S.surfK){ if (S.surfK!=null && sk!=='r' && S.running) toast(sk.replace(' · ',' – ')); S.surfK=sk; } } else crr=BIKE_CRR[0][bikeIx()]; meP.crr=crr; }catch(e){ meP.crr=CRR; }
     S.grade = stepPhysics(meP, S.power, S.dist, dt);
-    if (!S.ut){ const vm=curveVmax(); if (meP.v>vm) meP.v=Math.max(vm, meP.v-5*dt); }   /* 0.9.5: vor engen Kurven/Abbiegungen von selbst bremsen */
+    if (!S.ut){ const vm=curveVmax(); if (meP.v>vm) meP.v=Math.max(vm, meP.v-5*dt); }
+    try{ stairStep(dt); }catch(e){ if (!STAIR._e){ STAIR._e=1; console.warn('treppe',e); } }   /* 0.9.5: vor engen Kurven/Abbiegungen von selbst bremsen */
     if (S.ut){ meP.v=Math.min(meP.v,5); S.ut.t+=dt; if (S.ut.t>=S.ut.D){ S.ut=null; if (NET && NET.graph && (S.dir||1)<0) try{ gReverse(); }catch(e){ console.warn('wenden',e); } } }
     if (TRAFFIC.hold) meP.v=Math.max(0, meP.v-(TRAFFIC.hold>1?6:2.6)*dt);
     if (ZSB.hold || ZSB.holdS) meP.v=Math.max(0, meP.v-3.2*dt);   /* Schmalspurbahn hat Vorrang am Bahnübergang */   /* Polizei bremst den Fahrer aus */
@@ -7651,7 +7798,7 @@ function frame(now){
   try{ ZSB.step(dt); }catch(e){ if (!window._zsbErr){ window._zsbErr=1; console.warn('zsb',e); } }
   try{ TRAFFIC.step(dt, S.running); }   /* 0.10.6 (Hicore): auch in der Pause fährt der Verkehr weiter, nur der Fahrer steht */catch(e){ if (!TRAFFIC._err){ TRAFFIC._err=1; console.warn('verkehr',e); } }
   try{ wayFeelStep(dt); }catch(e){ WF.add=0; if (!WF._e){ WF._e=1; console.warn('wayfeel',e); } }
-  if (S.ut) placeTurn(me, S.ut); else placeRider(me, S.dist, TRAFFIC.rLane+WF.add, (S.dir||1)<0);
+  if (S.ut) placeTurn(me, S.ut); else placeRider(me, S.dist, (TRAFFIC.rLane+WF.add)*(1-(STAIR.lc||0)), (S.dir||1)<0);
   try{ wayFeelFx(dt); }catch(e){ if (!WF._e2){ WF._e2=1; console.warn('wayfx',e); } }
   try{ RLOD.step(dt); }catch(e){ if (!RLOD._e){ RLOD._e=1; console.warn('rlod',e); } }
   // weicher Kontaktschatten unter Fahrer und Rad (zusätzlich zum Sonnenschatten)
