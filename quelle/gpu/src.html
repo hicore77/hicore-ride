@@ -2095,7 +2095,11 @@ function gnRG(){ const D=gnData(); if (!D) return null; if (GN.rg && GN.rg.D===D
   GN.rg=R;
   try{ if (!window.NO_WAYNET) rgBuildWays(R,D); }catch(err){ console.warn('wegenetz',err); }
   R.loop=(D.loop||[]).flatMap(([e,dir])=>{ const L=R.split[e]||[e]; return (dir?L.slice().reverse():L).map(x=>[x,dir]); });
-  const paved=E=>[0,3,13].indexOf(E.sf)>=0, okS=E=>E.kind==='r' || (E.kind==='s' && (paved(E)||E.sf===2)) || (E.kind==='w' && (E.c===10||E.c===13) && paved(E));
+  /* 0.18.1 (Hicore): Rennrad biegt nur in Straßen ab. Nebenstraßen asphaltiert/gepflastert (Zufahrten nur im Ort, draußen sind sie oft Schotter), Radwege mit angegebenem festem Belag, Feld-/Waldwege nur mit angegebenem Asphalt. Keine geschätzten Beläge, keine Betonplatten-Feldwege. Alter Stand: window.OLD_ROADADJ */
+  const paved=E=>[0,3,13].indexOf(E.sf)>=0, okS0=E=>E.kind==='r' || (E.kind==='s' && (paved(E)||E.sf===2)) || (E.kind==='w' && (E.c===10||E.c===13) && paved(E));
+  const okS1=E=>{ if (E.kind==='r') return true; if (E.kind==='s'){ if (E.sf!==0 && E.sf!==1) return false; if (E.c!==27) return true; const xz=E.xz, m=(xz.length/4|0)*2; return gnInner(xz[m],xz[m+1]); }
+    if (E.kind!=='w' || E.inf || E.c===15) return false; if (E.c===13) return E.sf===0||E.sf===2||E.sf===3||E.sf===13; if (E.c===10) return E.sf===0; return false; };
+  const okS=window.OLD_ROADADJ?okS0:okS1;
   R.adjR=R.nodes.map(()=>[]); R.adjS=R.nodes.map(()=>[]); R.adjW=R.nodes.map(()=>[]);
   R.edges.forEach(e=>{ if (e.dup!=null) return; const L=[R.adjW]; if (e.kind==='r') L.push(R.adjR); if (okS(e)) L.push(R.adjS); L.forEach(A=>{ A[e.a].push(e.k); if (e.b!==e.a) A[e.b].push(e.k); }); });
   Object.defineProperty(R,'adj',{get(){ return gAdj(R); }});
@@ -2108,7 +2112,7 @@ function gnRG(){ const D=gnData(); if (!D) return null; if (GN.rg && GN.rg.D===D
 function rgBuildWays(R,D){ const ST=R.stat; const RBL=(()=>{ try{ return ZG_RB0; }catch(e){ return []; } })(), nearRB=(x,z)=>RBL.some(r=>Math.hypot(x-r[0],z-r[1])<(r[2]||12)+9);
   /* 1. Linien sammeln */
   const SRC=[], WY=(WAYS_ON && window.ZGWAYS)?waysData():null;
-  if (WY) WY.forEach(W=>{ if (W.fl&16 || W.P.length<4) return; SRC.push({kind:'w', c:W.c, w:W.w, sf:W.sf, tt:W.tt, br:!!(W.fl&8), id:W.id, xz:W.P}); });
+  if (WY) WY.forEach(W=>{ if (W.fl&16 || W.P.length<4) return; SRC.push({kind:'w', c:W.c, w:W.w, sf:W.sf, tt:W.tt, inf:!!(W.fl&32), br:!!(W.fl&8), id:W.id, xz:W.P}); });
   { const ST=WY?stairsData():null; if (ST) ST.forEach(T=>{ if (T.P.length<4) return; SRC.push({kind:'w', c:15, w:Math.max(1,T.w), sf:T.sf, tt:0, br:false, id:T.id, xz:T.P.slice(), st:T}); }); }   /* 0.18.0 Treppen */
   if (window.ZGSIDE){ const bin=atob(window.ZGSIDE), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer), N=dv.getUint32(0,true); let o=4;
     for (let r=0;r<N;r++){ const c=dv.getUint8(o), w=dv.getUint8(o+1)/10, sf=dv.getUint8(o+2), fl=dv.getUint8(o+3), n=dv.getUint16(o+4,true); o+=6; const P=new Float32Array(n*2); let x=0,z=0; for (let j=0;j<n;j++){ x+=dv.getInt16(o,true); z+=dv.getInt16(o+2,true); o+=4; P[2*j]=x/2; P[2*j+1]=z/2; }
@@ -2175,7 +2179,7 @@ function rgBuildWays(R,D){ const ST=R.stat; const RBL=(()=>{ try{ return ZG_RB0;
     if (a<0) a=nodeAt(xz[0],xz[1]); if (b<0) b=nodeAt(xz[2*m-2],xz[2*m-1]);
     const na=R.nodes[a], nb=R.nodes[b]; xz[0]=na.x; xz[1]=na.z; xz[2*m-2]=nb.x; xz[2*m-1]=nb.z; let len=0; for (let i=1;i<m;i++) len+=Math.hypot(xz[2*i]-xz[2*i-2],xz[2*i+1]-xz[2*i-1]);
     if (len<0.5 || (a===b && len<30)) return;
-    const E=new RGE({k:R.edges.length,a,b,c:L.c,nm:'',w:L.w,len,ref:'',street:'',kind:L.kind,sf:L.sf,tt:L.tt,br:L.br,wid:L.id,src:-1,xz:Float32Array.from(xz)}); R.edges.push(E); nW++;
+    const E=new RGE({k:R.edges.length,a,b,c:L.c,nm:'',w:L.w,len,ref:'',street:'',kind:L.kind,sf:L.sf,tt:L.tt,inf:!!L.inf,br:L.br,wid:L.id,src:-1,xz:Float32Array.from(xz)}); R.edges.push(E); nW++;
     if (L.st){ const T=stairInit(L.st); E.st=T; E.stS0=stairProj(T,na.x,na.z); E.stS1=stairProj(T,nb.x,nb.z); E.nv=clamp(Math.round(T.nv*Math.abs(E.stS1-E.stS0)/Math.max(0.01,T.s1-T.s0)),1,T.nv); if (!na.road) na.y=stairY(T,E.stS0); if (!nb.road) nb.y=stairY(T,E.stS1); ST.stairs=(ST.stairs||0)+1; }
     /* Wurzelstellen auf schmalen Pfaden (Erde, Fels, Gras, unbefestigt), alle 70-220 m; ob im Wald, wird erst bei Bedarf geprüft */
     if (L.kind==='w' && (L.c===11||L.c===14) && [7,8,10,12].indexOf(L.sf)>=0 && len>40){ let sd=((L.id*2654435761)^(a*97))>>>0||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647); let s=25+rnd()*90, acc=0;
@@ -5219,7 +5223,7 @@ function snowUI(){ const e=ATMO.wx==='echt', s=$('snow'); if (!s) return; s.disa
 $('snow').value=ATMO.sn; $('snowRd').value=ATMO.snRd; snowUI();
 $('snow').onchange=()=>{ ATMO.sn=$('snow').value; store.set('snow',ATMO.sn); ATMO.apply(); };
 /* 0.15.0: Radwahl. Bestimmt, welche Abzweige angeboten werden (gAdj) und den Rollwiderstand je Untergrund (gEdgeCrr) */
-{ const bi=()=>{ const t={road:'Schnellstes Rad auf Asphalt. Abzweige nur in Straßen und asphaltierte Wege.',gravel:'Etwas langsamer auf Asphalt, am schnellsten auf Schotter und Feldwegen. Biegt auch in Wald- und Feldwege ab, auf groben Pfaden und Wurzeln langsam.',mtb:'Langsamste auf Asphalt, knapp hinter dem Gravelbike auf Schotter, am schnellsten auf Pfaden, Wurzeln und Fels. Biegt überall ab.'}; const el=$('bikeInfo'); if (el) el.textContent=t[BIKE]||''; };
+{ const bi=()=>{ const t={road:'Schnellstes Rad auf Asphalt. Abzweige nur in Straßen (Asphalt, Pflaster) und asphaltierte Rad- und Wirtschaftswege, keine Feld-, Wald- oder Schotterwege.',gravel:'Etwas langsamer auf Asphalt, am schnellsten auf Schotter und Feldwegen. Biegt auch in Wald- und Feldwege ab, auf groben Pfaden und Wurzeln langsam.',mtb:'Langsamste auf Asphalt, knapp hinter dem Gravelbike auf Schotter, am schnellsten auf Pfaden, Wurzeln und Fels. Biegt überall ab.'}; const el=$('bikeInfo'); if (el) el.textContent=t[BIKE]||''; };
   try{ $('bike').value=BIKE; bi(); $('bike').onchange=()=>{ BIKE=BIKES[$('bike').value]?$('bike').value:'road'; try{ localStorage.setItem('hicoreRide.bike',JSON.stringify(BIKE)); }catch(e){} bi(); try{ setRiderBike(me,BIKE); }catch(e){ console.warn('Radmodell',e); } try{ if (NET){ NET.pend=null; NET.appl&&NET.appl.clear(); junUI(null); } }catch(e){} }; }catch(e){ console.warn('rad',e); } }
 $('snowRd').onchange=()=>{ ATMO.snRd=$('snowRd').value; store.set('snowRd',ATMO.snRd); ATMO.apply(); };
 try{ RWX.tick(true); }catch(e){} try{ ATMO.setup(); }catch(e){ console.warn('Wetter-Setup',e); }
@@ -7349,7 +7353,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.18.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.18.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
