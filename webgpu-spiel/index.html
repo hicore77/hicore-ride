@@ -7291,7 +7291,9 @@ function gNetStep(){ const C=NET, D=gnRG(), A=gAdj(D);
     C.pend=Object.assign({}, best, {opts, planned, nat:pick, minor}); C.pick=pick; }
   else Object.assign(C.pend, {ah:best.ah, rd:best.rd});
   const RBn=gnRBAt(D.nodes[best.node].x,D.nodes[best.node].z,2), thr=RBn?RBn.r+Math.hypot(D.nodes[best.node].x-RBn.x,D.nodes[best.node].z-RBn.z)+(+(window.RB_PRE||32)):10;   /* 0.10.21: am Kreisel vor der Einfahrt entscheiden, sonst springt man im Ring */
-  if (best.ah<thr){ C.appl.add(best.tag); const p=C.pend; if (C.pick!=null && C.pick!==p.planned){ const o=p.opts.find(o=>o.e===C.pick); { const old=posAt(S.dist), nr=gTurn(R,p,C.pick); setRoute(nr); S.dist=gSnapDist(old,S.dist); } if (C.pick!==p.nat) toast((o?o.label:'Abgebogen')+': '+([o&&o.name, o&&o.dest?'Richtung '+o.dest:''].filter(Boolean).join(' ')||'neue Straße')); } junUI(null); C.pend=null; return; }
+  if (best.ah<thr){ C.appl.add(best.tag); const p=C.pend; if (C.pick!=null && C.pick!==p.planned){ const o=p.opts.find(o=>o.e===C.pick); { const old=posAt(S.dist), nr=gTurn(R,p,C.pick); setRoute(nr); S.dist=gSnapDist(old,S.dist);
+      /* 0.16.2 (Hicore, Kälbersträucher): dieselbe Kreuzung liegt auf der neuen Strecke noch ein paar Meter voraus. Als erledigt markieren, sonst wird sie neu bewertet und die natürliche Weiterfahrt überschreibt die eigene Wahl */
+      nr.ents.forEach((en,j)=>{ if (en.n1===p.node && Math.abs(en.r1-S.dist)<60) C.appl.add(j+':'+en.n1+':'+Math.round(en.r1)); }); } if (C.pick!==p.nat) toast((o?o.label:'Abgebogen')+': '+([o&&o.name, o&&o.dest?'Richtung '+o.dest:''].filter(Boolean).join(' ')||'neue Straße')); } junUI(null); C.pend=null; return; }
   if (C.pend.minor && C.pick===C.pend.nat && best.ah>Math.max(70, S.speed*5)){ junUI(null); return; }   /* 0.16.1: Abzweige in untergeordnete Wege erst kurz vorher und dezent */
   gJunUI(C.pend, best.ah); }
 /* 0.10.21: nach dem Umschalten der Strecke an genau derselben Stelle weiterfahren (Punkte der neuen Strecke liegen anders verteilt, Strecke davor kann um Meter abweichen) */
@@ -11523,7 +11525,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.16.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.16.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
