@@ -1,0 +1,3 @@
+const {chromium}=require('playwright'); const serve=require('./serve');
+(async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']}); const ctx=await b.newContext(); await serve(ctx); const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push('PE '+(e.stack||e.message).slice(0,500))); p.on('console',m=>{ if(m.type()==='error'||/GPU-Material|warn/i.test(m.type())&&/Material|TSL|Node/.test(m.text())) errs.push(m.type()+' '+m.text().slice(0,300)); });
+ await p.goto('http://127.0.0.1:8765/index.html?gl=1'+(process.env.QS||'')); await p.waitForTimeout(+(process.env.WT||40000)); console.log(errs.join('\n')||'none'); await b.close(); })();

@@ -183,7 +183,8 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
       <div id="worlds"></div>
       <div class="mpbox"><h4>Tageszeit &amp; Wetter</h4>
         <div class="mpgrid"><select id="tod"><option value="morgen">🌅 Morgen</option><option value="mittag">☀️ Mittag</option><option value="nachm" selected>🌤️ Nachmittag</option><option value="abend">🌇 Abend</option><option value="nacht">🌙 Nacht</option><option value="echt">🌐 Echte Tageszeit</option></select>
-        <select id="wx"><option value="sonne" selected>☀️ Sonnig</option><option value="wolken">☁️ Bewölkt</option><option value="regen">🌧️ Regen</option><option value="gewitter">⛈️ Gewitter</option><option value="nebel">🌫️ Nebel</option><option value="echt">🌐 Echtes Wetter</option></select></div><div id="realWx" style="font-size:12px;opacity:.8;margin-top:6px;display:none"></div></div>
+        <select id="wx"><option value="sonne" selected>☀️ Sonnig</option><option value="wolken">☁️ Bewölkt</option><option value="regen">🌧️ Regen</option><option value="gewitter">⛈️ Gewitter</option><option value="nebel">🌫️ Nebel</option><option value="schnee">🌨️ Schneefall</option><option value="graupel">🧊 Graupel</option><option value="echt">🌐 Echtes Wetter</option></select></div>
+        <div class="mpgrid" style="margin-top:6px"><select id="snow"><option value="keine" selected>Schneelage: keine</option><option value="flecken">❄️ Schneeflecken</option><option value="angezuckert">❄️ Angezuckert</option><option value="viel">☃️ Viel Schnee</option><option value="tauwetter">💧 Tauwetter</option></select><select id="snowRd"><option value="geraeumt" selected>🛣️ Straßen geräumt</option><option value="fest">🛷 Straßen festgefahren</option></select></div><div id="realWx" style="font-size:12px;opacity:.8;margin-top:6px;display:none"></div></div>
       <div class="mpbox"><h4>Gruppenfahrt (Multiplayer)</h4>
         <div class="mpgrid"><input id="mpName" maxlength="16" placeholder="Dein Name" autocomplete="off"><input id="mpRoom" maxlength="16" placeholder="Raum-Code" autocomplete="off" autocapitalize="characters"></div>
         <div class="mpbtn"><button id="mpJoin">Raum beitreten</button><button id="mpLeave" style="display:none">Raum verlassen</button></div>
@@ -939,15 +940,22 @@ function buildEdgeDecals(def, grp){
    Die Spielfunktionen markieren Materialien mit userData.fx (mask, terrain, wind, dith) bzw. lin/worldAO.
    Beim Erzeugen der Node-Materialien (renderer.library.fromMaterial) werden daraus TSL-Knoten gebaut. */
 function GU(v){ return window.GPU_MODE ? TSL.uniform(v) : {value:v}; }
+/* 0.12.0: Uniforms, die sich zur Laufzeit ändern und auch auf unbewegten Meshes ankommen müssen (Objekt-Uniforms werden bei statischen Objekten nicht neu hochgeladen) */
+function GUR(v){ return window.GPU_MODE ? TSL.uniform(v).setGroup(TSL.renderGroup) : {value:v}; }
+function GURtouch(){ if (window.GPU_MODE) TSL.renderGroup.needsUpdate=true; }
 function GUT(){ if (!window.GPU_MODE) return {value:null}; const d=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1); d.needsUpdate=true; const n=TSL.texture(d); const proxy={ get value(){ return n.value===d?null:n.value; }, set value(t){ n.value=t||d; }, node:n }; return proxy; }
 function gpuFixInst(root){ if (!window.GPU_MODE || !root) return; root.traverse(o=>{ if (!o.isInstancedMesh || !o.instanceColor || o._icPow) return; const m=Array.isArray(o.material)?o.material[0]:o.material; const u=(m&&m.userData)||{}, b=(u.pbrOrig&&u.pbrOrig.userData)||{};
     if (!((u.pbrPrep||b.pbrPrep) && !u.lin)) return; const a=o.instanceColor.array; for (let i=0;i<a.length;i++) a[i]=Math.pow(Math.max(0,a[i]),2.2); o.instanceColor.needsUpdate=true; o._icPow=true; }); }
 if (window.GPU_MODE) try{ const sc=THREE.InstancedMesh.prototype.setColorAt; THREE.InstancedMesh.prototype.setColorAt=function(i,c){ sc.call(this,i,c); if (this._icPow){ const a=this.instanceColor.array; for (let k=i*3;k<i*3+3;k++) a[k]=Math.pow(Math.max(0,a[k]),2.2); } }; }catch(e){}
+/* 0.12.0 (Hicore): Schnee. Art je Material: t Gelände, r Straße, g Gras, b Baumlaub, h alles andere (Dächer, Autos, Mauern …); Fahrer und Figuren nie */
+function snowKind(m){ const u=m.userData||{}, fx=u.fx||{}; if (u.isWater||u.noSnow||u.lin&&u.noSnowLin) return ''; if (!(m.isMeshLambertMaterial||m.isMeshStandardMaterial||m.isMeshPhongMaterial)) return '';
+  if (fx.terrain) return 't'; if (m.map&&m.map.userData&&m.map.userData.road) return 'r'; if (fx.wind) return fx.wind.hRef<2.5?'g':'b'; if (fx.dith&&fx.dith.tree) return 'b'; return 'h'; }
+function noSnow(root){ if (root) root.traverse(o=>{ if (o.material) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if (m&&m.userData) m.userData.noSnow=true; }); }); }
 function gpuSetup(){ const lib=renderer.library, orig=lib.fromMaterial.bind(lib);
   /* 0.4.8: WebGPU bildet den Pipeline-Schlüssel aus den Material-Eigenschaften (Funktionen nur als Quelltext). gpuFx baut Texturen fest ein,
      daher teilten z. B. Wertungs-Torbögen die Pipeline samt Start-Tor-Textur. Texturen als Text-Eigenschaft in den Schlüssel bringen. */
   if (!Object.getOwnPropertyDescriptor(THREE.Material.prototype,'gpuTexKey')) Object.defineProperty(THREE.Material.prototype,'gpuTexKey',{enumerable:true, configurable:true, set(v){},
-    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); const fx=this.userData&&this.userData.fx; if (fx){ for (const n of ['terrain','mask']) if (fx[n]&&fx[n].t&&fx[n].t.uuid) k+=n[0]+fx[n].t.uuid.slice(0,8); if (fx.dith) k+='d'+fx.dith.mode+(fx.dith.a||'')+'-'+(fx.dith.b||''); if (fx.wind) k+='w'+fx.wind.amp; } if (this.userData&&this.userData.mini) k+='mini'; return k; } });   /* 0.8.2: auch Überblendung/Wind, sonst bekamen ferne Kronen die Pipeline der Mini-Bäume (dunkle Kugeln neben Detailbäumen) */   /* 0.7.2: Loch-Masken mit in den Schlüssel, sonst teilten Kacheln und Grobgelände eine Maske (Löcher mit Himmel) */
+    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); const fx=this.userData&&this.userData.fx; if (fx){ for (const n of ['terrain','mask']) if (fx[n]&&fx[n].t&&fx[n].t.uuid) k+=n[0]+fx[n].t.uuid.slice(0,8); if (fx.dith) k+='d'+fx.dith.mode+(fx.dith.a||'')+'-'+(fx.dith.b||''); if (fx.wind) k+='w'+fx.wind.amp; } const sk=snowKind(this); if (sk) k+='S'+sk; if (this.userData&&this.userData.mini) k+='mini'; return k; } });   /* 0.8.2: auch Überblendung/Wind, sonst bekamen ferne Kronen die Pipeline der Mini-Bäume (dunkle Kugeln neben Detailbäumen) */   /* 0.7.2: Loch-Masken mit in den Schlüssel, sonst teilten Kacheln und Grobgelände eine Maske (Löcher mit Himmel) */
   /* Farben wie im alten Spiel roh lassen (ColorManagement aus), aber sRGB-Texturen und Bildausgabe trotzdem richtig umrechnen */
   const CSN=THREE.ColorSpaceNode; if (CSN && !CSN._hp){ CSN._hp=1; const o=CSN.prototype.setup; CSN.prototype.setup=function(b){ const CM=THREE.ColorManagement, e=CM.enabled; CM.enabled=true; try{ return o.call(this,b); } finally{ CM.enabled=e; } }; }
   lib.fromMaterial=m=>{ const nm=orig(m); if (nm && !m.isNodeMaterial){ try{ gpuFx(nm, m); }catch(e){ console.warn('GPU-Material',e); } }
@@ -980,7 +988,7 @@ function gpuWater(nm, m){ const T=TSL, nt=m.normalMap; if (!nt) return; const {v
   nm.emissiveNode=sky.mul(F.mul(0.8)).add(vec3(1.0,0.92,0.75).mul(glint)); }
 function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater){ gpuWater(nm,m); return; } const lin=!!u.lin, prep=!!u.pbrPrep, gam=prep && !lin && !(fx.terrain), ao=!!u.worldAO && !(fx.terrain);   /* Gelände: im alten Spiel griffen Gamma und AO nie (Anker im Shader ersetzt) -> hier auch nicht */
   const {vec2,vec3,vec4,float,texture,positionWorld,positionGeometry,positionLocal,cameraPosition,smoothstep,mix,clamp,length,normalize,dot,max,pow,Discard,If,screenCoordinate,modelWorldMatrixInverse}=T;
-  const isRoad=!!(m.map&&m.map.userData&&m.map.userData.road); const need=gam||ao||fx.mask||fx.terrain||fx.wind||fx.dith||isRoad; if (!need) return;
+  const isRoad=!!(m.map&&m.map.userData&&m.map.userData.road), sk=snowKind(m); const need=gam||ao||fx.mask||fx.terrain||fx.wind||fx.dith||isRoad||sk; if (!need) return;
   const H=gpuHelpers();
   const P=positionWorld.xz;
   /* Grundfarbe: Material-Farbe * Textur (wie im Spiel als sRGB gemeint) */
@@ -1045,8 +1053,29 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
     if (m.vertexColors){ nm.vertexColors=false; c=c.mul(mix(T.vertexColor().rgb,vec3(1.0),luW)); }
     col=vec4(c, tex.a.mul(T.materialReference('opacity','float')));
   }
-  if (!col && (gam||ao||fx.dith||isRoad)){ let c=vec4(T.materialReference('color','color'), T.materialReference('opacity','float')); if (m.map && m.alphaTest>0){ if (!m.map.premultiplyAlpha){ m.map.premultiplyAlpha=true; m.map.needsUpdate=true; } const tx=texture(m.map); c=c.mul(vec4(tx.rgb.div(max(tx.a,float(0.004))),tx.a)); } else if (m.map) c=c.mul(texture(m.map)); if (m.vertexColors){ nm.vertexColors=false; c=vec4(c.rgb.mul(T.vertexColor().rgb), c.a); } col=c; }
+  if (!col && (gam||ao||fx.dith||isRoad||sk)){ let c=vec4(T.materialReference('color','color'), T.materialReference('opacity','float')); if (m.map && m.alphaTest>0){ if (!m.map.premultiplyAlpha){ m.map.premultiplyAlpha=true; m.map.needsUpdate=true; } const tx=texture(m.map); c=c.mul(vec4(tx.rgb.div(max(tx.a,float(0.004))),tx.a)); } else if (m.map) c=c.mul(texture(m.map)); if (m.vertexColors){ nm.vertexColors=false; c=vec4(c.rgb.mul(T.vertexColor().rgb), c.a); } col=c; }
   if (col){ let rgb=col.rgb; if (gam) rgb=toLin(rgb); if (ao){ const aoS=PBR.aoU.node.sample(positionWorld.xz.sub(vec2(PBR.aoOE.x)).div(PBR.aoOE.y)).r; rgb=rgb.mul(mix(float(1.0),aoS,PBR.aoOn)); } col=vec4(rgb,col.a); }
+  /* 0.12.0 Schnee: liegt zuerst auf flachen Flächen, Fleckenmuster statt Teppich, Höhe zählt (Lausche/Kamm länger weiß), bei Tauwetter tauen Süd- und Steilhänge zuerst */
+  let snowE=null, snowR=null;
+  if (col && sk){ const S=SNOW, Pw=positionWorld, n=normalize(T.normalWorldGeometry), up=m.side===THREE.DoubleSide?T.abs(n.y):n.y;   /* doppelseitige Flächen haben oft nach unten zeigende Normalen */
+    const el=Pw.y.add(S.y0), on=smoothstep(0.0,0.12,S.a);
+    const A=S.a.add(el.sub(420.0).mul(0.0007).mul(on));
+    const pn=sk==='b' ? H.vnz(vec2(Pw.x.add(Pw.y.mul(0.8)),Pw.z.sub(Pw.y.mul(0.5))).mul(1.7)).mul(0.6).add(H.vnz(P.mul(0.05)).mul(0.4))
+      : H.vnz(P.mul(0.045)).mul(0.5).add(H.vnz(P.mul(0.21)).mul(0.32)).add(H.vnz(P.mul(1.3)).mul(0.18));
+    const pen=S.m.mul(max(n.z,0.0).mul(0.45).add(float(1.0).sub(up).mul(0.9))).add(float(1.0).sub(up).mul(0.18));
+    const tk=sk==='t'?smoothstep(0.5,0.82,up):sk==='h'?smoothstep(0.3,0.6,up):sk==='b'?smoothstep(-0.35,0.5,up):sk==='g'?float(1.0):smoothstep(0.4,0.7,up);
+    let cov=tk.mul(smoothstep(-0.05,0.07,A.sub(float(1.0).sub(pn)).sub(pen))).mul(on);
+    const fn=H.vnz(P.mul(6.5)).mul(0.6).add(H.vnz(P.mul(23.0)).mul(0.4));
+    cov=cov.mul(mix(smoothstep(0.25,0.8,fn).mul(0.75).add(0.15), float(1.0), S.d));   /* angezuckert: Boden schimmert durch */
+    if (sk==='b') cov=cov.mul(mix(float(0.55),float(0.92),S.d));
+    const scol=mix(vec3(0.84,0.87,0.93), vec3(0.56,0.58,0.6), S.m.mul(0.55)).mul(H.vnz(P.mul(0.7)).mul(0.08).add(0.94));
+    if (sk==='g'){ const gk=smoothstep(0.0,0.3,A.sub(float(1.0).sub(pn))).mul(on);   /* Gras: bei viel Schnee verschwindet es darunter, sonst weiße Spitzen */
+      const kill=H.vnz(P.mul(0.9)).mul(0.6).add(H.h21(T.floor(P.mul(3.0))).mul(0.4)).lessThan(gk.mul(S.d).mul(1.15));
+      nm.maskNode=nm.maskNode?nm.maskNode.and(kill.not()):kill.not(); cov=gk.mul(0.45); }
+    if (sk!=='r'){ col=vec4(mix(col.rgb, scol, clamp(cov,0.0,1.0)), col.a);
+      if (sk==='t'){ const V=normalize(cameraPosition.sub(Pw)), hs=H.h21(T.floor(P.mul(26.0)).add(T.floor(V.xz.mul(9.0).add(V.y.mul(5.0)))));
+        snowE=vec3(1.3,1.35,1.45).mul(T.step(0.993,hs)).mul(cov).mul(S.gl).mul(smoothstep(28.0,3.0,length(P.sub(cameraPosition.xz)))); } }
+    else snowR={A, scol, on}; }
   /* 0.9.1 Nasse Straße: dunkler Asphalt, Pfützen mit Regenringen, bei Gewitter fließende Wasserläufe, Spiegelung des Himmels */
   if (isRoad && col){ const wet=WET.w, st=WET.s, t=WIND.t, uvv=T.uv(), along=uvv.y.mul(24.0), ac=uvv.x;
     const pn=H.vnz(P.mul(0.33)).mul(0.6).add(H.vnz(P.mul(1.4)).mul(0.4));
@@ -1063,7 +1092,19 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
     const sky=mix(WSKY.hor.mul(0.8),WSKY.hor.mul(vec3(0.62,0.7,0.85)),smoothstep(0.0,0.4,max(R.y,0.0)));
     const sd=max(dot(R,SUNU),0.0), gl=pow(sd,300.0).mul(4.0).add(pow(sd,30.0).mul(0.25));
     col=vec4(col.rgb.mul(mix(float(1.0),float(0.45),wet)).mul(mix(float(1.0),float(0.72),wm)), col.a);
-    nm.emissiveNode=sky.mul(F.mul(wet.mul(0.2).add(wm.mul(0.8)))).add(vec3(1.0,0.95,0.85).mul(gl).mul(wet.mul(0.3).add(wm))); }
+    let rem=sky.mul(F.mul(wet.mul(0.2).add(wm.mul(0.8)))).add(vec3(1.0,0.95,0.85).mul(gl).mul(wet.mul(0.3).add(wm)));
+    if (snowR){ const S=SNOW, A=clamp(snowR.A,0.0,1.1), ed=T.min(ac,float(1.0).sub(ac)).add(H.vnz(P.mul(0.6)).sub(0.5).mul(0.07)).add(H.vnz(P.mul(3.0)).sub(0.5).mul(0.025));
+      const bank=smoothstep(mix(float(0.03),float(0.11),smoothstep(0.3,1.0,A)),float(0.0),ed).mul(smoothstep(0.15,0.55,A)).mul(float(1.0).sub(S.m.mul(0.4)));
+      let tr=float(0.0); for (const c of [0.2,0.36,0.64,0.8]){ const w=H.vnz(vec2(along.mul(0.25),c*13.0)).sub(0.5).mul(0.05); tr=max(tr, smoothstep(0.07,0.02,T.abs(ac.sub(c).add(w)))); }
+      const pk=S.r.mul(smoothstep(0.35,0.8,A)).mul(float(1.0).sub(S.m)).mul(snowR.on), fn=H.vnz(P.mul(4.0)).mul(0.5).add(H.vnz(P.mul(17.0)).mul(0.5));
+      const pkc=mix(snowR.scol.mul(0.92), col.rgb.mul(0.7).add(vec3(0.16,0.16,0.17)), tr.mul(smoothstep(0.2,0.7,fn).mul(0.4).add(0.45)));
+      const rc=clamp(max(bank, pk),0.0,1.0);
+      col=vec4(mix(col.rgb, mix(snowR.scol, pkc, pk.mul(float(1.0).sub(bank))), rc), col.a);
+      const V=normalize(cameraPosition.sub(positionWorld)), hs=H.h21(T.floor(P.mul(26.0)).add(T.floor(V.xz.mul(9.0).add(V.y.mul(5.0)))));
+      snowE=vec3(1.3,1.35,1.45).mul(T.step(0.994,hs)).mul(rc).mul(S.gl).mul(smoothstep(25.0,3.0,camW));
+      rem=rem.mul(float(1.0).sub(rc.mul(0.85))); }
+    nm.emissiveNode=rem; }
+  if (snowE) nm.emissiveNode=nm.emissiveNode?nm.emissiveNode.add(snowE):snowE;
   if (fx.mask){ const t=fx.mask; nm.maskNode=texture(t.t, P.sub(vec2(t.oe.x)).div(t.oe.y)).r.lessThan(0.5); }
   /* Wind: Wehen + Fahrtwind (Gras weicht dem Fahrer aus) */
   if (fx.wind){ const {amp,hRef}=fx.wind, wT=WIND.t, wRP=WIND.rp, wRV=WIND.rv, wRS=WIND.rs;
@@ -1091,7 +1132,9 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
   if (col) nm.colorNode=col;
 }
 // Wind für Gras, Sträucher und Blätter: leichtes Wehen + Fahrtwind des Fahrers (Gras wird beim Vorbeifahren weggedrückt und schwingt nach)
-const WET={w:GU(0), s:GU(0), tw:0, ts:0};
+const WET={w:GUR(0), s:GUR(0), tw:0, ts:0};
+/* 0.12.0 Schnee: a Menge (0-1), d Tiefe (0 angezuckert … 1 dicke Decke), m Tauwetter, r festgefahrene Straße, gl Glitzern (Sonne), y0 Höhe über NN bei y=0 */
+const SNOW={a:GUR(0), d:GUR(0), m:GUR(0), r:GUR(0), gl:GUR(0), y0:GUR(300), t:{a:0,d:0,m:0,r:0}};
 const WIND={t:GU(0), rp:GU(new THREE.Vector3(1e6,0,1e6)), rv:GU(new THREE.Vector2(0,1)), rs:GU(0)};
 function windify(mat, amp, hRef){ hRef=hRef||0.4; const ob=mat.onBeforeCompile; mat.userData.fx=Object.assign({},mat.userData.fx,{wind:{amp,hRef}});
   mat.onBeforeCompile=(sh,r)=>{ if (ob && ob!==THREE.Material.prototype.onBeforeCompile) ob.call(mat,sh,r); sh.uniforms.wT=WIND.t; sh.uniforms.wRP=WIND.rp; sh.uniforms.wRV=WIND.rv; sh.uniforms.wRS=WIND.rs;
@@ -3578,6 +3621,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   if (def.graph && def.id==='zittau') try{ worldGroup.add(buildHochwaldTurm()); }catch(e){ console.warn('hochwaldturm',e); }
   try{ eggReset(); }catch(e){}
   if (def.graph && def.id==='zittau'){ try{ worldGroup.add(buildSchanze()); }catch(e){ console.warn('schanze',e); } try{ worldGroup.add(buildHainFelsen(def)); }catch(e){ console.warn('felsen',e); } try{ worldGroup.add(buildZgScenes()); }catch(e){ console.warn('szenen',e); } try{ worldGroup.add(buildOybinFelsen(def)); }catch(e){ console.warn('oybin',e); } try{ worldGroup.add(buildLandmarks()); }catch(e){ console.warn('landmarks',e); } try{ ZSB.kill(); worldGroup.add(ZSB.build()); }catch(e){ console.warn('schmalspur',e); } }
+  try{ SNOW.y0.value=def.graph&&window.ZGNET&&ZGNET.Y0!=null?ZGNET.Y0:420-(minY+maxY)/2; }catch(e){}
   STG('Materialien'); try{ pbrWorldAO(def); if (!MINI) pbrEnv(def); else scene.environment=null; pbrApply(scene); }catch(e){ console.warn('pbr',e); } STG('Welt fertig');
   profImg=null; snapCam=true; try{ POST.hn=0; }catch(e){}
   try{ ATMO.capture(); ATMO.apply(); }catch(e){ console.warn('Wetter',e); }
@@ -3882,7 +3926,7 @@ function makeRider(o){
   { const c=document.createElement('canvas'); c.width=c.height=64; const gx=c.getContext('2d'), gr=gx.createRadialGradient(32,32,2,32,32,31); gr.addColorStop(0,'rgba(0,0,0,.55)'); gr.addColorStop(1,'rgba(0,0,0,0)'); gx.fillStyle=gr; gx.fillRect(0,0,64,64);
     const blob=new THREE.Mesh(new THREE.PlaneGeometry(0.75,2.0).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false}));   /* weicher Schatten unter dem Rad, wenn Schatten aus sind */
     blob.position.set(0.12,0.02,0.05); blob.renderOrder=1; blob.visible=!renderer.shadowMap.enabled; g.add(blob); (window.RIDER_BLOBS=window.RIDER_BLOBS||[]).push(blob); }
-  poseRider(r, 0);
+  poseRider(r, 0); noSnow(r.g);
   return r;
 }
 const _p=new THREE.Vector3(), _k=new THREE.Vector3(), _h=new THREE.Vector3(), _t=new THREE.Vector3(), _e=new THREE.Vector3(), _m=new THREE.Vector3(), _sh=new THREE.Vector3();
@@ -4029,7 +4073,7 @@ function ik3(A, T, la, lb, poleDir, out){
   return out.copy(A).addScaledVector(d,a).addScaledVector(pv,h);
 }
 function makeGLBRider(gltf, opt){ opt=opt||{};
-  const root=gltf.scene;
+  const root=gltf.scene; noSnow(root);
   const B={}; root.traverse(o=>{ if(o.isBone) B[o.name]=o; if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; o.frustumCulled=false;
     const m=o.material; if (m){ m.emissive && m.emissive.setRGB(0,0,0); m.emissiveMap=null; m.side=THREE.FrontSide; m.needsUpdate=true; } } });
   const need=['Hips','Spine02','Spine01','Spine','neck','Head','head_end','LeftArm','LeftForeArm','LeftHand','RightArm','RightForeArm','RightHand','LeftUpLeg','LeftLeg','LeftFoot','LeftToeBase','RightUpLeg','RightLeg','RightFoot','RightToeBase'];
@@ -4220,7 +4264,7 @@ function attachGLB(r, done){ if (!THREE.GLTFLoader || !window.RIDER_GLB_B64 || w
 function freeGLB(r){ if (!r || !r.glb) return; const keep=new Set(Object.values(JERSEY_TEX)); r.glb.holder.traverse(o=>{ if (o.geometry) o.geometry.dispose(); const m=o.material; if (m) (Array.isArray(m)?m:[m]).forEach(mm=>{ ['map','normalMap','roughnessMap','metalnessMap'].forEach(k=>{ if (mm[k] && !keep.has(mm[k])) mm[k].dispose(); }); if (mm.userData.map0 && !keep.has(mm.userData.map0)) mm.userData.map0.dispose(); mm.dispose(); }); }); }
 // ---------- Tageszeit und Wetter: Sonne, Himmel, Nebel, Wolken, Regen, Gewitter, Sterne, Fahrradlicht ----------
 const _ls=(k,d)=>{ try{ const v=localStorage.getItem('hicoreRide.'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } };
-const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), base:null, rain:null, stars:null, lamp:null, flashT:0, nextBolt:15, hi:0.75, ex:1.05, rainAmt:0,
+const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), sn:_ls('snow','keine'), snRd:_ls('snowRd','geraeumt'), snowAmt:0, base:null, rain:null, stars:null, lamp:null, flashT:0, nextBolt:15, hi:0.75, ex:1.05, rainAmt:0,
   TOD:{ morgen:{el:11,az:-0.7,sc:0xffcf9e,si:0.85,hc:0xcfdcf5,hg:0x5c6a3a,hi:0.82,sky:[1.0,0.9,0.83],fog:[1.0,0.9,0.85],ex:1.0,ss:900},
         mittag:{el:58,az:0.3,sc:0xfff6e6,si:1.1,hc:0xe2f2ff,hg:0x5c7a3a,hi:1.05,sky:[0.95,1.0,1.05],fog:[0.97,1.0,1.03],ex:1.04,ss:700},
         nachm:{el:20.5,az:0,sc:0xffe9c8,si:0.98,hc:0xdff2ff,hg:0x5c7a3a,hi:1,sky:[1,1,1],fog:[1,1,1],ex:1.05,ss:860},
@@ -4230,7 +4274,12 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), base:null, rain:null,
        wolken:{si:0.35,hi:1.12,gray:0.55,g:[0.78,0.8,0.84],fogF:0.8,cl:0.85},
        regen:{si:0.15,hi:0.85,gray:0.85,g:[0.56,0.59,0.63],fogF:0.42,cl:0.6,rain:1},
        gewitter:{si:0.05,hi:0.6,gray:0.96,g:[0.3,0.32,0.38],fogF:0.3,cl:0.3,rain:1.6,bolt:1},   /* 0.9.8: dunkler, dramatischer */
-       nebel:{si:0.3,hi:1.0,gray:0.8,g:[0.84,0.86,0.88],fogF:0.13,fogN:0.06,cl:0.9} },
+       nebel:{si:0.3,hi:1.0,gray:0.8,g:[0.84,0.86,0.88],fogF:0.13,fogN:0.06,cl:0.9},
+       schnee:{si:0.2,hi:0.95,gray:0.84,g:[0.8,0.82,0.86],fogF:0.3,fogN:0.5,cl:0.75,snow:1},   /* 0.12.0: grauer, diesiger Himmel */
+       graupel:{si:0.25,hi:0.9,gray:0.86,g:[0.68,0.7,0.75],fogF:0.5,cl:0.62,snow:1,graupel:1} },
+  /* 0.12.0 Schneelage unabhängig vom Wetter (auch blauer Himmel über dicker Decke): a Menge, d Tiefe, m Tauwetter */
+  SN:{ keine:{a:0,d:0,m:0}, flecken:{a:0.52,d:0.8,m:0.4}, angezuckert:{a:0.8,d:0.12,m:0}, viel:{a:1.05,d:1,m:0}, tauwetter:{a:0.64,d:0.7,m:1} },
+  snowSt(){ return this.wx==='echt' ? (RWX.SN||this.SN.keine) : (this.SN[this.sn]||this.SN.keine); },
   T(){ return this.tod==='echt'&&RWX.T?RWX.T:this.TOD[this.tod]||this.TOD.nachm; }, W(){ return this.wx==='echt'&&RWX.W?RWX.W:this.WX[this.wx]||this.WX.sonne; }, night(){ return this.tod==='nacht'||(this.tod==='echt'&&RWX.night); },
   /* Autos fahren mit Licht: Nacht, Dämmerung (Morgen/Abend bzw. Sonne unter 8°), Regen, Gewitter, Nebel */
   dark(){ const W=this.W(); return this.night() || this.tod==='abend' || this.tod==='morgen' || (this.tod==='echt' && RWX.sunEl!=null && RWX.sunEl<8) || (W.gray||0)>=0.8; },
@@ -4245,14 +4294,22 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), base:null, rain:null,
     hemi.color.set(T.hc).convertSRGBToLinear(); hemi.groundColor.set(T.hg).convertSRGBToLinear(); this.hi=(PBR.std?0.45:0.75)*T.hi*W.hi*(this.night()&&LITE?1.3:1); hemi.intensity=this.hi;
     this.ex=T.ex; renderer.toneMappingExposure=this.ex;
     if (SUN_SPR){ SUN_SPR.visible=W.si>0.5 || (this.night() && W.gray<0.6); SUN_SPR.material.color.set(this.night()?0xdfe8ff:T.sc); SUN_SPR.scale.set(T.ss,T.ss,1); }
-    if (this.lamp) this.lamp.intensity=this.night()?1.8:(this.tod==='abend'||W.rain)?0.6:0;
+    if (this.lamp) this.lamp.intensity=this.night()?1.8:(this.tod==='abend'||W.rain||W.snow)?0.6:0;
+    this.rainAmt=W.rain||0; if (this.rain) this.rain.visible=this.rainAmt>0; WET.tw=W.rain?Math.min(1,0.65+0.35*W.rain):(W.wet||0); WET.ts=W.bolt?1:W.rain>1.1?0.5:0;
+    { const N=this.snowSt(), a=Math.min(1,N.a), fest=this.snRd==='fest'&&N.m<0.5; SNOW.t={a:N.a, d:N.d, m:N.m, r:fest?1:0};
+      SNOW.gl.value=this.night()?0.12:Math.min(1,(W.si||0)*T.si)*(T.el!=null&&T.el<3?0.4:1);
+      if (a>0){ hemi.groundColor.lerp(new THREE.Color(0xb8c4d8).convertSRGBToLinear(), a*0.75); hemi.intensity=this.hi*=1+0.22*a; }   /* Schnee wirft Licht zurück: hellere, bläuliche Schatten */
+      if (a>0.1 && !fest) WET.tw=Math.max(WET.tw, N.m>0.5?0.85:0.4*a);   /* geräumt und gestreut: feucht, bei Tauwetter nass und spiegelnd */
+      this.snowAmt=W.snow||0; if (W.snow && !fest) WET.tw=Math.max(WET.tw,0.35); if (this.flk) this.flk.visible=this.snowAmt>0;
+      if (this._snInit===undefined){ this._snInit=1; for (const k of ['a','d','m','r']) SNOW[k].value=SNOW.t[k]; } }
+    if (this._wetInit===undefined){ this._wetInit=1; WET.w.value=WET.tw; WET.s.value=WET.ts; }
     const B=this.base; if (!B) return;
     scene.background=this.tint(B.bg,T.sky); scene.fog.color.copy(this.tint(B.fog,T.fog));
     scene.fog.near=B.near*(W.fogN||1); scene.fog.far=B.far*W.fogF*(this.night()?0.75:1);
     if (skyDome && B.sky){ const a=skyDome.geometry.attributes.color, c=new THREE.Color(); for (let i=0;i<a.count;i++){ c.setRGB(B.sky[i*3],B.sky[i*3+1],B.sky[i*3+2]); const t=this.tint(c,T.sky); a.setXYZ(i,t.r,t.g,t.b); } a.needsUpdate=true; }
     if (cloudLayer) cloudLayer.traverse(o=>{ if (o.userData.c0){ const t=this.tint(o.userData.c0,T.sky); t.multiplyScalar(W.cl); o.material.color.copy(t); } });
     if (this.stars) this.stars.visible=this.night() && W.gray<0.6;
-    this.rainAmt=W.rain||0; if (this.rain) this.rain.visible=this.rainAmt>0; WET.tw=W.rain?Math.min(1,0.65+0.35*W.rain):(W.wet||0); WET.ts=W.bolt?1:W.rain>1.1?0.5:0; if (this._wetInit===undefined){ this._wetInit=1; WET.w.value=WET.tw; WET.s.value=WET.ts; } },
+ },
   setup(){ /* Sterne, Regen und Licht einmalig anlegen */
     { const n=1400, p=new Float32Array(n*3); for (let i=0;i<n;i++){ const u=Math.random(), v=Math.random()*Math.PI*2, y=0.08+u*0.92, r=Math.sqrt(1-y*y); p[i*3]=Math.cos(v)*r*2500; p[i*3+1]=y*2500; p[i*3+2]=Math.sin(v)*r*2500; }
       const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(p,3)); this.stars=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff, size:LITE?1.6:2.2, sizeAttenuation:false, fog:false, transparent:true, opacity:0.85, depthWrite:false}));
@@ -4262,12 +4319,36 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), base:null, rain:null,
       this.rain.visible=false; this.rain.frustumCulled=false; scene.add(this.rain); this.rainN=n; }
     { const n=LITE?140:320; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*6),3)); this.spray=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:0xd6dee6, transparent:true, opacity:0.5, depthWrite:false}));
       this.spray.frustumCulled=false; this.spray.visible=false; scene.add(this.spray); this.sprN=n; this.sprP=new Float32Array(n*3); this.sprV=new Float32Array(n*3); this.sprL=new Float32Array(n); this.sprI=0; this.sprAcc=0; }
+    { /* 0.12.0 Schneeflocken bzw. Graupelkörner: kleine zur Kamera gedrehte Scheibchen, in der Welt verankert (man fährt durch sie hindurch) */
+      const n=LITE?900:3400, g=new THREE.BufferGeometry(), uv=new Float32Array(n*8), idx=new Uint32Array(n*6);
+      for (let i=0;i<n;i++){ uv.set([0,0,1,0,1,1,0,1],i*8); const o=i*4; idx.set([o,o+1,o+2,o,o+2,o+3],i*6); }
+      g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*12),3)); g.setAttribute('uv',new THREE.BufferAttribute(uv,2)); g.setIndex(new THREE.BufferAttribute(idx,1));
+      const c=document.createElement('canvas'); c.width=c.height=32; const gg=c.getContext('2d'), gr=gg.createRadialGradient(16,16,0,16,16,16); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.45,'rgba(255,255,255,0.85)'); gr.addColorStop(1,'rgba(255,255,255,0)'); gg.fillStyle=gr; gg.fillRect(0,0,32,32);
+      const mt=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c), color:0xf4f7ff, transparent:true, opacity:0.95, depthWrite:false, side:THREE.DoubleSide}); mt.userData.noSnow=true;
+      this.flk=new THREE.Mesh(g,mt); this.flk.frustumCulled=false; this.flk.visible=false; this.flk.renderOrder=6; scene.add(this.flk); this.flkN=n;
+      this.flkP=new Float32Array(n*3); this.flkS=new Float32Array(n); this.flkPh=new Float32Array(n); this.flk0=false;
+      for (let i=0;i<n;i++){ this.flkS[i]=Math.random(); this.flkPh[i]=Math.random()*6.283; } }
     if (!LITE){ const l=new THREE.SpotLight(0xfff2dd, 0, 45, 0.55, 0.65, 1.4); l.position.set(0,1.05,0.55); l.target.position.set(0,0,14); me.g.add(l); me.g.add(l.target); this.lamp=l; }
     this.apply(); },
   update(dt){ const W=this.W();
     { /* 0.10.16: Regen macht die Straße in ca. 1 min nass, danach trocknet sie langsam ab (ca. 12 min, Pfützen länger) */
       const wet=(u,t,dry)=>{ if (t>u.value) u.value+=(t-u.value)*Math.min(1,dt*0.06); else u.value=Math.max(t,u.value-dt/dry); };
-      wet(WET.w,WET.tw,720); wet(WET.s,WET.ts,1100); }
+      wet(WET.w,WET.tw,720); wet(WET.s,WET.ts,1100);
+      for (const k of ['a','d','m','r']){ const u=SNOW[k], t=SNOW.t[k]; u.value+=(t-u.value)*Math.min(1,dt*0.8); if (Math.abs(t-u.value)<0.002) u.value=t; } GURtouch(); }
+    if (this.flk && this.flk.visible && camera){ const cp=camera.position, W2=this.W(), gp=!!W2.graupel, P=this.flkP, Sz=this.flkS, Ph=this.flkPh, B=34, BH=20, q=this.flk.geometry.attributes.position.array;
+      const n=Math.round(this.flkN*Math.min(1,0.35+0.65*this.snowAmt)); const e=camera.matrixWorld.elements, rx=e[0], ry=e[1], rz=e[2], ux=e[4], uy=e[5], uz=e[6];
+      if (!this.flk0){ this.flk0=true; for (let i=0;i<this.flkN;i++){ P[i*3]=cp.x+(Math.random()-0.5)*B; P[i*3+1]=cp.y-6+Math.random()*BH; P[i*3+2]=cp.z+(Math.random()-0.5)*B; } }
+      const t=(this._ft=(this._ft||0)+dt), wf=(RWX.windF||1)*(this.wx==='echt'?1:0.8), wdx=0.55*wf, wdz=0.25*wf;
+      for (let i=0;i<n;i++){ const o=i*3, s=Sz[i], ph=Ph[i];
+        if (gp){ P[o+1]-=(3.6+s*1.8)*dt; P[o]+=wdx*1.5*dt; P[o+2]+=wdz*1.5*dt; }
+        else { P[o+1]-=(0.75+s*0.7)*dt; P[o]+=(wdx+Math.sin(t*0.9+ph)*0.45)*dt; P[o+2]+=(wdz+Math.cos(t*0.73+ph*1.7)*0.35)*dt; }
+        let dx=P[o]-cp.x, dz=P[o+2]-cp.z, dy=P[o+1]-cp.y;
+        if (dx>B/2) P[o]-=B; else if (dx<-B/2) P[o]+=B; if (dz>B/2) P[o+2]-=B; else if (dz<-B/2) P[o+2]+=B;
+        if (dy<-6){ P[o+1]+=BH; P[o]=cp.x+(Math.random()-0.5)*B; P[o+2]=cp.z+(Math.random()-0.5)*B; } else if (dy>BH-6) P[o+1]-=BH;
+        const h=gp?0.008+s*0.007:0.018+s*0.028, x=P[o], y=P[o+1], z=P[o+2], k=i*12;
+        const ax=(rx+ux)*h, ay=(ry+uy)*h, az=(rz+uz)*h, bx=(rx-ux)*h, by=(ry-uy)*h, bz=(rz-uz)*h;
+        q[k]=x-ax; q[k+1]=y-ay; q[k+2]=z-az; q[k+3]=x+bx; q[k+4]=y+by; q[k+5]=z+bz; q[k+6]=x+ax; q[k+7]=y+ay; q[k+8]=z+az; q[k+9]=x-bx; q[k+10]=y-by; q[k+11]=z-bz; }
+      this.flk.geometry.attributes.position.needsUpdate=true; this.flk.geometry.setDrawRange(0,n*6); this.flk.material.opacity=gp?0.98:0.92; }
     if (this.spray){ const wet=WET.w.value, sp=(typeof S!=='undefined'&&S.speed)||0, P=this.sprP, V=this.sprV, Lf=this.sprL, n=this.sprN; let alive=false;
       if (wet>0.15 && sp>1.5 && me && me.g){ const fx=WIND.rv.value.x, fz=WIND.rv.value.y, o=me.g.position; this.sprAcc+=dt*sp*(14+10*WET.s.value)*wet;
         while (this.sprAcc>=1){ this.sprAcc-=1; const i=this.sprI=(this.sprI+1)%n, rear=Math.random()<0.7, sd=(Math.random()-0.5);
@@ -4334,21 +4415,27 @@ const RWX={ W:null, T:null, night:false, last:0, ll:null, cat:'', info:'', windF
     T=Object.assign({},T); this.night=e<-4;
     if (e>-4){ const el=Math.max(e,1.5)*Math.PI/180; T.dir=new THREE.Vector3(Math.cos(el)*Math.sin(s.az), Math.sin(el), -Math.cos(el)*Math.cos(s.az)); T.el=e; }
     this.sunEl=e; this.T=T; },
-  catOf(c,cc,pr,vis){ if (c>=95) return 'gewitter'; if ((c>=71&&c<=77)||c===85||c===86) return 'schnee'; if ((c>=51&&c<=67)||(c>=80&&c<=82)||pr>0.1) return 'regen';
+  catOf(c,cc,pr,vis){ if (c>=95) return 'gewitter'; if (c===77) return 'graupel'; if ((c>=71&&c<=75)||c===85||c===86) return 'schnee'; if ((c>=51&&c<=67)||(c>=80&&c<=82)||pr>0.1) return 'regen';
     if (c===45||c===48||(vis!=null&&vis<1500)) return 'nebel'; if (cc>=75||c===3) return 'wolken'; return (cc>=35||c===2)?'teils':'sonne'; },
-  NAME:{sonne:'sonnig',teils:'leicht bewölkt',wolken:'bewölkt',regen:'Regen',schnee:'Schnee (als Regen dargestellt)',nebel:'Nebel',gewitter:'Gewitter'},
+  NAME:{sonne:'sonnig',teils:'leicht bewölkt',wolken:'bewölkt',regen:'Regen',schnee:'Schneefall',graupel:'Graupel',nebel:'Nebel',gewitter:'Gewitter'},
   calcW(j){ this.shower=0; const c=j.weather_code|0, cc=j.cloud_cover??0, pr=j.precipitation??0, vis=j.visibility, X=ATMO.WX, cat=this.catOf(c,cc,pr,vis); let W;
     if (cat==='sonne') W=this.mix(X.sonne,X.wolken,cc/100*0.4); else if (cat==='teils') W=this.mix(X.sonne,X.wolken,0.25+cc/100*0.45);
     else if (cat==='wolken') W=this.mix(X.wolken,X.regen,clamp((cc-85)/30,0,0.4)); else if (cat==='nebel') W=this.mix(X.nebel,X.wolken,clamp(((vis||500)-300)/2500,0,0.7));
     else if (cat==='gewitter') W=Object.assign({},X.gewitter);
+    else if (cat==='schnee'||cat==='graupel'){ const shower=c===85||c===86||cc<75, B0=X[cat]; W=shower?this.mix(B0,X.sonne,clamp(0.5-cc/200,0.1,0.45)):Object.assign({},B0); W.snow=clamp(0.4+(j.snowfall||0)/1.2,0.4,1.3); if (cat==='graupel') W.graupel=1; if (shower && cc<75) this.shower=1; }
     else { const shower=(c>=80&&c<=82)||cc<75; W=shower?this.mix(X.regen,X.sonne,clamp(0.55-cc/200,0.15,0.5)):Object.assign({},X.regen); W.rain=clamp(0.35+pr/2.5,0.35,1.5); if (cat==='schnee') W.g=[0.82,0.84,0.88]; if (shower && cc<75) this.shower=1; }
-    if (cat!=='regen'&&cat!=='schnee'&&cat!=='gewitter'){ delete W.rain; delete W.bolt; }
+    if (cat!=='regen'&&cat!=='gewitter'){ delete W.rain; delete W.bolt; } if (cat!=='schnee'&&cat!=='graupel'){ delete W.snow; delete W.graupel; }
     /* Straße noch nass vom Regen der letzten 3 Stunden (je älter, desto trockener) */
     let ws=0; const m=this.m15; if (m && m.precipitation){ const T0=Date.now(); m.time.forEach((t,i)=>{ const age=(T0-Date.parse(t))/36e5; if (age>=-0.1 && age<3.2) ws+=(m.precipitation[i]||0)*Math.exp(-Math.max(0,age)/1.1); }); }
     W.wet=clamp(ws/0.6,0,1); this.wetInfo=!W.rain&&W.wet>0.15;
+    /* 0.12.0 Schneelage aus Schneehöhe, Schneefall und Temperatur (Open-Meteo): stellt sich bei echtem Wetter selbst ein */
+    { const sd=Math.max(0,j.snow_depth||0), sf=Math.max(0,j.snowfall||0), tc=j.temperature_2m??0; let N=null;
+      if (sd>=0.005){ N={a:sd<0.015?0.45:sd<0.04?0.75:sd<0.1?0.95:1.05, d:clamp(sd/0.06,0.15,1), m:tc>1.5?clamp((tc-0.5)/5,0.3,1):0}; }
+      else if (sf>=0.05 && tc<2) N={a:0.6, d:0.12, m:0};
+      this.SN=N; this.snowCm=sd>=0.005?Math.round(sd*100):0; }
     this.windF=clamp(0.45+(j.wind_speed_10m||0)/22,0.45,2.2); this.W=W; this.cat=cat;
     const t=j.temperature_2m!=null?Math.round(j.temperature_2m)+' °C, ':'';
-    this.info=(this.place||(this.here()?'Am Ort':'Zittau'))+': '+t+(this.shower?'Schauer mit Sonne':this.NAME[cat])+(this.wetInfo?', Straße noch nass':'')+', Wind '+Math.round(j.wind_speed_10m||0)+' km/h'; },
+    this.info=(this.place||(this.here()?'Am Ort':'Zittau'))+': '+t+(this.shower?'Schauer mit Sonne':this.NAME[cat])+(this.wetInfo?', Straße noch nass':'')+(this.snowCm?', Schnee '+this.snowCm+' cm'+(this.SN&&this.SN.m>0.5?' (taut)':''):'')+', Wind '+Math.round(j.wind_speed_10m||0)+' km/h'; },
   /* nächster Ort für die Anzeige (Jonsdorf, Zittau …) aus den Ortsnamen der echten Welt */
   near(){ try{ if (!(this.here()&&me&&me.g)) return ''; const p=me.g.position; let L=[];
       if (WORLD.graph && GN.d && GN.d.vill) L=GN.d.vill; else if (WORLD.real) L=(realData().pois||[]).filter(q=>/village|town|hamlet|city/.test(q[0])).map(q=>({name:q[1],x:q[2],z:q[3]}));
@@ -4356,7 +4443,7 @@ const RWX={ W:null, T:null, night:false, last:0, ll:null, cat:'', info:'', windF
   show(){ const el=$('realWx'); if (!el) return; el.style.display=this.want()?'block':'none'; el.textContent=this.want()?'🌐 '+(this.info||'Wetter wird geholt …')+(ATMO.tod==='echt'&&this.sunEl!=null?' · Sonne '+Math.round(this.sunEl)+'°':''):''; },
   fetchW(force){ if (this.busy || ATMO.wx!=='echt') return; const ll=this.pos(), moved=!this.ll||Math.hypot((ll[0]-this.ll[0])*111,(ll[1]-this.ll[1])*70)>1.5;
     if (!force && !moved && Date.now()-this.last<300000) return; this.busy=true; this.ll=ll;
-    const u='https://api.open-meteo.com/v1/forecast?latitude='+ll[0].toFixed(3)+'&longitude='+ll[1].toFixed(3)+'&current=temperature_2m,weather_code,cloud_cover,precipitation,wind_speed_10m,visibility&minutely_15=precipitation&past_minutely_15=13&forecast_minutely_15=1&timezone=UTC';
+    const u='https://api.open-meteo.com/v1/forecast?latitude='+ll[0].toFixed(3)+'&longitude='+ll[1].toFixed(3)+'&current=temperature_2m,weather_code,cloud_cover,precipitation,wind_speed_10m,visibility,snow_depth,snowfall&minutely_15=precipitation&past_minutely_15=13&forecast_minutely_15=1&timezone=UTC';
     fetch(u).then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{ const old=this.cat+this.shower; this.m15=j.minutely_15?{time:j.minutely_15.time.map(t=>t+'Z'),precipitation:j.minutely_15.precipitation}:null; this.place=this.near(); this.calcW(j.current||{}); this.last=Date.now(); ATMO.apply(); this.show();
         if (old!==this.cat+this.shower && S && S.running) toast('🌐 Echtes Wetter: '+this.info); })
       .catch(e=>{ this.last=Date.now()-480000; this.info='Wetter gerade nicht erreichbar ('+e+'), versuche es gleich wieder'; this.show(); })
@@ -4367,7 +4454,12 @@ window.RWX=RWX;
 setInterval(()=>{ try{ if (!document.hidden) RWX.tick(); }catch(e){ console.warn('Echtwetter',e); } }, 30000);
 $('tod').value=ATMO.tod; $('wx').value=ATMO.wx;
 $('tod').onchange=()=>{ ATMO.tod=$('tod').value; store.set('tod',ATMO.tod); RWX.tick(true); ATMO.apply(); };
-$('wx').onchange=()=>{ ATMO.wx=$('wx').value; store.set('wx',ATMO.wx); RWX.tick(true); ATMO.apply(); };
+$('wx').onchange=()=>{ ATMO.wx=$('wx').value; store.set('wx',ATMO.wx); snowUI(); RWX.tick(true); ATMO.apply(); };
+/* 0.12.0 Schneelage: bei echtem Wetter automatisch (Schneehöhe von Open-Meteo), sonst von Hand */
+function snowUI(){ const e=ATMO.wx==='echt', s=$('snow'); if (!s) return; s.disabled=e; s.title=e?'Stellt sich nach dem echten Wetter selbst ein':''; s.style.opacity=e?0.55:1; }
+$('snow').value=ATMO.sn; $('snowRd').value=ATMO.snRd; snowUI();
+$('snow').onchange=()=>{ ATMO.sn=$('snow').value; store.set('snow',ATMO.sn); ATMO.apply(); };
+$('snowRd').onchange=()=>{ ATMO.snRd=$('snowRd').value; store.set('snowRd',ATMO.snRd); ATMO.apply(); };
 try{ RWX.tick(true); }catch(e){} try{ ATMO.setup(); }catch(e){ console.warn('Wetter-Setup',e); }
 // ---------- Segmente mit Bestzeiten: zählen NUR mit echtem Rollentrainer (nicht im Testmodus ohne Trainer) ----------
 const SEG={ list:[], act:[], prev:null, show:null, showT:0,
@@ -6425,7 +6517,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.8 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.12.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
