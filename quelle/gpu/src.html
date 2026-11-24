@@ -1031,6 +1031,25 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
     nm.maskNode=T.select(unp, edgeM.greaterThan(nz.mul(0.32).sub(0.04)), T.bool(true));
     c=c.mul(mix(float(1.0), smoothstep(0.0,0.35,edgeM).mul(0.18).add(0.82), T.select(unp,float(1.0),float(0.0))));
     c=c.mul(H.vnz(P.mul(0.07)).mul(0.14).add(0.93)).mul(mix(float(1.0),float(0.62),WET.w));
+    /* 0.17.1 (Hicore): Matsch und Pfützen auf Wegen. Pfützen sitzen in 6-m-Zellen (Hash wie wayPud() im Spielcode, damit der Fahrer ausweichen kann), wachsen mit WET.p.
+       Erdige Wege (Erde, Gras, Waldboden) werden nach Regen dunkler, schlammig und glänzen leicht. Aus: window.NO_PUDDLE / window.NO_MUD */
+    if (!window.NO_PUDDLE || !window.NO_MUD){ const PU=WET.p, V=normalize(cameraPosition.sub(positionWorld)), tt=WIND.t;
+      const mudL=window.NO_MUD?float(0.0):T.select(ly.greaterThan(4.5).and(ly.lessThan(7.5)),float(1.0),T.select(T.abs(ly.sub(4.0)).lessThan(0.5),float(0.2),float(0.0)));
+      const mud=mudL.mul(clamp(WET.w.mul(0.6).add(PU.mul(0.7)),0.0,1.0));
+      c=mix(c, c.mul(vec3(0.62,0.55,0.48)), mud.mul(0.55));
+      let pm=float(0.0), rim=float(0.0);
+      if (!window.NO_PUDDLE){ const cl=T.floor(P.div(6.0));
+        const ph=(a,b,c3)=>{ let p3=T.fract(vec3(cl.x.add(a),cl.y.add(b),cl.x.add(c3)).mul(0.1031)); p3=p3.add(dot(p3,p3.yzx.add(33.33))); return T.fract(p3.x.add(p3.y).mul(p3.z)); };
+        const ex=T.step(ph(0.0,0.0,0.0), T.select(unp,float(0.42),float(0.12)));
+        const ctr=cl.add(vec2(ph(1.7,9.2,4.4),ph(5.3,2.9,7.1)).mul(0.5).add(0.25)).mul(6.0);
+        const r=ph(8.8,3.3,1.9).mul(0.7).add(0.5).mul(clamp(PU.sub(ph(2.2,6.6,9.9).mul(0.55)).div(0.35),0.0,1.0)).mul(ex), rr=max(r,float(0.02)), on=T.step(0.03,r);
+        const dd=length(P.sub(ctr)).add(H.vnz(P.mul(1.9)).sub(0.5).mul(0.4).mul(rr));
+        pm=smoothstep(rr,rr.mul(0.78),dd).mul(on); rim=smoothstep(rr.mul(1.35),rr,dd).mul(on).mul(0.35);
+        c=mix(c, c.mul(0.72), rim); c=mix(c, c.mul(0.33).add(vec3(0.035,0.032,0.026)), pm.mul(0.92)); }
+      const rp=P.mul(3.0), rip=vec2(H.vnz(rp.add(vec2(tt.mul(1.3),0.0))).sub(0.5), H.vnz(rp.add(vec2(0.0,tt.mul(1.1))).add(5.0)).sub(0.5)).mul(WET.w.mul(0.12).add(0.01));
+      const N=normalize(vec3(rip.x,1.0,rip.y)), R=T.reflect(V.negate(),N), F=float(0.03).add(pow(float(1.0).sub(clamp(dot(V,N),0.0,1.0)),5.0).mul(0.97));
+      const sky=mix(WSKY.hor.mul(0.8),WSKY.hor.mul(vec3(0.62,0.7,0.85)),smoothstep(0.0,0.4,max(R.y,0.0))), sd=max(dot(R,SUNU),0.0), gl=pow(sd,300.0).mul(4.0).add(pow(sd,30.0).mul(0.25));
+      const k=pm.mul(0.9).add(mud.mul(0.1)); nm.emissiveNode=sky.mul(F).mul(k).add(vec3(1.0,0.95,0.85).mul(gl).mul(pm.mul(0.8).add(mud.mul(0.06)))); }
     col=vec4(c,1.0); }
   /* Gelände: Masken-Ausschnitt + Kachel-Mischung + Felder (wie GLSL in terrainHoleMaterial) */
   if (fx.terrain && !col){ const t=fx.terrain, LT=u.lu||{}, mk=texture(t.t, P.sub(vec2(t.oe.x)).div(t.oe.y));
@@ -1122,7 +1141,7 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
   /* 0.9.1 Nasse Straße: dunkler Asphalt, Pfützen mit Regenringen, bei Gewitter fließende Wasserläufe, Spiegelung des Himmels */
   if (isRoad && col){ const wet=WET.w, st=WET.s, t=WIND.t, uvv=T.uv(), along=uvv.y.mul(24.0), ac=uvv.x;
     const pn=H.vnz(P.mul(0.33)).mul(0.6).add(H.vnz(P.mul(1.4)).mul(0.4));
-    const pud=smoothstep(mix(float(0.70),float(0.55),st), mix(float(0.78),float(0.63),st), pn).mul(wet);
+    const pth=mix(float(0.83),float(0.57),WET.p).sub(st.mul(0.04)), pud=window.NO_PUDDLE?smoothstep(mix(float(0.70),float(0.55),st), mix(float(0.78),float(0.63),st), pn).mul(wet):smoothstep(pth,pth.add(0.07),pn).mul(smoothstep(0.02,0.15,WET.p));   /* 0.17.1: Pfützengröße nach Pfützenstand statt sofort mit der Nässe */
     const wv=ac.add(T.sin(along.mul(0.31).add(H.vnz(P.mul(0.15)).mul(6.0))).mul(0.03));
     const lane=T.abs(T.fract(wv.mul(6.0)).sub(0.5)), brk=smoothstep(0.35,0.65,H.vnz(vec2(T.floor(wv.mul(6.0)).mul(3.7),along.mul(0.08))));
     const flow=T.sin(along.mul(1.7).sub(t.mul(7.0)).add(ac.mul(20.0))).mul(0.35).add(0.65);
@@ -1178,7 +1197,7 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
   if (col) nm.colorNode=col;
 }
 // Wind für Gras, Sträucher und Blätter: leichtes Wehen + Fahrtwind des Fahrers (Gras wird beim Vorbeifahren weggedrückt und schwingt nach)
-const WET={w:GUR(0), s:GUR(0), tw:0, ts:0};
+const WET={w:GUR(0), s:GUR(0), p:GUR(0), tw:0, ts:0};   /* 0.17.1: p = Pfützenstand (wächst mit der Regendauer, trocknet langsam) */
 /* 0.12.0 Schnee: a Menge (0-1), d Tiefe (0 angezuckert … 1 dicke Decke), m Tauwetter, r festgefahrene Straße, gl Glitzern (Sonne), y0 Höhe über NN bei y=0 */
 const SNOW={a:GUR(0), d:GUR(0), m:GUR(0), r:GUR(0), gl:GUR(0), y0:GUR(300), t:{a:0,d:0,m:0,r:0}};
 const WIND={t:GU(0), rp:GU(new THREE.Vector3(1e6,0,1e6)), rv:GU(new THREE.Vector2(0,1)), rs:GU(0)};
@@ -4957,6 +4976,8 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), sn:_ls('snow','keine'
     { /* 0.10.16: Regen macht die Straße in ca. 1 min nass, danach trocknet sie langsam ab (ca. 12 min, Pfützen länger) */
       const wet=(u,t,dry)=>{ if (t>u.value) u.value+=(t-u.value)*Math.min(1,dt*0.06); else u.value=Math.max(t,u.value-dt/dry); };
       wet(WET.w,WET.tw,720); wet(WET.s,WET.ts,1100);
+      /* 0.17.1 (Hicore): Pfützen entstehen erst mit der Regendauer (Regen ca. 18 min bis voll, Gewitter ca. 8 min) und trocknen langsam (ca. 45 min). Test: window.PUD_SET=0..1 */
+      { const u=WET.p, tp=WET.tw>0.5?Math.min(1,0.75+0.25*WET.tw+0.3*WET.ts):0; if (window.PUD_SET!=null) u.value=+window.PUD_SET; else if (tp>u.value) u.value=Math.min(tp,u.value+dt*(1+1.3*WET.ts)/1080); else u.value=Math.max(tp,u.value-dt/2700); }
       for (const k of ['a','d','m','r']){ const u=SNOW[k], t=SNOW.t[k]; u.value+=(t-u.value)*Math.min(1,dt*0.8); if (Math.abs(t-u.value)<0.002) u.value=t; } GURtouch(); }
     if (this.flk && this.flk.visible && camera){ const cp=camera.position, W2=this.W(), gp=!!W2.graupel, P=this.flkP, Sz=this.flkS, Ph=this.flkPh, B=34, BH=20, q=this.flk.geometry.attributes.position.array;
       const n=Math.round(this.flkN*Math.min(1,0.35+0.65*this.snowAmt)); const e=camera.matrixWorld.elements, rx=e[0], ry=e[1], rz=e[2], ux=e[4], uy=e[5], uz=e[6];
@@ -7212,7 +7233,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.17.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.17.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7364,6 +7385,8 @@ function placeTurn(r, U){ const e=Math.min(1,U.t/U.D), sg=U.od, [f,l]=uturnPath(
 function placeRider(r, d, lane, rev){
   const p=posAt(d,tmp), hd=headingAt(d)+(rev?Math.PI:0); const gr=gradeAt(d)*(rev?-1:1); r.gr=gr;
   const Wr=roadWAt(d); const hd0=hd-(rev?Math.PI:0), ln=rev?-lane:lane; r.g.position.set(p.x+Math.cos(hd0)*ln, p.y+roadCrown(clamp(0.5-ln/Wr,0,1))+0.009, p.z-Math.sin(hd0)*ln);
+  if (r===me && !S.ut){ const wf=WF, a=wf.slipA||0, fa=0.6; r.g.position.y+=wf.y; if (a){ const sx=-fa*Math.sin(a); r.g.position.x+=Math.cos(hd)*sx; r.g.position.z-=Math.sin(hd)*sx; }
+    r.g.rotation.set(0,hd+wf.yaw+a,0); r.g.rotateX(-Math.atan(gr)-wf.pitch); curveLean(r, d, rev); r.g.rotateZ((r.lean||0)+(r.cl||0)+wf.roll); if (r.wF) r.wF.rotation.y=(r.cst||0)-a*0.8; return; }
   r.g.rotation.set(0,hd,0); r.g.rotateX(-Math.atan(gr)); curveLean(r, d, rev); if (r.lean || r.cl) r.g.rotateZ((r.lean||0)+(r.cl||0));
 }
 /* 0.16.1 (Hicore): in Kurven neigen sich Fahrer und Rad (Neigung = atan(v²·k/g), k = Krümmung der Fahrlinie), das Vorderrad lenkt leicht ein (Lenkwinkel ≈ Radstand·k).
@@ -7374,6 +7397,86 @@ function curveLean(r, d, rev){ if (window.NO_CURVELEAN){ r.cl=0; return; } const
   if (!isFinite(k)) k=0; k=clamp(k,-0.2,0.2); const v=r._clv, tl=clamp(-Math.atan(v*v*k/9.81),-0.4,0.4), ts=clamp(Math.atan(1.02*k)*clamp(1.4-v/12,0.35,1),-0.12,0.12);
   r.cl=(r.cl||0)+(tl-(r.cl||0))*Math.min(1,dt*2.5); r.cst=(r.cst||0)+(ts-(r.cst||0))*Math.min(1,dt*3);
   if (r.wF){ if (r.wF.rotation.order!=='YXZ') r.wF.rotation.order='YXZ'; r.wF.rotation.y=r.cst; } }
+/* 0.17.1 (Hicore): Fahrgefühl auf Wegen (nur eigener Fahrer).
+   - Unbefestigt: Linie schlängelt leicht, kleine Stöße (Höhe, Nicken, Rollen) je nach Untergrund; MTB dank Federung ruhiger, Asphalt nichts. Aus: window.NO_WAYFEEL
+   - Pfützen (WET.p, Zellen wie im Wege-Shader): vorausschauend seitlich ausweichen, wenn der Weg breit genug ist, sonst durch und es spritzt. Aus: window.NO_PUDDLE
+   - Erdige Wege nach Regen: ab und zu fliegt Matsch vom Reifen (MTB mehr), selten rutscht das Hinterrad kurz weg (kein Sturz). Aus: window.NO_MUD */
+const WF={lat:0, yaw:0, roll:0, pitch:0, y:0, slipA:0, slipT:-1, slipS:0, slipCd:6, pOff:0, pOffT:0, pAcc:0, rough:0, mud:0, unp:false, inP:false, add:0, mAcc:0, fx:null, PC:new Map()};
+const WF_ROUGH=[0,0.55,0.2,0.08,0.7,0.5,1,0.6,0.7,0.5,1,0.3,0.6,0.3];
+const WF_MUD=[0,0,0,0,0.15,0.1,0.1,1,0.7,0.35,0,0,0.85,0.1];
+/* Hash wie im Shader (fract-Arithmetik in float32), damit Spiel und Bild dieselben Pfützen kennen */
+function wfHash(cx,cz,a,b,c){ const f=Math.fround, fr=v=>{ v=f(v); return f(v-Math.floor(v)); };
+  let x=fr(f(f(cx+a)*f(0.1031))), y=fr(f(f(cz+b)*f(0.1031))), z=fr(f(f(cx+c)*f(0.1031)));
+  const d=f(f(f(x*f(y+f(33.33)))+f(y*f(z+f(33.33))))+f(z*f(x+f(33.33)))); x=f(x+d); y=f(y+d); z=f(z+d); return fr(f(f(x+y)*z)); }
+function wayPudCell(cx,cz){ const k=cx*100003+cz; let o=WF.PC.get(k); if (o) return o; if (WF.PC.size>6000) WF.PC.clear();
+  o={h0:wfHash(cx,cz,0,0,0), x:(cx+0.25+0.5*wfHash(cx,cz,1.7,9.2,4.4))*6, z:(cz+0.25+0.5*wfHash(cx,cz,5.3,2.9,7.1))*6, rm:0.5+0.7*wfHash(cx,cz,8.8,3.3,1.9), s0:0.55*wfHash(cx,cz,2.2,6.6,9.9)}; WF.PC.set(k,o); return o; }
+/* Pfütze an (x,z)? Liefert Abstand-Überschuss (<0 = drin) bezogen auf Radius*1.2+m */
+function wayPudHit(x,z,unp,PU,m){ const cx=Math.floor(x/6), cz=Math.floor(z/6), pr=unp?0.42:0.12; let best=1e9;
+  for (let i=-1;i<=1;i++) for (let j=-1;j<=1;j++){ const o=wayPudCell(cx+i,cz+j); if (o.h0>pr) continue; const r=o.rm*clamp((PU-o.s0)/0.35,0,1); if (r<0.03) continue;
+    const d=Math.hypot(x-o.x,z-o.z)-(r*1.2+m); if (d<best) best=d; } return best; }
+function wfLanePos(d,lane,rev,out){ const p=posAt(d,out||tmp2), h=headingAt(d), ln=rev?-lane:lane; p.x+=Math.cos(h)*ln; p.z-=Math.sin(h)*ln; return p; }
+function wayFeelStep(dt){ WF.add=0; WF.lat=WF.yaw=WF.roll=WF.pitch=WF.y=0; if (!(dt>0)) return; dt=Math.min(dt,0.1);
+  let E=null; const on=S.running && !S.ut && NET && NET.graph && GN.rg; try{ if (on) E=gEdgeAt(S.dist); }catch(e){}
+  const bk=bikeIx(), v=Math.max(0,meP.v||0), rev=(S.dir||1)<0, PU=WET.p.value; let rough=0, mud=0, unp=false;
+  if (E && E.kind!=='r'){ const sf=E.sf==null?12:E.sf; const q=posAt(S.dist,tmp2);
+    const ly=E.kind==='s'?([0,1,4][sf]||0):waysLayer(sf,E.c,q.x,q.z); unp=ly>3.5;
+    if (E.fo==null){ const xz=E.xz||[], m=(xz.length/4|0)*2; E.fo=xz.length?(gnForest(xz[m],xz[m+1])?1:0):0; }
+    rough=(WF_ROUGH[sf]!=null?WF_ROUGH[sf]:0.6)*(E.kind==='w'&&(E.c===11||E.c===14)?1.2:1)*(E.fo?1.15:1);
+    mud=(WF_MUD[sf]||0)*clamp((E.fo?0.3:0.03)+WET.w.value*0.5+PU*0.7,0,1); }
+  WF.rough+=(rough-WF.rough)*Math.min(1,dt*2); WF.mud+=(mud-WF.mud)*Math.min(1,dt*1.5); WF.unp=unp;
+  const s=S.dist, sp=clamp(v/5,0,1.3);
+  /* 1. Linie und Stöße */
+  if (!window.NO_WAYFEEL && WF.rough>0.01){ const A=[0.07,0.10,0.065][bk]*WF.rough*clamp(v/4,0,1), hf=WF.rough*[1.0,0.9,0.45][bk]*sp;
+    const lat=a=>0.6*Math.sin(a*0.19+0.7)+0.4*Math.sin(a*0.071+2.1)+0.25*Math.sin(a*0.43+4.0);
+    WF.lat=A*lat(s)/1.25; WF.yaw=Math.atan((lat(s+0.5)-lat(s-0.5))*A/1.25);
+    const bl=0.8, k=Math.floor(s/bl), u=s/bl-k, a=Math.pow(wfHash(k,7,1,2,3),3), on2=u<0.4?1:0, sg=wfHash(k,3,5,1,2)<0.5?-1:1;
+    WF.y=0.013*hf*a*on2*Math.sin(Math.PI*u/0.4); WF.pitch=0.014*hf*a*on2*Math.cos(Math.PI*u/0.4);
+    WF.roll=0.010*hf*(Math.sin(s*2.7)+0.6*Math.sin(s*4.9+1.3))+0.02*hf*a*on2*Math.sin(Math.PI*u/0.4)*sg; }
+  /* 2. Pfützen: alle 0,1 s die nächsten 14 m prüfen */
+  const W=roadWAt(S.dist)||3, maxL=Math.max(0,W/2-0.35), base=TRAFFIC.rLane||0;
+  if (!window.NO_PUDDLE && E && E.kind!=='r' && PU>0.03 && v>0.5){ WF.pAcc+=dt; if (WF.pAcc>=0.1){ WF.pAcc=0; const dir=rev?-1:1;
+      const free=o=>{ for (let k=2.5;k<=14;k+=1.5){ const q=wfLanePos(s+dir*k, base+o, rev); if (wayPudHit(q.x,q.z,unp,PU,0.15)<0) return false; } return true; };
+      if (!free(WF.pOffT)){ let pick=null; if (W>=1.6) for (let j=1;j<=16 && pick==null;j++) for (const sg of [1,-1]){ const o=WF.pOffT+sg*0.15*j; if (Math.abs(base+o)<=maxL && free(o)){ pick=o; break; } }
+        if (pick!=null) WF.pOffT=pick; }
+      else if (WF.pOffT!==0 && free(0)) WF.pOffT=0; } }
+  else WF.pOffT=0;
+  WF.pOff+=Math.sign(WF.pOffT-WF.pOff)*Math.min(Math.abs(WF.pOffT-WF.pOff),(0.5+0.08*v)*dt);
+  let ln=base+WF.pOff+WF.lat; if (maxL>0) ln=clamp(ln,-maxL,maxL); WF.add=ln-base;
+  /* Durchfahren: Spritzer */
+  WF.inP=false; if (!window.NO_PUDDLE && E && E.kind!=='r' && PU>0.03 && v>1.2){ const q=wfLanePos(s,ln,rev); WF.inP=wayPudHit(q.x,q.z,unp,PU,-0.15)<0; }
+  /* 3. Rutscher: selten, eher bei Kraft und auf Gravel, Mindestabstand 8 s */
+  WF.slipCd-=dt; if (!window.NO_MUD && WF.slipT<0 && WF.slipCd<=0 && WF.mud>0.35 && v>2.5){ const pw=(S.power||0)>320?1.8:1, lam=WF.mud*[0.03,0.05,0.035][bk]*pw*(1+Math.abs(me.cl||0)*4);
+    if (Math.random()<lam*dt){ WF.slipT=0; WF.slipS=(Math.random()<0.5?-1:1)*(0.05+0.05*Math.random()); WF.slipCd=8; } }
+  if (WF.slipT>=0){ WF.slipT+=dt; const t=WF.slipT; WF.slipA=WF.slipS*(t<0.15?t/0.15:Math.exp(-(t-0.15)/0.2)*Math.cos((t-0.15)*9)); if (t>1.1){ WF.slipT=-1; WF.slipA=0; } } else WF.slipA=0;
+}
+/* nach placeRider: Matsch und Spritzwasser als kleine Billboards (eigene Teilchen, Farbe je Teilchen) */
+function wayFeelFx(dt){ if (!scene || !camera || !me || !me.g || !(dt>0)) return; dt=Math.min(dt,0.1);
+  let F=WF.fx; if (!F){ const n=LITE?70:160, g=new THREE.BufferGeometry(), uv=new Float32Array(n*8), idx=new Uint32Array(n*6);
+    for (let i=0;i<n;i++){ uv.set([0,0,1,0,1,1,0,1],i*8); const o=i*4; idx.set([o,o+1,o+2,o,o+2,o+3],i*6); }
+    g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*12),3)); g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(n*12),3)); g.setAttribute('uv',new THREE.BufferAttribute(uv,2)); g.setIndex(new THREE.BufferAttribute(idx,1));
+    const c=document.createElement('canvas'); c.width=c.height=32; const gg=c.getContext('2d'); gg.fillStyle='#fff'; gg.beginPath(); for (let k=0;k<9;k++){ const a=k/9*6.283, rr=11+Math.random()*4; gg.lineTo(16+Math.cos(a)*rr,16+Math.sin(a)*rr); } gg.fill();
+    const mt=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c), vertexColors:true, transparent:true, alphaTest:0.4, depthWrite:false, side:THREE.DoubleSide}); mt.userData.noSnow=true;
+    const ms=new THREE.Mesh(g,mt); ms.frustumCulled=false; ms.visible=false; ms.renderOrder=5; scene.add(ms);
+    F=WF.fx={ms, n, P:new Float32Array(n*3), V:new Float32Array(n*3), L:new Float32Array(n), Z:new Float32Array(n), C:new Float32Array(n*3), G:new Float32Array(n), i:0}; }
+  const o=me.g.position, hd=me.g.rotation.y, fx=Math.sin(hd), fz=Math.cos(hd), v=Math.max(0,meP.v||0), bk=bikeIx(), wr=[0.335,0.352,0.372][bk];
+  const add=(x,y,z,vx,vy,vz,l,sz,r,g,b)=>{ const i=F.i=(F.i+1)%F.n; F.P[i*3]=x; F.P[i*3+1]=y; F.P[i*3+2]=z; F.V[i*3]=vx; F.V[i*3+1]=vy; F.V[i*3+2]=vz; F.L[i]=l; F.Z[i]=sz; F.C[i*3]=r; F.C[i*3+1]=g; F.C[i*3+2]=b; F.G[i]=o.y; };
+  if (S.running && v>1){
+    /* Matsch: Hinterrad wirft Brocken nach hinten oben, Vorderrad seltener seitlich */
+    if (!window.NO_MUD && WF.mud>0.08){ WF.mAcc+=dt*WF.mud*[0.5,0.9,1.8][bk]*Math.min(1.5,v/5);
+      while (WF.mAcc>=1){ WF.mAcc-=1; const m=2+(Math.random()*4|0), rear=Math.random()<0.75, z0=rear?-0.52:0.6;
+        for (let k=0;k<m;k++){ const sd=(Math.random()-0.5)*0.08, b=rear?-(0.35+Math.random()*0.35)*v:(0.1+Math.random()*0.2)*v, up=1.2+Math.random()*2.2, side=(Math.random()-0.5)*(rear?0.6:1.6), sh=0.75+Math.random()*0.35;
+          add(o.x+fx*(z0-0.12)+fz*sd, o.y+wr*1.6, o.z+fz*(z0-0.12)-fx*sd, fx*b+fz*side, up, fz*b-fx*side, 0.9, 0.018+Math.random()*0.03, 0.24*sh, 0.17*sh, 0.11*sh); } } }
+    /* Pfütze: seitliche Fontäne an beiden Rädern, auf Feldwegen bräunlich */
+    if (WF.inP){ const nn=Math.min(10, Math.ceil(dt*v*9)); for (let k=0;k<nn;k++){ const sg=Math.random()<0.5?-1:1, rear=Math.random()<0.5, z0=rear?-0.5:0.6, w=0.8+Math.random()*1.6+v*0.12, mu=WF.unp?0.55:0.85;
+        add(o.x+fx*z0+fz*sg*0.04, o.y+0.04, o.z+fz*z0-fx*sg*0.04, fz*sg*w+fx*v*0.3, 0.8+Math.random()*1.6, -fx*sg*w+fz*v*0.3, 0.55, 0.012+Math.random()*0.02, 0.62*mu+0.2, 0.62*mu+0.18, 0.6*mu+0.14); } }
+  }
+  const q=F.ms.geometry.attributes.position.array, cc=F.ms.geometry.attributes.color.array, e=camera.matrixWorld.elements, rx=e[0], ry=e[1], rz=e[2], ux=e[4], uy=e[5], uz=e[6]; let alive=false;
+  for (let i=0;i<F.n;i++){ const k=i*12; if (F.L[i]>0){ F.L[i]-=dt; F.V[i*3+1]-=9.8*dt; F.P[i*3]+=F.V[i*3]*dt; F.P[i*3+1]+=F.V[i*3+1]*dt; F.P[i*3+2]+=F.V[i*3+2]*dt;
+      if (F.P[i*3+1]<F.G[i]-0.3) F.L[i]=0; alive=true; const h=F.Z[i], x=F.P[i*3], y=F.P[i*3+1], z=F.P[i*3+2], ax=(rx+ux)*h, ay=(ry+uy)*h, az=(rz+uz)*h, bx=(rx-ux)*h, by=(ry-uy)*h, bz=(rz-uz)*h;
+      q[k]=x-ax; q[k+1]=y-ay; q[k+2]=z-az; q[k+3]=x+bx; q[k+4]=y+by; q[k+5]=z+bz; q[k+6]=x+ax; q[k+7]=y+ay; q[k+8]=z+az; q[k+9]=x-bx; q[k+10]=y-by; q[k+11]=z-bz;
+      for (let j=0;j<4;j++){ cc[k+j*3]=F.C[i*3]; cc[k+j*3+1]=F.C[i*3+1]; cc[k+j*3+2]=F.C[i*3+2]; } }
+    else if (q[k+1]>-1e3){ for (let j=0;j<12;j++) q[k+j]=0; q[k+1]=q[k+4]=q[k+7]=q[k+10]=-1e4; } }
+  F.ms.geometry.attributes.position.needsUpdate=true; F.ms.geometry.attributes.color.needsUpdate=true; F.ms.visible=alive; }
 // Grafikstufen: Auflösung, Schatten, Sichtweite detaillierter Bäume
 function applyGfx(q){ LITE=q<0.4; const dpr=Math.min(devicePixelRatio,2); renderer.setPixelRatio(LITE?(MINI?Math.min(0.7,dpr*0.35):Math.min(0.9,dpr*0.45)):dpr*Math.min(1,q)); renderer.shadowMap.enabled=q>0.5; if (window.RIDER_BLOBS) RIDER_BLOBS.forEach(b=>b.visible=!renderer.shadowMap.enabled);
   const sm=q>1.1?4096:q>0.9?2048:1024; if (sun.shadow.mapSize.x!==sm){ sun.shadow.mapSize.set(sm,sm); if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map=null; } }
@@ -7525,7 +7628,9 @@ function frame(now){
   try{ if (AMB.ctx) AMB.listen(); }catch(e){}
   try{ ZSB.step(dt); }catch(e){ if (!window._zsbErr){ window._zsbErr=1; console.warn('zsb',e); } }
   try{ TRAFFIC.step(dt, S.running); }   /* 0.10.6 (Hicore): auch in der Pause fährt der Verkehr weiter, nur der Fahrer steht */catch(e){ if (!TRAFFIC._err){ TRAFFIC._err=1; console.warn('verkehr',e); } }
-  if (S.ut) placeTurn(me, S.ut); else placeRider(me, S.dist, TRAFFIC.rLane, (S.dir||1)<0);
+  try{ wayFeelStep(dt); }catch(e){ WF.add=0; if (!WF._e){ WF._e=1; console.warn('wayfeel',e); } }
+  if (S.ut) placeTurn(me, S.ut); else placeRider(me, S.dist, TRAFFIC.rLane+WF.add, (S.dir||1)<0);
+  try{ wayFeelFx(dt); }catch(e){ if (!WF._e2){ WF._e2=1; console.warn('wayfx',e); } }
   try{ RLOD.step(dt); }catch(e){ if (!RLOD._e){ RLOD._e=1; console.warn('rlod',e); } }
   // weicher Kontaktschatten unter Fahrer und Rad (zusätzlich zum Sonnenschatten)
   { if (!window._blob){ const c=document.createElement('canvas'); c.width=64; c.height=128; const g=c.getContext('2d'); g.setTransform(1,0,0,2,0,0); const gr=g.createRadialGradient(32,32,1,32,32,31); gr.addColorStop(0,'rgba(0,0,0,0.5)'); gr.addColorStop(0.5,'rgba(0,0,0,0.22)'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,64,64);   /* elliptisch, Ränder ganz weich */

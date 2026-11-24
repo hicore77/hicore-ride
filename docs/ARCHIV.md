@@ -475,3 +475,26 @@ Die Sandbox ist über das Higgsfield-MCP-Werkzeug `sandbox_exec` erreichbar und 
 - Tests: `tnet.js` (Aufbau, Zeit, Verbundenheit), `twjun.js` (NS Knoten, BIKE: Abbiegen an Wege-Kreuzungen, Sprung, Lücke, Kehrtwende, Höhe), `tride.js` (im Spiel abbiegen + Bilder).
 - Grenzen: Wege-Wege-Kreuzungen auf verschiedenen Ebenen ohne Brücken-Flag werden verbunden; Rückweg zur Runde nimmt den kürzesten Weg; Startpunkt auf der großen Karte nur auf Straßen; Höhen auf Wegen aus 25-m-DEM (steile Pfade bis ca. 30 %).
 
+---
+
+## Versionsnotizen 0.16.1 (aus UEBERGABE.md verschoben am 24.11.2026)
+
+**Abbiegen und Einmündungen (0.16.1)**
+- Vorauswahl an Kreuzungen (`gNetStep`): abseits der Hauptrunde ist die **natürliche Weiterfahrt** vorgewählt, `gNatural(D,arr,opts)`: Punktzahl = |Winkel|/30 + 1,5·`gRank` − 3 gleicher Straßenname − 2 gleiche ref (Wege: −3 gleiche OSM-Id), Kehrtwenden nie. `gRank`: Straßen OSM-Klasse 0–4, Nebenstraßen 4,5–6, Wirtschafts-/Radwege 6,5, Pfade 7,5, Fußwege 8. Wer nichts drückt, folgt der Hauptstraße; der Rückweg zur Runde wird an jeder Kreuzung neu berechnet (`gTurn`, ca. 5–70 ms in der Cloud). Auf der Hauptrunde (Ankunft und Plan beide Rundenkanten, `gMainSet`) und am Kreisel bleibt der Plan (Bergwertungen, Kreisellogik). Aus: `window.NO_NATURAL`.
+- Hinweisflut: sind alle Alternativen niedrigere Klasse (`p.minor`), erscheint der Hinweis erst ab ca. 70 m, kleiner und halbtransparent („Abzweig in …“, CSS `#junc.jmin`). Kein Toast, wenn man der natürlichen Weiterfahrt folgt. Test `tests/tnat.js` (abbiegen, dann ohne Eingriff fahren; `NONAT=1` zum Vergleich): Rennrad 25 statt 37 volle Hinweise auf 76 km.
+- Nebenwege-Textur: zweite, gedrehte Atlas-Abtastung mit anderem Maßstab nach Welt-Rauschen eingemischt, dazu prozedurale Helligkeitsflecken, auf Asphalt/Beton Flickstellen, feine Risse, dunklere Fahrspuren (Shader-Zweig `fx.ways`). Aus: `window.NO_WAYVAR`.
+- Wiegetritt am Berg (`animRider`, auch Bots, die jetzt ihre Watt übergeben): ab 12 % (Hysterese 10,5 %) oder bergauf (> 5 %) mit Kadenz < 58, unter 22 km/h; Phasen 4–9 s stehen, 8–20 s sitzen. Aus: `window.NO_CLIMBSTAND`. Bild: `STAND=1 node tbike.js`.
+- Kurvenneigung: `curveLean(r,d,rev)` in `placeRider` (alle Fahrer und Bots): Neigung atan(v²·k/g) (max. ca. 23°), Vorderrad `r.wF.rotation.y` ≈ Radstand·k (max. 7°, langsam mehr), Krümmung über ±12 m, weich nachgeführt. Gabel und Lenker drehen noch nicht mit (statisch verschmolzen). Aus: `window.NO_CURVELEAN`. Test `tests/tlean.js`.
+- Rollwiderstand `BIKE_CRR` nachgeschärft (Waldboden ×1,3, schmale Pfade ×1,3/1,6/1,2). Richtwerte bei 200 W, flach, 88 kg:
+
+| Untergrund | Rennrad | Gravel | MTB |
+|---|---|---|---|
+| Asphalt | 0,004 (34 km/h) | 0,006 (33) | 0,008 (31) |
+| Schotter | 0,030 | 0,022 (25) | 0,022 (25) |
+| Erde/Feldweg | 0,035 | 0,026 (23) | 0,024 (24) |
+| Waldweg (Erde, Wald) | – | 0,034 (21) | 0,031 (22) |
+| Wiese | 0,050 | 0,040 (19) | 0,034 (21) |
+| Waldpfad | – | 0,054 (15) | 0,037 (19) |
+| Fels-Pfad | – | 0,080 (11) | 0,042 (18) |
+
+- Einmündungen: `wayLiftY(x,z,base)` hebt Wege/Nebenstraßen bis 9 m neben einer Straße weich auf Fahrbahnhöhe (Optik in `gtSideMesh` und Fahrlinie in `rgPts`/`gNodeY` gleich), Wegenden enden genau 0,3 m im Fahrbahnrand (`edgePt` in `gtSideIdx`). Auf der Hauptrunde an Weg-Einmündungen kein Graben/keine Leitpfosten (JUNC ±5 m). Aus: `window.NO_WAYLIFT`.

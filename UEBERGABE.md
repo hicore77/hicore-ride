@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 24.11.2026. Letzte veröffentlichte Version: **0.17.0 Beta** (Kartenrand aufgefüllt, Weltdaten in Kacheln, Felsen/Zäune/Hallen aus OSM, Wanderer auf Wegen).
+Stand: 24.11.2026. Letzte veröffentlichte Version: **0.17.1 Beta** (Fahrgefühl auf Wegen: Pfützen, Matsch, unruhige Linie).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| 0.16.1 | Abbiegen: natürliche Weiterfahrt vorgewählt (siehe unten), dezente Abzweige, Einmündungen bis an die Fahrbahn |
 | 0.16.2 / 0.16.3 | Hotfix: eigene Wahl wurde kurz vor der Kreuzung von der Vorwahl überschrieben (Kreuzung nach dem Umschalten jetzt als erledigt markiert, Test `tkalb.js`). Übernächste Kreuzung unter 150 m klein darunter („Danach in … m“), schon wählbar, folgt der gewählten Richtung (`gMakePend`, `NET.pend2v`, `NET.pre`, vorab berechnete Strecke `NET.hyp`; aus: `window.NO_JUN2`; Test `tjun2.js`, `TURN1=1 BIKE=gravel`) |
-| **0.17.0** | **Kartenrand aufgefüllt + Kacheln + OSM-Natur + Wanderer** (siehe unten) |
+| 0.17.0 | Kartenrand aufgefüllt + Kacheln + OSM-Natur + Wanderer (siehe unten) |
+| **0.17.1** | **Fahrgefühl auf Wegen: unruhige Linie, Pfützen mit Regendauer, Ausweichen/Spritzen, Matsch, Rutscher** (siehe unten) |
 
 **Umgebung und Kacheln (0.17.0)**
 - Daten ohne Higgsfield, direkt aus der Cloud (S3 offen): Overture 2026-11-18 (Gebäude, base/land, land_use, infrastructure; `werkzeuge/overture_holen.py PREFIX ziel.parquet spalten`), Copernicus GLO-30, ESA WorldCover 2021. Rohdaten nicht im Repo (ca. 140 MB), Skripte schon.
@@ -112,30 +112,19 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Wanderer (`HIKE`, `hikeStep`): alle 14–40 s, max. 3 (LITE 2, MINI 1), erscheinen 150–380 m voraus auf Wegen ≥ 60 m, gehen weiter auf anschließende Wege, treten bei vorbeifahrendem Fahrer an den Rand und schauen, verschwinden ab 520 m; Figuren aus dem Pool (wanderer_w/_m, spaziergaengerin). Aus: `window.NO_HIKE`.
 - Tests: `tkc.js` (PTS-Liste Bilder, Kachelzahlen), `thike.js` (braucht Verknüpfung `quelle/gpu/figuren` → `webgpu-spiel/figuren`, steht in .gitignore).
 
-**Abbiegen und Einmündungen (0.16.1)**
-- Vorauswahl an Kreuzungen (`gNetStep`): abseits der Hauptrunde ist die **natürliche Weiterfahrt** vorgewählt, `gNatural(D,arr,opts)`: Punktzahl = |Winkel|/30 + 1,5·`gRank` − 3 gleicher Straßenname − 2 gleiche ref (Wege: −3 gleiche OSM-Id), Kehrtwenden nie. `gRank`: Straßen OSM-Klasse 0–4, Nebenstraßen 4,5–6, Wirtschafts-/Radwege 6,5, Pfade 7,5, Fußwege 8. Wer nichts drückt, folgt der Hauptstraße; der Rückweg zur Runde wird an jeder Kreuzung neu berechnet (`gTurn`, ca. 5–70 ms in der Cloud). Auf der Hauptrunde (Ankunft und Plan beide Rundenkanten, `gMainSet`) und am Kreisel bleibt der Plan (Bergwertungen, Kreisellogik). Aus: `window.NO_NATURAL`.
-- Hinweisflut: sind alle Alternativen niedrigere Klasse (`p.minor`), erscheint der Hinweis erst ab ca. 70 m, kleiner und halbtransparent („Abzweig in …“, CSS `#junc.jmin`). Kein Toast, wenn man der natürlichen Weiterfahrt folgt. Test `tests/tnat.js` (abbiegen, dann ohne Eingriff fahren; `NONAT=1` zum Vergleich): Rennrad 25 statt 37 volle Hinweise auf 76 km.
-- Nebenwege-Textur: zweite, gedrehte Atlas-Abtastung mit anderem Maßstab nach Welt-Rauschen eingemischt, dazu prozedurale Helligkeitsflecken, auf Asphalt/Beton Flickstellen, feine Risse, dunklere Fahrspuren (Shader-Zweig `fx.ways`). Aus: `window.NO_WAYVAR`.
-- Wiegetritt am Berg (`animRider`, auch Bots, die jetzt ihre Watt übergeben): ab 12 % (Hysterese 10,5 %) oder bergauf (> 5 %) mit Kadenz < 58, unter 22 km/h; Phasen 4–9 s stehen, 8–20 s sitzen. Aus: `window.NO_CLIMBSTAND`. Bild: `STAND=1 node tbike.js`.
-- Kurvenneigung: `curveLean(r,d,rev)` in `placeRider` (alle Fahrer und Bots): Neigung atan(v²·k/g) (max. ca. 23°), Vorderrad `r.wF.rotation.y` ≈ Radstand·k (max. 7°, langsam mehr), Krümmung über ±12 m, weich nachgeführt. Gabel und Lenker drehen noch nicht mit (statisch verschmolzen). Aus: `window.NO_CURVELEAN`. Test `tests/tlean.js`.
-- Rollwiderstand `BIKE_CRR` nachgeschärft (Waldboden ×1,3, schmale Pfade ×1,3/1,6/1,2). Richtwerte bei 200 W, flach, 88 kg:
-
-| Untergrund | Rennrad | Gravel | MTB |
-|---|---|---|---|
-| Asphalt | 0,004 (34 km/h) | 0,006 (33) | 0,008 (31) |
-| Schotter | 0,030 | 0,022 (25) | 0,022 (25) |
-| Erde/Feldweg | 0,035 | 0,026 (23) | 0,024 (24) |
-| Waldweg (Erde, Wald) | – | 0,034 (21) | 0,031 (22) |
-| Wiese | 0,050 | 0,040 (19) | 0,034 (21) |
-| Waldpfad | – | 0,054 (15) | 0,037 (19) |
-| Fels-Pfad | – | 0,080 (11) | 0,042 (18) |
-
-- Einmündungen: `wayLiftY(x,z,base)` hebt Wege/Nebenstraßen bis 9 m neben einer Straße weich auf Fahrbahnhöhe (Optik in `gtSideMesh` und Fahrlinie in `rgPts`/`gNodeY` gleich), Wegenden enden genau 0,3 m im Fahrbahnrand (`edgePt` in `gtSideIdx`). Auf der Hauptrunde an Weg-Einmündungen kein Graben/keine Leitpfosten (JUNC ±5 m). Aus: `window.NO_WAYLIFT`.
+**Fahrgefühl auf Wegen (0.17.1)**
+- Alles in `src.html` bei `WF` / `wayFeelStep(dt)` (vor `placeRider(me)`) und `wayFeelFx(dt)` (danach), nur der eigene Fahrer. Untergrund aus `gEdgeAt(S.dist)`: Rauheit `WF_ROUGH[sf]`, Matschanteil `WF_MUD[sf]` (Wald ×, Nässe `WET.w` und Pfützenstand `WET.p`).
+- Linie/Stöße: Schlängeln ±7–10 cm (MTB 6 cm) nach Strecke, Gierwinkel folgt, Stöße alle 0,8 m per Hash (Höhe ≤ 1,3 cm, Nicken, Rollen), MTB Stöße halb so stark. In `placeRider` für `me` angewendet. Aus: `window.NO_WAYFEEL`.
+- Pfützen: `WET.p` (GUR) wächst nur bei Regen (`WET.tw>0.5`), voll nach ca. 18 min (Gewitter ca. 8), trocknet in ca. 45 min. Straßen: Rauschschwelle im Straßen-Shader nach `WET.p`. Wege: 6-m-Zellen, Hash `wfHash` in JS und Shader identisch (float32), Wahrscheinlichkeit unbefestigt 0,42/befestigt 0,12, Radius 0,5–1,2 m, jede Pfütze hat eigenen Startpegel. `wayPudHit` prüft 14 m voraus, Fahrer weicht seitlich aus (`WF.pOff`, nur wenn Platz bis 0,35 m vom Rand), sonst Spritzer. Test-Override `window.PUD_SET=0..1`. Aus: `window.NO_PUDDLE`.
+- Matsch: erdige Wege (Layer Erde/Gras/Waldboden) dunkler und glänzend nach Regen; Matschbrocken als Billboards (`WF.fx`, Farbe je Teilchen), MTB ×2; seltener Hinterrad-Rutscher (2,9–5,7°, Drehung um das Vorderrad, Lenker gegen, Mindestabstand 8 s, im Test ca. 1 pro 50 s bei vollem Matsch). Aus: `window.NO_MUD`.
+- Test `tests/twet.js` (Waldweg bei Jonsdorf, Regen, `PUD=1`): ohne `OUT` Logiktest über 600 m, mit `OUT=ordner` drei Bilder.
+- Ältere Notizen 0.16.1 (Vorauswahl `gNatural`, Kurvenneigung, Wiegetritt, Rollwiderstandstabelle, Einmündungen) stehen in `docs/ARCHIV.md`.
 
 **Offen / unsicher**
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung, Ruckler beim ersten Auto/Zug/Regen, FPS-Anzeige mit Prozent (Details 0.13.0 in docs/ARCHIV.md).
 - 0.16.0 am iPad prüfen: Optik Gravel/MTB, Sitzhaltung, ob Farben direkt nach dem Radwechsel stimmen; Lenkerbreite/Flare/Hoods-Winkel ggf. in `GRAVEL_BAR` nachjustieren.
 - 0.14.0 am iPad prüfen: Wege-Optik (Helligkeit, Grasnarbe, Waldboden), FPS mit den zusätzlichen Wegen.
+- 0.17.1 am iPad prüfen: Stärke des Wackelns (Gravel/MTB), Pfützen-Optik und Ausweichen, Matschbrocken sichtbar genug, Rutscher nicht zu oft; FPS mit dem neuen Wege-Shader. Pfützen starten bei Spielbeginn leer, auch wenn es schon lange regnet (echtes Wetter: Regen der letzten Stunden noch nicht ausgewertet).
 - 0.17.0 am iPad prüfen: Ladezeit beim Start (Kacheln), Nachladen ohne Ruckler, Felswände (Jonsdorf/Oybin-Umgebung), Ränder Ost (Neiße) und Süd (Tschechien), Wanderer.
 - 0.16.1 am iPad prüfen: Vorauswahl in Orten (Spitzkunnersdorf), ob dezente Abzweig-Hinweise reichen, Ruckler beim automatischen Neuberechnen, Optik der Einmündungen.
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
@@ -149,8 +138,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 ## 6. Nächste Schritte
 
 1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
-1a. **0.17.1 Fahrgefühl auf Wegen (Heiko 24.11., freigegeben, eigener Thread):** Gravel/MTB auf Schotter/Erde/Wald leicht unruhig (kleine Stöße, Nicken/Rollen, MTB ruhiger), Linie leicht schlängelnd; Pfützen auf Wegen an die Nässe-Logik gekoppelt, wachsen mit Regendauer, trocknen langsam (auch Straßenpfützen prüfen); ausweichen wenn breit genug, sonst Spritzwasser; auf erdigen Wegen nach Regen ab und zu Matsch vom Reifen (MTB mehr) und kurzer Rutscher des Hinterrads. Dezent, umschaltbar.
-1b. Danach C: Einzelbäume außerhalb Wald aus Luftbild DOP20 (Test Jonsdorf), dann 0.18.0 Treppen (Punkt 6).
+1a. **C: Einzelbäume außerhalb Wald aus Luftbild DOP20 (Test Jonsdorf)**, dann 0.18.0 Treppen (Punkt 6).
 2. Poly-Haven-Paket **Stufe 2** (freigegeben): white_plaster_02, beige_wall_001, weathered_brown_planks, old_stone_wall, clay_roof_tiles_02, roof_slates_03, sandstone_cracks oder mossy_sandstone, bark_brown_02 oder pine_bark. Über die Sandbox holen, umschaltbar, Vergleichsbilder.
 3. Grashalme nur ca. 20–30 m um den Fahrer.
 4. Leistung Teil 2 nur bei Bedarf: Modelle nach Bedarf laden, Wald-Instanzen bündeln (Rad-Verschmelzen ist seit 0.16.0 erledigt).
