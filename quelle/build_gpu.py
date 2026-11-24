@@ -46,6 +46,8 @@ if os.path.isdir(D+'texjpg_ph/'):
     for f in sorted(os.listdir(D+'texjpg_ph/')):
         if f.endswith('.jpg'): tp[f[:-4]]=imgf(D+'texjpg_ph/'+f,'ph_'+f)
 rj=rj+'window.TEX_JPG_PH='+json.dumps(tp)+';'
+# 0.14.0: Wege-Texturatlas (Poly Haven CC0, 3x3 Kacheln je 512 px mit Rand)
+if os.path.exists(D+'texways/ways_atlas.jpg'): rj=rj+'window.WAYS_TEX='+json.dumps(imgf(D+'texways/ways_atlas.jpg','ways_atlas.jpg'))+';'
 sx={}
 if os.path.isdir(D+'sfx/'):
     for f in sorted(os.listdir(D+'sfx/')):
@@ -56,7 +58,7 @@ if os.path.isdir(D+'facjpg/'):
     for f in sorted(os.listdir(D+'facjpg/')):
         if f.endswith('.jpg'): fj[f[:-4]]=base64.b64encode(open(D+'facjpg/'+f,'rb').read()).decode()
 rj=rj+'window.FACADE_JPG='+json.dumps(fj)+';'
-sj='window.ZGSIDE="'+(base64.b64encode(open(D+('zg2/side2.bin' if os.path.exists(D+'zg2/side2.bin') else 'zg2/side.bin'),'rb').read()).decode() if os.path.exists(D+'zg2/side.bin') else '')+'";'+'window.ZGPARK="'+(base64.b64encode(open(D+'zg2/park.png','rb').read()).decode() if os.path.exists(D+'zg2/park.png') else '')+'";'+'window.ZGOW="'+(base64.b64encode(open(D+'zg2/ow.bin','rb').read()).decode() if os.path.exists(D+'zg2/ow.bin') else '')+'";'+'window.ZGTREES="'+(base64.b64encode(open(D+'zg2/trees.bin','rb').read()).decode() if os.path.exists(D+'zg2/trees.bin') else '')+'";'+'window.SPK=null;window.ZGBLD="'+open(D+'zg2/bld.b64').read().strip()+'";window.ZGLC="'+base64.b64encode(open(D+'zg2/lc10.png','rb').read()).decode()+'";window.ZGNET='+open(D+'zg2/zg_net.json').read()+';window.ZGRES='+open(D+'zg2/zgres.json').read()+';window.ZGZT='+open(D+'zt/zt2.json').read()+';'+'window.ZSBD='+open(D+'zsb/zsb.json').read()+';'+'window.ZGDB='+(open(D+'zg2/zgdb.json').read() if os.path.exists(D+'zg2/zgdb.json') else 'null')+';'
+sj='window.ZGWAYS="'+(base64.b64encode(open(D+'zg2/ways.bin','rb').read()).decode() if os.path.exists(D+'zg2/ways.bin') else '')+'";'+'window.ZGSIDE="'+(base64.b64encode(open(D+('zg2/side2.bin' if os.path.exists(D+'zg2/side2.bin') else 'zg2/side.bin'),'rb').read()).decode() if os.path.exists(D+'zg2/side.bin') else '')+'";'+'window.ZGPARK="'+(base64.b64encode(open(D+'zg2/park.png','rb').read()).decode() if os.path.exists(D+'zg2/park.png') else '')+'";'+'window.ZGOW="'+(base64.b64encode(open(D+'zg2/ow.bin','rb').read()).decode() if os.path.exists(D+'zg2/ow.bin') else '')+'";'+'window.ZGTREES="'+(base64.b64encode(open(D+'zg2/trees.bin','rb').read()).decode() if os.path.exists(D+'zg2/trees.bin') else '')+'";'+'window.SPK=null;window.ZGBLD="'+open(D+'zg2/bld.b64').read().strip()+'";window.ZGLC="'+base64.b64encode(open(D+'zg2/lc10.png','rb').read()).decode()+'";window.ZGNET='+open(D+'zg2/zg_net.json').read()+';window.ZGRES='+open(D+'zg2/zgres.json').read()+';window.ZGZT='+open(D+'zt/zt2.json').read()+';'+'window.ZSBD='+open(D+'zsb/zsb.json').read()+';'+'window.ZGDB='+(open(D+'zg2/zgdb.json').read() if os.path.exists(D+'zg2/zgdb.json') else 'null')+';'
 # 0.11.0: Weltdaten und Medien als eigene Dateien (vom Browser einzeln zwischengespeichert, index.html bleibt klein)
 import hashlib
 os.makedirs(D+'gpu/data',exist_ok=True)

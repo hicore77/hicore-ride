@@ -1,0 +1,5 @@
+[out:json][timeout:180];
+(
+ way["highway"~"^(path|bridleway|footway|cycleway|track)$"](50.795,14.615,50.967,14.865);
+);
+out geom tags;

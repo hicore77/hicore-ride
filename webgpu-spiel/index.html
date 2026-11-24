@@ -4704,8 +4704,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   window.R187=true; })();
 </script>
 <script>window.PROP_GLB={};window.PROP_LIST=["amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "gruft", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "gruft": "3a94d372", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
-<script src="data/media.js?h=b285fdc0"></script>
-<script src="data/zittau.js?h=10401a87"></script>
+<script src="data/media.js?h=a64ace9f"></script>
+<script src="data/zittau.js?h=3a668179"></script>
 <script>
 "use strict";
 // ================= Helpers =================
@@ -5376,13 +5376,13 @@ function gpuFixInst(root){ if (!window.GPU_MODE || !root) return; root.traverse(
 if (window.GPU_MODE) try{ const sc=THREE.InstancedMesh.prototype.setColorAt; THREE.InstancedMesh.prototype.setColorAt=function(i,c){ sc.call(this,i,c); if (this._icPow){ const a=this.instanceColor.array; for (let k=i*3;k<i*3+3;k++) a[k]=Math.pow(Math.max(0,a[k]),2.2); } }; }catch(e){}
 /* 0.12.0 (Hicore): Schnee. Art je Material: t Gelände, r Straße, g Gras, b Baumlaub, h alles andere (Dächer, Autos, Mauern …); Fahrer und Figuren nie */
 function snowKind(m){ const u=m.userData||{}, fx=u.fx||{}; if (u.isWater||u.noSnow||u.lin&&u.noSnowLin) return ''; if (!(m.isMeshLambertMaterial||m.isMeshStandardMaterial||m.isMeshPhongMaterial)) return '';
-  if (fx.terrain) return 't'; if (m.map&&m.map.userData&&m.map.userData.road) return 'r'; if (fx.wind) return fx.wind.hRef<2.5?'g':'b'; if (fx.dith&&fx.dith.tree) return 'b'; if (u.snowCar) return 'c'; return 'h'; }
+  if (fx.terrain||fx.ways) return 't'; if (m.map&&m.map.userData&&m.map.userData.road) return 'r'; if (fx.wind) return fx.wind.hRef<2.5?'g':'b'; if (fx.dith&&fx.dith.tree) return 'b'; if (u.snowCar) return 'c'; return 'h'; }
 function noSnow(root){ if (root) root.traverse(o=>{ if (o.material) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if (m&&m.userData) m.userData.noSnow=true; }); }); }
 function gpuSetup(){ const lib=renderer.library, orig=lib.fromMaterial.bind(lib);
   /* 0.4.8: WebGPU bildet den Pipeline-Schlüssel aus den Material-Eigenschaften (Funktionen nur als Quelltext). gpuFx baut Texturen fest ein,
      daher teilten z. B. Wertungs-Torbögen die Pipeline samt Start-Tor-Textur. Texturen als Text-Eigenschaft in den Schlüssel bringen. */
   if (!Object.getOwnPropertyDescriptor(THREE.Material.prototype,'gpuTexKey')) Object.defineProperty(THREE.Material.prototype,'gpuTexKey',{enumerable:true, configurable:true, set(v){},
-    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); const fx=this.userData&&this.userData.fx; if (fx){ for (const n of ['terrain','mask']) if (fx[n]&&fx[n].t&&fx[n].t.uuid) k+=n[0]+fx[n].t.uuid.slice(0,8); if (fx.dith) k+='d'+fx.dith.mode+(fx.dith.a||'')+'-'+(fx.dith.b||''); if (fx.wind) k+='w'+fx.wind.amp; } const sk=snowKind(this); if (sk) k+='S'+sk; if (this.userData&&this.userData.mini) k+='mini'; return k; } });   /* 0.8.2: auch Überblendung/Wind, sonst bekamen ferne Kronen die Pipeline der Mini-Bäume (dunkle Kugeln neben Detailbäumen) */   /* 0.7.2: Loch-Masken mit in den Schlüssel, sonst teilten Kacheln und Grobgelände eine Maske (Löcher mit Himmel) */
+    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); const fx=this.userData&&this.userData.fx; if (fx){ for (const n of ['terrain','mask']) if (fx[n]&&fx[n].t&&fx[n].t.uuid) k+=n[0]+fx[n].t.uuid.slice(0,8); if (fx.ways) k+='WAYS'; if (fx.dith) k+='d'+fx.dith.mode+(fx.dith.a||'')+'-'+(fx.dith.b||''); if (fx.wind) k+='w'+fx.wind.amp; } const sk=snowKind(this); if (sk) k+='S'+sk; if (this.userData&&this.userData.mini) k+='mini'; return k; } });   /* 0.8.2: auch Überblendung/Wind, sonst bekamen ferne Kronen die Pipeline der Mini-Bäume (dunkle Kugeln neben Detailbäumen) */   /* 0.7.2: Loch-Masken mit in den Schlüssel, sonst teilten Kacheln und Grobgelände eine Maske (Löcher mit Himmel) */
   /* Farben wie im alten Spiel roh lassen (ColorManagement aus), aber sRGB-Texturen und Bildausgabe trotzdem richtig umrechnen */
   const CSN=THREE.ColorSpaceNode; if (CSN && !CSN._hp){ CSN._hp=1; const o=CSN.prototype.setup; CSN.prototype.setup=function(b){ const CM=THREE.ColorManagement, e=CM.enabled; CM.enabled=true; try{ return o.call(this,b); } finally{ CM.enabled=e; } }; }
   lib.fromMaterial=m=>{ const nm=orig(m); if (nm && !m.isNodeMaterial){ try{ gpuFx(nm, m); }catch(e){ console.warn('GPU-Material',e); } }
@@ -5415,13 +5415,31 @@ function gpuWater(nm, m){ const T=TSL, nt=m.normalMap; if (!nt) return; const {v
   nm.emissiveNode=sky.mul(F.mul(0.8)).add(vec3(1.0,0.92,0.75).mul(glint)); }
 function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater){ gpuWater(nm,m); return; } const lin=!!u.lin, prep=!!u.pbrPrep, gam=prep && !lin && !(fx.terrain), ao=!!u.worldAO && !(fx.terrain);   /* Gelände: im alten Spiel griffen Gamma und AO nie (Anker im Shader ersetzt) -> hier auch nicht */
   const {vec2,vec3,vec4,float,texture,positionWorld,positionGeometry,positionLocal,cameraPosition,smoothstep,mix,clamp,length,normalize,dot,max,pow,Discard,If,screenCoordinate,modelWorldMatrixInverse}=T;
-  const isRoad=!!(m.map&&m.map.userData&&m.map.userData.road), sk=snowKind(m); const need=gam||ao||fx.mask||fx.terrain||fx.wind||fx.dith||isRoad||sk; if (!need) return;
+  const isRoad=!!(m.map&&m.map.userData&&m.map.userData.road), sk=snowKind(m); const need=gam||ao||fx.mask||fx.terrain||fx.ways||fx.wind||fx.dith||isRoad||sk; if (!need) return;
   const H=gpuHelpers();
   const P=positionWorld.xz;
   /* Grundfarbe: Material-Farbe * Textur (wie im Spiel als sRGB gemeint) */
   let col=null;
+  /* 0.14.0 (Hicore): Wege mit Poly-Haven-Texturen je OSM-Untergrund. Atlas 3x3 (je 448 px Bild + 32 px Rand), uv = (quer 0..1, längs in m), wl = (Kachel, Grasnarbe, Breite).
+     Ableitungen über .grad(), damit an den Kachelgrenzen keine Nähte entstehen; Feldwege mit grüner Mitte, unbefestigte Ränder ausgefranst, nass dunkler. */
+  if (fx.ways){ const A=fx.ways.t, uvv=T.uv(), wl=T.attribute('wl','vec4'), ly=T.floor(wl.x.add(0.5));
+    const scl=ly2=>T.select(ly2.lessThan(0.5),float(3.0),T.select(ly2.lessThan(1.5),float(1.3),T.select(ly2.lessThan(2.5),float(1.6),T.select(ly2.lessThan(3.5),float(3.2),float(2.4)))));
+    const qm=vec2(uvv.x.mul(wl.z).add(wl.w.mul(7.3)), uvv.y.add(wl.w.mul(13.1))), F=448.0/1536.0, O=32.0/1536.0;
+    const samp=ly2=>{ const q=qm.div(scl(ly2)), cx=T.mod(ly2,3.0), cy=T.floor(ly2.div(3.0)), base=vec2(cx,cy).div(3.0).add(O); return texture(A, base.add(T.fract(q).mul(F))).grad(T.dFdx(q).mul(F), T.dFdy(q).mul(F)).rgb; };
+    let c=samp(ly).mul(T.select(ly.greaterThan(3.5),vec3(0.80),vec3(0.95)));
+    c=T.select(T.abs(ly.sub(7.0)).lessThan(0.5), c.mul(vec3(0.6,0.56,0.47)), c);
+    c=T.select(T.abs(ly.sub(2.0)).lessThan(0.5), mix(c, vec3(dot(c,vec3(0.3,0.59,0.11))).mul(1.05), 0.65), c);   /* Verbundpflaster: eher grau als rötlich */   /* Waldboden: dunkler, weniger Orange */
+    const ac=T.abs(uvv.x.sub(0.5)).mul(2.0), nz=H.vnz(P.mul(1.3)).mul(0.6).add(H.vnz(P.mul(4.1)).mul(0.4));
+    const rut=wl.y.mul(T.max(smoothstep(0.24,0.10,ac.add(nz.mul(0.18).sub(0.09))), smoothstep(0.78,0.98,ac.add(nz.mul(0.2).sub(0.1)))));
+    c=mix(c, samp(float(6.0)).mul(vec3(0.66,0.74,0.6)), rut);
+    const unp=ly.greaterThan(3.5);
+    const edgeM=float(0.5).sub(T.abs(uvv.x.sub(0.5))).mul(wl.z);   /* Abstand zum Rand in m */
+    nm.maskNode=T.select(unp, edgeM.greaterThan(nz.mul(0.32).sub(0.04)), T.bool(true));
+    c=c.mul(mix(float(1.0), smoothstep(0.0,0.35,edgeM).mul(0.18).add(0.82), T.select(unp,float(1.0),float(0.0))));
+    c=c.mul(H.vnz(P.mul(0.07)).mul(0.14).add(0.93)).mul(mix(float(1.0),float(0.62),WET.w));
+    col=vec4(c,1.0); }
   /* Gelände: Masken-Ausschnitt + Kachel-Mischung + Felder (wie GLSL in terrainHoleMaterial) */
-  if (fx.terrain){ const t=fx.terrain, LT=u.lu||{}, mk=texture(t.t, P.sub(vec2(t.oe.x)).div(t.oe.y));
+  if (fx.terrain && !col){ const t=fx.terrain, LT=u.lu||{}, mk=texture(t.t, P.sub(vec2(t.oe.x)).div(t.oe.y));
     nm.maskNode=mk.r.lessThan(0.5);
     const tileS=float(m.map?m.map.repeat.x/EXT:0.15), wq=P.mul(tileS);
     m.map.updateMatrix(); const tA=texture(m.map, T.uniform(m.map.matrix).mul(vec3(T.uv(),1.0)).xy), rot=T.mat2(0.8,-0.6,0.6,0.8), tB=texture(m.map, rot.mul(wq).mul(0.71).add(vec2(0.31,0.17)));
@@ -6674,11 +6692,11 @@ function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S
   /* 0.10.19: keine Bäume in oder direkt an Häusern (Satellitenpixel sind 10 m groß) */
   const BI=gtBldIndex(), BL=[]; if (BI) for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=BI.get((i+a)+','+(j+b)); if (l) l.forEach(o=>{ if (o.r==null){ let r=0; o.P.forEach(pp=>{ r=Math.max(r,Math.hypot(pp[0]-o.cx,pp[1]-o.cz)); }); o.r=r; } BL.push(o); }); }
   const nearB=(x,z)=>{ for (const o of BL){ const dx=x-o.cx, dz=z-o.cz, R=o.r+3.5; if (dx*dx+dz*dz<R*R) return true; } return false; };
-  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; if (BL.length && nearB(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; { const zn=ZSB.near(x,z,10); if (zn.d<(zn.g==='s'?7:5)) continue; } if (ZSB.cuts){ const cd=ZSB.cutD(x,z); if (cd && cd.r<6) continue; } if (ZG_NOTREE.length && ZG_NOTREE.some(q=>{ const u=(x-q.x)/q.ax, v=(z-q.z)/q.az; return u*u+v*v<1; })) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
+  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; if (BL.length && nearB(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; { const zn=ZSB.near(x,z,10); if (zn.d<(zn.g==='s'?7:5)) continue; } if (ZSB.cuts){ const cd=ZSB.cutD(x,z); if (cd && cd.r<6) continue; } if (ZG_NOTREE.length && ZG_NOTREE.some(q=>{ const u=(x-q.x)/q.ax, v=(z-q.z)/q.az; return u*u+v*v<1; })) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; if (waysNear(x,z,2.2)) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
     const h=terrainH(x,z), k=pick(h>440?GT.mixHi:h>380?(rnd()<0.5?GT.mixHi:GT.mixLo):GT.mixLo), s0=(inner?1.25:1.0)+rnd()*0.6; e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(0.85+rnd()*0.4),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
     const f=0.72+rnd()*0.35; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[k]=by[k]||[]).push([m.clone(),col.clone()]); } }
   { const OT=gtOsmTrees(), L=OT&&OT.get(i+','+j); if (L) for (let k=0;k<L.length;k+=3){ if (k%300===0) yield 0; const x=L[k], z=L[k+1], t=L[k+2], bush=t>=6;
-      const n=gnNear(x,z,30); if (n.d<n.w/2+(bush?2.0:2.6)) continue; if (BL.length && (()=>{ for (const o of BL){ const R=o.r+(bush?0.6:1.8), dx=x-o.cx, dz=z-o.cz; if (dx*dx+dz*dz<R*R) return true; } return false; })()) continue;
+      const n=gnNear(x,z,30); if (n.d<n.w/2+(bush?2.0:2.6)) continue; if (waysNear(x,z,bush?0.6:1.6)) continue; if (BL.length && (()=>{ for (const o of BL){ const R=o.r+(bush?0.6:1.8), dx=x-o.cx, dz=z-o.cz; if (dx*dx+dz*dz<R*R) return true; } return false; })()) continue;
       if (bush && (MINI || (LITE && rnd()<0.4))) continue; const fr4=t===4 && !gnInner(x,z) && (Math.sin(Math.floor(x/120)*12.9898+Math.floor(z/120)*78.233)*43758.5453%1+1)%1<0.4;   /* Obstbaumreihen an Landstraßen */
       const r=rnd(), kt=t===1?(r<0.75?'spruce':'pine'):t===2?'linden2':t===3?'oak':t===4?(fr4?FRU[Math.floor(rnd()*4)]:r<0.4?'linden2':r<0.7?'maple':r<0.85?'oak':'ash'):t===5?FRU[Math.floor(r*5)%5]:t===6?(r<0.6?'bushA':'bushB'):t===7?(r<0.45?'bushA':r<0.85?'bushB':'birch'):(r<0.3?'beech':r<0.5?'maple':r<0.65?'ash':r<0.8?'oak':'birch');
       if (!fk[kt]) continue; const h=terrainH(x,z), s0=(t===5||fr4)?0.85+rnd()*0.3:bush?(t===6?0.75:0.9)+rnd()*0.5:0.8+rnd()*0.45;
@@ -6903,33 +6921,66 @@ function gtChurch(C){ const {P,area,u0,u1,v0,v1,p3,gmin,y0,rnd,isCity,quad,tri,l
 function gtFinish(J){ const geo=J.geo, i=J.i, j=J.j; geo.setAttribute('color',new THREE.BufferAttribute(J.col,3)); geo.setAttribute('luk',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count).fill(1),1)); geo.computeVertexNormals();
   const m=new THREE.Mesh(geo, GT.mat); m.receiveShadow=true; GT.grp.add(m);
   let sg=null; const l=GT.sig.get(i+','+j); if (l){ sg=new THREE.Group(); l.forEach(o=>{ try{ sg.add(buildSign(o)); }catch(e){ console.warn('schild',e); } }); GT.grp.add(sg); }
-  let sr=null; try{ sr=gtSideMesh(i,j); if (sr) GT.grp.add(sr); }catch(e){ console.warn('nebenstr',e); }
-  return {i,j,m,sg,sr,fo:null,hs:undefined}; }
+  let sr=null, sp=null; try{ sr=gtSideMesh(i,j); if (sr) GT.grp.add(sr); sp=gtSideMesh(i,j,true); if (sp){ sp.visible=false; GT.grp.add(sp); } }catch(e){ console.warn('nebenstr',e); }
+  return {i,j,m,sg,sr,sp,fo:null,hs:undefined}; }
 /* 0.11.0 (Hicore): alle übrigen Straßen aus OSM sichtbar (nicht befahrbar): Wohnstraßen, Nebenstraßen, Zufahrten, feste Wege. Pro 500-m-Kachel ein Netz,
    Stücke, die auf befahrbaren Straßen liegen, fallen weg; Einmündungen enden am Fahrbahnrand. Belag: Asphalt, Pflaster oder Schotter (OSM surface). */
-let SIDE_IDX=null, SIDE_MAT=null;
+let SIDE_IDX=null, SIDE_MAT=null, WAYS_MAT=null; const WAYS_H=new Map();
+/* 0.14.0: liegt (x,z) auf einem Weg (plus Rand m)? Für Bäume im Wald, damit keiner mitten auf dem Weg steht */
+function waysNear(x,z,m){ if (!WAYS_ON) return false; gtSideIdx(); const cx=Math.floor(x/20), cz=Math.floor(z/20); for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=WAYS_H.get((cx+a)+','+(cz+b)); if (!l) continue; for (let i=0;i<l.length;i+=5){ const ax=l[i], az=l[i+1], dx=l[i+2]-ax, dz=l[i+3]-az, ll=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/ll)); if (Math.hypot(x-ax-dx*t,z-az-dz*t)<l[i+4]+m) return true; } } return false; }
+/* 0.14.0 (Hicore): Feld-, Wald-, Wiesen- und Fußwege aus OSM (highway=track/path/footway/cycleway/bridleway, ca. 1.900 km, keine Gehsteige, keine kurzen privaten Zufahrten), noch nicht befahrbar.
+   ways.bin: 'WAY1', N, je Weg c (10 track, 11 path, 12 footway, 13 cycleway, 14 bridleway), Breite*10, Untergrund sf, tracktype|smoothness<<4, Flags (8 Brücke, 16 Tunnel, 32 Untergrund geschätzt, 64 privat), OSM-Id, Punkte (0,5 m).
+   window.WAYS hält alle Wege samt Untergrund für später (Laufmodus, Mountainbike: Rollwiderstand WAY_SURF[sf].crr). */
+const WAY_SURF=[{k:'asphalt',crr:0.004},{k:'sett',crr:0.012},{k:'paving_stones',crr:0.007},{k:'concrete',crr:0.005},{k:'compacted',crr:0.010},{k:'fine_gravel',crr:0.012},{k:'gravel',crr:0.018},{k:'ground',crr:0.022},{k:'grass',crr:0.030},{k:'sand',crr:0.040},{k:'rock',crr:0.025},{k:'wood',crr:0.008},{k:'unpaved',crr:0.016},{k:'paved',crr:0.006}];
+function waysData(){ if (window.WAYS!==undefined) return window.WAYS; window.WAYS=null; if (!window.ZGWAYS) return null;
+  try{ const bin=atob(window.ZGWAYS), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer); if (String.fromCharCode(u[0],u[1],u[2],u[3])!=='WAY1') return null;
+    const N=dv.getUint32(4,true); let o=8; const W=[]; for (let r=0;r<N;r++){ const c=u[o], w=u[o+1]/10, sf=u[o+2], tt=u[o+3]&15, sm=u[o+3]>>4, fl=u[o+4], n=dv.getUint16(o+6,true), id=dv.getUint32(o+8,true); o+=12; let x=0,z=0; const P=new Float32Array(n*2); for (let j=0;j<n;j++){ x+=dv.getInt16(o,true); z+=dv.getInt16(o+2,true); o+=4; P[j*2]=x/2; P[j*2+1]=z/2; } W.push({c,w,sf,tt,sm,fl,id,P}); }
+    window.WAYS=W; }catch(e){ console.warn('wege',e); } return window.WAYS; }
+const WAYS_ON=!/[?&]oldways=1/.test(location.search) && !window.OLD_WAYS;
+/* Atlas-Kachel je Untergrund: 0 Asphalt, 1 Pflaster, 2 Verbundpflaster, 3 Beton, 4 Schotter fein/wassergebunden, 5 Erde, 6 Gras, 7 Waldboden, 8 Grobschotter/Fels */
+function waysLayer(sf,c,x,z){ let l=[0,1,2,3,4,4,8,5,6,5,8,5,5,c===10?0:2][sf]; if (l===undefined) l=5; if (sf===12) l=c===10?5:4; if ((l===5) && gnLC(x,z)===1) l=7; return l; }
 function gtSideIdx(){ if (SIDE_IDX) return SIDE_IDX; SIDE_IDX=new Map(); if (!window.ZGSIDE || !(WORLD&&WORLD.id==='zittau')) return SIDE_IDX; const D=gnData(); if (!D) return SIDE_IDX;
-  const bin=atob(window.ZGSIDE), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer); const N=dv.getUint32(0,true); let o=4; const S=GT.S;
-  const add=(run,w,sf)=>{ if (run.length<2) return; const k=Math.floor(run[0][0]/S)+','+Math.floor(run[0][1]/S); let l=SIDE_IDX.get(k); if (!l) SIDE_IDX.set(k,l=[]); l.push({P:run,w,sf}); };
+  const S=GT.S, WY=WAYS_ON?waysData():null;
+  const add=(run,w,sf,ly,rut,fine)=>{ if (run.length<2) return; if (ly!==undefined) for (let q=0;q<run.length-1;q++){ const a=run[q], b=run[q+1], hk=Math.floor((a[0]+b[0])/40)+','+Math.floor((a[1]+b[1])/40); let hl=WAYS_H.get(hk); if (!hl) WAYS_H.set(hk,hl=[]); hl.push(a[0],a[1],b[0],b[1],w/2); } const k=Math.floor(run[0][0]/S)+','+Math.floor(run[0][1]/S); let l=SIDE_IDX.get(k); if (!l) SIDE_IDX.set(k,l=[]); l.push({P:run,w,sf,ly,rut,fine}); };
+  /* Stücke auf befahrbaren Straßen fallen weg, an Kachelgrenzen und bei Wechsel der Atlas-Kachel (z. B. Waldrand) wird geteilt */
+  const cut=(P,ww,sf,lyF,rut,fine,seg)=>{ const Q=[]; for (let j=0;j<P.length-1;j++){ const a=P[j], b=P[j+1], L=Math.hypot(b[0]-a[0],b[1]-a[1]), m=Math.max(1,Math.ceil(L/seg)); for (let t=0;t<m;t++) Q.push([a[0]+(b[0]-a[0])*t/m, a[1]+(b[1]-a[1])*t/m]); } Q.push(P[P.length-1]);
+    let run=[], tile=null, ly=-1;
+    for (let qi=0;qi<Q.length;qi++){ const q=Q[qi]; const nn=gnNear(q[0],q[1],30), on=nn.k>=0 && nn.d<nn.w/2+0.15+(fine?ww/2:0); const tk=Math.floor(q[0]/S)+','+Math.floor(q[1]/S), l=lyF(q[0],q[1]);
+      if (on){ if (run.length){ run.push(q); add(run,ww,sf,ly,rut,fine); } run=[]; tile=null; continue; }
+      if (run.length && ((tile && tk!==tile) || l!==ly)){ run.push(q); add(run,ww,sf,ly,rut,fine); run=[run[run.length-2]]; }
+      if (!run.length && qi>0) run.push(Q[qi-1]);
+      run.push(q); tile=tk; ly=l; }
+    add(run,ww,sf,ly,rut,fine); };
+  const bin=atob(window.ZGSIDE), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer); const N=dv.getUint32(0,true); let o=4;
   for (let r=0;r<N;r++){ const c=dv.getUint8(o), w=dv.getUint8(o+1)/10, sf=dv.getUint8(o+2), fl=dv.getUint8(o+3), n=dv.getUint16(o+4,true); o+=6; let x=0, z=0; const P=[]; for (let j=0;j<n;j++){ x+=dv.getInt16(o,true); z+=dv.getInt16(o+2,true); o+=4; P.push([x/2,z/2]); }
     if (fl&16) continue;   /* Tunnel */
-    const Q=[]; for (let j=0;j<P.length-1;j++){ const a=P[j], b=P[j+1], L=Math.hypot(b[0]-a[0],b[1]-a[1]), m=Math.max(1,Math.ceil(L/6)); for (let t=0;t<m;t++) Q.push([a[0]+(b[0]-a[0])*t/m, a[1]+(b[1]-a[1])*t/m]); } Q.push(P[P.length-1]);
-    let run=[], tile=null; const ww=c===9?Math.max(1.4,Math.min(5,w)):Math.max(2.4,Math.min(9,w*(c>=7?0.85:0.9)));   /* 0.11.4: Klasse 9 = Fuß-/Radwege (Zittau, Parks am Ring) */
-    for (const q of Q){ const nn=gnNear(q[0],q[1],30), on=nn.k>=0 && nn.d<nn.w/2+0.15; const tk=Math.floor(q[0]/S)+','+Math.floor(q[1]/S);
-      if (on){ if (run.length){ run.push(q); add(run,ww,sf); } run=[]; tile=null; continue; }
-      if (tile && tk!==tile && run.length){ run.push(q); add(run,ww,sf); run=[run[run.length-2]]; }
-      if (!run.length && Q.indexOf(q)>0){ const pq=Q[Q.indexOf(q)-1]; run.push(pq); }
-      run.push(q); tile=tk; }
-    add(run,ww,sf); }
+    if (WY && (c===8 || c===9)) continue;   /* 0.14.0: befestigte Wirtschaftswege und Zittauer Fußwege kommen jetzt aus ways.bin (mit Untergrund) */
+    const ww=c===9?Math.max(1.4,Math.min(5,w)):Math.max(2.4,Math.min(9,w*(c>=7?0.85:0.9)));   /* 0.11.4: Klasse 9 = Fuß-/Radwege (Zittau, Parks am Ring) */
+    const ly=[0,1,4][sf]||0; cut(P,ww,sf,()=>ly,0,false,6); }
+  if (WY) for (const W of WY){ if (W.fl&24) continue;   /* Brücken/Tunnel: Gelände passt dort nicht */
+    const P=[]; for (let j=0;j<W.P.length;j+=2) P.push([W.P[j],W.P[j+1]]);
+    const fine=W.c!==10 && W.c!==13, ww=fine?Math.max(1.1,Math.min(3,W.w)):Math.max(2.2,Math.min(5,W.w));
+    const rut=W.c===10 && [4,5,6,7,12].indexOf(W.sf)>=0 && (W.tt>=3 || W.sf===7 || W.sf===12) ? 1 : 0;   /* Feldweg mit Grasnarbe in der Mitte */
+    cut(P,ww,W.sf,(x,z)=>waysLayer(W.sf,W.c,x,z),rut,fine,fine?5:6); }
   return SIDE_IDX; }
-function gtSideMesh(i,j){ const L=gtSideIdx().get(i+','+j); if (!L || !L.length) return null;
-  if (!SIDE_MAT) SIDE_MAT=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.95, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2});
-  const pos=[], col=[], idx=[]; const C=[[0.33,0.335,0.345],[0.43,0.40,0.37],[0.60,0.56,0.49]];
-  L.forEach(({P,w,sf})=>{ const cc=C[sf]||C[0], b0=pos.length/3; for (let k=0;k<P.length;k++){ const a=P[Math.max(0,k-1)], b=P[Math.min(P.length-1,k+1)]; let tx=b[0]-a[0], tz=b[1]-a[1]; const l=Math.hypot(tx,tz)||1; tx/=l; tz/=l; const nx=-tz*w/2, nz=tx*w/2;
-      [[P[k][0]+nx,P[k][1]+nz],[P[k][0]-nx,P[k][1]-nz]].forEach(([x,z])=>{ pos.push(x,terrainH(x,z)+0.09,z); const f=0.94+Math.random()*0.08; col.push(cc[0]*f,cc[1]*f,cc[2]*f); });
+function waysMat(){ if (WAYS_MAT) return WAYS_MAT; const src=window.WAYS_TEX; if (!src) return null;
+  const im=new Image(); const t=new THREE.Texture(im); t.flipY=false; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); t.generateMipmaps=true; t.minFilter=THREE.LinearMipmapLinearFilter;
+  im.onload=()=>{ t.needsUpdate=true; }; im.src=jpgSrc(src);
+  WAYS_MAT=new THREE.MeshStandardMaterial({map:t, roughness:0.95, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2});
+  WAYS_MAT.userData.fx={ways:{t}}; return WAYS_MAT; }
+function gtSideMesh(i,j,fineOnly){ const L=gtSideIdx().get(i+','+j); if (!L || !L.length) return null;
+  const wm=WAYS_ON && window.GPU_MODE ? waysMat() : null;
+  if (!wm && fineOnly) return null;
+  if (!wm && !SIDE_MAT) SIDE_MAT=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.95, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2});
+  const pos=[], col=[], idx=[], uv=[], wl=[]; let rs=(i*7919+j*104729)%1000; const C=[[0.33,0.335,0.345],[0.43,0.40,0.37],[0.60,0.56,0.49]];
+  L.forEach(({P,w,sf,ly,rut,fine})=>{ if (!!fine!==!!fineOnly) return; if (!wm && fine) return; const cc=C[sf]||C[0], b0=pos.length/3; let along=0; rs=(rs*9301+49297)%233280; const ro=rs/233280;
+    for (let k=0;k<P.length;k++){ const a=P[Math.max(0,k-1)], b=P[Math.min(P.length-1,k+1)]; let tx=b[0]-a[0], tz=b[1]-a[1]; const l=Math.hypot(tx,tz)||1; tx/=l; tz/=l; const nx=-tz*w/2, nz=tx*w/2;
+      if (k) along+=Math.hypot(P[k][0]-P[k-1][0],P[k][1]-P[k-1][1]);
+      [[P[k][0]+nx,P[k][1]+nz,0],[P[k][0]-nx,P[k][1]-nz,1]].forEach(([x,z,s])=>{ pos.push(x,terrainH(x,z)+(fine?0.07:0.09),z); if (wm){ uv.push(s,along); wl.push(ly,rut,w,ro); } else { const f=0.94+Math.random()*0.08; col.push(cc[0]*f,cc[1]*f,cc[2]*f); } });
       if (k){ const v=b0+k*2; idx.push(v-2,v,v-1, v-1,v,v+1); } } });
-  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
-  const m=new THREE.Mesh(g,SIDE_MAT); m.receiveShadow=true; m.name='nebenstrassen'; return m; }
+  if (!idx.length) return null;
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); if (wm){ g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('wl',new THREE.Float32BufferAttribute(wl,4)); } else g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
+  const m=new THREE.Mesh(g,wm||SIDE_MAT); m.receiveShadow=true; m.name=fineOnly?'pfade':'nebenstrassen'; return m; }
 function gtBuild(i,j){ const J=gtStart(i,j); gtStep(J,0); return gtFinish(J); }
 function gtMask(){ const c=GT.cv; if (!c || !GT.tex) return; const g=c.getContext('2d'), S=c.width, px=EXT/S; g.fillStyle='#000'; g.fillRect(0,0,S,S); g.fillStyle='#fff';
   GT.tiles.forEach(t=>{ g.fillRect((t.i*GT.S-OFF)/px+1, (t.j*GT.S-OFF)/px+1, GT.S/px-2, GT.S/px-2); }); GT.tex.needsUpdate=true; }
@@ -6943,7 +6994,8 @@ function gtStream(cam, budget){ if (!GT.on) return; const S=GT.S, R=GT.R, ci=Mat
   else { if (GT.job && !want.some(w=>w[1]===GT.job.i&&w[2]===GT.job.j)){ GT.job.geo.dispose(); GT.job=null; }
     if (!GT.job){ for (const [dd,i,j] of want){ if (!GT.tiles.has(i+','+j)){ GT.job=gtStart(i,j); break; } } }
     if (GT.job && gtStep(GT.job, MINI?2:3)){ GT.tiles.set(GT.job.i+','+GT.job.j, gtFinish(GT.job)); GT.job=null; changed=true; } }
-  GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>rr(t.i,t.j)+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } if (t.sr){ GT.grp.remove(t.sr); t.sr.geometry.dispose(); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
+  GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>rr(t.i,t.j)+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } if (t.sr){ GT.grp.remove(t.sr); t.sr.geometry.dispose(); } if (t.sp){ GT.grp.remove(t.sp); t.sp.geometry.dispose(); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
+  GT.tiles.forEach(t=>{ if (t.sp){ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); t.sp.visible=Math.hypot(dx,dz)<(MINI?300:LITE?450:650); } });   /* 0.14.0: schmale Pfade nur in der Nähe */
   if (changed){ gtMask(); GT.flast=null; } if (budget>1){ while (gtHouseStep(cam)); while (gtForestRange(cam)); } else if (!GT.job){ if (!gtHouseStepPending(cam)) gtForestRange(cam, MINI?2:3); } gtForestLOD(cam); }
 function gdemH(x,z){ const d=GN.dem; if (!d) return 0; const gx=clamp((x-d.x0)/d.cell,0,d.nx-1.001), gz=clamp((z-d.z0)/d.cell,0,d.nz-1.001); const ix=gx|0, iz=gz|0, fx=gx-ix, fz=gz-iz, n=d.nx, H=d.H;
   return (H[iz*n+ix]*(1-fx)+H[iz*n+ix+1]*fx)*(1-fz)+(H[(iz+1)*n+ix]*(1-fx)+H[(iz+1)*n+ix+1]*fx)*fz; }
@@ -11013,7 +11065,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.13.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.14.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{

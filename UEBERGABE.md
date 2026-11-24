@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 24.11.2026. Letzte veröffentlichte Version: **0.13.0 Beta** (Ladezeit und Ruckeln, Auto- und Kreuzungskorrekturen).
+Stand: 24.11.2026. Letzte veröffentlichte Version: **0.14.0 Beta** (Feld-, Wald- und Fußwege mit Texturen nach OSM-Untergrund).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -79,6 +79,7 @@ cd tests
 node terr2.js        # Seitenfehler, muss "none" ausgeben (liefert quelle/gpu über serve.js aus, kein eigener Server nötig)
 node tturn.js; RBP=32 node tjump.js; node tjun.js   # nach Straßenänderungen (brauchen Server auf 127.0.0.1:8765)
 CFG='[["name","wx","snow","snowRd","tod"]]' PL='["Jonsdorf"]' OUT=… node tsnow.js   # Schnee-Renderbilder
+OUT=… MODES=rut,forest,gravel,path,top PL=Jonsdorf SN=keine node tways.js   # Wege-Kontrollbilder (0.14.0)
 ```
 - Alle Cloud-Tests laufen mit `?gl=1` (WebGL 2, Software-Rendering, 10–25 min je Lauf, im Hintergrund starten). Echtes WebGPU nur auf Hicores iPad.
 - Im Cloud-Container ließ sich am 24.11. kein eigener `python3 -m http.server` starten (vom Auto-Modus abgelehnt). Deshalb `tests/serve.js`: Playwright liefert die Dateien über `page.route` direkt aus. Umgestellt sind terr2, tturn, tjump, tjun sowie die neuen tperf, tcar, ttree, tkreuz; ältere Tests lassen sich genauso umstellen.
@@ -98,9 +99,18 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| 0.11.8 | Poly-Haven-Bodentexturen als Schalter (Standard „bisherige“), Asphalt ohne Wiederholung, Kreuzungsflächen eben texturiert, Überholen mit Abbruch |
 | 0.12.0 | Schnee (siehe unten) |
-| **0.13.0** | **Leistung** (siehe unten), Auto-Scheiben ohne Schnee, Rücklichter auf den echten Lampen, OSM-Dreieckskreuzungen aufgelöst, Laub bei Schnee gedämpft |
+| 0.13.0 | Leistung (siehe unten), Auto-Scheiben ohne Schnee, Rücklichter auf den echten Lampen, OSM-Dreieckskreuzungen aufgelöst, Laub bei Schnee gedämpft |
+| **0.14.0** | **Wege** (siehe unten): ca. 1.900 km Feld-, Wald-, Wiesen-, Fuß- und Radwege aus OSM, alle Nebenwege mit Poly-Haven-Texturen je Untergrund, keine Bäume mehr auf Wegen |
+
+**Wege (0.14.0)**
+- Daten: `quelle/zg2/ways.bin` (452 KB, gebaut in der Higgsfield-Sandbox `~/w14` mit `zg2/ways.py` aus Overpass `zg2/ways_query.txt`, bbox wie Straßen). OSM `highway=track|path|footway|cycleway|bridleway`, ohne Gehsteige/Überwege, ohne private Wege < 80 m (Hofzufahrten), ohne Stücke < 4 m. 12.518 Wege: track 1.154 km, path 491, footway 235, cycleway 18.
+- Format: `'WAY1'`, Anzahl, je Weg Klasse (10 track, 11 path, 12 footway, 13 cycleway, 14 bridleway), Breite×10, Untergrund `sf`, `tracktype | smoothness<<4`, Flags (8 Brücke, 16 Tunnel, 32 Untergrund geschätzt, 64 privat), OSM-Id, Punkte als int16-Deltas in 0,5 m. Im Spiel `waysData()` → `window.WAYS` (alle Wege mit Untergrund), `WAY_SURF[sf]` = Name + Rollwiderstand `crr` (Schätzwerte) für späteren Lauf-/MTB-Modus.
+- Untergrund `sf`: 0 Asphalt, 1 Pflaster, 2 Verbundpflaster, 3 Beton, 4 wassergebunden, 5 Feinschotter, 6 Schotter, 7 Erde, 8 Gras, 9 Sand, 10 Fels, 11 Holz, 12 unbefestigt, 13 befestigt. Ohne OSM-Angabe geschätzt aus `tracktype` (grade1 befestigt … grade5 Gras), Pfade = Erde.
+- Darstellung: Nebenstraßen (side2.bin) und Wege teilen ein Material mit Texturatlas `quelle/texways/ways_atlas.jpg` (3×3 Poly-Haven-CC0: asphalt_02, cobblestone_floor_08, concrete_pavers_02, concrete_pavement, grass_path_2, forest_ground_04, grass_ground, forest_leaves_02, rocky_trail). Erde im Wald (`gnLC`=1) wird Waldboden. Feldwege (grade3+ bzw. Erde) mit Grasnarbe in der Mitte, unbefestigte Ränder ausgefranst, nass dunkler, Schnee wie Gelände (`snowKind` 't'). Shader-Zweig `fx.ways` in `gpuFx`.
+- Pro 500-m-Kachel ein Netz für Straßen/Feldwege (bis Sichtweite) und eines für schmale Pfade (nur bis 650 m, LITE 450, MINI 300). Klassen 8/9 aus side2.bin werden durch ways.bin ersetzt.
+- `waysNear()` hält Waldbäume 2,2 m und Einzelbäume 1,6 m von Wegen fern.
+- Alter Stand (graue Bänder, keine Feldwege): `?oldways=1`. Brücken auf Wegen werden noch weggelassen (Gelände passt dort nicht). Befahrbar ist noch nichts.
 
 **Leistung (0.13.0), gemessen mit `tests/tperf.js` (Cloud, Software-Rendering, nur Zählwerte belastbar)**
 - Vorher: 41 MB Erstladen (27 MB Modelle, die der Start abwartet), media.js 6,4 MB Base64, ca. 750 Zeichenaufrufe mit 3 Bots (jeder Fahrer ca. 130 Einzelteile), ca. 330 ohne Bots; 256–270 MB Texturen; jedes Auto wurde bei jedem Auftauchen neu gebaut (bis 66 ms Hänger, Kennzeichen-Texturen nie freigegeben); Shader nur für das beim Start Sichtbare vorkompiliert.
@@ -130,7 +140,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 **Offen / unsicher**
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung („Geladen in … Vorbereitung …“), ob Ruckler beim ersten Auto/Zug/Regen weg sind, FPS-Anzeige mit Prozent.
-- Wege (Schotter/Feld/Wald) leuchten hell ohne Textur: eigene Version geplant (Untergrund aus OSM, Poly-Haven-Texturen).
+- 0.14.0 am iPad prüfen: Wege-Optik (Helligkeit, Grasnarbe, Waldboden), FPS mit den zusätzlichen Wegen.
 - Poly-Haven-Texturen als Standard? Hicore soll am iPad vergleichen.
 - FIT- und Fahrtbild-Download in Bluefy kaputt. KI-Gespräch mit Figuren auf dem iPad unzuverlässig.
 - Redmi Note 10 Pro stürzt ab (ruht). Häuserflackern auf „Hoch“ (Chrome iPad) unbestätigt.
@@ -138,9 +148,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 ## 6. Nächste Schritte
 
-1. Wege-Texturen nach OSM-Untergrund (eigene Version). Danach Hicores Rückmeldung zu 0.13.0.
+1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
 2. Poly-Haven-Paket **Stufe 2** (freigegeben): white_plaster_02, beige_wall_001, weathered_brown_planks, old_stone_wall, clay_roof_tiles_02, roof_slates_03, sandstone_cracks oder mossy_sandstone, bark_brown_02 oder pine_bark. Über die Sandbox holen, umschaltbar, Vergleichsbilder.
 3. Grashalme nur ca. 20–30 m um den Fahrer.
 4. Leistung Teil 2 nur bei Bedarf: Modelle nach Bedarf laden, Wald-Instanzen bündeln, Fahrer-Rad verschmelzen.
-5. Feld- und Waldwege (OSM track) für den Laufmodus, danach Laufmodus (RSC/FTMS).
+5. Wege befahrbar/belaufbar machen (Netz aus `window.WAYS`, Rollwiderstand je Untergrund), dann Laufmodus (RSC/FTMS) und Mountainbike-Modus.
 6. Accounts (Supabase Auth mit Google), Easter Eggs, später Abo.
