@@ -502,3 +502,14 @@ Die Sandbox ist über das Higgsfield-MCP-Werkzeug `sandbox_exec` erreichbar und 
 ## Aus UEBERGABE.md verschoben (Stand 0.17.2)
 
 **0.16.2 / 0.16.3:** Hotfix: eigene Wahl wurde kurz vor der Kreuzung von der Vorwahl überschrieben (Kreuzung nach dem Umschalten jetzt als erledigt markiert, Test `tkalb.js`). Übernächste Kreuzung unter 150 m klein darunter („Danach in … m“), schon wählbar, folgt der gewählten Richtung (`gMakePend`, `NET.pend2v`, `NET.pre`, vorab berechnete Strecke `NET.hyp`; aus: `window.NO_JUN2`; Test `tjun2.js`, `TURN1=1 BIKE=gravel`)
+
+## Aus UEBERGABE.md verschoben (Stand 0.17.3)
+
+**Umgebung und Kacheln (0.17.0)**
+- Daten ohne Higgsfield, direkt aus der Cloud (S3 offen): Overture 2026-11-18 (Gebäude, base/land, land_use, infrastructure; `werkzeuge/overture_holen.py PREFIX ziel.parquet spalten`), Copernicus GLO-30, ESA WorldCover 2021. Rohdaten nicht im Repo (ca. 140 MB), Skripte schon.
+- `werkzeuge/rand_auffuellen.py COP.tif WC.tif OVDIR`: DEM jetzt x −10393…10607, z −14506…8019 (841×902, 25 m; alt innen unverändert, außen Copernicus mit Naht-Ausgleich über 600 m), `lc10.png` x0 −10400 z0 −14500 2100×2250 (`window.ZGLCO`), Wald- und Ortsraster in `zgres.json` bis zum Rand (OSM über Overture). Bricht ab, wenn schon erweitert.
+- `werkzeuge/kacheln.py OVDIR` → `quelle/kacheln/k_I_J.bin` (2 km, 139 Dateien, 1,9 MB) + `index.json` + `zg2/lmb.b64` (Wahrzeichen-Grundrisse). Inhalt: Gebäude (alt 27.433 + 26.201 neu am Rand, Typ 5 = in Industriefläche → Hallen/Blech in `htPick`), OSM-Bäume (alt + Rand: tree, tree_row, scrub, orchard, hedge), Felsen (8 Byte: x,z, Typ 0 Wand an `natural=cliff` mit Höhe aus DEM-Gefälle, 1 Einzelfels, 2 Geröll, 3 Block in Felsfläche), Zäune/Mauern (0 Industrie 2 m Maschendraht, 1 Holz, 2 Mauer, 3 Stützmauer). `build_gpu.py` kopiert nach `data/kacheln` und schreibt nur Index + `ZGLMB` in zittau.js (ZGBLD/ZGTREES entfallen, zittau.js 4,5 MB).
+- Spiel: `KC` (Laden per fetch, max. 4 gleichzeitig, Radius Fernsicht+1,5 km, frei ab +4 km), `kcTick` im Hauptloop, `kcReady(i,j)` (500-m-Kachel samt Nachbarn geladen) sperrt Häuser/Wald/Fernsicht bis die Daten da sind, `kcWait` beim Start (2,6 km um Start und Startpunkt, max. 15 s). `bldDecode`, `gtBldIndex`/`gtOsmTrees` liefern die geladenen Maps. Felsen und Zäune entstehen mit der Waldkachel (`gtRockList/gtRockMesh/gtRockHash`, `gtFenceMesh`; keine Bäume in Felsen, nichts auf Straßen/Wegen, nicht im Oybin-Modell/Schanze/Kelchsteine). Aus: `window.NO_KC`.
+- Wanderer (`HIKE`, `hikeStep`): alle 14–40 s, max. 3 (LITE 2, MINI 1), erscheinen 150–380 m voraus auf Wegen ≥ 60 m, gehen weiter auf anschließende Wege, treten bei vorbeifahrendem Fahrer an den Rand und schauen, verschwinden ab 520 m; Figuren aus dem Pool (wanderer_w/_m, spaziergaengerin). Aus: `window.NO_HIKE`.
+- Tests: `tkc.js` (PTS-Liste Bilder, Kachelzahlen), `thike.js` (braucht Verknüpfung `quelle/gpu/figuren` → `webgpu-spiel/figuren`, steht in .gitignore).
+

@@ -5669,9 +5669,11 @@ function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) retu
   for (let k=0;k<GF.per;k++){ const x=(i+r())*GF.cs, z=(j+r())*GF.cs; let h; if (XH){ const xc=xrNear(x,z,8); if (xc.d<((xc.k>=0&&XR[xc.k].w)||XW)/2+0.4) continue; } const cn=courseNear(x,z,16);
     if (cn.i>=0 && cn.d<CORR.CW+0.5){ const d=cum[cn.i]+cn.t*(cum[cn.i+1]-cum[cn.i]), Wd=roadWAt(d); if (cn.d<Wd/2+swAt(d)-0.05) continue; const a=pts[cn.i], b=pts[(cn.i+1)%N], side=((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x))<0?1:-1; h=profileH(d,side,cn.d); }
     else h=terrainMeshH(x,z);
-    if (h<GF.waterY+1.3 || inPond(x,z,1.5)) continue; const G9=GF.def.graph&&window.LCD, gn9=G9?gnNear(x,z,30):null, lu=G9?{t:gnLC(x,z)===3?2:0,edge:99}:LU?landUse(x,z):{t:0,edge:99}; const inF=lu.edge>2; if (gn9 && gn9.k>=0 && gn9.d<(gn9.w||6)/2+0.4) continue;   /* 0.11.1: kein Gras auf Querstraßen (bisher nur zur eigenen Strecke geprüft) */ if (inF && (lu.t===5 || (lu.t===6 && r()<0.6))) continue; const nearR=G9?(gn9.d<(gn9.w||6)/2+14):(cn.i>=0 && cn.d<16), crop=inF && lu.t>=2 && lu.t<=4 && !nearR;   /* 0.9.9: im Straßennetz Abstand zu ALLEN Straßen (nicht nur zur Hauptrunde) und Felder nach Satellit statt Flurplan */   /* 0.9.7: am Straßenrand kein hohes Feld/Büschel (Hicore) */
-    q.setFromAxisAngle(UPV,r()*6.28); const fine=!!GF.def.graph, tuft=fine&&!crop&&cl0&&(!nearR||hc<0.12)&&Math.hypot(x-cl0[0],z-cl0[1])<(nearR?0.4:0.55)&&r()<(nearR?0.35:0.6), sc=crop?0.9+r()*0.4:fine?(tuft?1.1+r()*0.4:0.85+r()*0.25):0.7+r()*0.8; s.set(sc,sc*(crop?(lu.t===3?3.2:lu.t===4?3.6:1.8)+r()*0.5:fine?(tuft?1.3+r()*0.6:0.23+r()*0.11):0.7+r()*0.8),sc);   /* 0.9.2: Wiese 5-8 cm, ab und zu ein höherer Büschel */ p.set(x,h-0.02,z); m.compose(p,q,s); M.set(m.elements,n*16);
-    const f=fine?0.86+r()*0.14:0.75+r()*0.35; col.setHSL(gh[0]-(fine?0.005:0.02)+r()*(fine?0.015:0.05), gh[1]*(fine?0.85+r()*0.1:0.75+r()*0.25), 0.5); col.multiplyScalar(f*1.02); if (crop){ if (lu.t===3) col.setRGB(1.25*f,1.0*f,0.45*f); else if (lu.t===4) col.setRGB(1.2*f,1.15*f,0.25*f); } C.set([col.r,col.g,col.b],n*3); P[n*2]=x; P[n*2+1]=z; n++; }
+    if (h<GF.waterY+1.3 || inPond(x,z,1.5)) continue; const G9=GF.def.graph&&window.LCD, gn9=G9?gnNear(x,z,30):null, lu=G9?{t:gnLC(x,z)===3?2:0,edge:99}:LU?landUse(x,z):{t:0,edge:99}; const inF=lu.edge>2; if (gn9 && gn9.k>=0 && gn9.d<(gn9.w||6)/2+0.4) continue;   /* 0.11.1: kein Gras auf Querstraßen (bisher nur zur eigenen Strecke geprüft) */ const wy9=G9&&!window.NO_GFWAY&&WAYS_ON; if (wy9 && waysNear(x,z,0.3)) continue;   /* 0.17.3 (Hicore): auch nichts auf Feld-/Waldwegen */ if (inF && (lu.t===5 || (lu.t===6 && r()<0.6))) continue; const nearR=G9?(gn9.d<(gn9.w||6)/2+14 || (wy9 && waysNear(x,z,4))):(cn.i>=0 && cn.d<16), crop=inF && lu.t>=2 && lu.t<=4 && !nearR;
+    /* 0.17.3 (Hicore): Acker wie die Bodenfarbe je Schlag (lcCol): umgepflügt = kahl, Stoppel = kurz und strohfarben, Wintersaat = kurz und grün; kein hoher grüner Teppich mehr */
+    let fv=-1; if (G9 && lu.t===2){ const f=Math.sin(Math.floor(x/140)*12.9898+Math.floor(z/110)*78.233)*43758.5453; fv=f-Math.floor(f); if (fv>=0.75 || (fv>=0.4 ? r()<0.45 : r()<0.3)) continue; }   /* 0.9.9: im Straßennetz Abstand zu ALLEN Straßen (nicht nur zur Hauptrunde) und Felder nach Satellit statt Flurplan */   /* 0.9.7: am Straßenrand kein hohes Feld/Büschel (Hicore) */
+    q.setFromAxisAngle(UPV,r()*6.28); const fine=!!GF.def.graph, tuft=fine&&!crop&&cl0&&(!nearR||hc<0.12)&&Math.hypot(x-cl0[0],z-cl0[1])<(nearR?0.4:0.55)&&r()<(nearR?0.35:0.6), sc=crop?0.9+r()*0.4:fine?(tuft?1.1+r()*0.4:0.85+r()*0.25):0.7+r()*0.8; s.set(sc,sc*(crop?(fv>=0?(fv>=0.4?0.4+r()*0.2:0.35+r()*0.2):lu.t===3?3.2:lu.t===4?3.6:1.8)+r()*0.5:fine?(tuft?1.3+r()*0.6:0.23+r()*0.11):0.7+r()*0.8),sc);   /* 0.9.2: Wiese 5-8 cm, ab und zu ein höherer Büschel */ p.set(x,h-0.02,z); m.compose(p,q,s); M.set(m.elements,n*16);
+    const f=fine?0.86+r()*0.14:0.75+r()*0.35; col.setHSL(gh[0]-(fine?0.005:0.02)+r()*(fine?0.015:0.05), gh[1]*(fine?0.85+r()*0.1:0.75+r()*0.25), 0.5); col.multiplyScalar(f*1.02); if (crop && fv>=0.4) col.setRGB(1.1*f,0.95*f,0.55*f); else if (crop){ if (lu.t===3) col.setRGB(1.25*f,1.0*f,0.45*f); else if (lu.t===4) col.setRGB(1.2*f,1.15*f,0.25*f); } C.set([col.r,col.g,col.b],n*3); P[n*2]=x; P[n*2+1]=z; n++; }
   c={M,C,P,n}; GF.cells.set(key,c); if (GF.cells.size>1400){ const it=GF.cells.keys(); for (let k=0;k<300;k++) GF.cells.delete(it.next().value); } return c; }
 /* Feste Plätze je Zelle (Ringpuffer 9x9): beim Weiterfahren werden nur die neuen Zellen geschrieben und hochgeladen, nicht mehr alle ~50.000 Halme (das gab alle ~6 m einen Hänger) */
 function updateGrassField(pos){ const im=GF.im; if (!im) return; const kx=Math.floor(pos.x/GF.cs), kz=Math.floor(pos.z/GF.cs);
@@ -11674,7 +11676,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.17.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.17.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -11842,7 +11844,7 @@ function curveLean(r, d, rev){ if (window.NO_CURVELEAN){ r.cl=0; return; } const
    - Unbefestigt: Linie schlängelt leicht, kleine Stöße (Höhe, Nicken, Rollen) je nach Untergrund; MTB dank Federung ruhiger, Asphalt nichts. Aus: window.NO_WAYFEEL
    - Pfützen (WET.p, Zellen wie im Wege-Shader): vorausschauend seitlich ausweichen, wenn der Weg breit genug ist, sonst durch und es spritzt. Aus: window.NO_PUDDLE
    - Erdige Wege nach Regen: ab und zu fliegt Matsch vom Reifen (MTB mehr), selten rutscht das Hinterrad kurz weg (kein Sturz). Aus: window.NO_MUD */
-const WF={lat:0, yaw:0, roll:0, pitch:0, y:0, slipA:0, slipT:-1, slipS:0, slipCd:6, pOff:0, pOffT:0, pAcc:0, rough:0, mud:0, unp:false, inP:false, add:0, mAcc:0, fx:null, PC:new Map()};
+const WF={lat:0, yaw:0, roll:0, pitch:0, y:0, slipA:0, slipT:-1, slipS:0, slipCd:6, pOff:0, pOffT:0, pAcc:0, ph:0.6, phI:0.6, phT:0, hkS:-1e9, rough:0, mud:0, unp:false, inP:false, add:0, mAcc:0, fx:null, PC:new Map()};
 const WF_ROUGH=[0,0.55,0.2,0.08,0.7,0.5,1,0.6,0.7,0.5,1,0.3,0.6,0.3];
 const WF_MUD=[0,0,0,0,0.15,0.1,0.1,1,0.7,0.35,0,0,0.85,0.1];
 /* Hash wie im Shader (fract-Arithmetik in float32), damit Spiel und Bild dieselben Pfützen kennen */
@@ -11867,12 +11869,17 @@ function wayFeelStep(dt){ WF.add=0; WF.lat=WF.yaw=WF.roll=WF.pitch=WF.y=0; if (!
   WF.rough+=(rough-WF.rough)*Math.min(1,dt*2); WF.mud+=(mud-WF.mud)*Math.min(1,dt*1.5); WF.unp=unp;
   const s=S.dist, sp=clamp(v/5,0,1.3);
   /* 1. Linie und Stöße */
-  if (!window.NO_WAYFEEL && WF.rough>0.01){ const A=[0.07,0.10,0.065][bk]*WF.rough*clamp(v/4,0,1), hf=WF.rough*[1.0,0.9,0.45][bk]*sp;
-    const lat=a=>0.6*Math.sin(a*0.19+0.7)+0.4*Math.sin(a*0.071+2.1)+0.25*Math.sin(a*0.43+4.0);
-    WF.lat=A*lat(s)/1.25; WF.yaw=Math.atan((lat(s+0.5)-lat(s-0.5))*A/1.25);
-    const bl=0.8, k=Math.floor(s/bl), u=s/bl-k, a=Math.pow(wfHash(k,7,1,2,3),3), on2=u<0.4?1:0, sg=wfHash(k,3,5,1,2)<0.5?-1:1;
-    WF.y=0.013*hf*a*on2*Math.sin(Math.PI*u/0.4); WF.pitch=0.014*hf*a*on2*Math.cos(Math.PI*u/0.4);
-    WF.roll=0.010*hf*(Math.sin(s*2.7)+0.6*Math.sin(s*4.9+1.3))+0.02*hf*a*on2*Math.sin(Math.PI*u/0.4)*sg; }
+  /* 0.17.3 (Hicore): Unruhe in zufälligen Phasen statt gleichmäßig: mal 1-3 s ruhig, mal 2-4 s normal, mal 3-4 s ruppig, ab und zu ein einzelner Huckel */
+  if (v>0.5 && WF.rough>0.01){ WF.phT-=dt; if (WF.phT<=0){ const r=Math.random(); if (r<0.34){ WF.phI=0.15+Math.random()*0.15; WF.phT=1+Math.random()*2; } else if (r<0.72){ WF.phI=0.5+Math.random()*0.2; WF.phT=2+Math.random()*2; } else { WF.phI=0.95+Math.random()*0.2; WF.phT=3+Math.random(); }
+      if (Math.random()<0.3) WF.hkS=s+2+Math.random()*6; } }
+  WF.ph+=(WF.phI-WF.ph)*Math.min(1,dt*1.6);
+  if (!window.NO_WAYFEEL && WF.rough>0.01){ const I=window.WF_PHASE===0?1:WF.ph, A=[0.05,0.07,0.045][bk]*WF.rough*clamp(v/4,0,1)*(0.35+0.65*I), hf=WF.rough*[1.0,0.9,0.45][bk]*sp;
+    const lat=a=>0.65*Math.sin(a*0.15+0.7)+0.45*Math.sin(a*0.061+2.1)+0.12*Math.sin(a*0.37+4.0);
+    WF.lat=A*lat(s)/1.22; WF.yaw=Math.atan((lat(s+0.5)-lat(s-0.5))*A/1.22);
+    const bl=0.8, k=Math.floor(s/bl), u=s/bl-k, a=Math.pow(wfHash(k,7,1,2,3),3)*I*1.15, on2=u<0.4?1:0, sg=wfHash(k,3,5,1,2)<0.5?-1:1;
+    let by=0.013*hf*a*on2*Math.sin(Math.PI*u/0.4), bp=0.014*hf*a*on2*Math.cos(Math.PI*u/0.4), br=0.02*hf*a*on2*Math.sin(Math.PI*u/0.4)*sg;
+    const hu=(s-WF.hkS)/0.5; if (hu>=0 && hu<1){ const g=0.8+0.5*WF.rough; by+=0.018*g*sp*Math.sin(Math.PI*hu); bp+=0.02*g*sp*Math.cos(Math.PI*hu); br+=0.012*g*sp*Math.sin(Math.PI*hu)*(WF.hkS%1<0.5?-1:1); }
+    WF.y=by; WF.pitch=bp; WF.roll=0.006*hf*I*(Math.sin(s*2.1)+0.5*Math.sin(s*3.7+1.3))+br; }
   /* 2. Pfützen: alle 0,1 s die nächsten 14 m prüfen */
   const W=roadWAt(S.dist)||3, maxL=Math.max(0,W/2-0.35), base=TRAFFIC.rLane||0;
   if (!window.NO_PUDDLE && E && E.kind!=='r' && PU>0.03 && v>0.5){ WF.pAcc+=dt; if (WF.pAcc>=0.1){ WF.pAcc=0; const dir=rev?-1:1;
