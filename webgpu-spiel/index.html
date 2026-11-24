@@ -10007,9 +10007,9 @@ const ZSB={ lines:null, grid:null, C:25, grp:null, chunks:[], train:null, nextT:
     box(1.6,0.45,4.5,0,4.3,-Lc*0.2,grey); box(W-0.3,0.55,Lc-4,0,0.55,0,dark);
     /* Bug: schräge Front mit Scheibe */ const nose=new THREE.Shape(); nose.moveTo(0,0); nose.lineTo(1.6,0); nose.lineTo(1.6,0.9); nose.quadraticCurveTo(1.1,2.6,0.0,3.12); nose.closePath();
     const ng=new THREE.ExtrudeGeometry(nose,{depth:W, bevelEnabled:false}); ng.translate(0,0,-W/2); ng.rotateY(-Math.PI/2); const nm=new THREE.Mesh(ng,white); nm.position.set(0,1.0,(Lc-3.2)/2); nm.castShadow=true; car.add(nm);
-    const ws=new THREE.Mesh(new THREE.PlaneGeometry(W-0.5,1.35),glass); ws.position.set(0,3.05,(Lc-3.2)/2+0.95); ws.rotation.x=-0.62; car.add(ws);
-    const nb=new THREE.Mesh(new THREE.BoxGeometry(W-0.1,0.3,1.5),band); nb.position.set(0,1.25,(Lc-3.2)/2+0.8); car.add(nb);
-    [-0.85,0.85].forEach(x=>{ const l=new THREE.Mesh(new THREE.CircleGeometry(0.13,12),hl); l.position.set(x,1.75,(Lc-3.2)/2+1.45); l.rotation.x=-0.35; car.add(l); }); { const l=new THREE.Mesh(new THREE.CircleGeometry(0.11,12),hl); l.position.set(0,3.8,(Lc-3.2)/2+0.45); l.rotation.x=-0.62; car.add(l); }
+    const ws=new THREE.Mesh(new THREE.PlaneGeometry(W-0.45,1.45),glass); ws.position.set(0,3.32,(Lc-3.2)/2+0.99); ws.rotation.x=-0.63; car.add(ws);
+    const nb=new THREE.Mesh(new THREE.BoxGeometry(W+0.02,0.32,1.64),band); nb.position.set(0,1.25,(Lc-3.2)/2+0.81); car.add(nb); const sk=new THREE.Mesh(new THREE.BoxGeometry(W-0.5,0.55,0.5),dark); sk.position.set(0,0.75,(Lc-3.2)/2+1.75); car.add(sk);
+    [-0.85,0.85].forEach(x=>{ const l=new THREE.Mesh(new THREE.CircleGeometry(0.13,12),hl); l.position.set(x,1.7,(Lc-3.2)/2+1.62); car.add(l); }); { const l=new THREE.Mesh(new THREE.CircleGeometry(0.1,12),hl); l.position.set(0,4.03,(Lc-3.2)/2+0.33); l.rotation.x=-1.0; car.add(l); }
     /* Heck = Übergang zum zweiten Wagen */ box(W-0.4,2.9,1.6,0,2.4,-(Lc-3.2)/2-0.6,dark);
     [-1,1].forEach(u=>{ box(2.4,0.7,2.8,0,0.55,u*(Lc/2-4.2),dark); [-1,1].forEach(sd=>[-0.9,0.9].forEach(o=>{ const w=new THREE.Mesh(new THREE.CylinderGeometry(0.43,0.43,0.14,14),grey); w.rotation.z=Math.PI/2; w.position.set(sd*0.72,0.43,u*(Lc/2-4.2)+o); car.add(w); })); });
     /* je Material ein Netz (wenige Draw Calls) */ const byM=new Map(); car.children.slice().forEach(m=>{ if (!m.isMesh) return; m.updateMatrix(); let a=byM.get(m.material); if (!a) byM.set(m.material,a=[]); a.push([m.geometry,m.matrix.clone()]); });
