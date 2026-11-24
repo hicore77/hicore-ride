@@ -1,0 +1,21 @@
+// Kontrollbilder Autos (0.13.0): Lichter bei Nacht von hinten/vorn, Schnee auf Scheiben am Tag. OUT=Ordner
+const {chromium}=require('playwright'); const serve=require('./serve');
+(async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']}); const ctx=await b.newContext({viewport:{width:800,height:500}}); await serve(ctx);
+ const p=await ctx.newPage(); p.on('pageerror',e=>console.log('PE',e.message)); p.on('console',m=>{ if(m.type()==='error'||/lampen|warm|autos/.test(m.text())) console.log('CE',m.text().slice(0,300)); });
+ await p.goto('http://127.0.0.1:8765/index.html?gl=1'+(process.env.QS||'')); await p.waitForFunction(()=>window.glbRiderReady,null,{timeout:800000});
+ await p.evaluate(()=>{ selWorld='zittau'; $('bots').value='0'; $('bSim').click(); });
+ await p.waitForFunction(()=>S.running,null,{timeout:1200000});
+ const OUT=process.env.OUT||'.';
+ await p.evaluate(()=>{ document.querySelectorAll('body>div').forEach(e=>{if(!e.querySelector('canvas'))e.style.visibility='hidden'}); $('simW').value=0; TRAFFIC.nextT=0; });
+ await p.waitForFunction(()=>TRAFFIC.act.length>0,null,{timeout:1200000});
+ const info=await p.evaluate(()=>{ const c=TRAFFIC.act[0]; TRAFFIC.step=()=>{}; window.__car=c; return {ti:c.ti, lights:!!c.lights, n:c.lights?c.lights.children.length:0, m:TRAFFIC.types[c.ti].m}; }); console.log('auto',JSON.stringify(info));
+ const shot=async(name,cfg,view)=>{ await p.evaluate(([cfg,view])=>{ ATMO.wx=cfg[0]; ATMO.sn=cfg[1]; ATMO.snRd='geraeumt'; ATMO.tod=cfg[2]; ATMO.apply(); for (const k of ['a','d','m','r']) SNOW[k].value=SNOW.t[k];
+     const c=window.__car, g=c.o; g.updateMatrixWorld(true); const P=g.getWorldPosition(new THREE.Vector3()), f=new THREE.Vector3(0,0,1).applyQuaternion(g.getWorldQuaternion(new THREE.Quaternion())); if (TRAFFIC.types[c.ti].rot) f.negate();
+     const s=view==='hinten'?-1:1, side=new THREE.Vector3(f.z,0,-f.x); const E=P.clone().addScaledVector(f,s*6.5).addScaledVector(side,1.6); E.y+=1.5; if (c.lights) c.lights.visible=cfg[2]==='nacht';
+     window._camFix=[E.x,E.y,E.z,P.x,P.y+0.6,P.z]; window.__F0=FRC; },[cfg,view]);
+   await p.waitForFunction(()=>FRC>=window.__F0+6,null,{timeout:1600000}); await p.screenshot({timeout:180000,path:OUT+'/car_'+name+'.jpg',quality:85}); console.log('shot',name); };
+ await shot('nacht_hinten',['sonne','keine','nacht'],'hinten');
+ await shot('nacht_vorn',['sonne','keine','nacht'],'vorn');
+ await shot('schnee_vorn',['sonne','viel','nachm'],'vorn');
+ await shot('schnee_hinten',['sonne','viel','nachm'],'hinten');
+ await b.close(); })();

@@ -16,12 +16,17 @@ import hashlib as _h
 ph={n:_h.md5(open(pd+n+'.glb','rb').read()).hexdigest()[:8] for n in props}
 pj='window.PROP_GLB={};window.PROP_LIST='+json.dumps(sorted(props))+';window.PROP_HASH='+json.dumps(ph)+';'
 rj=''
-if os.path.exists(D+'rider.glb'): rj='window.RIDER_GLB_B64="'+base64.b64encode(open(D+'rider.glb','rb').read()).decode()+'";'
-bf=''
-if os.path.exists(D+'bframe/frame.glb'): bf='window.BIKE_FRAME_B64="'+base64.b64encode(open(D+'bframe/frame.glb','rb').read()).decode()+'";'
-rj=rj+bf
 import hashlib as _hl
 os.makedirs(D+'gpu/data/img',exist_ok=True)
+# 0.13.0: Fahrer und Rahmen als Binärdateien statt Base64 (media.js von 6,4 auf ca. 1 MB). EMBED_GLB=1 baut den alten Weg.
+def glbf(src,name):
+    b=open(src,'rb').read(); open(D+'gpu/data/'+name,'wb').write(b); return 'data/'+name+'?h='+_hl.md5(b).hexdigest()[:8]
+if os.environ.get('EMBED_GLB')=='1':
+    if os.path.exists(D+'rider.glb'): rj='window.RIDER_GLB_B64="'+base64.b64encode(open(D+'rider.glb','rb').read()).decode()+'";'
+    if os.path.exists(D+'bframe/frame.glb'): rj+='window.BIKE_FRAME_B64="'+base64.b64encode(open(D+'bframe/frame.glb','rb').read()).decode()+'";'
+else:
+    if os.path.exists(D+'rider.glb'): rj='window.RIDER_GLB_FILE='+json.dumps(glbf(D+'rider.glb','rider.glb'))+';'
+    if os.path.exists(D+'bframe/frame.glb'): rj+='window.BIKE_FRAME_FILE='+json.dumps(glbf(D+'bframe/frame.glb','frame.glb'))+';'
 for _f in os.listdir(D+'gpu/data/img'): os.remove(D+'gpu/data/img/'+_f)
 def imgf(src,name):
     b=open(src,'rb').read(); open(D+'gpu/data/img/'+name,'wb').write(b); return 'data/img/'+name+'?h='+_hl.md5(b).hexdigest()[:8]

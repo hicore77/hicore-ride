@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');
 (async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
- const p=await b.newPage({viewport:{width:640,height:360}}); const errs=[]; p.on('pageerror',e=>errs.push('PE '+e.stack.slice(0,300)));
+ const ctx=await b.newContext({viewport:{width:640,height:360}}); await require("./serve")(ctx); const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push('PE '+e.stack.slice(0,300)));
  await p.goto((process.env.BASE||'http://127.0.0.1:8765/')+'index.html?gl=1'); await p.waitForFunction(()=>window.glbRiderReady,null,{timeout:300000});
  await p.evaluate(()=>{ selWorld='zittau'; WORLD=WORLDS.find(x=>x.id==='zittau'); });
  const r=await p.evaluate(()=>{ window.requestAnimationFrame=()=>0; const D=gnData(); gnRB(); const bad=[], stat={pairs:0,nodes:0,rbPairs:0,notOffered:0};
