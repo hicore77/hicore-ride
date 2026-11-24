@@ -1,6 +1,6 @@
 """DOP-Bäume (dop_baeume.py → *.bin) in die Weltkacheln quelle/kacheln/ einfügen und die Waldmaske nach zg2/dopwald.json schreiben.
 Wiederholbar: alte DOP-Bäume (Typ >= 16) im Ausschnitt werden vorher entfernt. Mehrere .bin nacheinander möglich.
-Aufruf (in quelle/): python3 werkzeuge/dop_einfuegen.py baeume.bin [weitere.bin ...]"""
+Typ 8 = Strauch (0.19.0). Aufruf (in quelle/): python3 werkzeuge/dop_einfuegen.py baeume.bin [weitere.bin ...]"""
 import sys,os,struct,json,hashlib,base64,numpy as np
 K='kacheln/'; IDX=json.load(open(K+'index.json')); S=IDX['S']
 def rd(fn):
@@ -14,10 +14,15 @@ def wr(fn,h,parts,xy,ty):
     open(fn,'wb').write(data); return hashlib.md5(data).hexdigest()[:8]
 masks=json.load(open('zg2/dopwald.json')) if os.path.exists('zg2/dopwald.json') else []
 for src in sys.argv[1:]:
-    u=open(src,'rb').read(); assert u[:4]==b'DOPB'; x0,z0,Wc,Hc=struct.unpack('<4i',u[4:20]); nb=(Wc*Hc+7)//8; bits=u[20:20+nb]; o=20+nb
-    n=struct.unpack('<I',u[o:o+4])[0]; o+=4; P=np.frombuffer(u[o:o+4*n],'<i2').reshape(-1,2).astype(np.int32); T=np.frombuffer(u[o+4*n:o+5*n],'u1')
-    x1,z1=x0+Wc*10,z0+Hc*10
-    masks=[m for m in masks if m[:2]!=[x0,z0]]+[[x0,z0,10,Wc,Hc,base64.b64encode(bits).decode()]]
+    u=open(src,'rb').read()
+    if u[:4]!=b'DOPB' and u[:4]!=b'DOPC': import zlib; u=zlib.decompress(u)
+    if u[:4]==b'DOPC':   # 0.19.0 dop_gebiet.py: ganzes Gebiet, Maske separat als zg2/dop_maske.png
+        x0,z0,x1,z1,n=struct.unpack('<4iI',u[4:24]); o=24; masks=[]
+    else:
+        assert u[:4]==b'DOPB'; x0,z0,Wc,Hc=struct.unpack('<4i',u[4:20]); nb=(Wc*Hc+7)//8; bits=u[20:20+nb]; o=20+nb
+        n=struct.unpack('<I',u[o:o+4])[0]; o+=4; x1,z1=x0+Wc*10,z0+Hc*10
+        masks=[m for m in masks if m[:2]!=[x0,z0]]+[[x0,z0,10,Wc,Hc,base64.b64encode(bits).decode()]]
+    P=np.frombuffer(u[o:o+4*n],'<i2').reshape(-1,2).astype(np.int32); T=np.frombuffer(u[o+4*n:o+5*n],'u1')
     I0,I1,J0,J1=x0//S,(x1-1)//S,z0//S,(z1-1)//S; add=nd=0
     for I in range(I0,I1+1):
         for J in range(J0,J1+1):
@@ -25,7 +30,7 @@ for src in sys.argv[1:]:
             if os.path.exists(fn): h,parts,xy,ty=rd(fn)
             else: h=(0,0,0,0,0,0,0,0); parts=[b'',b'',b'',b'']; xy=np.zeros((0,2),np.int32); ty=np.zeros(0,np.uint8)
             inR=(xy[:,0]>=x0*2)&(xy[:,0]<x1*2)&(xy[:,1]>=z0*2)&(xy[:,1]<z1*2)
-            keep=~((ty>=16)&inR); xy,ty=xy[keep],ty[keep]
+            keep=~(((ty>=16)|(ty==8))&inR); xy,ty=xy[keep],ty[keep]
             sel=(P[:,0]>=max(I*S,x0)*2)&(P[:,0]<min((I+1)*S,x1)*2)&(P[:,1]>=max(J*S,z0)*2)&(P[:,1]<min((J+1)*S,z1)*2)
             Q,QT=P[sel],T[sel]
             osm=xy[ty<6].astype(np.float32)/2   # echte OSM-Bäume haben Vorrang
@@ -39,4 +44,5 @@ for src in sys.argv[1:]:
             IDX['t']['%d,%d'%(I,J)]=wr(fn,h,parts,xy,ty)
     print(src,'eingefügt',add,'wegen OSM-Baum weggelassen',nd)
 json.dump(IDX,open(K+'index.json','w'),separators=(',',':'))
-json.dump(masks,open('zg2/dopwald.json','w'),separators=(',',':'))
+if masks: json.dump(masks,open('zg2/dopwald.json','w'),separators=(',',':'))
+elif os.path.exists('zg2/dopwald.json'): os.remove('zg2/dopwald.json')
