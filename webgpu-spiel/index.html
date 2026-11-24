@@ -224,6 +224,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
       <div class="spage" id="sGfx" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Grafik &amp; Anzeige</h3>
       <div class="grid">
         <div><label>Grafikqualität</label><select id="gfx"><option value="1.25">Ultra (volle Auflösung, beste Schatten, weite Baumdetails)</option><option value="1">Hoch (volle Auflösung)</option><option value="0.7" selected>Mittel</option><option value="0.5">Niedrig (Tablet/Laptop)</option><option value="0.35">Smartphone (minimal, läuft auf fast jedem Handy)</option></select></div>
+        <div><label>Bodentexturen</label><select id="texSet"><option value="alt" selected>bisherige</option><option value="neu">neu (Poly Haven, Test)</option></select></div>
         <div><label>Leuchten heller Stellen (Bloom)</label><select id="bloom"><option value="1" selected>an</option><option value="0">aus</option></select></div>
         <div><label>Bilder pro Sekunde anzeigen</label><select id="fpsShow"><option value="0">aus</option><option value="1" selected>an</option></select></div>
         <div><label>Werte oben (Watt, Kadenz, Puls, Tempo)</label><select id="vHud"><option value="1" selected>an</option><option value="0">aus</option></select></div>
@@ -4701,7 +4702,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   window.R187=true; })();
 </script>
 <script>window.PROP_GLB={};window.PROP_LIST=["amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "gruft", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "gruft": "3a94d372", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
-<script src="data/media.js?h=17fccca1"></script>
+<script src="data/media.js?h=064a69f9"></script>
 <script src="data/zittau.js?h=10401a87"></script>
 <script>
 "use strict";
@@ -4820,6 +4821,9 @@ let PBR_SAFE=false, PBR_Q0=0.7; try{ PBR_SAFE=localStorage.getItem('hicoreRide.p
 const PHOTO={};
 /* 0.11.6: Bilder liegen als eigene Dateien unter data/img (Browser lädt parallel und speichert zwischen), alte Einbettung als base64 geht weiter */
 function jpgSrc(v){ return (v.length<300 && v.indexOf('/')>=0) ? v : 'data:image/jpeg;base64,'+v; }
+/* 0.11.8 (Hicore): Poly-Haven-Texturen (CC0) für Wiese, Asphalt, Waldboden, Feldweg, Schotter als Alternative; Schalter in den Einstellungen, alt bleibt erhalten */
+window.TEX_NEU=(()=>{ const q=location.search; if (/[?&]tex=neu\b/.test(q)) return true; if (/[?&]tex=alt\b/.test(q)) return false; try{ return JSON.parse(localStorage.getItem('hicoreRide.tex')||'"alt"')==='neu'; }catch(e){ return false; } })();
+if (window.TEX_NEU && window.TEX_JPG_PH && window.TEX_JPG) Object.assign(window.TEX_JPG, window.TEX_JPG_PH);
 window.PHOTO_READY=new Promise(res=>{ const T=window.TEX_JPG||{}, ks=Object.keys(T); let n=ks.length; if (!n) return res(); const done=()=>{ if (--n<=0) res(); }; ks.forEach(k=>{ const im=new Image(); im.onload=done; im.onerror=done; im.src=jpgSrc(T[k]); PHOTO[k]=im; }); setTimeout(res,15000); });
 function photo(k){ const im=PHOTO[k]; return (im && im.complete && im.naturalWidth) ? im : null; }
 // Foto gekachelt in einen Canvas-Bereich zeichnen (tw = Kachelbreite in px)
@@ -6107,8 +6111,11 @@ function buildCrossRoads(grp, tex, rmat){ if (!XR.length) return;
   if (NET && NET.graph){ const D=gnData(), pm=rmat(asphaltTexture('plain')), onMain=new Set(); (NET.main.ents||[]).forEach(en=>{ onMain.add(en.n0); onMain.add(en.n1); });
     const pv=[], pc=[], pu=[], pi=[];
     D.nodes.forEach((nd,ni)=>{ const ad=D.adj[ni]||[]; if (ad.length<3 || gnRBAt(nd.x,nd.z,2)) return; let w=0; ad.forEach(k=>{ w=Math.max(w,D.edges[k].w||6); }); const R=w/2+0.9, m=onMain.has(ni), yo=m?0.035:0.1, b=pv.length/3, S=28;
-      pv.push(nd.x, nd.y+yo, nd.z); pu.push(0.5,0.5); pc.push(1,1,1);
-      for (let k=0;k<S;k++){ const a=k/S*Math.PI*2, x=nd.x+Math.cos(a)*R, z=nd.z+Math.sin(a)*R, q=gnNear(x,z,20); pv.push(x, (q.k>=0?q.y:nd.y)+yo, z); pu.push(0.5+Math.cos(a)*0.45, 0.5+Math.sin(a)*R/24); pc.push(1,1,1); pi.push(b, b+1+k, b+1+(k+1)%S); } });
+      /* 0.11.8 (Hicore: runder Fleck an Kreuzungen): Textur nicht mehr radial, sondern eben in Richtung der breitesten Straße, Maßstab wie die Fahrbahn (Breite quer, 24 m längs) */
+      let ew=-1, ux=1, uz=0; ad.forEach(k=>{ const E=D.edges[k], P=E.P; if ((E.w||6)<=ew || P.length<2) return; ew=E.w||6; const A=E.a===ni?P[0]:P[P.length-1], B=E.a===ni?P[Math.min(2,P.length-1)]:P[Math.max(0,P.length-3)], l=Math.hypot(B.x-A.x,B.z-A.z)||1; ux=(B.x-A.x)/l; uz=(B.z-A.z)/l; });
+      const UV=(x,z)=>{ const dx=x-nd.x, dz=z-nd.z, al=dx*ux+dz*uz, ac=-dx*uz+dz*ux; return [0.5+ac/w, al/24]; };
+      pv.push(nd.x, nd.y+yo, nd.z); pu.push(...UV(nd.x,nd.z)); pc.push(1,1,1);
+      for (let k=0;k<S;k++){ const a=k/S*Math.PI*2, x=nd.x+Math.cos(a)*R, z=nd.z+Math.sin(a)*R, q=gnNear(x,z,20); pv.push(x, (q.k>=0?q.y:nd.y)+yo, z); pu.push(...UV(x,z)); pc.push(1,1,1); pi.push(b, b+1+k, b+1+(k+1)%S); } });
     if (pi.length){ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pv,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(pu,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(pc,3)); g.setIndex(pi); g.computeVertexNormals(); const m=new THREE.Mesh(g,pm); m.receiveShadow=true; grp.add(m); }
     const RB=gnRB(); if (RB.length){ const av=[], au=[], ac=[], ai=[], iv=[], ii=[], cv=[], ci=[]; const S=64, RS=4;
       RB.forEach(R=>{ const b=av.length/3; for (let k=0;k<=S;k++){ const a=k/S*Math.PI*2; for (let j=0;j<RS;j++){ const rr=R.ri+(R.ro-R.ri)*j/(RS-1), x=R.x+Math.cos(a)*rr, z=R.z-Math.sin(a)*rr; av.push(x, R.y(x,z)+0.1, z); au.push(0.07+0.86*j/(RS-1), a*R.r/24); const c=0.97+0.03*Math.sin(a*7+j); ac.push(c,c,c); }
@@ -7647,7 +7654,16 @@ const animated=[];
 function asphaltTexture(mode){
   const W=512, H=2048, c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
   g.fillStyle='#4a4e54'; g.fillRect(0,0,W,H);
-  const ph=photoFill(g, 'asphalt', 0,0,W,H, 136);
+  /* 0.11.8 (Hicore): mit den Poly-Haven-Fotos keine sichtbare Kachelwiederholung: Kacheln zufällig gespiegelt/gedreht und versetzt, ein zweites Asphaltfoto
+     fleckig weich darübergeblendet (wie ausgebesserte, unterschiedlich alte Decke) */
+  const mosaic=(gg,k,ts)=>{ const im=photo(k); if (!im) return false; for (let y=-ts; y<H+ts; y+=ts){ const ox=-Math.random()*ts; for (let x=ox; x<W; x+=ts){ gg.save(); gg.translate(x+ts/2, y+ts/2); const r=Math.random(); gg.rotate((r<0.5?0:Math.PI)+(Math.random()-0.5)*0.12); gg.scale(Math.random()<0.5?-1:1, Math.random()<0.5?-1:1); gg.drawImage(im,-ts/2-2,-ts/2-2,ts+4,ts+4); gg.restore(); } } return true; };
+  let ph=false; if (photo('asphalt2')){ ph=mosaic(g,'asphalt',140);
+    const c2=document.createElement('canvas'); c2.width=W; c2.height=H; const g2=c2.getContext('2d'); mosaic(g2,'asphalt2',170);
+    const cm=document.createElement('canvas'); cm.width=W; cm.height=H; const gm=cm.getContext('2d');
+    for (let i=0;i<26;i++){ const x=Math.random()*W, y=Math.random()*H, r=60+Math.random()*220, gr=gm.createRadialGradient(x,y,r*0.2,x,y,r); gr.addColorStop(0,'rgba(0,0,0,'+(0.5+Math.random()*0.4)+')'); gr.addColorStop(1,'rgba(0,0,0,0)'); gm.fillStyle=gr; gm.beginPath(); gm.ellipse(x,y,r*(0.6+Math.random()*0.6),r*(1+Math.random()*1.6),0,0,7); gm.fill(); }
+    g2.globalCompositeOperation='destination-in'; g2.drawImage(cm,0,0); g.drawImage(c2,0,0);
+    for (let i=0;i<40;i++){ const v=Math.random()<0.5?0:255; g.fillStyle=`rgba(${v},${v},${v},${0.015+Math.random()*0.03})`; g.beginPath(); g.ellipse(Math.random()*W,Math.random()*H,40+Math.random()*140,80+Math.random()*300,Math.random()*0.3,0,7); g.fill(); } }
+  else ph=photoFill(g, 'asphalt', 0,0,W,H, 136);
   if (ph){ for (const cx of [0.2,0.36,0.64,0.8]){ const gr=g.createLinearGradient((cx-0.06)*W,0,(cx+0.06)*W,0); gr.addColorStop(0,'rgba(20,22,26,0)'); gr.addColorStop(0.5,'rgba(20,22,26,.12)'); gr.addColorStop(1,'rgba(20,22,26,0)'); g.fillStyle=gr; g.fillRect((cx-0.06)*W,0,0.12*W,H); }
     for (let i=0;i<14;i++){ g.strokeStyle=`rgba(18,18,20,${0.2+Math.random()*0.2})`; g.lineWidth=0.8+Math.random()*1.2; g.beginPath(); let x=Math.random()*W, y=Math.random()*H; g.moveTo(x,y); for(let k=0;k<9;k++){ x+=(Math.random()-0.5)*40; y+=Math.random()*30; g.lineTo(x,y);} g.stroke(); } }
   else {
@@ -9897,20 +9913,30 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
          an engen/kurvigen Anstiegen überholen sie, sobald es geht (wartet ein Auto schon länger, reicht weniger Platz) */
       if (same && c.mode!=='stop' && !PM){
         if (ahead>0 && ahead<90){ c.wait=(c.wait||0)+(c.v<rv+1.5&&ahead<40?dt:0); const slow=rv<6, pat=c.wait>12;
-          let free=true; const look=(this.waveBy>0?150:slow?(pat?140:180):260)+ahead;
+          /* 0.11.8 (Hicore: Überholer und Gegenverkehr fuhren ineinander): Sichtweite nach Zeitbedarf. Überholzeit = (Abstand + Wiedereinscheren) / Geschwindigkeitsüberschuss,
+             in der Zeit kommt der Gegenverkehr mit seiner Geschwindigkeit näher; dazu 70 m Reserve */
+          const vP=Math.max(rv+5, Math.min(vt, slow?Math.max(rv+5,8):vt)), tP=(ahead+16)/Math.max(2, vP-rv);
+          let free=true; const look=Math.max((this.waveBy>0?150:slow?(pat?140:180):260)+ahead, (ahead+16)+tP*(vP+16)+70);
           for (const o of this.act){ if (o===c || o.cd===c.cd) continue; const dd=(o.d-c.d)*c.cd; const dw=((dd%L)+L)%L; if (dw<look) { free=false; break; } }
+          /* schon beim Überholen, aber Gegenverkehr kommt zu nah: noch hinter dem Fahrer -> abbrechen und wieder einscheren; schon daneben -> zügig vorbei */
+          if (c.mode==='pass'){ let gO=1e9, vO=0; for (const o of this.act){ if (o===c || o.cd===c.cd) continue; const dw=((((o.d-c.d)*c.cd)%L)+L)%L; if (dw<gO){ gO=dw; vO=o.v; } }
+            if (gO<1e8){ const tRest=(ahead+14)/Math.max(2, c.v-rv), tMeet=gO/Math.max(3, c.v+vO);
+              if (tMeet<tRest+2.5){ if (ahead>4){ c.mode='drive'; c.latT=-W/4; c.wait=Math.max(c.wait||0, 6); c.abort=4; } else { c.boost=1; } } } }
+          if (c.abort>0){ c.abort-=dt; free=false; }
           const hA=headingAt(c.d+c.cd*(ahead+(slow?35:60))); if (Math.abs(Math.atan2(Math.sin(hA-h0),Math.cos(hA-h0)))>(slow?(pat?0.9:0.7):0.45)) free=false;
           if (W<(slow?3.3:4.4)) free=false;
-          if (c.mode==='pass' || (free && ahead<45 && c.v>=rv-0.5)){ c.mode='pass'; c.latT=Math.max(0.9, Math.min(W/4+0.3, half-0.9)); vt=Math.min(vt, slow?Math.max(rv+5,8):vt); }
+          if (c.mode==='pass' || (free && ahead<45 && c.v>=rv-0.5)){ c.mode='pass'; c.latT=Math.max(0.9, Math.min(W/4+0.3, half-0.9)); vt=Math.min(vt, slow?Math.max(rv+5,8):vt); if (c.boost) vt=Math.max(vt, rv+9); }
           if (!(c.mode==='pass' && c.lat>0.6)){ const g0=T.len*0.5+7, gMin=T.len*0.5+1.8;
             vt=Math.min(vt, Math.max(0, rv+(ahead-g0)*0.35)); if (ahead<gMin) vt=0; }
         }
-        if (c.mode==='pass' && ahead<-12){ c.mode='drive'; c.latT=-W/4; c.wait=0; }
+        if (c.mode==='pass' && ahead<-12){ c.mode='drive'; c.latT=-W/4; c.wait=0; c.boost=0; }
       }
       /* Gegenverkehr: steht der Fahrer auf seiner Spur (beim Überholen), bremst er */
       if (!same && ahead>0 && ahead<70 && this.rLane>0.4) vt=Math.min(vt, ahead<35?0:3);
       /* Gegenverkehr wartet, wenn ein Fahrzeug auf seiner Spur überholt */
-      for (const o of this.act){ if (o===c || o.cd===c.cd || o.lat<0.3) continue; const dd=((o.d-c.d)*c.cd%L+L)%L; if (dd<90) vt=Math.min(vt, dd<45?0:3); }
+      /* 0.11.8: früher und weicher bremsen (auch schon, wenn der Überholer gerade ausschert), bis zum Stillstand rechts am Rand */
+      for (const o of this.act){ if (o===c || o.cd===c.cd || (o.lat<0.3 && !(o.mode==='pass' && o.latT>0.3))) continue; const dd=((o.d-c.d)*c.cd%L+L)%L; if (dd<200){ vt=Math.min(vt, dd<55?0:Math.max(0,(dd-55)*0.22)); c.latT=-Math.max(W/4, half-1.1); c.yield=2; } }
+      if (c.yield>0 && !same){ c.yield-=dt; if (c.yield<=0) c.latT=-W/4; }
       /* Abstand zu anderen Fahrzeugen derselben Richtung */
       for (const o of this.act){ if (o===c || o.cd!==c.cd) continue; const dd=((o.d-c.d)*c.cd%L+L)%L; if (dd>0 && dd<35 && Math.abs(o.lat-c.lat)<1.6){ vt=Math.min(vt, dd<12?0:o.v); } }
       const a=vt>c.v?2.2:6; c.v+=Math.sign(vt-c.v)*Math.min(Math.abs(vt-c.v),a*dt);
@@ -10703,6 +10729,7 @@ if (!store.get('jer049',0)){ store.set('jer049',1); $('jersey').value='lausche';
 if (MINI && !IS_MOBILE) $('gfx').value='0.35';   /* ?mini erzwingt kleinste Stufe auch am Rechner */
 if (IS_MOBILE){ [...$('gfx').options].forEach(o=>{ if (+o.value>0.7) o.textContent=o.textContent.split(' (')[0]+' (am Handy Absturzgefahr)'; });
   const g0=store.get('gfx',null), usr=store.get('gfxUser',0)===1; const gv=(MINI || (IS_PHONE && !usr)) ? '0.35' : (g0===null || +g0>0.7) ? (IS_PHONE?'0.35':'0.5') : String(g0); $('gfx').value=gv; store.set('gfx',gv);
+  try{ $('texSet').value=window.TEX_NEU?'neu':'alt'; $('texSet').addEventListener('change',()=>{ store.set('tex',$('texSet').value); toast('Bodentexturen: gilt nach dem Neuladen der Seite'); }); }catch(e){}
   $('gfx').addEventListener('change',()=>{ store.set('gfxUser',1); try{ localStorage.removeItem('hicoreRide.mini'); }catch(e){} MINI=false; if (+$('gfx').value>0.7) toast('Achtung: Hoch/Ultra kann auf dem Handy abstürzen. Beim nächsten Öffnen startet es wieder auf Niedrig.'); }); }
 // ---------- Multiplayer (Gruppenfahrt) über Supabase Realtime: Broadcast 1x/s, dazwischen weich weitergerechnet ----------
 const MP={ URL:'https://snpmmskruuzqrvvsdztz.supabase.co', KEY:'sb_publishable_a1YQq6t9obBaiHeQiEB5QQ_tpzzWHWR',
@@ -10824,7 +10851,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.7 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.11.8 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
