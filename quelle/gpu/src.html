@@ -2242,9 +2242,15 @@ function lcCol(c,k,x,z,t,def){ if (k===1) c.setHSL(0.24,0.42,0.16+0.03*t); else 
 /* 0.11.4 (Hicore): Zittauer Grünring und Parks nach OSM (leisure=park/garden/playground, landuse=grass/cemetery): dort Rasen statt Siedlungsfläche, Bäume nur aus OSM-Einzelbäumen */
 window.PARK_READY=window.ZGPARK?new Promise(res=>{ const im=new Image(); im.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(im,0,0); const d=g.getImageData(0,0,c.width,c.height).data, n=c.width*c.height, u=new Uint8Array(n); for (let i=0;i<n;i++) u[i]=d[i*4]; window.PARKD={x0:3000,z0:-7400,c:4,w:c.width,h:c.height,b:u}; }catch(e){ console.warn('park',e); } res(); }; im.onerror=()=>res(); im.src='data:image/png;base64,'+window.ZGPARK; }):Promise.resolve();
 function gnPark(x,z){ const R=window.PARKD; if (!R) return 0; const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c); if (gx<0||gz<0||gx>=R.w||gz>=R.h) return 0; return R.b[gz*R.w+gx]; }
-function gnLC(x,z){ const R=window.LCD; if (!R) return -1; if (window.PARKD && gnPark(x,z)) return 2; const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c); if (gx<0||gz<0||gx>=R.w||gz>=R.h) return 0; return R.b[gz*R.w+gx]; }
+/* 0.17.2 (Hicore, Punkt C): echte Bäume aus Luftbild Sachsen DOP20 (GeoSN, DL-DE/BY-2.0) + Kronenhöhe (Meta/WRI CHM 1 m, CC BY 4.0), werkzeuge/dop_baeume.py.
+   Im erfassten Ausschnitt (Jonsdorf) sagt die Waldmaske (10 m), wo geschlossener Wald ist; außerhalb stehen nur noch Einzelbäume an ihren echten Stellen (Kachel-Baumtyp >= 16). Aus: window.NO_DOPT */
+function gnDopW(x,z){ const L=window.ZGDOPW; if (!L || window.NO_DOPT || !(WORLD && WORLD.id==='zittau')) return -1;
+  if (!GN.dw) GN.dw=L.map(([x0,z0,c,w,h,b])=>{ const bin=atob(b), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return {x0,z0,c,w,h,b:u}; });
+  for (const R of GN.dw){ const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c); if (gx<0||gz<0||gx>=R.w||gz>=R.h) continue; const k=gz*R.w+gx; return (R.b[k>>3]&(128>>(k&7)))?1:0; } return -1; }
+function gnLC(x,z){ const R=window.LCD; if (!R) return -1; if (window.PARKD && gnPark(x,z)) return 2; const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c); if (gx<0||gz<0||gx>=R.w||gz>=R.h) return 0; const k=R.b[gz*R.w+gx]; if (k===1 && gnDopW(x,z)===0) return 2; return k; }
 /* Wald: aus WorldCover, sonst OpenStreetMap (40-m-Raster) */
 function gnForest(x,z){ if (window.PARKD && gnPark(x,z)){ const R=window.LCD; if (!R) return false; const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c); const pk=gnPark(x,z); if (pk===3) return false; const esa=R.b[gz*R.w+gx]===1, f=Math.sin(Math.floor(x/14)*12.9898+Math.floor(z/14)*78.233)*43758.5453; return f-Math.floor(f)<(esa?0.45:0.2); }   /* Park: lockere Baumgruppen statt Wald */
+  { const dw=gnDopW(x,z); if (dw>=0) return dw===1; }
   const lc=gnLC(x,z); if (lc===1) return true; if (lc===0||lc===4||lc===5) return false; const R=GN.fo;   /* 0.10.21 (Hicore, Kälbersträucher): ESA hält Schonungen/Waldstreifen oft für Wiese, OSM-Wald zählt dort mit */ if (!R) return false; const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c); if (gx<0||gz<0||gx>=R.w||gz>=R.h) return false; const k=gz*R.w+gx; return !!(R.b[k>>3]&(128>>(k&7))); }
 function gnInner(x,z){ const R=GN.res; if (!R) return false; const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c);
   for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const i=gx+a, j=gz+b; if (i<0||j<0||i>=R.w||j>=R.h) continue; const k=j*R.w+i; if (R.b[k>>3]&(128>>(k&7))) return true; } return false; }
@@ -2437,6 +2443,12 @@ function gtOsmTrees(){ if (window.ZGKC) return GT.ot||(GT.ot=new Map()); if (GT.
   for (let k=0;k<n;k++){ const x=dv.getInt16(8+k*4,true)/2, z=dv.getInt16(10+k*4,true)/2, t=u[8+n*4+k], key=Math.floor(x/GT.S)+','+Math.floor(z/GT.S); let l=M.get(key); if (!l) M.set(key,l=[]); l.push(x,z,t); }
   GT.ot=M; return M; }
 const FRU=['apple','pear','cherry','plum','walnut'];
+/* 0.17.2: Modellhöhe je Baumart (für DOP-Bäume mit gemessener Höhe) */
+function gtKindH(k){ const fk=GT.fk; GT.kh=GT.kh||{}; if (GT.kh[k]) return GT.kh[k]; let y1=0; (fk[k].near||[]).forEach(([g])=>{ if (!g.boundingBox) g.computeBoundingBox(); y1=Math.max(y1,g.boundingBox.max.y); }); return GT.kh[k]=Math.max(1,y1||10); }
+/* Punkt im oder nahe (m Meter) am Hausgrundriss */
+function bldNearP(o,x,z,m){ const dx=x-o.cx, dz=z-o.cz, R=(o.r||0)+m; if (dx*dx+dz*dz>R*R) return false; const P=o.P; let ins=false;
+  for (let a=0,b=P.length-1;a<P.length;b=a++){ const ax=P[a][0], az=P[a][1], bx=P[b][0], bz=P[b][1]; if ((az>z)!==(bz>z) && x<(bx-ax)*(z-az)/(bz-az)+ax) ins=!ins;
+    const ex=bx-ax, ez=bz-az, L=ex*ex+ez*ez||1, u=Math.max(0,Math.min(1,((x-ax)*ex+(z-az)*ez)/L)), qx=ax+ex*u-x, qz=az+ez*u-z; if (qx*qx+qz*qz<m*m) return true; } return ins; }
 function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S, x0=i*S, z0=j*S, step=MINI?17:LITE?12:9.5, fk=gtForestKit(); let sd=((i*73856093)^(j*19349663))&0x7fffffff||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
   const KEEP=MINI?0.14:LITE?0.2:0.3; const pick=mx=>{ let r=rnd(), t=0; for (const e of mx) t+=e[1]; r*=t; for (const [k,w] of mx){ if (r<w) return k; r-=w; } return mx[0][0]; };
   const by={}, m=new THREE.Matrix4(), q=new THREE.Quaternion(), sc=new THREE.Vector3(), p=new THREE.Vector3(), e=new THREE.Euler(), col=new THREE.Color();
@@ -2447,10 +2459,13 @@ function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S
   for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; if (BL.length && nearB(x,z)) continue; if (rkHit && rkHit(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; { const zn=ZSB.near(x,z,10); if (zn.d<(zn.g==='s'?7:5)) continue; } if (ZSB.cuts){ const cd=ZSB.cutD(x,z); if (cd && cd.r<6) continue; } if (ZG_NOTREE.length && ZG_NOTREE.some(q=>{ const u=(x-q.x)/q.ax, v=(z-q.z)/q.az; return u*u+v*v<1; })) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; if (waysNear(x,z,2.2)) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30); if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
     const h=terrainH(x,z), k=pick(h>440?GT.mixHi:h>380?(rnd()<0.5?GT.mixHi:GT.mixLo):GT.mixLo), s0=(inner?1.25:1.0)+rnd()*0.6; e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(0.85+rnd()*0.4),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
     const f=0.72+rnd()*0.35; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[k]=by[k]||[]).push([m.clone(),col.clone()]); } }
-  { const OT=gtOsmTrees(), L=OT&&OT.get(i+','+j); if (L) for (let k=0;k<L.length;k+=3){ if (k%300===0) yield 0; const x=L[k], z=L[k+1], t=L[k+2], bush=t>=6;
-      const n=gnNear(x,z,30); if (n.d<n.w/2+(bush?2.0:2.6)) continue; if (rkHit && rkHit(x,z)) continue; if (waysNear(x,z,bush?0.6:1.6)) continue; if (BL.length && (()=>{ for (const o of BL){ const R=o.r+(bush?0.6:1.8), dx=x-o.cx, dz=z-o.cz; if (dx*dx+dz*dz<R*R) return true; } return false; })()) continue;
+  { const OT=gtOsmTrees(), L=OT&&OT.get(i+','+j); if (L) for (let k=0;k<L.length;k+=3){ if (k%300===0) yield 0; const x=L[k], z=L[k+1], t=L[k+2], bush=t===6||t===7, dop=t>=16; if (dop && window.NO_DOPT) continue; const DS=GT.dopN||(GT.dopN={all:0,road:0,rock:0,way:0,bld:0}); if (dop) DS.all++;
+      const n=gnNear(x,z,30); if (n.d<n.w/2+(bush?2.0:dop?2.2:2.6)){ if (dop) DS.road++; continue; } if (rkHit && rkHit(x,z)){ if (dop) DS.rock++; continue; } if (waysNear(x,z,bush?0.6:dop?1.3:1.6)){ if (dop) DS.way++; continue; } if (BL.length && (dop ? BL.some(o=>bldNearP(o,x,z,1.0))&&++DS.bld : (()=>{ for (const o of BL){ const R=o.r+(bush?0.6:1.8), dx=x-o.cx, dz=z-o.cz; if (dx*dx+dz*dz<R*R) return true; } return false; })())) continue;
       if (bush && (MINI || (LITE && rnd()<0.4))) continue; const fr4=t===4 && !gnInner(x,z) && (Math.sin(Math.floor(x/120)*12.9898+Math.floor(z/120)*78.233)*43758.5453%1+1)%1<0.4;   /* Obstbaumreihen an Landstraßen */
       const r=rnd(), kt=t===1?(r<0.75?'spruce':'pine'):t===2?'linden2':t===3?'oak':t===4?(fr4?FRU[Math.floor(rnd()*4)]:r<0.4?'linden2':r<0.7?'maple':r<0.85?'oak':'ash'):t===5?FRU[Math.floor(r*5)%5]:t===6?(r<0.6?'bushA':'bushB'):t===7?(r<0.45?'bushA':r<0.85?'bushB':'birch'):(r<0.3?'beech':r<0.5?'maple':r<0.65?'ash':r<0.8?'oak':'birch');
+      if (dop){ const hm=3+((t-16)%120)/4, con=t>=136, r2=rnd(), kd=con?(r2<0.78?'spruce':'pine'):(r2<0.22?'beech':r2<0.34?'beech2':r2<0.5?'maple':r2<0.64?'ash':r2<0.76?'oak':r2<0.88?'linden2':'birch'), kk=fk[kd]?kd:(con?'spruce':'beech'); if (!fk[kk]) continue;
+        const h=terrainH(x,z), s0=Math.min(2.4,Math.max(0.3,hm/gtKindH(kk))); e.set((rnd()-0.5)*0.04,rnd()*6.28,(rnd()-0.5)*0.04); q.setFromEuler(e); const sw=s0*(hm<7?1.15:1)*(0.88+rnd()*0.24); sc.set(sw,s0,sw*(0.9+rnd()*0.2)); p.set(x,h-0.1,z); m.compose(p,q,sc);
+        const f=0.76+rnd()*0.32; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[kk]=by[kk]||[]).push([m.clone(),col.clone()]); continue; }
       if (!fk[kt]) continue; const h=terrainH(x,z), s0=(t===5||fr4)?0.85+rnd()*0.3:bush?(t===6?0.75:0.9)+rnd()*0.5:0.8+rnd()*0.45;
       e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(t===6?0.6+rnd()*0.3:0.85+rnd()*0.35),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
       const f=0.76+rnd()*0.32; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[kt]=by[kt]||[]).push([m.clone(),col.clone()]); } }
@@ -7233,7 +7248,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.17.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.17.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{

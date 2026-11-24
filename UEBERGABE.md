@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 24.11.2026. Letzte veröffentlichte Version: **0.17.1 Beta** (Fahrgefühl auf Wegen: Pfützen, Matsch, unruhige Linie).
+Stand: 24.11.2026. Letzte veröffentlichte Version: **0.17.2 Beta** (echte Einzelbäume bei Jonsdorf aus Luftbild).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| 0.16.2 / 0.16.3 | Hotfix: eigene Wahl wurde kurz vor der Kreuzung von der Vorwahl überschrieben (Kreuzung nach dem Umschalten jetzt als erledigt markiert, Test `tkalb.js`). Übernächste Kreuzung unter 150 m klein darunter („Danach in … m“), schon wählbar, folgt der gewählten Richtung (`gMakePend`, `NET.pend2v`, `NET.pre`, vorab berechnete Strecke `NET.hyp`; aus: `window.NO_JUN2`; Test `tjun2.js`, `TURN1=1 BIKE=gravel`) |
 | 0.17.0 | Kartenrand aufgefüllt + Kacheln + OSM-Natur + Wanderer (siehe unten) |
-| **0.17.1** | **Fahrgefühl auf Wegen: unruhige Linie, Pfützen mit Regendauer, Ausweichen/Spritzen, Matsch, Rutscher** (siehe unten) |
+| 0.17.1 | Fahrgefühl auf Wegen: unruhige Linie, Pfützen mit Regendauer, Ausweichen/Spritzen, Matsch, Rutscher (siehe unten) |
+| **0.17.2** | **Punkt C: echte Einzelbäume bei Jonsdorf aus Luftbild DOP20 + Kronenhöhe** (siehe unten) |
 
 **Umgebung und Kacheln (0.17.0)**
 - Daten ohne Higgsfield, direkt aus der Cloud (S3 offen): Overture 2026-11-18 (Gebäude, base/land, land_use, infrastructure; `werkzeuge/overture_holen.py PREFIX ziel.parquet spalten`), Copernicus GLO-30, ESA WorldCover 2021. Rohdaten nicht im Repo (ca. 140 MB), Skripte schon.
@@ -120,11 +120,20 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Test `tests/twet.js` (Waldweg bei Jonsdorf, Regen, `PUD=1`): ohne `OUT` Logiktest über 600 m, mit `OUT=ordner` drei Bilder.
 - Ältere Notizen 0.16.1 (Vorauswahl `gNatural`, Kurvenneigung, Wiegetritt, Rollwiderstandstabelle, Einmündungen) stehen in `docs/ARCHIV.md`.
 
+**Echte Bäume aus Luftbild (0.17.2, Punkt C)**
+- Quellen: Kronenhöhe Meta/WRI Global Canopy Height 1 m (CC BY 4.0, S3 `dataforgood-fb-data/forests/v1/alsgedi_global_v6_float/chm/120212122.tif`, 600 MB, aus der Cloud direkt ladbar) + Luftbild Sachsen DOP20 RGB und CIR (GeoSN, dl-de/by-2-0, WMS `geodienste.sachsen.de/wms_geosn_dop-rgb|dop-cir/guest`, Layer `sn_dop_020`/`sn_dop_020_cir`, CRS:84, nur über die Sandbox). Kein DOM/nDOM-WMS in Sachsen gefunden, deshalb CHM. Kostet keine Credits.
+- Ablauf (alles in `werkzeuge/`): `chm_ausschnitt.py chm.tif lon0 lat0 lon1 lat1 chm.npz` (ohne GDAL), `dop_holen.py x0 z0 b h dop.npz` (Sandbox, 0,5 m → 1 m), `dop_baeume.py chm.npz dop.npz ziel.bin [vorschau.jpg …]` (Sandbox, numpy/scipy), Ergebnis per PNG über `image_paths` zurück, dann lokal `python3 werkzeuge/dop_einfuegen.py zg2/dop_jonsdorf.bin` (wiederholbar). Jonsdorf: lon 14.675–14.740, lat 50.838–50.870 (x −4569…0, z −2227…1336).
+- Erkennung: Kronendach = CHM ≥ 3 m und Vegetation (NDVI aus CIR bzw. Grünanteil). Wald = Kronendach-Anteil im 30-m-Umkreis > 0,62 und Fläche ≥ 0,6 ha → Waldmaske 10 m. Außerhalb: Baumspitzen = lokale Maxima im geglätteten NIR+Grün-Bild (Fenster nach Höhe), Höhe = CHM-Maximum 5×5, Mindestabstand nach Höhe. Ergänzung kleine Gartenbäume, die das CHM nicht sieht: raues Grün (Krone + Schatten, Helligkeits-Streuung 5×5 > 13) mitten in Vegetation, je Fleck ein Baum, Höhe 5–9 m. Laub/Nadel aus Helligkeit und Rot/Grün (Bild ist im Frühjahr: Laub hell gelbgrün, Nadel dunkel). Ergebnis Jonsdorf: 23.640 Bäume (davon 3.221 Gartenbäume, ca. 58 % Nadel, Median 16 m), 31 wegen OSM-Baum weggelassen. Bauminstanzen um Jonsdorf ca. +9 % gegenüber vorher (ESA-Wald fiel im Ort weg).
+- Daten: Kachel-Baumtyp ≥ 16 = DOP-Baum (`16 + 120·Nadel + (Höhe−3)·4`), Hecke/Gebüsch jetzt nur Typ 6/7. Waldmaske `zg2/dopwald.json` → `window.ZGDOPW` (Liste, mehrere Ausschnitte möglich).
+- Spiel: `gnDopW(x,z)` (nur Zittau-Welt); im Ausschnitt entscheidet die Maske `gnForest`, ESA-„Baum“-Pixel außerhalb der Maske werden zu Wiese (`gnLC`). DOP-Bäume in `gtForestGen` (Schleife der OSM-Bäume): Art nach Laub/Nadel zufällig, Skalierung = Höhe / Modellhöhe (`gtKindH`), Abstand zu Häusern über echten Grundriss (`bldNearP`, 1 m), Straßen/Wege wie Einzelbäume. Aus: `window.NO_DOPT`. Test `tests/tdop.js` (Bilder, Baumzahlen; `NODOPT=1` alter Stand).
+- Nächste Ausschnitte: gleiche Kette mit anderer bbox, dann `dop_einfuegen.py` mit allen .bin.
+
 **Offen / unsicher**
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung, Ruckler beim ersten Auto/Zug/Regen, FPS-Anzeige mit Prozent (Details 0.13.0 in docs/ARCHIV.md).
 - 0.16.0 am iPad prüfen: Optik Gravel/MTB, Sitzhaltung, ob Farben direkt nach dem Radwechsel stimmen; Lenkerbreite/Flare/Hoods-Winkel ggf. in `GRAVEL_BAR` nachjustieren.
 - 0.14.0 am iPad prüfen: Wege-Optik (Helligkeit, Grasnarbe, Waldboden), FPS mit den zusätzlichen Wegen.
 - 0.17.1 am iPad prüfen: Stärke des Wackelns (Gravel/MTB), Pfützen-Optik und Ausweichen, Matschbrocken sichtbar genug, Rutscher nicht zu oft; FPS mit dem neuen Wege-Shader. Pfützen starten bei Spielbeginn leer, auch wenn es schon lange regnet (echtes Wetter: Regen der letzten Stunden noch nicht ausgewertet).
+- 0.17.2 am iPad prüfen: Bäume in Jonsdorf (Dichte, Größe, Laub/Nadel-Verteilung), Waldränder an den 10-m-Maskenkanten, FPS. Falls gut: weitere Orte (ganzes Gebirge kostet nur Rechenzeit).
 - 0.17.0 am iPad prüfen: Ladezeit beim Start (Kacheln), Nachladen ohne Ruckler, Felswände (Jonsdorf/Oybin-Umgebung), Ränder Ost (Neiße) und Süd (Tschechien), Wanderer.
 - 0.16.1 am iPad prüfen: Vorauswahl in Orten (Spitzkunnersdorf), ob dezente Abzweig-Hinweise reichen, Ruckler beim automatischen Neuberechnen, Optik der Einmündungen.
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
@@ -138,7 +147,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 ## 6. Nächste Schritte
 
 1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
-1a. **C: Einzelbäume außerhalb Wald aus Luftbild DOP20 (Test Jonsdorf)**, dann 0.18.0 Treppen (Punkt 6).
+1a. **0.18.0 Treppen (Punkt 6).** C (DOP-Bäume) ist für Jonsdorf erledigt (0.17.2); Ausweitung auf weitere Orte erst nach Hicores Urteil am iPad.
 2. Poly-Haven-Paket **Stufe 2** (freigegeben): white_plaster_02, beige_wall_001, weathered_brown_planks, old_stone_wall, clay_roof_tiles_02, roof_slates_03, sandstone_cracks oder mossy_sandstone, bark_brown_02 oder pine_bark. Über die Sandbox holen, umschaltbar, Vergleichsbilder.
 3. Grashalme nur ca. 20–30 m um den Fahrer.
 4. Leistung Teil 2 nur bei Bedarf: Modelle nach Bedarf laden, Wald-Instanzen bündeln (Rad-Verschmelzen ist seit 0.16.0 erledigt).
