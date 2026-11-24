@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 24.11.2026. Letzte veröffentlichte Version: **0.19.0 Beta** (echte Bäume, Sträucher, Wald und Äcker im ganzen sächsischen Teil des Gebirges).
+Stand: 24.11.2026. Letzte veröffentlichte Version: **0.19.1 Beta** (Luftbild-Bäume jetzt auch im tschechischen Teil, Treppen im Gelände, Schulter-Arm).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| 0.18.0 | Treppen aus OSM (tragen, schultern, MTB runterfahren), FIT-Export mit echten Koordinaten (siehe unten) |
 | 0.18.1 | Rennrad: Abbiegehinweise nur noch in befestigte Straßen (siehe unten) |
-| **0.19.0** | **Jonsdorf-Ansatz überall: echte Bäume/Sträucher/Waldmaske/Acker-Zustand aus Luftbild, Treppenkanten, Zäune nicht über Wege, Schulter-Arm** (siehe unten) |
+| 0.19.0 | Jonsdorf-Ansatz überall: echte Bäume/Sträucher/Waldmaske/Acker-Zustand aus Luftbild, Treppenkanten, Zäune nicht über Wege, Schulter-Arm (siehe unten) |
+| **0.19.1** | **Tschechien mit Luftbild (ČÚZK): Bäume/Sträucher/Wald/Äcker; Treppen folgen dem Gelände (nie im Boden, Böschung/Erdrampe); linker Arm beim Schultern hängt locker** (siehe unten) |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -114,12 +114,10 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 **Treppen (0.18.0)**
 - Daten: `quelle/zg2/steps.bin` (11 KB, 483 Treppen, 7 km, 193 mit `step_count`), gebaut in der Higgsfield-Sandbox mit `zg2/steps.py` aus Overpass `way["highway"="steps"]` (bbox wie Straßen; overpass-api.de braucht einen User-Agent, sonst 406). Format wie ways.bin, Klasse 15, Byte 6 = Stufenzahl, Flags 1/2 incline bekannt/hoch, 4 Handlauf, 128 Schieberampe. `build_gpu.py` → `window.ZGSTEPS`, im Spiel `stairsData()`.
-- Höhe (`stairInit`): Stücke auf der Fahrbahn abgeschnitten (`T.s0/s1`), Richtung aus `incline`, sonst Gelände; Höhe = Stufenzahl × 16,5 cm, aber höchstens 40 cm Abweichung vom Gelände (dann flachere Stufen). Endet die Treppe an einer Straße, liegt das Ende genau auf Fahrbahnhöhe. Wege an Treppenenden werden auf 7 m angeglichen (`stairBlend` in `wayLiftY`, Optik und Fahrlinie). Fahrlinie gerade (`stairY`), Stufenoberkante `stairTop`.
+- Höhe (`stairInit`, seit 0.19.1): Stücke auf der Fahrbahn abgeschnitten (`T.s0/s1`), Richtung aus `incline`, sonst Gelände. Stufen folgen dem Geländeprofil `T.TS` (25 Proben), Trittflächen `T.YT[k]` einzeln (mind. `hmin` ≤ 10 cm, max. 24 cm, Tritt 4 cm über Gelände). Endet die Treppe oben an einer Straße, wird auf Fahrbahnhöhe skaliert. Was übers Gelände ragt, bekommt Seitenwände bis ins Gelände und eine grüne Böschung; oben ohne Straße läuft eine Erdrampe aus (`stairRamp`, Länge `stairRad` 2,5–7 m nach Überstand, gleiches Profil wie `stairBlend` für den Weg). Fahrlinie `stairY` stückweise linear durch die Stufen, `stairTop`/`stairStepY`. Alt: `window.OLD_STAIRFIT`.
 - Netz: in `rgBuildWays` als Weg Klasse 15 (`E.st`, `E.stS0/S1`, `E.nv`), Knotenhöhen aus der Treppe, `rgPts` linear, `gRoute` rundet Treppen nicht ab. Rennrad nie (`adjS`), Routing ×6 teurer, `gRank` 9, Name „Treppe · N Stufen“. 3D-Stufen je 500-m-Kachel am Pfad-Netz (`stairsMesh`, Blöcke, Erdstufen mit Holzkante, Handlauf), Bäume halten Abstand (`stairsIdx` → `WAYS_H`).
 - Ablauf (`STAIR`, `stairSpans`, `stairStep` in der Hauptschleife nach `curveVmax`): Modus `stairMode`: MTB bergab `ride` (stehend, Kurbel waagrecht, Stöße), bis 3 Stufen `lift` (links neben dem Rad, linke Hand Lenker, rechte Oberrohr, Rad über die Stufen gehoben), sonst `shoulder` (Oberrohr auf der rechten Schulter, rechter Arm um das Steuerrohr an den Lenker, linker Arm schwingt). Zonen 2,2–3,2 m vor/nach den Stufen (Ab-/Aufsteigen, rechtes Bein hinten über den Sattel), davor Bremsen auf 1,7–2,8 m/s, zur Treppe hin in die Wegmitte (`STAIR.lc`). Tempo nach Leistung (bergauf 0,5–1,25 m/s, bergab 0,7–1,3, kurz 1,0–1,4), ohne Treten bleibt man stehen. Trainer bekommt 0 %. Füße treffen die Stufenmitten (`stairCarry`), Figur waagrecht. Pose: `carryBody`, `carryRig` in `poseGLB` (opt.carry), Greifhände über `R._ghF`. Aus: `window.NO_STAIRS`.
 - Test `tests/tstair.js` (`BIKE`, `PL`, `NV=min,max`, `UP=1|-1`; ohne `OUT` Logik: Tempo, Zeit, Fußfehler; mit `OUT`, `PTS=-1.6,mid,end`, `SIDE=1|-1|0` Bilder). Ergebnis: 500 Treppenstücke im Netz, keine für das Rennrad; 9 Stufen hoch in 11 s, Füße im Schnitt 5 cm über der Stufe, nie darunter.
-
-**FIT-Export (0.18.0):** `geoOf` rechnet im Zittauer Gebirge mit derselben Umrechnung wie die OSM-Daten zurück (lat0/lon0 aus `ZGNET`, 111320 m/°), Höhe = y + 300 m (echte Höhe über NN). Strava zeigt die Fahrt auf den echten Straßen. Echte Orte (`WORLD.real`) wie bisher echt, Fantasiewelten weiter im „Hicore-Archipel“ (Südpazifik). Wetter-Position (`RWX.pos`) nutzt jetzt dieselbe Umrechnung.
 
 **Rennrad nur auf Straßen (0.18.1)**
 - `gnRG`: `okS` (Kanten für `adjS`, Rennrad) neu: Hauptstraßen alle; Nebenstraßen nur Asphalt/Pflaster, Zufahrten (c 27) nur im Ort (`gnInner` in der Kantenmitte); Radwege (13) nur mit angegebenem Asphalt/Pflaster/Beton/befestigt; Feld-/Waldwege (10) nur mit angegebenem Asphalt; geschätzte Beläge (`inf`, ways.bin Flag 32) nie; Treppen nie. Rausgefallen: ca. 43 km Betonplatten-Feldwege, 27 km „befestigt“ geschätzt, 66 km Zufahrten außerorts. Alter Stand: `window.OLD_ROADADJ`.
@@ -135,6 +133,13 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Wald: Inneres weiter prozedural mit Ausdünnung (`KEEP`), neu aber volle Dichte bis 16 m an befahrbaren Wegen (`waysNear` in `gtForestGen`, alt: `window.NO_WAYWALD`). Einzelkronen im geschlossenen Wald liefert das CHM nicht zuverlässig, deshalb dort keine echten Einzelbäume.
 - Treppen: dunkle Vorderkante je Stufe (alt: `window.OLD_STAIRVIS`). Zäune: jedes Zaunfeld an 5 Punkten gegen Straßen/Wege/Treppen geprüft (vorher nur Mitte, Zaun stand quer über Treppe Oybin Kammstraße). Schultern: linker Arm hängt locker, Ellbogen nach hinten-unten (alt: `window.OLD_CARRYARM`).
 - Aus: `window.NO_DOPT` (alles Luftbild-Zeug inkl. Sträucher und Acker-Zustand).
+
+**Tschechien, Treppen, Arm (0.19.1)**
+- Tschechischer Teil (Süd: Lausche, Krompach, Jiřetín; West: Varnsdorf-Rand) jetzt wie Sachsen: `dop_gebiet.py ergaenzen [sek] cz` holt Orthofoto ČÚZK (WMS `ags.cuzk.cz/arcgis1/services/ORTOFOTO`, © ČÚZK, offene Daten CC BY 4.0, nur RGB) für alle Kachelzellen ohne sächsisches Luftbild; Vegetation aus Grünanteil (ExG) statt NDVI, Schatten/dunkles Nadelholz zählt als Krone. Sachsen-Zellen bleiben unverändert (Original in Sandbox `dop/ks/`). Dann `packen` → PNG-Transfer → `dop_einfuegen.py`. Ergebnis gesamt 397.679 Bäume + 70.718 Sträucher (+127k/+21k), Kacheln 3,7 → 4,4 MB.
+- Polen (schmaler Streifen östlich der Neiße, ca. 0,6 km²): Geoportal-WMS (`mapy.geoportal.gov.pl …/ORTO/WMS`) liefert aus der Sandbox nur leere Bilder (4326 und 2180 getestet), bleibt ESA/OSM.
+- Treppen: siehe Höhe oben. Test `tests/tstairfit.js` (alle Treppen alt/neu: sink/float/flach). Ergebnis neu: von 483 Treppen 9 mehr als 10 cm unter Gelände (alt 186), Rest-Ausreißer bei sehr steilen langen Treppen (Stufen max. 24 cm). `tstair.js` neu: `SIDE=1,-1` (mehrere Seiten), `FLOAT=1` (Treppe mit größtem Überstand im Umkreis 2,5 km).
+- Treppe Oybin Kammstraße (Weg-ID 41396618, 9 Stufen, oben an der Straße): Zaun weg (seit 0.19.0), Stufen ca. 6,5 cm, weil das Gelände dort nur 0,64 m Höhenunterschied hat und das obere Ende auf Straßenhöhe liegen muss.
+- Schultern: linker Arm hängt fast gestreckt neben dem Oberschenkel und pendelt (vorher Hand wie in die Hüfte gestemmt). Alt: `window.OLD_CARRYARM2`.
 
 **Offen / unsicher**
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung, Ruckler beim ersten Auto/Zug/Regen, FPS-Anzeige mit Prozent (Details 0.13.0 in docs/ARCHIV.md).
@@ -158,7 +163,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 ## 6. Nächste Schritte
 
 1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
-1a. Tschechischer Teil (Lausche-Süd, Lückendorf-Süd) hat noch kein Luftbild: ČÚZK-Orthofoto-WMS prüfen (nur RGB, kein CIR).
+1a. 0.19.1 am iPad prüfen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe auf flachem Gelände ok?), linker Arm beim Schultern.
 2. Poly-Haven-Paket **Stufe 2** (freigegeben): white_plaster_02, beige_wall_001, weathered_brown_planks, old_stone_wall, clay_roof_tiles_02, roof_slates_03, sandstone_cracks oder mossy_sandstone, bark_brown_02 oder pine_bark. Über die Sandbox holen, umschaltbar, Vergleichsbilder.
 3. Grashalme nur ca. 20–30 m um den Fahrer.
 4. Leistung Teil 2 nur bei Bedarf: Modelle nach Bedarf laden, Wald-Instanzen bündeln (Rad-Verschmelzen ist seit 0.16.0 erledigt).

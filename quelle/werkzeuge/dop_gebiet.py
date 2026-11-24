@@ -8,7 +8,10 @@ Aufrufe (Arbeitsordner mit 120212122.tif, 120212123.tif):
   python3 dop_gebiet.py kachel I J [vorschau.jpg]
   python3 dop_gebiet.py packen              -> dop_gebiet.bin (Bäume) + dop_maske.png (R Wald 0 unbekannt/1 offen/2 Wald, G Acker 0/1 grün/2 Stoppel/3 kahl)
 Bäume: Typ 16 + 120*nadel + round((h-3)*4) wie dop_baeume.py; Typ 8 = Strauch aus Luftbild.
-Außerhalb Sachsens (Tschechien, Polen) liefert der WMS nichts -> Maske 0, dort bleibt alles wie bisher (ESA/OSM)."""
+Außerhalb Sachsens (Tschechien, Polen) liefert der WMS nichts -> Maske 0.
+0.19.1: python3 dop_gebiet.py ergaenzen [sekunden] füllt diese Lücken mit Orthofoto ČÚZK (Tschechien, © ČÚZK, CC BY 4.0)
+        bzw. Geoportal PL (Polen, GUGiK), nur RGB (kein CIR): Vegetation aus Grünanteil statt NDVI. Ergebnis k/I_J.npz
+        wird gemischt (Sachsen-Zellen bleiben unverändert), Original in ks/ gesichert."""
 import sys,os,math,io,time,struct,zlib,urllib.request,numpy as np
 from concurrent.futures import ThreadPoolExecutor
 RX0,RZ0,RX1,RZ1=-10000,-14000,6000,8000; S=2000; M=100
@@ -50,9 +53,14 @@ def chm():
 
 U={'rgb':'https://geodienste.sachsen.de/wms_geosn_dop-rgb/guest?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=sn_dop_020&STYLES=&CRS=CRS:84&FORMAT=image/png',
    'cir':'https://geodienste.sachsen.de/wms_geosn_dop-cir/guest?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=sn_dop_020_cir&STYLES=&CRS=CRS:84&FORMAT=image/png'}
+U2={'cz':'https://ags.cuzk.cz/arcgis1/services/ORTOFOTO/MapServer/WMSServer?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=0&STYLES=&CRS=CRS:84&FORMAT=image/png',
+    'pl':'https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=Raster&STYLES=&CRS=EPSG:4326&FORMAT=image/png'}
 def fetch(k,x0,z0,w,h):
     lo0,la1=ll(x0,z0); lo1,la0=ll(x0+w,z0+h)
-    url=U[k]+'&BBOX=%.7f,%.7f,%.7f,%.7f&WIDTH=%d&HEIGHT=%d'%(lo0,la0,lo1,la1,w,h)
+    if k in U2:
+        bb=(la0,lo0,la1,lo1) if 'EPSG:4326' in U2[k] else (lo0,la0,lo1,la1)   # WMS 1.3.0: EPSG:4326 = Breite zuerst
+        url=U2[k]+'&BBOX=%.7f,%.7f,%.7f,%.7f&WIDTH=%d&HEIGHT=%d'%(bb+(w,h))
+    else: url=U[k]+'&BBOX=%.7f,%.7f,%.7f,%.7f&WIDTH=%d&HEIGHT=%d'%(lo0,la0,lo1,la1,w,h)
     for t in range(5):
         try:
             from PIL import Image
@@ -60,32 +68,44 @@ def fetch(k,x0,z0,w,h):
             a=np.asarray(im.convert('RGBA')); return a[...,:3].copy(), a[...,3]>0
         except Exception as e: print('nochmal',k,e,flush=True); time.sleep(3+5*t)
     raise RuntimeError('WMS')
-def holen(x0,z0,W,H,CH=1100):
-    A={k:np.zeros((H,W,3),np.uint8) for k in U}; V=np.ones((H,W),bool); jobs=[]
-    for k in U:
+def holen(x0,z0,W,H,CH=1100,src=None):
+    KS=[src] if src else list(U)
+    A={k:np.zeros((H,W,3),np.uint8) for k in KS}; V=np.ones((H,W),bool); jobs=[]
+    for k in KS:
         for zz in range(0,H,CH):
             for xx in range(0,W,CH): jobs.append((k,xx,zz,min(CH,W-xx),min(CH,H-zz)))
     with ThreadPoolExecutor(4) as ex:
         res=list(ex.map(lambda j:(j,fetch(j[0],x0+j[1],z0+j[2],j[3],j[4])),jobs))
     for (k,xx,zz,w,h),(a,al) in res:
         A[k][zz:zz+h,xx:xx+w]=a; V[zz:zz+h,xx:xx+w]&=al
-    for k in U:
-        s=A[k].astype(np.int32).sum(2); V&=(s>0)&(s<765)
+    for k in KS:
+        s=A[k].astype(np.int32).sum(2); V&=(s>0)&(s<760)
+    if src:
+        V=__import__('scipy.ndimage',fromlist=['x']).binary_erosion(V,iterations=3)
+        return A[src],None,V
     return A['rgb'],A['cir'],V
 
-def kachel(I,J,prev=None):
+def kachel(I,J,prev=None,src=None,out=None):
     from scipy import ndimage as nd
     x0,z0=I*S-M,J*S-M; W=H=S+2*M
     C=np.load('chm.npy',mmap_mode='r'); cx,cz=x0-RX0,z0-RZ0
     h=np.zeros((H,W),np.float32); sx0,sz0=max(0,cx),max(0,cz); sx1,sz1=min(C.shape[1],cx+W),min(C.shape[0],cz+H)
     if sx1>sx0 and sz1>sz0: h[sz0-cz:sz1-cz,sx0-cx:sx1-cx]=C[sz0:sz1,sx0:sx1]
-    rgbu,ciru,V=holen(x0,z0,W,H)
+    rgbu,ciru,V=holen(x0,z0,W,H,src=src)
     Hc,Wc=S//10,S//10; core=(slice(M,M+S),slice(M,M+S))
     vc=V[core].reshape(Hc,10,Wc,10).mean((1,3))>0.5
     if not V.any():
-        np.savez_compressed('k/%d_%d.npz'%(I,J),P=np.zeros((0,2),np.int16),T=np.zeros(0,np.uint8),F=np.zeros((Hc,Wc),np.uint8),A=np.zeros((Hc,Wc),np.uint8)); print(I,J,'leer'); return
-    rgb=rgbu.astype(np.float32); cir=ciru.astype(np.float32); nir,red=cir[...,0],cir[...,1]
-    ndvi=nd.gaussian_filter((nir-red)/(nir+red+1),1.0)
+        r=dict(P=np.zeros((0,2),np.int16),T=np.zeros(0,np.uint8),F=np.zeros((Hc,Wc),np.uint8),A=np.zeros((Hc,Wc),np.uint8))
+        if out is not None: return r
+        np.savez_compressed('k/%d_%d.npz'%(I,J),**r); print(I,J,'leer'); return
+    rgb=rgbu.astype(np.float32)
+    if ciru is None:
+        # nur RGB: Grünanteil (ExG) als NDVI-Ersatz, NIR-Ersatz für die Kronen-Helligkeit aus Grün
+        eg=(2*rgb[...,1]-rgb[...,0]-rgb[...,2])/(rgb.sum(2)+1)
+        ndvi=nd.gaussian_filter(2.2*eg,1.0); nir=1.6*rgb[...,1]
+    else:
+        cir=ciru.astype(np.float32); nir,red=cir[...,0],cir[...,1]
+        ndvi=nd.gaussian_filter((nir-red)/(nir+red+1),1.0)
     bri=nd.gaussian_filter(rgb.mean(2),1.0)
     exg=nd.gaussian_filter((2*rgb[...,1]-rgb[...,0]-rgb[...,2])/(rgb.sum(2)+1),1.0)
     veg=((ndvi>0.10)|((exg>0.04)&(bri<110)))&V
@@ -133,6 +153,8 @@ def kachel(I,J,prev=None):
     nv=c10(ndvi); ex=c10((2*rgb[...,1]-rgb[...,0]-rgb[...,2])/(rgb.sum(2)+1)); r_,g_,b_=(c10(rgb[...,i]) for i in range(3)); br=(r_+g_+b_)/3
     yel=(br>120)&(r_>0.85*g_)&(g_>b_+35)          # Raps/Stoppel hell gelb
     A=np.where(yel,2,np.where((nv>0.05)|(ex>0.06),1,3)).astype(np.uint8); A=nd.median_filter(A,3); A[~vc]=0
+    if out is not None:
+        return dict(P=P,T=ty.astype(np.uint8),F=F,A=A)
     np.savez_compressed('k/%d_%d.npz'%(I,J),P=P,T=ty.astype(np.uint8),F=F,A=A)
     print(I,J,'Bäume',int((ty>=16).sum()),'Sträucher',int((ty==8).sum()),'Wald',round(float((F==2).mean()),3),'gültig',round(float(vc.mean()),3),flush=True)
     if prev:
@@ -157,6 +179,26 @@ if __name__=='__main__':
             if time.time()-t0>B: break
             t1=time.time(); kachel(I,J); print('  %.0f s'%(time.time()-t1),flush=True)
         print('fehlen',sum(not os.path.exists('k/%d_%d.npz'%t) for t in tiles()))
+    elif cmd=='ergaenzen':
+        import shutil; os.makedirs('ks',exist_ok=True); t0=time.time(); B=float(sys.argv[2]) if len(sys.argv)>2 else 780
+        SRCS=sys.argv[3].split(',') if len(sys.argv)>3 else ['cz','pl']
+        for I,J in tiles():
+            f='k/%d_%d.npz'%(I,J); d=dict(np.load(f))
+            if not (d['F']==0).any(): continue
+            if time.time()-t0>B: break
+            if not os.path.exists('ks/%d_%d.npz'%(I,J)): shutil.copy(f,'ks/%d_%d.npz'%(I,J))
+            t1=time.time()
+            for src in SRCS:
+                if not (d['F']==0).any(): break
+                n=kachel(I,J,src=src,out=True); leer=(d['F']==0)&(n['F']>0)
+                if not leer.any(): print(I,J,src,'nichts'); continue
+                P=n['P']; cz=((P[:,1]/2.0-(J*S))//10).astype(int); cx=((P[:,0]/2.0-(I*S))//10).astype(int)
+                ok=(cz>=0)&(cz<200)&(cx>=0)&(cx<200); sel=np.zeros(len(P),bool); sel[ok]=leer[cz[ok],cx[ok]]
+                d['P']=np.concatenate([d['P'],P[sel]]); d['T']=np.concatenate([d['T'],n['T'][sel]])
+                d['F']=np.where(leer,n['F'],d['F']); d['A']=np.where(leer,n['A'],d['A'])
+                print(I,J,src,'neu Bäume',int((n['T'][sel]>=16).sum()),'Sträucher',int((n['T'][sel]==8).sum()),'Zellen',int(leer.sum()),flush=True)
+            np.savez_compressed(f,**d); print('  %.0f s'%(time.time()-t1),flush=True)
+        print('Lücken übrig',sum(int((np.load('k/%d_%d.npz'%t)['F']==0).sum()) for t in tiles()))
     elif cmd=='packen':
         from PIL import Image
         nI=(RX1-RX0)//S; nJ=(RZ1-RZ0)//S; Fm=np.zeros((nJ*200,nI*200),np.uint8); Am=np.zeros_like(Fm); Ps=[];Ts=[]

@@ -1,7 +1,7 @@
 // 0.18.0 Treppen: Netz-Statistik, Tragen/Fahren über eine echte Treppe. BIKE gravel|mtb|road, PL Ort, NV "min,max" Stufen, UP 1 hoch / -1 runter, OUT Bilder (leer = nur Logik)
 const {chromium}=require('playwright'); const serve=require('./serve');
 (async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']}); const ctx=await b.newContext({viewport:{width:900,height:560}}); await serve(ctx);
- const BK=process.env.BIKE||'gravel'; await ctx.addInitScript(([bk,o])=>{ window.__OUT=o; try{ localStorage.setItem('hicoreRide.bike',JSON.stringify(bk)); }catch(e){} }, [BK,!!process.env.OUT]);
+ const BK=process.env.BIKE||'gravel'; await ctx.addInitScript(([bk,o,f])=>{ window.__OUT=o; window.__FLT=f; try{ localStorage.setItem('hicoreRide.bike',JSON.stringify(bk)); }catch(e){} }, [BK,!!process.env.OUT,!!process.env.FLOAT]);
  const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push('PE '+(e.stack||e.message).slice(0,400))); p.on('console',m=>{ if(m.type()==='warning'||m.type()==='error') console.log('C',m.text().slice(0,200)); });
  await p.goto('http://127.0.0.1:8765/index.html?gl=1'); await p.waitForFunction(()=>window.glbRiderReady,null,{timeout:800000});
  await p.evaluate(()=>{ selWorld='zittau'; $('bots').value='0'; ATMO.wx='sonne'; ATMO.sn='keine'; ATMO.tod='mittag'; ATMO.apply(); $('bSim').click(); });
@@ -12,7 +12,7 @@ const {chromium}=require('playwright'); const serve=require('./serve');
    let best=null, bd=1e9; const [n0,n1]=nv;
    R.edges.forEach(E=>{ if (E.c!==15 || !E.st || E.nv<n0 || E.nv>n1) return; const dyab=stairY(E.st,E.stS1)-stairY(E.st,E.stS0); const dir=(dyab>0)===(up>0)?0:1, na=dir?E.b:E.a, nb=dir?E.a:E.b;
      const nbr=(n,ex)=>R.adjW[n].map(k=>R.edges[k]).filter(K=>K.k!==ex && K.c!==15 && K.len>25); const A=nbr(na,E.k), B=nbr(nb,E.k); if (!A.length || !B.length) return;
-     const xz=E.xz, d=Math.hypot(xz[0]-P.x,xz[1]-P.z); if (d<bd){ bd=d; best={E,dir,na,nb,A:A[0],B:B[0]}; } });
+     const xz=E.xz; let d=Math.hypot(xz[0]-P.x,xz[1]-P.z); if (window.__FLT){ if (d>2500) return; const T=E.st; stairInit(T); const q=stairPt(T,T.up>0?T.s1:T.s0); d=-(T.yHi-wayLiftY0(q[0],q[1],terrainH(q[0],q[1]))); if (T.rHi) return; } if (d<bd){ bd=d; best={E,dir,na,nb,A:A[0],B:B[0]}; } });
    if (!best) return {err:'keine Treppe', st}; const {E,dir,na,nb,A,B}=best;
    const path=[{e:A.k,dir:A.b===na?0:1},{e:E.k,dir},{e:B.k,dir:B.a===nb?0:1}]; const rt=gRoute(path,'tstair'); setRoute(rt); rt.ents.forEach((en,i)=>NET.appl.add(i+':'+en.n1+':'+Math.round(en.r1))); S.dist=Math.max(0,rt.ents[1].r0-22); S.dir=1; $('simW').value=window.__OUT?0:200; meP.v=window.__OUT?0:6;
    const sp=stairSpans(); return {st, edge:E.k, id:E.wid, nv:E.nv, T:{s0:+E.st.s0.toFixed(2), s1:+E.st.s1.toFixed(2), p0:stairPt(E.st,0).map(v=>+v.toFixed(1)), pe:stairPt(E.st,E.st.L).map(v=>+v.toFixed(1)), n:E.st.n, nv:E.st.nv, L:+E.st.L.toFixed(1), R:+E.st.R.toFixed(2), h:+E.st.h.toFixed(3), up:E.st.up, fl:E.st.fl, sf:E.st.sf}, dist:Math.round(bd), spans:sp.map(s=>({r0:+s.r0.toFixed(1), r1:+s.r1.toFixed(1), q0:+s.q0.toFixed(1), q1:+s.q1.toFixed(1), up:s.up, nv:s.nv, mode:stairMode(s), tr:+s.tr.toFixed(2)})), name:gWayName(E), x:Math.round(E.xz[0]), z:Math.round(E.xz[1])}; }, [process.env.PL||'Oybin', (process.env.NV||'4,40').split(',').map(Number), +(process.env.UP||1)]);
@@ -33,6 +33,6 @@ const {chromium}=require('playwright'); const serve=require('./serve');
      await p.evaluate(()=>{ window.__F0=FRC; }); await p.waitForFunction(()=>FRC>=window.__F0+3,null,{timeout:1600000}); await p.screenshot({timeout:300000,path:OUT+'/'+nm+'.jpg',quality:85}); console.log('shot',nm); };
    const sp=await p.evaluate(()=>{ const s=stairSpans()[0]; return {L:s.r1-s.r0}; });
    const pts=(process.env.PTS||'-1.6,mid,end').split(',');
-   for (const q of pts){ const dd=q==='mid'?sp.L*0.5:q==='end'?sp.L+1.0:+q; await shot('treppe_'+q.replace('.','_'), dd, +(process.env.SIDE||1)); }
+   for (const q of pts){ const dd=q==='mid'?sp.L*0.5:q==='end'?sp.L+1.0:+q; for (const sd of (process.env.SIDE||'1').split(',')) await shot('treppe_'+q.replace('.','_')+(sd==='1'?'':'_s'+sd), dd, +sd); }
  }
  console.log('Fehler:', errs.length?errs.join('\n'):'none'); await b.close(); })();

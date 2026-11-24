@@ -4712,7 +4712,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
 </script>
 <script>window.PROP_GLB={};window.PROP_LIST=["amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "gruft", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "gruft": "3a94d372", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
 <script src="data/media.js?h=a64ace9f"></script>
-<script src="data/zittau.js?h=a6719b88"></script>
+<script src="data/zittau.js?h=b0e274d9"></script>
 <script>
 "use strict";
 // ================= Helpers =================
@@ -6677,7 +6677,7 @@ function lcCol(c,k,x,z,t,def){ if (k===1) c.setHSL(0.24,0.42,0.16+0.03*t); else 
 /* 0.11.4 (Hicore): Zittauer Grünring und Parks nach OSM (leisure=park/garden/playground, landuse=grass/cemetery): dort Rasen statt Siedlungsfläche, Bäume nur aus OSM-Einzelbäumen */
 window.PARK_READY=window.ZGPARK?new Promise(res=>{ const im=new Image(); im.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(im,0,0); const d=g.getImageData(0,0,c.width,c.height).data, n=c.width*c.height, u=new Uint8Array(n); for (let i=0;i<n;i++) u[i]=d[i*4]; window.PARKD={x0:3000,z0:-7400,c:4,w:c.width,h:c.height,b:u}; }catch(e){ console.warn('park',e); } res(); }; im.onerror=()=>res(); im.src='data:image/png;base64,'+window.ZGPARK; }):Promise.resolve();
 function gnPark(x,z){ const R=window.PARKD; if (!R) return 0; const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c); if (gx<0||gz<0||gx>=R.w||gz>=R.h) return 0; return R.b[gz*R.w+gx]; }
-/* 0.17.2 (Hicore, Punkt C): echte Bäume aus Luftbild Sachsen DOP20 (GeoSN, DL-DE/BY-2.0) + Kronenhöhe (Meta/WRI CHM 1 m, CC BY 4.0), werkzeuge/dop_baeume.py.
+/* 0.19.1: Tschechien aus Orthofoto ČÚZK (© ČÚZK, CC BY 4.0, nur RGB). 0.17.2 (Hicore, Punkt C): echte Bäume aus Luftbild Sachsen DOP20 (GeoSN, DL-DE/BY-2.0) + Kronenhöhe (Meta/WRI CHM 1 m, CC BY 4.0), werkzeuge/dop_baeume.py.
    Im erfassten Ausschnitt (Jonsdorf) sagt die Waldmaske (10 m), wo geschlossener Wald ist; außerhalb stehen nur noch Einzelbäume an ihren echten Stellen (Kachel-Baumtyp >= 16). Aus: window.NO_DOPT */
 /* 0.19.0 (Hicore: „überall wie Jonsdorf“): ganzes Gebirge, Maske als PNG (R: 0 kein Luftbild / 127 offen / 254 Wald, G: Acker 0 / 85 grün / 170 Stoppel / 255 kahl, 10 m), werkzeuge/dop_gebiet.py */
 window.DOPM_READY=window.ZGDOPM?new Promise(res=>{ const D=window.ZGDOPM, im=new Image(); im.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(im,0,0); const d=g.getImageData(0,0,c.width,c.height).data, n=c.width*c.height, f=new Uint8Array(n), a=new Uint8Array(n); for (let i=0;i<n;i++){ f[i]=Math.round(d[i*4]/127); a[i]=Math.round(d[i*4+1]/85); } window.DOPMD={x0:D.x0,z0:D.z0,c:D.c||10,w:c.width,h:c.height,f,a}; }catch(e){ console.warn('dopm',e); } res(); }; im.onerror=()=>res(); im.src='data:image/png;base64,'+D.png; }):Promise.resolve();
@@ -7230,23 +7230,41 @@ function stairInit(T){ if (T.y0!=null) return T;
   const ta=wayLiftY0(pa[0],pa[1],terrainH(pa[0],pa[1])+0.08), tb=wayLiftY0(pb[0],pb[1],terrainH(pb[0],pb[1])+0.08), dl=tb-ta;
   const sg=(T.fl&1)?((T.fl&2)?1:-1):(dl>=0?1:-1), dp=sg*dl;
   let n=T.n; if (!n) n=clamp(Math.round(Math.max(Math.abs(dl),L*0.22)/0.165),2,Math.max(2,Math.floor(L/0.26)));
+  const r0=s0>0.05, r1=s1<T.L-0.05;
+  if (window.OLD_STAIRFIT){
   let R=clamp(n*0.165, dp-0.4, dp+0.4); R=Math.max(R, n*0.07, 0.12);   /* Gelände gewinnt: höchstens 40 cm Abweichung, Stufen dann flacher */
-  const nv=Math.max(n, Math.ceil(R/0.22)); T.up=sg; T.nv=nv; T.R=R; T.h=R/nv; T.t=L/nv;
+  const nv=Math.max(n, Math.ceil(R/0.22)); T.up=sg; T.nv=nv; T.R=R; T.h=R/nv; T.t=L/nv; T.YT=null;
   /* an einer Straße endet die Treppe genau auf Fahrbahnhöhe, sonst mittig zum Gelände */
-  const r0=s0>0.05, r1=s1<T.L-0.05; let mid=(ta+tb)/2; if (r1 && !r0) mid=tb-sg*R/2; else if (r0 && !r1) mid=ta+sg*R/2;
+  let mid=(ta+tb)/2; if (r1 && !r0) mid=tb-sg*R/2; else if (r0 && !r1) mid=ta+sg*R/2;
   T.y0=mid-sg*R/2; T.y1=mid+sg*R/2; T.yLo=Math.min(T.y0,T.y1); T.yHi=Math.max(T.y0,T.y1); return T; }
+  /* 0.19.1 (Hicore: Treppen halb im Boden): keine Stufe liegt unter dem Gelände. Echte Stufenhöhe, solange die Treppe höchstens 0,9 m
+     über das Gelände hinausragt; was übersteht, bekommt Seitenwände und eine Böschung (stairsMesh), oben läuft eine Erdrampe aus (stairRamp). */
+  const TS=[]; for (let k=0;k<=24;k++){ const u=k/24, q=stairPt(T,sg>0?s0+L*u:s1-L*u); TS.push(wayLiftY0(q[0],q[1],terrainH(q[0],q[1]))); }   /* Gelände in Laufrichtung (unten -> oben) */
+  const tAt=u=>{ const f=clamp(u,0,1)*24, i=Math.min(23,Math.floor(f)); return TS[i]+(TS[i+1]-TS[i])*(f-i); };
+  const tLo=sg>0?ta:tb, tHi=sg>0?tb:ta, dpp=Math.max(0,tHi-tLo), rLo=sg>0?r0:r1, rHi=sg>0?r1:r0;
+  /* Stufen folgen dem Geländeverlauf (ungleich hoch wie bei echten Treppen im Hang), jede mindestens hmin, höchstens 24 cm */
+  const nv=Math.max(n, Math.ceil(dpp/0.22)), hmin=Math.min(0.10, Math.max((dpp+0.75)/nv, 0.04)), YT=new Float32Array(nv), yLo=tLo-(rLo?0:0.02);
+  let prev=yLo; for (let k=0;k<nv;k++){ const tg=Math.max(tAt((k+0.5)/nv)+0.04, tAt((k+1)/nv)-0.02); prev=clamp(tg, prev+hmin, prev+0.24); YT[k]=prev; }
+  if (rHi){ const d=tHi-YT[nv-1]; if (d>0) for (let k=0;k<nv;k++) YT[k]+=d*(k+1)/nv;
+    else { const sc=Math.max(0.03,(tHi-yLo))/Math.max(0.01,YT[nv-1]-yLo); for (let k=0;k<nv;k++) YT[k]=yLo+(YT[k]-yLo)*sc; } }
+  const R=YT[nv-1]-yLo; T.up=sg; T.nv=nv; T.R=R; T.h=R/nv; T.t=L/nv; T.TS=TS; T.YT=YT; T.rHi=rHi; T.rLo=rLo;
+  T.y0=sg>0?yLo:yLo+R; T.y1=sg>0?yLo+R:yLo; T.yLo=yLo; T.yHi=yLo+R; return T; }
 /* Fahrlinie (gerade von unten nach oben, berührt die hinteren Stufenkanten) und Stufenoberkante an Bogenlänge s (in Punktrichtung) */
-function stairY(T,s){ stairInit(T); return T.y0+(T.y1-T.y0)*clamp((s-T.s0)/Math.max(0.01,T.s1-T.s0),0,1); }
-function stairTop(T,s){ stairInit(T); const u=T.up>0?s-T.s0:T.s1-s; if (u<=0) return T.yLo; const i=Math.floor(u/T.t); return i>=T.nv?T.yHi:T.yLo+(i+1)*T.h; }
+function stairY(T,s){ stairInit(T); if (T.YT){ const u=clamp((T.up>0?s-T.s0:T.s1-s)/Math.max(0.01,T.s1-T.s0),0,1)*T.nv, i=Math.min(T.nv-1,Math.floor(u)), a=i?T.YT[i-1]:T.yLo; return a+(T.YT[i]-a)*(u-i); }
+  return T.y0+(T.y1-T.y0)*clamp((s-T.s0)/Math.max(0.01,T.s1-T.s0),0,1); }
+function stairTop(T,s){ stairInit(T); const u=T.up>0?s-T.s0:T.s1-s; if (u<=0) return T.yLo; const i=Math.floor(u/T.t); return i>=T.nv?T.yHi:T.YT?T.YT[i]:T.yLo+(i+1)*T.h; }
+function stairStepY(T,k){ return T.YT?T.YT[k]:T.yLo+(k+1)*T.h; }
 function stairPt(T,s){ const P=T.P, c=T.cum, m=c.length; s=clamp(s,0,T.L); let i=0; while (i<m-2 && c[i+1]<s) i++; const f=clamp((s-c[i])/Math.max(1e-6,c[i+1]-c[i]),0,1); return [P[2*i]+(P[2*i+2]-P[2*i])*f, P[2*i+1]+(P[2*i+3]-P[2*i+1])*f]; }
 function stairProj(T,x,z){ const P=T.P, c=T.cum; let best=1e18, bs=0; for (let i=0;i<c.length-1;i++){ const ax=P[2*i], az=P[2*i+1], dx=P[2*i+2]-ax, dz=P[2*i+3]-az, ll=dx*dx+dz*dz||1e-9, t=clamp(((x-ax)*dx+(z-az)*dz)/ll,0,1), d=Math.hypot(ax+dx*t-x,az+dz*t-z); if (d<best){ best=d; bs=c[i]+(c[i+1]-c[i])*t; } } return bs; }
 /* Treppenenden: Raster 20 m, [x,z,y] */
 let STAIR_END=null;
 function stairEnds(){ if (STAIR_END) return STAIR_END; STAIR_END=new Map(); const ST=stairsData(); if (!ST || !(WORLD&&WORLD.id==='zittau')) return STAIR_END;
-  ST.forEach(T=>{ stairInit(T); const pa=stairPt(T,T.s0), pb=stairPt(T,T.s1); [[pa[0],pa[1],T.y0],[pb[0],pb[1],T.y1]].forEach(([x,z,y])=>{ const k=Math.floor(x/20)+','+Math.floor(z/20); let l=STAIR_END.get(k); if (!l) STAIR_END.set(k,l=[]); l.push(x,z,y); }); }); return STAIR_END; }
-function stairBlend(x,z,base){ if (!STAIRS_ON || !window.ZGSTEPS || !(WORLD&&WORLD.id==='zittau')) return base; const E=stairEnds(); if (!E.size) return base; const cx=Math.floor(x/20), cz=Math.floor(z/20); let bd=7, by=0;
-  for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=E.get((cx+a)+','+(cz+b)); if (!l) continue; for (let i=0;i<l.length;i+=3){ const d=Math.hypot(x-l[i],z-l[i+1]); if (d<bd){ bd=d; by=l[i+2]; } } }
-  if (bd>=7) return base; const w=1-smooth01(bd/7); return base+(by-base)*w; }
+  ST.forEach(T=>{ stairInit(T); const pa=stairPt(T,T.s0), pb=stairPt(T,T.s1); [[pa[0],pa[1],T.y0],[pb[0],pb[1],T.y1]].forEach(([x,z,y])=>{ const k=Math.floor(x/20)+','+Math.floor(z/20); let l=STAIR_END.get(k); if (!l) STAIR_END.set(k,l=[]); l.push(x,z,y,stairRad(T,x,z,y)); }); }); return STAIR_END; }
+/* 0.19.1: Auslauf je Treppenende. Steht das Ende über dem Gelände (flaches Gelände), läuft der Weg auf einer Erdrampe aus: Länge nach Überstand */
+function stairRad(T,x,z,y){ if (window.OLD_STAIRFIT) return 7; const e=y-wayLiftY0(x,z,terrainH(x,z)); return e>0.12?clamp(1.5+e*6.5,2.5,7):7; }
+function stairBlend(x,z,base){ if (!STAIRS_ON || !window.ZGSTEPS || !(WORLD&&WORLD.id==='zittau')) return base; const E=stairEnds(); if (!E.size) return base; const cx=Math.floor(x/20), cz=Math.floor(z/20); let bw=0, by=0;
+  for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=E.get((cx+a)+','+(cz+b)); if (!l) continue; for (let i=0;i<l.length;i+=4){ const d=Math.hypot(x-l[i],z-l[i+1]); if (d<l[i+3]){ const w=1-smooth01(d/l[i+3]); if (w>bw){ bw=w; by=l[i+2]; } } } }
+  if (bw<=0) return base; return base+(by-base)*bw; }
 /* Bäume/Nahgras von Treppen fernhalten (wie Wege) */
 function stairsIdx(){ const ST=stairsData(); if (!ST) return; ST.forEach(T=>{ const P=T.P; for (let q=0;q<P.length/2-1;q++){ const a=[P[2*q],P[2*q+1]], b=[P[2*q+2],P[2*q+3]], hk=Math.floor((a[0]+b[0])/40)+','+Math.floor((a[1]+b[1])/40); let hl=WAYS_H.get(hk); if (!hl) WAYS_H.set(hk,hl=[]); hl.push(a[0],a[1],b[0],b[1],Math.max(1,T.w)/2+0.3); } }); }
 /* 3D-Stufen je 500-m-Kachel (hängt am Pfad-Netz der Kachel, sichtbar wie Pfade bis ca. 650 m). Je Stufe ein Block (Trittfläche, Setzstufe, Seiten). Handlauf, wenn OSM einen kennt. */
@@ -7258,11 +7276,17 @@ function stairsMesh(i,j){ const ST=stairsData(); if (!ST || !(WORLD&&WORLD.id===
     let sd=(T.id%100000)+11; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
     const cT=wood?[0.45,0.33,0.22]:earth?[0.40,0.33,0.25]:rock?[0.58,0.54,0.47]:T.sf===1||T.sf===2?[0.55,0.53,0.50]:[0.62,0.61,0.59];
     const cR=earth?[0.33,0.24,0.16]:[cT[0]*0.8,cT[1]*0.8,cT[2]*0.8], cS=earth?[0.36,0.30,0.23]:[cT[0]*0.72,cT[1]*0.72,cT[2]*0.72];
-    const hw=Math.max(0.5, Math.min(3, (earth?Math.min(T.w,1.2):T.w))/2);
+    const hw=Math.max(0.5, Math.min(3, (earth?Math.min(T.w,1.2):T.w))/2), cB=[0.36,0.42,0.20];
+    if (!window.OLD_STAIRFIT && !T.rHi) stairRamp(T,hw,quad,cB,earth?cT:[0.42,0.37,0.29]);
     for (let k=0;k<T.nv;k++){ const ua=k*T.t, ub=(k+1)*T.t, sa=T.up>0?T.s0+ua:T.s1-ua, sb=T.up>0?T.s0+ub:T.s1-ub, A=stairPt(T,sa), Bp=stairPt(T,sb);
-      let dx=Bp[0]-A[0], dz=Bp[1]-A[1]; const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l; const nx=-dz*hw, nz=dx*hw, y=T.yLo+(k+1)*T.h, yb=y-T.h-0.45, f=0.93+rnd()*0.1;
+      let dx=Bp[0]-A[0], dz=Bp[1]-A[1]; const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l; const nx=-dz*hw, nz=dx*hw, y=stairStepY(T,k), y_=k?stairStepY(T,k-1):T.yLo, f=0.93+rnd()*0.1; let yb=y_-0.45;
       const ct=cT.map(c=>c*f), cr=cR.map(c=>c*f), cs=cS.map(c=>c*f);
+      let tmin=1e9; if (T.TS && !window.OLD_STAIRFIT){ for (let q=Math.floor(k/T.nv*24); q<=Math.min(24,Math.ceil((k+1)/T.nv*24)); q++) tmin=Math.min(tmin,T.TS[q]); yb=Math.min(yb,tmin-0.25); }
       const aL=[A[0]+nx,y,A[1]+nz], aR=[A[0]-nx,y,A[1]-nz], bL=[Bp[0]+nx,y,Bp[1]+nz], bR=[Bp[0]-nx,y,Bp[1]-nz], D=v=>[v[0],yb,v[2]];
+      /* 0.19.1: ragt die Treppe übers Gelände, liegt sie in einer Böschung (Oberkante = Treppenlinie, flach zum Gelände auslaufend) */
+      if (tmin<1e8 && y-tmin>0.1){ const ya=y_-0.03, yb2=y-0.03; [1,-1].forEach(sd=>{ const ea=Math.max(0,ya-tmin), eb=Math.max(0,yb2-tmin), wa=hw+0.25+ea*1.5, wb=hw+0.25+eb*1.5;
+          const oa=[A[0]+sd*nx/hw*wa, 0, A[1]+sd*nz/hw*wa], ob=[Bp[0]+sd*nx/hw*wb, 0, Bp[1]+sd*nz/hw*wb]; oa[1]=terrainH(oa[0],oa[2])-0.06; ob[1]=terrainH(ob[0],ob[2])-0.06;
+          quad([A[0]+sd*nx,ya,A[1]+sd*nz],[Bp[0]+sd*nx,yb2,Bp[1]+sd*nz],ob,oa,cB.map(c=>c*f)); }); }
       quad(aL,bL,bR,aR,ct);                 /* Trittfläche */
       if (!window.OLD_STAIRVIS){ const e=0.06, ek=[ct[0]*0.45,ct[1]*0.45,ct[2]*0.45], y2=y+0.012; quad([aL[0],y2,aL[2]],[aL[0]+dx*e,y2,aL[2]+dz*e],[aR[0]+dx*e,y2,aR[2]+dz*e],[aR[0],y2,aR[2]],ek); }   /* 0.19.0 (Hicore): dunkle Stufenkante, Stufen auch bei flachem Gelände klar erkennbar */
       quad(D(aR),aR,aL,D(aL),earth?cR:cr);  /* Setzstufe (bei Erdstufen Holzbalken) */
@@ -7275,6 +7299,13 @@ function stairsMesh(i,j){ const ST=stairsData(); if (!ST || !(WORLD&&WORLD.id===
         const cur=[x,y1,z]; if (prev){ quad([prev[0],prev[1]-0.04,prev[2]],prev,cur,[cur[0],cur[1]-0.04,cur[2]],rc); } prev=cur; } } });
   if (!idx.length) return null; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
   if (!STAIR_MAT) STAIR_MAT=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.9, side:THREE.DoubleSide}); const ms=new THREE.Mesh(g,STAIR_MAT); ms.name='treppen'; ms.castShadow=true; ms.receiveShadow=true; return ms; }
+/* 0.19.1: Erdrampe hinter dem oberen Treppenende, wenn es über dem Gelände steht (gleiches Profil wie stairBlend für den Weg) */
+function stairRamp(T,hw,quad,cB,cTop){ const sH=T.up>0?T.s1:T.s0, sI=T.up>0?Math.max(0,sH-0.6):Math.min(T.L,sH+0.6), P=stairPt(T,sH), Q=stairPt(T,sI);
+  const tH=wayLiftY0(P[0],P[1],terrainH(P[0],P[1])), e=T.yHi-tH; if (e<=0.12) return; const rad=stairRad(T,P[0],P[1],T.yHi);
+  let dx=P[0]-Q[0], dz=P[1]-Q[1]; const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l; const nx=-dz, nz=dx, M=Math.max(3,Math.ceil(rad/0.6)); let prev=null;
+  for (let j=0;j<=M;j++){ const d=rad*j/M, x=P[0]+dx*d, z=P[1]+dz*d, base=wayLiftY0(x,z,terrainH(x,z)), y=base+(T.yHi-base)*(1-smooth01(d/rad))-0.035, ex=Math.max(0,y-base), w=hw+0.25+ex*1.5;
+    const L0=[x+nx*hw,y,z+nz*hw], R0=[x-nx*hw,y,z-nz*hw], L1=[x+nx*w,terrainH(x+nx*w,z+nz*w)-0.06,z+nz*w], R1=[x-nx*w,terrainH(x-nx*w,z-nz*w)-0.06,z-nz*w], cur={L0,R0,L1,R1};
+    if (prev){ quad(prev.L0,cur.L0,cur.R0,prev.R0,cTop); quad(prev.L1,cur.L1,cur.L0,prev.L0,cB); quad(prev.R0,cur.R0,cur.R1,prev.R1,cB); } prev=cur; } }
 /* Atlas-Kachel je Untergrund: 0 Asphalt, 1 Pflaster, 2 Verbundpflaster, 3 Beton, 4 Schotter fein/wassergebunden, 5 Erde, 6 Gras, 7 Waldboden, 8 Grobschotter/Fels */
 function waysLayer(sf,c,x,z){ let l=[0,1,2,3,4,4,8,5,6,5,8,5,5,c===10?0:2][sf]; if (l===undefined) l=5; if (sf===12) l=c===10?5:4; if ((l===5) && gnLC(x,z)===1) l=7; return l; }
 function gtSideIdx(){ if (SIDE_IDX) return SIDE_IDX; SIDE_IDX=new Map(); if (!window.ZGSIDE || !(WORLD&&WORLD.id==='zittau')) return SIDE_IDX; const D=gnData(); if (!D) return SIDE_IDX;
@@ -9327,7 +9358,7 @@ function carryRig(R,G,K,CY,hipY){ const B=R.B, V3=THREE.Vector3, w=_sst(0,1,CY.k
   if (CY.mode==='lift'){ H.Left={F:tf(gf), pole:new V3(0.6,-0.4,-0.5)};
     const t=TT.b.clone().sub(TT.a).normalize(), c=TT.a.clone().lerp(TT.b,0.42), Y=new V3(0.35,0.94,0), Z=new V3(-0.94,0.35,0); Y.addScaledVector(t,-Y.dot(t)).normalize(); Z.addScaledVector(t,-Z.dot(t)).addScaledVector(Y,-Z.dot(Y)).normalize();
     H.Right={F:tf({c, X:t.clone().negate(), Y, Z}), pole:new V3(-0.5,-0.6,-0.4)}; }
-  else { const gd=(K.gripf||GRIPF)[2]; H.Right={F:tf(mir(!window.OLD_CARRYARM&&gd?gd:gf)), pole:new V3(-0.3,-0.6,0.5)};   /* 0.19.0: rechte Hand am linken Unterlenker wie beim Cyclocross */ H.Left=window.OLD_CARRYARM?{h:new V3(CY.xr+0.24, hipY-0.03, CY.hz+0.13*Math.sin(Math.PI*CY.u)), f:new V3(0,-0.1,0.03), pole:new V3(0.6,-0.3,-0.6)}:{h:G.worldToLocal(B.LeftArm.getWorldPosition(new V3())).add(new V3(0.03,-0.38,0.15+0.12*Math.sin(Math.PI*CY.u))), f:new V3(0,-0.12,0.03), pole:new V3(0.15,-0.7,-0.45)};   /* 0.19.0 (Hicore): linker Arm hängt locker, Ellbogen nach hinten-unten statt seitlich weg (wirkte ausgekugelt) */ }
+  else { const gd=(K.gripf||GRIPF)[2]; H.Right={F:tf(mir(!window.OLD_CARRYARM&&gd?gd:gf)), pole:new V3(-0.3,-0.6,0.5)};   /* 0.19.0: rechte Hand am linken Unterlenker wie beim Cyclocross */ H.Left=window.OLD_CARRYARM?{h:new V3(CY.xr+0.24, hipY-0.03, CY.hz+0.13*Math.sin(Math.PI*CY.u)), f:new V3(0,-0.1,0.03), pole:new V3(0.6,-0.3,-0.6)}:(window.OLD_CARRYARM2?{h:G.worldToLocal(B.LeftArm.getWorldPosition(new V3())).add(new V3(0.03,-0.38,0.15+0.12*Math.sin(Math.PI*CY.u))), f:new V3(0,-0.12,0.03), pole:new V3(0.15,-0.7,-0.45)}:{h:G.worldToLocal(B.LeftArm.getWorldPosition(new V3())).add(new V3(0.06,-0.50,0.06+0.09*Math.sin(Math.PI*CY.u))), f:new V3(0.02,-0.12,0.02), pole:new V3(0.25,0.05,-1)});   /* 0.19.1 (Hicore: Hand wirkte wie in die Hüfte gestemmt): Arm hängt fast gestreckt neben dem Oberschenkel und pendelt leicht, Ellbogen zeigt nach hinten */   /* 0.19.0 (Hicore): linker Arm hängt locker, Ellbogen nach hinten-unten statt seitlich weg (wirkte ausgekugelt) */ }
   return {w, H}; }
 // Pose pro Bild. G = Rider-Gruppe (lokale Koordinaten: +z vorn), crank = Kurbelwinkel
 function poseGLB(R, G, crank, effort, opt){
@@ -11785,7 +11816,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
