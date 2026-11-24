@@ -22,7 +22,11 @@ body.hHud .hud,body.hSide .side,body.hProf .prof,body.hBoard .board,body.hCtrl .
 #bGest{position:fixed;right:122px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bGest:hover{opacity:1}#gestMenu{position:fixed;right:12px;top:50px;z-index:8;display:none;flex-direction:column;gap:4px;padding:8px;border-radius:12px;background:rgba(13,17,23,.88);border:1px solid var(--line);min-width:210px}#gestMenu button{text-align:left;padding:7px 10px;border-radius:8px;border:0;background:rgba(255,255,255,.07);color:#fff;font-size:14px}#gestMenu button:hover{background:rgba(255,255,255,.18)}#gestMenu small{opacity:.6;font-size:11px;margin:4px 2px 0}#sayBub{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:9;display:none;background:#fff;color:#111;font:700 20px/1.3 system-ui,sans-serif;padding:10px 18px;border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
 #bKeys{position:fixed;right:232px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75;display:none}#bKeys:hover{opacity:1}body.kbd #bKeys{display:block}#keysBox{position:fixed;right:12px;top:50px;z-index:8;display:none;padding:12px 16px;border-radius:12px;background:rgba(13,17,23,.9);border:1px solid var(--line);color:#fff;font:14px/1.5 system-ui,sans-serif;min-width:260px}#keysBox b{display:inline-block;min-width:74px;padding:0 6px;margin:2px 8px 2px 0;border-radius:6px;background:rgba(255,255,255,.14);text-align:center;font-weight:700}#keysBox h4{margin:2px 0 6px;font-size:14px;opacity:.8}
 #bHud{position:fixed;right:12px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bHud:hover{opacity:1}
-#junc{display:none;position:fixed;left:50%;top:124px;transform:translateX(-50%);z-index:6;background:rgba(13,17,23,.62);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px 6px;color:#fff;text-align:center;max-width:min(430px,92vw);backdrop-filter:blur(3px)}#junc .jt{font-weight:600;font-size:12px;margin-bottom:4px;opacity:.9}#junc .jb{display:flex;gap:5px;justify-content:center}#junc button{flex:1 1 0;min-width:0;max-width:200px;padding:4px 8px;font-size:13px;font-weight:700;border-radius:7px;border:1.5px solid rgba(255,255,255,.18);background:rgba(27,35,45,.75);color:#fff;display:flex;flex-direction:column;align-items:center;gap:1px}#junc button small{font-size:10px;font-weight:400;opacity:.75;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#junc button.on{border-color:#ff7a1a;background:rgba(58,36,20,.85)}#junc.jmin{opacity:.7;transform:translateX(-50%) scale(.8);transform-origin:50% 0}
+#junc{display:none;position:fixed;left:50%;top:124px;transform:translateX(-50%);z-index:6;background:rgba(13,17,23,.62);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px 6px;color:#fff;text-align:center;max-width:min(430px,92vw);backdrop-filter:blur(3px)}#junc .jt{font-weight:600;font-size:12px;margin-bottom:4px;opacity:.9}#junc .jb{display:flex;gap:5px;justify-content:center}#junc button{flex:1 1 0;min-width:0;max-width:200px;padding:4px 8px;font-size:13px;font-weight:700;border-radius:7px;border:1.5px solid rgba(255,255,255,.18);background:rgba(27,35,45,.75);color:#fff;display:flex;flex-direction:column;align-items:center;gap:1px}#junc button small{font-size:10px;font-weight:400;opacity:.75;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#junc button.on{border-color:#ff7a1a;background:rgba(58,36,20,.85)}
+#junc .j2{display:none;margin-top:5px;padding-top:4px;border-top:1px solid rgba(255,255,255,.14);opacity:.88}
+#junc .j2 .jt{font-size:11px;margin-bottom:3px}
+#junc .j2 button{padding:2px 6px;font-size:11px}
+#junc .j2 button small{font-size:9px}#junc.jmin{opacity:.7;transform:translateX(-50%) scale(.8);transform-origin:50% 0}
 .side{position:fixed;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .side .tile{min-width:120px;text-align:left}
 .side .tile .v{font-size:20px}
@@ -1819,7 +1823,7 @@ function junUI(j, ah){ let el=$('junc'); if (!el){ el=document.createElement('di
   if (ah!=null) el.querySelector('.jt').textContent='Kreuzung in '+Math.max(0,Math.round(ah))+' m';
   el.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.v===NET.pick)); }
 addEventListener('keydown',e=>{ if (!NET || !NET.pend || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-  if (NET.graph){ const o=NET.pend.opts, i=Math.max(0,o.findIndex(x=>x.e===NET.pick)); if (e.key==='ArrowLeft'){ NET.pick=o[Math.max(0,i-1)].e; gJunUI(NET.pend,null); e.preventDefault(); } else if (e.key==='ArrowRight'){ NET.pick=o[Math.min(o.length-1,i+1)].e; gJunUI(NET.pend,null); e.preventDefault(); } else if (e.key==='ArrowUp'){ NET.pick=NET.pend.planned; gJunUI(NET.pend,null); e.preventDefault(); } return; } if (e.key==='ArrowLeft'||e.key==='ArrowRight'){ const side=e.key==='ArrowLeft'?'links':'rechts'; junPick(NET.pend.turn===side?'turn':'gerade'); e.preventDefault(); } });
+  if (NET.graph){ const o=NET.pend.opts, i=Math.max(0,o.findIndex(x=>x.e===NET.pick)); if (e.key==='ArrowLeft'){ NET.pend2v=null; NET.pick=o[Math.max(0,i-1)].e; gJunUI(NET.pend,null); e.preventDefault(); } else if (e.key==='ArrowRight'){ NET.pend2v=null; NET.pick=o[Math.min(o.length-1,i+1)].e; gJunUI(NET.pend,null); e.preventDefault(); } else if (e.key==='ArrowUp'){ NET.pend2v=null; NET.pick=NET.pend.planned; gJunUI(NET.pend,null); e.preventDefault(); } return; } if (e.key==='ArrowLeft'||e.key==='ArrowRight'){ const side=e.key==='ArrowLeft'?'links':'rechts'; junPick(NET.pend.turn===side?'turn':'gerade'); e.preventDefault(); } });
 const SIDE_W={0:6.0,1:4.0,2:3.0};
 function smoothArr(a, r, it){ for (let k=0;k<it;k++){ const b=Float32Array.from(a); for (let i=0;i<N;i++){ let s=0; for (let o=-r;o<=r;o++) s+=b[(i+o+N)%N]; a[i]=s/(2*r+1); } } return a; }
 // Straßennetz vorbereiten (vor dem Gelände): Breiten/Markierung je Kurspunkt, Nebenstraßen kappen, Kreuzungszonen
@@ -2918,6 +2922,16 @@ function gTurnInfo(arrE, node, e){ const D=gnRG(), A=D.edges[arrE], E=D.edges[e]
   const cr=(fx/fl)*(oz/ol)-(fz/fl)*(ox/ol), dt=(fx/fl)*(ox/ol)+(fz/fl)*(oz/ol), ang=Math.atan2(cr,dt)*180/Math.PI;   /* x Ost, z Süd: cr>0 = rechts */
   const a=ang; const label=Math.abs(a)<28?'Geradeaus':a<0?(a<-120?'Scharf links':'Links'):(a>120?'Scharf rechts':'Rechts');
   return {a, label, icon:Math.abs(a)<28?'⬆':a<0?'⬅':'➡'}; }
+/* 0.16.3: Kreuzungshinweis (Optionen, Plan, natürliche Weiterfahrt) für Eintrag best der Strecke R, null ohne echte Wahl */
+function gMakePend(R,best){ const C=NET, D=gnRG(), A=gAdj(D), arr=R.ents[best.i].e, nx=R.ents[best.i+1]||(best.node===R.ents[0].n0?(R.rev?gRevMain():C.main).ents[0]:null), planned=nx?nx.e:null;
+    const opts=A[best.node].filter(e=>e!==arr || D.edges[e].a===D.edges[e].b).filter(e=>e===planned || (gOfferable(D,e,best.node) && (!D.canGo || D.canGo(e,best.node)))).map(e=>Object.assign({e, name:gStreetVia(D,e,best.node), dest:D.dest(e,best.node), km:(D.destInfo(best.node,e)||{}).km, len:D.edges[e].len, plan:e===planned}, gTurnInfo(arr,best.node,e))).sort((a,b)=>a.a-b.a);
+    if (opts.length<2) return null;
+    /* 0.16.1 (Hicore): vorgewählt ist die natürliche Weiterfahrt (durchgehende/höherwertige Straße bzw. Weg). Auf der Hauptrunde bleibt die Runde, am Kreisel der Plan. */
+    const nd=D.nodes[best.node], ms=gMainSet(), onLoop=planned!=null && ms.has(arr) && ms.has(planned), nat=gNatural(D,arr,opts);
+    const pick=(window.NO_NATURAL || onLoop || nat==null || gnRBAt(nd.x,nd.z,8))?planned:nat;
+    const pr=gRank(D.edges[pick!=null?pick:arr]), minor=pick!=null && opts.every(o=>o.e===pick || gRank(D.edges[o.e])>pr+0.4);
+    return Object.assign({}, best, {opts, planned, nat:pick, minor}); }
+
 function gNetStep(){ const C=NET, D=gnRG(), A=gAdj(D);
   if (S.dist>=L){ S.dist-=L; if ((S.dir||1)>0){ lastLapDist=S.odo||0; S.lap++; toast('Runde '+(S.lap-1)+' geschafft!'); } C.appl.clear(); const base=C.cur.rev?gRevMain():C.main; if (C.cur!==base) setRoute(base); }
   if ((S.dir||1)<0 || S.ut || !S.running){ junUI(null); return; }
@@ -2925,26 +2939,34 @@ function gNetStep(){ const C=NET, D=gnRG(), A=gAdj(D);
   for (let i=0;i<R.ents.length;i++){ const en=R.ents[i]; if (en.r1<S.dist-2) continue; if ((A[en.n1]||[]).length<3) continue; const tag=i+':'+en.n1+':'+Math.round(en.r1); if (C.appl.has(tag)) continue; best={i, rd:en.r1, node:en.n1, tag, ah:en.r1-S.dist}; break; }
   const lead=Math.max(160, S.speed*12);
   if (!best || best.ah>lead){ junUI(null); C.pend=null; return; }
-  if (!C.pend || C.pend.tag!==best.tag){ const arr=R.ents[best.i].e, nx=R.ents[best.i+1]||(best.node===R.ents[0].n0?(R.rev?gRevMain():C.main).ents[0]:null), planned=nx?nx.e:null;
-    const opts=A[best.node].filter(e=>e!==arr || D.edges[e].a===D.edges[e].b).filter(e=>e===planned || (gOfferable(D,e,best.node) && (!D.canGo || D.canGo(e,best.node)))).map(e=>Object.assign({e, name:gStreetVia(D,e,best.node), dest:D.dest(e,best.node), km:(D.destInfo(best.node,e)||{}).km, len:D.edges[e].len, plan:e===planned}, gTurnInfo(arr,best.node,e))).sort((a,b)=>a.a-b.a);
-    if (opts.length<2){ C.appl.add(best.tag); return; }
-    /* 0.16.1 (Hicore): vorgewählt ist die natürliche Weiterfahrt (durchgehende/höherwertige Straße bzw. Weg). Auf der Hauptrunde bleibt die Runde, am Kreisel der Plan. */
-    const nd=D.nodes[best.node], ms=gMainSet(), onLoop=planned!=null && ms.has(arr) && ms.has(planned), nat=gNatural(D,arr,opts);
-    const pick=(window.NO_NATURAL || onLoop || nat==null || gnRBAt(nd.x,nd.z,8))?planned:nat;
-    const pr=gRank(D.edges[pick!=null?pick:arr]), minor=pick!=null && opts.every(o=>o.e===pick || gRank(D.edges[o.e])>pr+0.4);
-    C.pend=Object.assign({}, best, {opts, planned, nat:pick, minor}); C.pick=pick; }
+  if (!C.pend || C.pend.tag!==best.tag){ const pd=gMakePend(R,best); if (!pd){ C.appl.add(best.tag); return; } C.pend=pd;
+    /* 0.16.3: an der übernächsten Kreuzung schon vorher gewählt */ C.pick=(C.pre&&C.pre.has(best.tag))?C.pre.get(best.tag):pd.nat; if (C.pre) C.pre.delete(best.tag); C.p2c=new Map(); }
   else Object.assign(C.pend, {ah:best.ah, rd:best.rd});
   const RBn=gnRBAt(D.nodes[best.node].x,D.nodes[best.node].z,2), thr=RBn?RBn.r+Math.hypot(D.nodes[best.node].x-RBn.x,D.nodes[best.node].z-RBn.z)+(+(window.RB_PRE||32)):10;   /* 0.10.21: am Kreisel vor der Einfahrt entscheiden, sonst springt man im Ring */
-  if (best.ah<thr){ C.appl.add(best.tag); const p=C.pend; if (C.pick!=null && C.pick!==p.planned){ const o=p.opts.find(o=>o.e===C.pick); { const old=posAt(S.dist), nr=gTurn(R,p,C.pick); setRoute(nr); S.dist=gSnapDist(old,S.dist); } if (C.pick!==p.nat) toast((o?o.label:'Abgebogen')+': '+([o&&o.name, o&&o.dest?'Richtung '+o.dest:''].filter(Boolean).join(' ')||'neue Straße')); } junUI(null); C.pend=null; return; }
+  if (best.ah<thr){ C.appl.add(best.tag); const p=C.pend; if (C.pick!=null && C.pick!==p.planned){ const o=p.opts.find(o=>o.e===C.pick); { const old=posAt(S.dist), nr=(C.hyp&&C.hyp.tag===p.tag&&C.hyp.pick===C.pick&&C.hyp.r)||gTurn(R,p,C.pick); C.hyp=null; setRoute(nr); S.dist=gSnapDist(old,S.dist);
+      /* 0.16.2 (Hicore, Kälbersträucher): dieselbe Kreuzung liegt auf der neuen Strecke noch ein paar Meter voraus. Als erledigt markieren, sonst wird sie neu bewertet und die natürliche Weiterfahrt überschreibt die eigene Wahl */
+      nr.ents.forEach((en,j)=>{ if (en.n1===p.node && Math.abs(en.r1-S.dist)<60) C.appl.add(j+':'+en.n1+':'+Math.round(en.r1)); }); } if (C.pick!==p.nat) toast((o?o.label:'Abgebogen')+': '+([o&&o.name, o&&o.dest?'Richtung '+o.dest:''].filter(Boolean).join(' ')||'neue Straße')); } junUI(null); C.pend=null; return; }
   if (C.pend.minor && C.pick===C.pend.nat && best.ah>Math.max(70, S.speed*5)){ junUI(null); return; }   /* 0.16.1: Abzweige in untergeordnete Wege erst kurz vorher und dezent */
+  /* 0.16.3 (Hicore): folgt die nächste Kreuzung kurz danach (unter 150 m) und bleibt man an der ersten auf der Strecke, steht sie klein darunter und ist schon wählbar */
+  C.pend2v=null; if (!window.NO_JUN2){ let RR=R, i0=best.i;
+    /* der gewählten Richtung folgen: bei Abbiegen die künftige Strecke vorab berechnen (nur bei Umwahl, wird beim Abbiegen wiederverwendet) */
+    if (C.pick!=null && C.pick!==C.pend.planned){ if (!C.hyp || C.hyp.tag!==C.pend.tag || C.hyp.pick!==C.pick){ let nr=null; try{ nr=gTurn(R,C.pend,C.pick); }catch(e){ console.warn('jun2',e); } C.hyp={tag:C.pend.tag, pick:C.pick, r:nr}; C.p2c=new Map(); } RR=C.hyp.r; i0=RR&&RR.ents[best.i]&&RR.ents[best.i].n1===best.node?best.i:-1; }
+    if (RR && i0>=0){ const rd0=RR.ents[i0].r1; for (let i=i0+1;i<RR.ents.length;i++){ const en=RR.ents[i]; if (en.r1-rd0>150) break; if ((A[en.n1]||[]).length<3) continue; const tag=i+':'+en.n1+':'+Math.round(en.r1); if (RR===R && C.appl.has(tag)) continue;
+      if (!C.p2c) C.p2c=new Map(); if (!C.p2c.has(tag)) C.p2c.set(tag, gMakePend(RR,{i, rd:en.r1, node:en.n1, tag, ah:0})); const p2=C.p2c.get(tag); if (!p2) continue; p2.ah=en.r1-rd0+best.ah; C.pend2v=p2; break; } } }
   gJunUI(C.pend, best.ah); }
 /* 0.10.21: nach dem Umschalten der Strecke an genau derselben Stelle weiterfahren (Punkte der neuen Strecke liegen anders verteilt, Strecke davor kann um Meter abweichen) */
 function gSnapDist(old, d0){ let bd=1e9, bs=d0; for (let s=Math.max(0,d0-80); s<=Math.min(L,d0+80); s+=0.5){ const q=posAt(s), dd=Math.hypot(q.x-old.x,q.z-old.z); if (dd<bd){ bd=dd; bs=s; } } return bs; }
+function gJunBtn(o){ return o.icon+' '+o.label+'<small>'+([o.dest?o.dest+(o.km>=1?' '+Math.round(o.km)+' km':''):o.name,o.plan?'Runde':''].filter(Boolean).join(' · ')||'Straße')+'</small>'; }
 function gJunUI(p, ah){ let el=$('junc'); if (!el){ el=document.createElement('div'); el.id='junc'; document.body.appendChild(el); }
-  if (el.dataset.g!==p.tag){ el.dataset.g=p.tag; el.innerHTML='<div class="jt"></div><div class="jb"></div>'; const jb=el.querySelector('.jb'); jb.style.flexDirection='row';
-    p.opts.forEach(o=>{ const b=document.createElement('button'); b.dataset.v=o.e; b.innerHTML=o.icon+' '+o.label+'<small>'+([o.dest?o.dest+(o.km>=1?' '+Math.round(o.km)+' km':''):o.name,o.plan?'Runde':''].filter(Boolean).join(' · ')||'Straße')+'</small>'; b.onclick=()=>{ NET.pick=o.e; gJunUI(NET.pend,null); }; jb.appendChild(b); }); }
-  el.style.display='block'; el.classList.toggle('jmin', !!(p.minor && NET.pick===p.nat)); if (ah!=null) el.querySelector('.jt').textContent=(p.minor?'Abzweig in ':'Kreuzung in ')+Math.max(0,Math.round(ah))+' m';
-  el.querySelectorAll('button').forEach(b=>b.classList.toggle('on', +b.dataset.v===NET.pick)); }
+  if (el.dataset.g!==p.tag){ el.dataset.g=p.tag; el.dataset.g2=''; el.innerHTML='<div class="jt"></div><div class="jb"></div><div class="j2"><div class="jt"></div><div class="jb"></div></div>'; const jb=el.querySelector('.jb'); jb.style.flexDirection='row';
+    p.opts.forEach(o=>{ const b=document.createElement('button'); b.dataset.v=o.e; b.innerHTML=gJunBtn(o); b.onclick=()=>{ if (NET.pick!==o.e) NET.pend2v=null; NET.pick=o.e; gJunUI(NET.pend,null); }; jb.appendChild(b); }); }
+  const p2=NET.pend2v||null, j2=el.querySelector('.j2');
+  if (p2){ if (el.dataset.g2!==p2.tag){ el.dataset.g2=p2.tag; const jb2=j2.querySelector('.jb'); jb2.innerHTML='';
+      p2.opts.forEach(o=>{ const b=document.createElement('button'); b.dataset.v=o.e; b.innerHTML=gJunBtn(o); b.onclick=()=>{ (NET.pre||(NET.pre=new Map())).set(p2.tag,o.e); gJunUI(NET.pend,null); }; jb2.appendChild(b); }); }
+    j2.style.display='block'; j2.querySelector('.jt').textContent='Danach in '+Math.max(0,Math.round(p2.ah))+' m'; const s2=(NET.pre&&NET.pre.has(p2.tag))?NET.pre.get(p2.tag):p2.nat; j2.querySelectorAll('button').forEach(b=>b.classList.toggle('on', +b.dataset.v===s2)); }
+  else j2.style.display='none';
+  el.style.display='block'; el.classList.toggle('jmin', !!(p.minor && NET.pick===p.nat && !p2)); if (ah!=null) el.querySelector('.jt').textContent=(p.minor?'Abzweig in ':'Kreuzung in ')+Math.max(0,Math.round(ah))+' m';
+  el.querySelectorAll(':scope > .jb button').forEach(b=>b.classList.toggle('on', +b.dataset.v===NET.pick)); }
 
 function b64i16(s){ const bin=atob(s), n=bin.length>>1, out=new Int16Array(n); for (let i=0;i<n;i++) out[i]=(bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8))<<16>>16; return out; }
 function decPoly(s, scale){ const a=b64i16(s), out=[]; let x=0, z=0; for (let i=0;i<a.length;i+=2){ x+=a[i]; z+=a[i+1]; out.push([x/scale, z/scale]); } return out; }
@@ -7167,7 +7189,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.16.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.16.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
