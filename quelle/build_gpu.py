@@ -77,3 +77,8 @@ supa=open(D+'sbtest/package/dist/umd/supabase.js').read().replace('</script','<\
 full=t.replace('<script>/*SUPA*/</script>','<script>'+supa+'</script>',1).replace('<script>/*THREE*/</script>','<script>'+three+'</script>',1).replace('<script>/*GLTF*/</script>','<script>'+gltf+'</script>',1).replace('<script>/*PROPS*/</script>','<script>'+pj+'</script>',1).replace('<script>/*RIDER*/</script>','<script src="data/'+wfile('media.js',rj)+'"></script>',1)
 open(D+'gpu/index.html','w').write(full)
 print('size', os.path.getsize(D+'gpu/index.html'))
+# 0.23.0: Handy-Fernbedienung (Companion) unter gpu/handy/ (Seite, QR-Baustein fürs Spiel, Supabase-Baustein)
+shutil.rmtree(D+'gpu/handy',ignore_errors=True); os.makedirs(D+'gpu/handy',exist_ok=True)
+for f in ('index.html','qrcode.js'): shutil.copy(D+'handy/'+f, D+'gpu/handy/'+f)
+shutil.copy(D+'sbtest/package/dist/umd/supabase.js', D+'gpu/handy/supabase.js')
+print('handy', sorted(os.listdir(D+'gpu/handy')))

@@ -19,8 +19,10 @@ canvas#world{display:block;width:100vw;height:100vh;touch-action:none}
 .tile.big .v{font-size:40px;color:var(--acc)}
 .tile.hr .v{color:var(--hr)}
 body.hHud .hud,body.hSide .side,body.hProf .prof,body.hBoard .board,body.hCtrl .ctrl,body.hPure #fps{display:none!important}
+#bPhone{position:fixed;right:212px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bPhone:hover{opacity:1}#bPhone.on{border-color:#3fb950;opacity:1}
+#cmpModal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}#cmpModal .cmpIn{background:#0d1117;border:1px solid var(--line);border-radius:16px;padding:16px 18px;max-width:340px;width:calc(100% - 32px);text-align:center;color:#fff}#cmpModal h3{margin:0 0 10px;font-size:17px}#cmpQr{width:220px;height:220px;border-radius:8px;background:#fff;image-rendering:pixelated}#cmpModal .cmpTx{font-size:12px;opacity:.85;margin:8px 0 4px;line-height:1.4}#cmpModal a{color:#7cc4ff;word-break:break-all}#cmpCode{font:700 30px/1.2 ui-monospace,Menlo,monospace;letter-spacing:5px;margin:4px 0 6px;color:#ffe08a}#cmpModal .mpbtn{justify-content:center;margin-top:10px}
 #bGest{position:fixed;right:122px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bGest:hover{opacity:1}#gestMenu{position:fixed;right:12px;top:50px;z-index:8;display:none;flex-direction:column;gap:4px;padding:8px;border-radius:12px;background:rgba(13,17,23,.88);border:1px solid var(--line);min-width:210px}#gestMenu button{text-align:left;padding:7px 10px;border-radius:8px;border:0;background:rgba(255,255,255,.07);color:#fff;font-size:14px}#gestMenu button:hover{background:rgba(255,255,255,.18)}#gestMenu small{opacity:.6;font-size:11px;margin:4px 2px 0}#sayBub{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:9;display:none;background:#fff;color:#111;font:700 20px/1.3 system-ui,sans-serif;padding:10px 18px;border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
-#bKeys{position:fixed;right:232px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75;display:none}#bKeys:hover{opacity:1}body.kbd #bKeys{display:block}#keysBox{position:fixed;right:12px;top:50px;z-index:8;display:none;padding:12px 16px;border-radius:12px;background:rgba(13,17,23,.9);border:1px solid var(--line);color:#fff;font:14px/1.5 system-ui,sans-serif;min-width:260px}#keysBox b{display:inline-block;min-width:74px;padding:0 6px;margin:2px 8px 2px 0;border-radius:6px;background:rgba(255,255,255,.14);text-align:center;font-weight:700}#keysBox h4{margin:2px 0 6px;font-size:14px;opacity:.8}
+#bKeys{position:fixed;right:264px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75;display:none}#bKeys:hover{opacity:1}body.kbd #bKeys{display:block}#keysBox{position:fixed;right:12px;top:50px;z-index:8;display:none;padding:12px 16px;border-radius:12px;background:rgba(13,17,23,.9);border:1px solid var(--line);color:#fff;font:14px/1.5 system-ui,sans-serif;min-width:260px}#keysBox b{display:inline-block;min-width:74px;padding:0 6px;margin:2px 8px 2px 0;border-radius:6px;background:rgba(255,255,255,.14);text-align:center;font-weight:700}#keysBox h4{margin:2px 0 6px;font-size:14px;opacity:.8}
 #bHud{position:fixed;right:12px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bHud:hover{opacity:1}
 #junc{display:none;position:fixed;left:50%;top:124px;transform:translateX(-50%);z-index:6;background:rgba(13,17,23,.62);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:5px 6px;color:#fff;text-align:center;max-width:min(430px,92vw);backdrop-filter:blur(3px)}#junc .jt{font-weight:600;font-size:12px;margin-bottom:4px;opacity:.9}#junc .jb{display:flex;gap:5px;justify-content:center}#junc button{flex:1 1 0;min-width:0;max-width:200px;padding:4px 8px;font-size:13px;font-weight:700;border-radius:7px;border:1.5px solid rgba(255,255,255,.18);background:rgba(27,35,45,.75);color:#fff;display:flex;flex-direction:column;align-items:center;gap:1px}#junc button small{font-size:10px;font-weight:400;opacity:.75;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#junc button.on{border-color:#ff7a1a;background:rgba(58,36,20,.85)}
 #junc .j2{display:none;margin-top:5px;padding-top:4px;border-top:1px solid rgba(255,255,255,.14);opacity:.88}
@@ -169,7 +171,14 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
 <div><b>← →</b>Abzweig an Kreuzung wählen</div><div><b>↑ ↓</b>Sim-Watt ±10 (Simulation)</div>
 <div><b>1 / G</b>Hand heben, grüßen</div><div><b>2</b>Daumen hoch</div><div><b>3</b>Ellbogen-Wink: fahr vorbei</div><div><b>4</b>Trinken</div><div><b>5</b>Strecken (im Stand)</div>
 <div style="opacity:.55"><b>6 – 0</b>Sprüche (kommen später)</div><div><b>T</b>diese Übersicht ein/aus</div></div>
+<button id="bPhone" title="Handy als Fernbedienung koppeln">📱</button>
 <button id="bGest" title="Gesten (G = Grüßen)">✋ Gesten</button>
+<div id="cmpModal"><div class="cmpIn"><h3>📱 Handy koppeln</h3>
+<canvas id="cmpQr" width="220" height="220"></canvas>
+<div class="cmpTx">QR-Code mit der Handy-Kamera scannen<br>oder <a id="cmpLink" target="_blank" rel="noopener"></a> öffnen und den Code eingeben:</div>
+<div id="cmpCode">–</div>
+<div class="mpstat" id="cmpStat2"></div>
+<div class="mpbtn"><button id="cmpClose">Fertig</button><button id="cmpNew">Neuer Code</button><button id="cmpOff">Trennen</button></div></div></div>
 <div id="gestMenu"><small>Gesten</small><button data-g="wave">👋 Hand heben, grüßen <i style="opacity:.5">(1)</i></button><button data-g="thumb">👍 Daumen hoch <i style="opacity:.5">(2)</i></button><button data-g="vorbei">🫲 Ellbogen-Wink: fahr vorbei <i style="opacity:.5">(3)</i></button><button data-g="drink">🥤 Trinken <i style="opacity:.5">(4)</i></button><button data-g="stretch">🙆 Strecken (im Stand) <i style="opacity:.5">(5)</i></button></div>
 <button id="bHud" title="Anzeige umschalten (H): alles · nur oben · nur Fahrer">👁 Anzeige</button>
 
@@ -196,6 +205,10 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
         <div class="mpgrid"><input id="mpName" maxlength="16" placeholder="Dein Name" autocomplete="off"><input id="mpRoom" maxlength="16" placeholder="Raum-Code" autocomplete="off" autocapitalize="characters"></div>
         <div class="mpbtn"><button id="mpJoin">Raum beitreten</button><button id="mpLeave" style="display:none">Raum verlassen</button></div>
         <div class="mpstat" id="mpStat">Alle geben denselben Raum-Code ein und wählen dieselbe Welt. Dann seht ihr euch auf der Strecke.</div></div>
+      <div class="mpbox"><h4>📱 Handy als Fernbedienung</h4>
+        <div style="font-size:12px;opacity:.8;margin-bottom:6px">Abbiegen, Wenden, Gesten und Live-Werte am Smartphone. Läuft im Handy-Browser, ohne App.</div>
+        <div class="mpbtn"><button id="cmpOpen">Handy koppeln</button></div>
+        <div class="mpstat" id="cmpStat">Aus. Tippe auf „Handy koppeln“.</div></div>
     </div>
 
     <div class="pane" id="tDev" style="display:none">
@@ -7650,6 +7663,70 @@ $('mpName').value=store.get('mpName',''); $('mpRoom').value=store.get('mpRoom','
 $('mpJoin').onclick=()=>MP.join(); $('mpLeave').onclick=()=>MP.leave(true);
 addEventListener('pagehide',()=>{ try{ MP.leave(false); }catch(e){} });
 if (store.get('mpAuto',0)===1 && store.get('mpName','') && store.get('mpRoom','')) setTimeout(()=>MP.join(),1500);
+/* 0.23.0 Handy-Fernbedienung (Companion, Hicore 25.11.): eigene Seite handy/ verbindet sich per Code/QR über Supabase Realtime (Kanal hc:CODE, getrennt vom Multiplayer-Raum).
+   Handy → Spiel: Ereignis 'k' {a:'L'|'R'|'S'|'J'|'U'|'P'|'C'|'H'|'G', x, id}; Spiel → Handy: 's' Live-Werte 2x/s, 'ack' Rückmeldung. Aus: window.NO_CMP */
+const CMP={ sb:null, ch:null, on:false, code:'', phone:0, sendT:0, want:null, wantTag:'', id:'g'+Math.random().toString(36).slice(2,8),
+  AB:'ABCDEFGHJKMNPQRSTUVWXYZ23456789',
+  newCode(){ let c=''; for (let i=0;i<6;i++) c+=this.AB[Math.floor(Math.random()*this.AB.length)]; return c; },
+  url(){ try{ return new URL('handy/?c='+this.code, location.href).href; }catch(e){ return 'handy/?c='+this.code; } },
+  start(){ if (window.NO_CMP || this.ch) return; if (!window.supabase || !supabase.createClient){ this.ui('Baustein fehlt (Supabase).'); return; }
+    this.code=store.get('cmpCode','')||this.newCode(); store.set('cmpCode',this.code); store.set('cmpOn',1);
+    try{ if (!this.sb) this.sb=supabase.createClient(MP.URL,MP.KEY,{auth:{persistSession:false,autoRefreshToken:false}, realtime:{params:{eventsPerSecond:10}}});
+      const ch=this.sb.channel('hc:'+this.code,{config:{broadcast:{self:false,ack:false}, presence:{key:this.id}}}); this.ch=ch;
+      ch.on('broadcast',{event:'k'},({payload})=>this.rx(payload));
+      ch.on('presence',{event:'sync'},()=>this.sync());
+      ch.subscribe(st=>{ if (this.ch!==ch) return; if (st==='SUBSCRIBED'){ this.on=true; try{ ch.track({r:'game'}); }catch(e){} this.sync(); } else if (st==='CHANNEL_ERROR'||st==='TIMED_OUT'){ this.on=false; this.ui('Keine Verbindung zum Server, ich versuche es weiter …'); } else if (st==='CLOSED') this.on=false; });
+      this.ui(); }catch(e){ console.warn('CMP',e); this.ch=null; this.ui('Fehler: '+e.message); } },
+  stop(){ store.set('cmpOn',0); try{ if (this.ch) this.sb.removeChannel(this.ch); }catch(e){} this.ch=null; this.on=false; this.phone=0; this.ui(); },
+  renew(){ this.stop(); store.set('cmpCode',this.newCode()); this.start(); this.show(); },
+  sync(){ if (!this.ch) return; let n=0; try{ for (const [k,v] of Object.entries(this.ch.presenceState())) if (k!==this.id && v[0] && v[0].r==='phone') n++; }catch(e){}
+    if (n>this.phone) toast('📱 Handy verbunden'); else if (n<this.phone) toast('📱 Handy getrennt'); this.phone=n; this.ui(); this.sendT=0; },
+  ui(err){ const st=$('cmpStat'), on=!!this.ch; const t=err || (!on?'Aus. Tippe auf „Handy koppeln“.':!this.on?'Verbinde …':this.phone?'✓ Handy verbunden':'Bereit. Code '+this.code+' am Handy eingeben oder QR-Code scannen.');
+    [st,$('cmpStat2')].forEach(e=>{ if (e){ e.textContent=t; e.className='mpstat'+(this.phone?' on':err?' err':''); } });
+    if ($('cmpCode')) $('cmpCode').textContent=on?this.code:'–'; if ($('cmpLink')){ $('cmpLink').textContent=on?this.url().replace(/^https?:\/\//,''):''; $('cmpLink').href=on?this.url():'#'; }
+    if ($('cmpOff')) $('cmpOff').style.display=on?'':'none'; if ($('bPhone')) $('bPhone').classList.toggle('on',!!this.phone); },
+  show(){ if (!this.ch) this.start(); const m=$('cmpModal'); if (!m) return; m.style.display='flex'; this.ui();
+    const draw=()=>{ try{ const q=qrcode(0,'M'); q.addData(this.url()); q.make(); const n=q.getModuleCount(), cv=$('cmpQr'), s=Math.floor(220/(n+8)), w=s*(n+8); cv.width=cv.height=w; const g=cv.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,w,w); g.fillStyle='#000';
+      for (let r=0;r<n;r++) for (let c=0;c<n;c++) if (q.isDark(r,c)) g.fillRect((c+4)*s,(r+4)*s,s,s); }catch(e){ console.warn('QR',e); } };
+    if (window.qrcode) draw(); else { const sc=document.createElement('script'); sc.src='handy/qrcode.js'; sc.onload=draw; document.head.appendChild(sc); } },
+  ack(id, ok, msg){ if (this.ch && this.on) this.ch.send({type:'broadcast', event:'ack', payload:{id, ok, msg}}).catch(()=>{}); if (msg) toast('📱 '+msg); },
+  /* Abbiegen: L/R/S wählt an der anstehenden Kreuzung; ohne Kreuzung gilt der Wunsch für die nächste (60 s) */
+  turn(a){ if (!NET) return [false,'Hier gibt es keine Kreuzungen']; const p=NET.pend;
+    if (!p || (S.dir||1)<0){ if ((S.dir||1)<0) return [false,'In Gegenrichtung gibt es keine Abzweige']; this.want={a, t:performance.now()}; this.wantTag=''; return [true,'Vorgewählt: '+({L:'links',R:'rechts',S:'geradeaus'})[a]+' an der nächsten Kreuzung']; }
+    if (NET.graph){ const o=p.opts, cur=o.find(x=>x.e===NET.pick); let c=null;
+      if (a==='S'){ c=o.filter(x=>Math.abs(x.a)<28).sort((x,y)=>Math.abs(x.a)-Math.abs(y.a))[0]; }
+      else { const side=o.filter(x=>a==='L'?x.a<=-28:x.a>=28).sort((x,y)=>Math.abs(x.a)-Math.abs(y.a)); const i=cur?side.indexOf(cur):-1; c=side.length?side[(i+1)%side.length]:null; }
+      if (!c) return [false,'Kein Abzweig '+({L:'nach links',R:'nach rechts',S:'geradeaus'})[a]];
+      NET.pend2v=null; NET.pick=c.e; gJunUI(p,null); return [true, c.label+': '+(c.dest||c.name||'Straße')]; }
+    if (a==='S'){ junPick('gerade'); return [true,'Geradeaus']; }
+    if (p.turn===(a==='L'?'links':'rechts')){ junPick('turn'); return [true,(a==='L'?'Links':'Rechts')+': '+p.name]; }
+    return [false,'Kein Abzweig '+(a==='L'?'nach links':'nach rechts')]; },
+  rx(p){ if (!p || typeof p.a!=='string') return; const a=p.a; let r=[true,''];
+    try{ if (!S.running && a!=='ping') r=[false,'Erst eine Fahrt starten'];
+      else if (a==='L'||a==='R'||a==='S') r=this.turn(a);
+      else if (a==='J'){ if (NET && NET.pend){ if (NET.graph){ const o=NET.pend.opts.find(x=>x.e===+p.x); if (o){ NET.pend2v=null; NET.pick=o.e; gJunUI(NET.pend,null); r=[true,o.label+': '+(o.dest||o.name||'Straße')]; } else r=[false,'Abzweig nicht mehr da']; } else { junPick(p.x==='turn'?'turn':'gerade'); r=[true,'']; } } else r=[false,'Keine Kreuzung in Sicht']; }
+      else if (a==='U'){ if (S.ut) r=[false,'Wendet schon']; else { turnAround(); r=[true,'']; } }
+      else if (a==='P'){ togglePause(); r=[true,'']; }
+      else if (a==='C'){ camMode=(camMode+1)%3; window.orbitReset&&orbitReset(); r=[true,'']; }
+      else if (a==='H'){ cycleHud(); r=[true,'']; }
+      else if (a==='G'){ const g=String(p.x); if (!GEST_DUR[g]) r=[false,'Unbekannte Geste']; else if (g==='stretch' && !(me && me.stopK>0.7)) r=[false,'Strecken geht nur im Stand']; else { gestStart(g); r=[true,'']; } }
+      else if (a==='ping') r=[true,''];
+    }catch(e){ console.warn('CMP',e); r=[false,'Fehler: '+e.message]; }
+    this.ack(p.id, r[0], r[0]?(a==='L'||a==='R'||a==='S'||a==='J'?r[1]:''):r[1]); this.sendT=0; },
+  jun(){ if (!NET || !NET.pend || (S.dir||1)<0) return null; const p=NET.pend;
+    if (NET.graph) return {ah:Math.round(p.ah||0), o:p.opts.map(o=>({x:o.e, ic:o.icon, l:o.label, n:o.dest||o.name||'', on:o.e===NET.pick?1:0}))};
+    const left=p.turn==='links', t={x:'turn', ic:left?'⬅':'➡', l:left?'Links':'Rechts', n:p.name||'', on:NET.pick==='turn'?1:0}, g={x:'gerade', ic:'⬆', l:'Geradeaus', n:'', on:NET.pick!=='turn'?1:0};
+    return {ah:null, o:left?[t,g]:[g,t]}; },
+  frame(dt, active){ if (!this.ch || !this.on) return;
+    if (this.want){ if (performance.now()-this.want.t>60000) this.want=null; else if (NET && NET.pend && NET.pend.tag!==undefined && this.wantTag!==String(NET.pend.tag)){ this.wantTag=String(NET.pend.tag); const a=this.want.a; this.want=null; const r=this.turn(a); toast('📱 '+r[1]); } }
+    if (!this.phone) return; this.sendT-=dt; if (this.sendT>0) return; this.sendT=0.5;
+    const wd=builtWorld||selWorld, wn=(WORLDS.find(x=>x.id===wd)||{}).name||'';
+    const pl={run:S.running?1:0, pa:S.paused?1:0, wn, bk:BIKE};
+    if (S.running) Object.assign(pl,{w:Math.max(0,Math.round(active?S.power:0)), c:Math.max(0,Math.round(active?S.cadence:0)), h:S.hr&&!S.sim?Math.round(S.hr):0, v:+(S.speed*3.6).toFixed(1), g:+(S.grade*100).toFixed(1), d:+(((S.odo!==undefined?S.odo:S.dist))/1000).toFixed(2), t:Math.round(S.time), el:Math.round(S.climb), dir:S.dir||1, sim:S.sim?1:0, j:this.jun(), wa:this.want?this.want.a:''});
+    this.ch.send({type:'broadcast', event:'s', payload:pl}).catch(()=>{}); } };
+try{ if (!window.NO_CMP){ $('cmpOpen').onclick=()=>CMP.show(); $('bPhone').onclick=e=>{ e.stopPropagation(); CMP.show(); $('bPhone').blur(); }; $('cmpClose').onclick=()=>{ $('cmpModal').style.display='none'; }; $('cmpOff').onclick=()=>{ CMP.stop(); $('cmpModal').style.display='none'; }; $('cmpNew').onclick=()=>CMP.renew();
+  $('cmpModal').onclick=e=>{ if (e.target.id==='cmpModal') $('cmpModal').style.display='none'; };
+  if (store.get('cmpOn',0)===1) setTimeout(()=>CMP.start(),1800); CMP.ui(); } else { $('bPhone').style.display='none'; } }catch(e){ console.warn('CMP ui',e); }
 // Trikot-Auswahl: tauscht die Farbtextur der Fahrerfigur
 function showJerseyThumb(){ const J=window.JERSEY_JPG||{}, id=$('jersey').value, im=$('jerseyThumb');
   if (J[id]&&J[id].thumb){ im.src=jpgSrc(J[id].thumb); im.style.display=''; } else im.style.display='none'; }
@@ -7721,7 +7798,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.22.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.23.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -8243,6 +8320,7 @@ function frame(now){
   animRider(me, active?S.cadence:0, (active||S.brk)?S.speed:0, dt, active?S.power:0);
   withMain(()=>{ for (const b of bots){ placeRider(b.r, b.d, b.lane); animRider(b.r, active?b.cad:0, active&&b.st?b.st.v:0, dt, active?(b.pw!=null?b.pw:b.watts):null); } });
   try{ MP.frame(dt, now, active); }catch(e){ if (!MP.err){ MP.err=1; console.warn('MP',e); } }
+  try{ CMP.frame(dt, active); }catch(e){ if (!CMP.err){ CMP.err=1; console.warn('CMP',e); } }
 
   // camera
   const hd=S.ut&&me._uhd!=null?me._uhd:headingAt(S.dist)+((S.dir||1)<0?Math.PI:0); const p=me.g.position;
