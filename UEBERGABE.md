@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 25.11.2026. Letzte veröffentlichte Version: **0.20.0 Beta** (Leistung: Wald gebündelt, FPS-Logik). Davor **0.19.8 Beta** (Absteigen/Aufsteigen über den Sattel; davor 0.19.7 Schultern Gravel mit Steuerrohr in der Achselhöhle, 0.19.5 Gabeln).
+Stand: 25.11.2026. Letzte veröffentlichte Version: **0.20.1 Beta** (Leistungstest per Tipp auf die FPS-Anzeige). Davor **0.20.0** (Leistung: Wald gebündelt, FPS-Logik). Davor **0.19.8 Beta** (Absteigen/Aufsteigen über den Sattel; davor 0.19.7 Schultern Gravel mit Steuerrohr in der Achselhöhle, 0.19.5 Gabeln).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,7 +100,8 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.20.0** | **Leistung: Wald gebündelt (Zeichenaufrufe halbiert), Baumschatten nur nah, HUD ohne Layout je Bild, Auflösung bleibt 100 % wenn Senken nichts bringt, FPS-Anzeige mit CPU-Zeit** |
+| **0.20.1** | **Leistungstest: FPS-Anzeige antippen** (siehe Leistung 0.20.0) |
+| 0.20.0 | Leistung: Wald gebündelt (Zeichenaufrufe halbiert), Baumschatten nur nah, HUD ohne Layout je Bild, Auflösung bleibt 100 % wenn Senken nichts bringt, FPS-Anzeige mit CPU-Zeit** |
 | 0.19.4 | Schultern: Oberarm unter dem Oberrohr, Unterarm hinter dem Steuerrohr durch an den inneren Unterlenker (siehe unten) |
 | 0.19.5 | Gabeln: Gravel Carbon-Starrgabel aus einem Stück (`taperLeg`), MTB-Federgabel federt (`forkStep`) (siehe unten) |
 | 0.19.8 | Absteigen: links auf dem Pedal, rechtes Bein angewinkelt hinten über den Sattel (siehe unten) |
@@ -158,6 +159,8 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Kachelwald gebündelt (`GT.w`, `gtwSet`): Nah-/Mittelstufe je Baumart und Teil ein Instanz-Mesh für alle Kacheln (wächst bei Bedarf ×1,4). Minikronen je Kachel nur noch 2 Meshes (`F.m2`, Kegel/Krone als Einheitsform `gtMiniU`, Größe in der Instanzmatrix `mp.P`, Farbe in der Instanzfarbe). Alt: `window.OLD_GTW`.
 - Baumschatten (Strecken-Bäume `TREE_LOD`): nur Bäume im Schattenbereich (`nearS`, Radius `TREE_SHR` = Schattenausschnitt + 40 m) werfen Schatten, ferne nie. Alt: `window.OLD_TREESH`. Leere Instanz-Meshes werden unsichtbar geschaltet (`OLD_IMVIS`).
 - HUD nur 10×/s und nur geänderte Texte, Fahrerliste 2×/s, Höhenprofil 5×/s ohne `clientWidth` je Bild (erzwang nach den Textänderungen jedes Bild ein Layout), Grundbild per `drawImage`. Alt: `window.OLD_HUD`.
+- iPad-Werte 0.20.0 (Hicore, Chrome, 25.11.): Hoch 24 FPS · max 30 · CPU 10 ms (ruckelt), Mittel 29 FPS · max 30 · CPU 9,4 ms (flüssig). CPU reicht für 60, die **Grafikkarte** ist die Grenze.
+- 0.20.1 `LTEST` (Tipp auf `#fps`): misst je 5 s ohne 30er-Grenze Basis, ohne Bloom, ohne Schatten, Auflösung 70/50 %, ohne Alphatest-Laub/Gras, ohne Bäume, ohne Gras/Deko; versteckt per `layers.set(7)`, Ergebnis-Tabelle oben, `window.LTEST_RES`. In der Cloud nur Ablauf prüfbar (0 FPS).
 - Noch offen (falls nötig): eigener Fahrer 57 Zeichenaufrufe + 55 im Schatten, unbenannte Deko-Gruppe ca. 90, Häuser je Kachel ca. 60.
 
 **Offen / unsicher**

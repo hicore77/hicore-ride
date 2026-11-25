@@ -123,7 +123,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
 </style>
 </head>
 <body>
-<div id="fps" style="position:fixed;top:6px;left:50%;transform:translateX(-50%);font:600 12px system-ui;color:#fff;background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;z-index:5;pointer-events:none;display:none"></div>
+<div id="fps" style="position:fixed;top:6px;left:50%;transform:translateX(-50%);font:600 12px system-ui;color:#fff;background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;z-index:5;pointer-events:auto;cursor:pointer;display:none" title="Antippen: Leistungstest"></div>
 <canvas id="world" style="visibility:hidden"></canvas>
 <div id="loadbox" style="display:none;position:fixed;inset:0;z-index:30;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:linear-gradient(180deg,#9cc6e8 0%,#cfe3ef 45%,#7aa35c 46%,#4d7a3a 100%);color:#10161d;font-weight:600"><div style="font-size:15px;opacity:.75">Hicore Ride</div><div style="font-size:24px">Lade <span id="loadname"></span></div><div style="width:min(78vw,420px);height:12px;border-radius:7px;background:rgba(255,255,255,.55);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"><div class="lbar"></div></div><div id="loadstep" style="font-size:14px;opacity:.8"></div></div>
 
@@ -7457,7 +7457,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.20.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.20.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7865,6 +7865,29 @@ $('bloom').value=String(store.get('bloom',1)); POST.on=$('bloom').value==='1'; $
 
 let FRN=0;
 const FCPU={a:0, n:0};
+/* 0.20.1 Leistungstest (FPS-Anzeige antippen): misst ohne 30er-Begrenzung je 5 s Basis, ohne Bloom, ohne Schatten, Auflösung 70 %, ohne Laub/Gras mit Alphatest, ohne Bäume.
+   Ergebnis als Tabelle oben (Bildschirmfoto schicken). Zeigt, was die Grafikkarte am meisten kostet. */
+const LTEST={on:false,
+  async run(){ if (this.on || !S.running) return; this.on=true; const el=$('fps'), F=FCAP, keep={off:F.off, cap:F.cap, dres:$('dres')?$('dres').value:null, bloom:POST.on, sh:renderer.shadowMap.enabled};
+    const box=document.createElement('div'); box.style.cssText='position:fixed;top:34px;left:50%;transform:translateX(-50%);font:600 13px system-ui;color:#fff;background:rgba(0,0,0,.75);padding:8px 12px;border-radius:10px;z-index:50;white-space:pre;line-height:1.45'; document.body.appendChild(box);
+    const lay=new Map(), hide=pred=>{ scene.traverse(o=>{ if ((o.isMesh||o.isInstancedMesh) && pred(o) && !lay.has(o)){ lay.set(o,o.layers.mask); o.layers.set(7); } }); }, unhide=()=>{ lay.forEach((m,o)=>{ o.layers.mask=m; }); lay.clear(); };
+    const alpha=o=>{ const ms=Array.isArray(o.material)?o.material:[o.material]; return ms.some(m=>m && (m.alphaTest>0 || (m.userData&&m.userData.pbrOrig&&m.userData.pbrOrig.alphaTest>0))); };
+    const isTree=o=>{ let q=o; while (q){ if (q===GT.grp && o.isInstancedMesh) return true; if (window.TREE_LOD && TREE_LOD.grp && q===TREE_LOD.grp) return true; q=q.parent; } return !!(window.TREE_LOD && TREE_LOD.types && TREE_LOD.types.some(t=>t.near.includes(o)||t.far.includes(o)||(t.nearS&&t.nearS.includes(o)))); };
+    const wait=ms=>new Promise(r=>setTimeout(r,ms)), res=[];
+    const meas=async(name)=>{ box.textContent='Leistungstest läuft (weitertreten) …\n'+res.join('\n')+'\n▶ '+name; await wait(2500); const f0=FRC, t0=performance.now(); FCPU.a=0; FCPU.n=0; await wait(5000); const n=FRC-f0, dt=performance.now()-t0, cpu=FCPU.n?FCPU.a/FCPU.n:0; res.push(name.padEnd(22,' ')+' '+String(Math.round(n*1000/dt)).padStart(3,' ')+' FPS  CPU '+cpu.toFixed(1)+' ms'); };
+    try{ F.off=true; F.cap=false; F.probe=false; DRES.set(1);
+      await meas('Basis');
+      POST.on=false; await meas('ohne Bloom'); POST.on=keep.bloom;
+      if (keep.sh){ renderer.shadowMap.enabled=false; await meas('ohne Schatten'); renderer.shadowMap.enabled=true; }
+      DRES.MIN0=DRES.MIN; DRES.MIN=0.5; DRES.set(0.7); await meas('Auflösung 70 %'); DRES.set(0.5); await meas('Auflösung 50 %'); DRES.MIN=DRES.MIN0; DRES.set(1);
+      hide(alpha); await meas('ohne Laub/Gras (Alpha)'); unhide();
+      hide(isTree); await meas('ohne Bäume/Wald'); unhide();
+      hide(o=>!isTree(o) && alpha(o)); await meas('ohne Gras/Deko (Alpha)'); unhide();
+    }catch(e){ res.push('Fehler: '+e.message); }
+    unhide(); F.off=keep.off; F.cap=keep.cap; POST.on=keep.bloom; renderer.shadowMap.enabled=keep.sh; DRES.set(1);
+    const info=(window.GPU_MODE&&renderer.backend&&renderer.backend.isWebGPUBackend?'WebGPU':'WebGL')+' · Grafik '+$('gfx').value+' · Pixel '+renderer.getPixelRatio().toFixed(2)+' · '+innerWidth+'×'+innerHeight;
+    box.textContent='Leistungstest fertig (Antippen schließt)\n'+info+'\n'+res.join('\n'); window.LTEST_RES=res; box.style.pointerEvents='auto'; box.onclick=()=>box.remove(); this.on=false; } };
+try{ document.getElementById('fps').addEventListener('click',()=>{ LTEST.run(); }); }catch(e){}
 const HUDT={t:0, r:0, v:{}, gc:null}; function hudT(id,v){ v=String(v); if (HUDT.v[id]===v) return; HUDT.v[id]=v; const e=$(id); if (e) e.textContent=v; }
 const FCAP={cap:false, probe:false, ld:0, n:0, t0:0, next:0, off:/[?&]fps=60/.test(location.search)};
 function frame(now){
