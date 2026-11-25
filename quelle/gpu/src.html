@@ -4766,7 +4766,8 @@ function animRider(r, cad, spd, dt, watt){ const stK=r.stairK||0; if (stK>0.02) 
     if (want>0.5){ const d=(((Math.PI*0.25-r.crankAng)%(2*Math.PI))+3*Math.PI)%(2*Math.PI)-Math.PI; r.crankAng+=d*Math.min(1,dt*3); }
     r.lookT=(r.lookT||0)-dt; if (r.lookT<=0){ const z=Math.random(); r.lookT=window.LOOK_FORCE!=null?1e9:1.8+Math.random()*4.5; r.lookY=window.LOOK_FORCE!=null?window.LOOK_FORCE:(z<0.3?0:(Math.random()<0.5?-1:1)*(0.45+Math.random()*0.6)); r.lookP=z<0.15?-0.3:(Math.random()-0.45)*0.3; }
     const on=r.stopK>0.85?1:0, kl=Math.min(1,dt*(window.LOOK_FORCE!=null?50:2.2)); r.look=(r.look||0)+((r.lookY||0)*on-(r.look||0))*kl; r.lookPi=(r.lookPi||0)+((r.lookP||0)*on-(r.lookPi||0))*kl; }
-  if (stK>0.02){ const dl=(((Math.PI*0.5-r.crankAng)%Math.PI)+1.5*Math.PI)%Math.PI-Math.PI/2; r.crankAng+=dl*Math.min(1,dt*4); }   /* 0.18.0: Kurbel waagrecht beim Tragen/Treppe-Fahren */
+  if (stK>0.02 && stK<0.85 && r.stairM!=='ride' && !window.OLD_DISMOUNT){ const dl=(((0-r.crankAng)%(2*Math.PI))+3*Math.PI)%(2*Math.PI)-Math.PI; r.crankAng+=dl*Math.min(1,dt*5); }   /* 0.19.8: zum Absteigen linkes Pedal unten */
+  else if (stK>0.02){ const dl=(((Math.PI*0.5-r.crankAng)%Math.PI)+1.5*Math.PI)%Math.PI-Math.PI/2; r.crankAng+=dl*Math.min(1,dt*4); }   /* 0.18.0: Kurbel waagrecht beim Tragen/Treppe-Fahren */
   r.crank.rotation.x = r.crankAng;
   if (r.chainUpd) r.chainUpd(r.crankAng);
   const wr = ((stK>0.3 && r.stairM!=='ride')?0:spd)/(r.wheelR||0.335)*dt; r.wF.rotation.x += wr; r.wR.rotation.x += wr;
@@ -4931,18 +4932,20 @@ function bikeTT(T){ const G=(BIKE_GEO[T]&&BIKE_GEO[T].HT)?BIKE_GEO[T]:BIKE_GEO.g
 function carryBody(CY,L,hipL,sh){ const w=_sst(0,1,CY.k), hipH=0.085+0.95*(L.thigh+L.shin)+(L.hipDrop||0)*0.5, bob=0.014*Math.abs(Math.cos(Math.PI*CY.u)), sw=0.018*Math.sin(Math.PI*CY.u);
   const hp=new THREE.Vector3(CY.xr+sw, CY.yb+hipH-bob, CY.hz), lean=(CY.mode==='shoulder'?0.05:0.11)+(CY.up>0?0.07:-0.02);
   const s2=new THREE.Vector3(CY.xr+sw*0.5+(CY.mode==='shoulder'?0.015:-0.035), hp.y+(L.spine||0.5)*0.96, CY.hz+lean);
-  hipL.lerp(hp,w); sh.lerp(s2,w); return w; }
+  if (window.OLD_DISMOUNT){ hipL.lerp(hp,w); sh.lerp(s2,w); return w; }
+  const a=_sst(0,0.15,CY.k), b=_sst(0.45,0.78,CY.k), up=a*(1-b);   /* 0.19.8: erst aus dem Sattel nach vorn-links über das linke Pedal, dann (rechter Fuß unten) zum Gehen */
+  hipL.add(new THREE.Vector3(0.06*up,0.05*up,0.15*up)); sh.add(new THREE.Vector3(0.04*up,0.0,0.1*up)); hipL.lerp(hp,b); sh.lerp(s2,b); return b; }
 /* 0.19.6 (Hicore, Foto Cyclocross): Gravel = Oberrohr weit vorn auf der Schulter, Ellbogen außen vor dem Steuerrohr, Unterarm läuft VOR dem Steuerrohr quer zur inneren Unterlenker-Hand (wie auf dem Foto, Arm ums Steuerrohr herum).
    MTB (Flatbar, Griff liegt neben dem Steuerrohr): bleibt bei 0.19.4, Unterarm hinter dem Steuerrohr. Alt (0.19.4 auch für Gravel): window.OLD_CARRYGRIP3. Messung: tests/tcarry.js Zeile mess */
 function carryGripPar(T){ const w=window.__CA; if (w) return Object.assign({t:0.4,ex:0.15,E:[-0.3,0.6,0.2],gz:0.06,dx:0.035},w);
   if (T==='mtb' || window.OLD_CARRYGRIP3) return {t:0.4, ex:0.15, E:[-0.3,0.6,0.2], gz:0.06, dx:0.035};
   if (window.OLD_CARRYGRIP4) return {t:0.7, ex:0.15, E:[-0.35,0.75,0.5], gz:0, dx:0.06};
   return {t:0.83, ex:0.15, E:[-0.08,0.74,0.6], gz:0, dx:-0.03}; }   /* 0.19.7 (Hicore: Steuerrohr klemmt in der Achselhöhle): Rad weiter vorn auf der Schulter, Schulter innen, Oberarm kreuzt die Rahmenebene ca. 5 cm hinter dem Steuerrohr durchs Dreieck, Ellbogen außen vor dem Steuerrohr, Unterarm ca. 8 cm vor dem Steuerrohr zurück zur inneren Lenkerhand. Alt (0.19.6): window.OLD_CARRYGRIP4 */
-function carryRig(R,G,K,CY,hipY){ const B=R.B, V3=THREE.Vector3, w=_sst(0,1,CY.k), bg=CY.bg; if (!bg) return null;
+function carryRig(R,G,K,CY,hipY){ const B=R.B, V3=THREE.Vector3, w=window.OLD_DISMOUNT?_sst(0,1,CY.k):_sst(0.7,1,CY.k), bg=CY.bg; if (!bg) return null;
   const T=K.T||'gravel', TT=bikeTT(T), q=new THREE.Quaternion(), p=new V3();
   if (CY.mode==='lift') p.set(0,CY.lift,0);
   else { const oa=window.OLD_CARRYARM, og=window.OLD_CARRYGRIP; const o3=window.OLD_CARRYGRIP2, CA=carryGripPar(T); q.setFromEuler(new THREE.Euler(oa?-0.10:og?0.2:o3?0.35:CA.ex,0,oa?-0.30:-0.18));   /* 0.19.3: Rad vorn etwas tiefer, Lenker vor der Brust statt auf Kopfhöhe */ const shR=G.worldToLocal(B.RightArm.getWorldPosition(new V3())), c=TT.a.clone().lerp(TT.b,oa?0.45:og||o3?0.32:CA.t); p.copy(shR).add(new V3(oa||og||o3?0.035:CA.dx,0.075,0)).sub(c.applyQuaternion(q)); }
-  const wS=CY.mode==='shoulder'?_sst(0.12,1,CY.k):w; bg.position.set(0,0,0).lerp(p,wS); bg.quaternion.identity().slerp(q,wS); bg.updateMatrix(); bg.userData.cm=true;
+  const wS=window.OLD_DISMOUNT?(CY.mode==='shoulder'?_sst(0.12,1,CY.k):w):w; bg.position.set(0,0,0).lerp(p,wS); bg.quaternion.identity().slerp(q,wS); bg.updateMatrix(); bg.userData.cm=true;
   const bq=bg.quaternion, bp=bg.position, tf=F=>({c:F.c.clone().applyQuaternion(bq).add(bp), X:F.X.clone().applyQuaternion(bq), Y:F.Y.clone().applyQuaternion(bq), Z:F.Z.clone().applyQuaternion(bq)});
   const gf=(K.gripf||GRIPF)[0], mir=F=>({c:F.c.clone(), X:new V3(-F.X.x,F.X.y,F.X.z), Y:new V3(-F.Y.x,F.Y.y,F.Y.z), Z:new V3(-F.Z.x,F.Z.y,F.Z.z)}), H={};
   if (CY.mode==='lift'){ H.Left={F:tf(gf), pole:new V3(0.6,-0.4,-0.5)};
@@ -4991,7 +4994,7 @@ function poseGLB(R, G, crank, effort, opt){
   { const hv=new THREE.Vector3(-lean*0.6,_lerp(0.86,0.8,low),_lerp(0.5,0.6,low)); if (kS>0) hv.lerp(new THREE.Vector3(0,0.97,0.22+lkP),kS); if (CY) hv.lerp(new THREE.Vector3(0,0.86,0.48),_sst(0,1,CY.k)); if (_dUp>0) hv.lerp(new THREE.Vector3(0,0.8,-0.6),_dUp).normalize();
     aimBone(B.Head, B.head_end, headP.clone().add(dirW(hv)));
     if (lkY){ const up=dirW(new THREE.Vector3(0,1,0)); const yaw=(bn,an)=>{ bn.parent.updateMatrixWorld(true); const pq=bn.parent.getWorldQuaternion(new THREE.Quaternion()).invert(); bn.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(up.clone().applyQuaternion(pq).normalize(),an)); bn.updateMatrixWorld(true); }; yaw(B.neck,lkY*0.35); yaw(B.Head,lkY*0.75); } }   /* Kopf nach links/rechts drehen (Umschauen) */
-  const CR=CY?carryRig(R,G,K,CY,hipL.y):null; if (CR) R._ghF={};
+  const CR=CY?carryRig(R,G,K,CY,hipL.y):null; if (CR) R._ghF={}; R._swK=0;
   // Beine
   [['Left',1],['Right',-1]].forEach(([s,side])=>{
     const a=crank+(side>0?0:Math.PI);                              // wie Kurbel/Pedale des Rads
@@ -5004,11 +5007,17 @@ function poseGLB(R, G, crank, effort, opt){
     const ankle=ball.clone().addScaledVector(dir,-L.foot);
     const toe=ball.clone().addScaledVector(dir,0.05);
     if (kS>0 && side>0){ const gA=new THREE.Vector3(0.30,0.085,-0.03), gB=new THREE.Vector3(0.315,0.02,0.105); ankle.lerp(gA,kS); ball.lerp(gB,kS); toe.lerp(gB.clone().add(new THREE.Vector3(0.005,-0.005,0.05)),kS); }   /* linker Fuß steht auf der Straße */
-    if (CR){ const Fh=CY.feet[s], w=CR.w, bA=new THREE.Vector3(Fh.x,Fh.y+0.02,Fh.z+0.04); ankle.lerp(new THREE.Vector3(Fh.x,Fh.y+0.085+Fh.heel,Fh.z-0.095),w); ball.lerp(bA,w); toe.lerp(bA.clone().add(new THREE.Vector3(0,-0.005,0.05)),w);
-      if (side<0 && w<1){ const o=new THREE.Vector3(0,0.6,-0.42).multiplyScalar(Math.sin(Math.PI*w)); ankle.add(o); ball.add(o); toe.add(o); } }   /* 0.18.0: Gehen auf den Stufen, rechtes Bein beim Ab-/Aufsteigen hinten über den Sattel */
+    if (CR && window.OLD_DISMOUNT){ const Fh=CY.feet[s], w=CR.w, bA=new THREE.Vector3(Fh.x,Fh.y+0.02,Fh.z+0.04); ankle.lerp(new THREE.Vector3(Fh.x,Fh.y+0.085+Fh.heel,Fh.z-0.095),w); ball.lerp(bA,w); toe.lerp(bA.clone().add(new THREE.Vector3(0,-0.005,0.05)),w);
+      if (side<0 && w<1){ const o=new THREE.Vector3(0,0.6,-0.42).multiplyScalar(Math.sin(Math.PI*w)); ankle.add(o); ball.add(o); toe.add(o); } }
+    else if (CR){ const Fh=CY.feet[s], k=CY.k, gA=new THREE.Vector3(Fh.x,Fh.y+0.085+Fh.heel,Fh.z-0.095), gB=new THREE.Vector3(Fh.x,Fh.y+0.02,Fh.z+0.04), gT=gB.clone().add(new THREE.Vector3(0,-0.005,0.05));
+      if (side>0){ const wl=_sst(0.72,0.9,k); ankle.lerp(gA,wl); ball.lerp(gB,wl); toe.lerp(gT,wl); }   /* linker Fuß bleibt auf dem (unten stehenden) Pedal, bis der rechte Fuß am Boden ist */
+      else { const u=_sst(0.1,0.72,k), dB=ball.clone().sub(ankle).lerp(gB.clone().sub(gA),u), dT=toe.clone().sub(ankle).lerp(gT.clone().sub(gA),u), P0=ankle.clone(), M=new THREE.Vector3(0.0,K.hipY+0.08,-0.85), Lp=new THREE.Vector3(0.36,Fh.gr+0.085,-0.2), wg=_sst(0.74,0.95,k); Lp.lerp(gA,wg);
+        const e1=_sst(0,1,Math.min(1,u*2)), e2=_sst(0,1,Math.max(0,u*2-1)), sx=_sst(0.35,0.65,u);
+        ankle.set(P0.x+(Lp.x-P0.x)*sx, u<0.5?P0.y+(M.y-P0.y)*e1:M.y+(Lp.y-M.y)*e2, u<0.5?P0.z+(M.z-P0.z)*e1:M.z+(Lp.z-M.z)*e2);
+        ball.copy(ankle).add(dB); toe.copy(ankle).add(dT); R._swK=Math.sin(Math.PI*u); } }   /* 0.19.8 (Hicore): rechtes Bein hinten hoch über Sattel und Hinterrad, Knie leicht gebeugt, erst über dem Sattel auf die linke Seite, dann zum Boden. Alt: window.OLD_DISMOUNT */   /* 0.18.0: Gehen auf den Stufen, rechtes Bein beim Ab-/Aufsteigen hinten über den Sattel */
     const hipW=B[s+'UpLeg'].getWorldPosition(new THREE.Vector3());
     const hipLoc=G.worldToLocal(hipW.clone());
-    const knee=ik3(hipLoc, ankle, L.thigh, L.shin, new THREE.Vector3(side*0.12,0.1,1), new THREE.Vector3());
+    const knee=ik3(hipLoc, ankle, L.thigh, L.shin, (side<0 && CR && R._swK)?new THREE.Vector3(side*0.12,0.1,1).lerp(new THREE.Vector3(-0.2,-1,0.1),R._swK):new THREE.Vector3(side*0.12,0.1,1), new THREE.Vector3());
     aimBone(B[s+'UpLeg'], B[s+'Leg'], W(knee));
     aimBone(B[s+'Leg'], B[s+'Foot'], W(ankle)); if (window.DBG_LEG) window.DBG_LEG[s]=hipLoc.distanceTo(ankle)/(L.thigh+L.shin);
     aimBone(B[s+'Foot'], B[s+'ToeBase'], W(ball));
@@ -7409,7 +7418,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.7 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.8 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{

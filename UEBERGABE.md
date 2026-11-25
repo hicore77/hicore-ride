@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 25.11.2026. Letzte veröffentlichte Version: **0.19.7 Beta** (Schultern Gravel: Steuerrohr in der Achselhöhle, Oberarm durchs Dreieck, Unterarm vorn ums Steuerrohr zurück zum Lenker; davor 0.19.5 Gabeln).
+Stand: 25.11.2026. Letzte veröffentlichte Version: **0.19.8 Beta** (Absteigen/Aufsteigen über den Sattel; davor 0.19.7 Schultern Gravel mit Steuerrohr in der Achselhöhle, 0.19.5 Gabeln).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -102,7 +102,8 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 |---|---|
 | 0.19.4 | Schultern: Oberarm unter dem Oberrohr, Unterarm hinter dem Steuerrohr durch an den inneren Unterlenker (siehe unten) |
 | 0.19.5 | Gabeln: Gravel Carbon-Starrgabel aus einem Stück (`taperLeg`), MTB-Federgabel federt (`forkStep`) (siehe unten) |
-| **0.19.7** | **Schultern Gravel: Steuerrohr in der Achselhöhle, Oberarm durchs Dreieck, Unterarm vorn herum zur Hand** (siehe unten) |
+| **0.19.8** | **Absteigen: links auf dem Pedal, rechtes Bein angewinkelt hinten über den Sattel** (siehe unten) |
+| 0.19.7 | Schultern Gravel: Steuerrohr in der Achselhöhle, Oberarm durchs Dreieck, Unterarm vorn herum zur Hand |
 | 0.19.6 | Schultern Gravel: Ellbogen außen, Unterarm vor dem Steuerrohr (Oberarm lief noch außen am Rahmen) |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
@@ -149,6 +150,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Prüfen mit `tests/tcarry.js` (Ansichten `front,back,outer,ic,oc,left,right,q34`; `outer`/`oc` = Radseite).
 - 0.19.4 (Hicore: Unterarm lag noch VOR dem Steuerrohr, Referenz Foto 1 vom 24.11.): Kontaktpunkt am Oberrohr 0,32 → 0,40, Rad Euler x 0,35 → 0,15, Ellbogen-Ziel `H.Right.E` im Rad-System (−0,3, 0,6, 0,2) als Pol, Griff am inneren Unterlenker 6 cm weiter hinten. `tcarry.js` gibt je Bild eine Zeile `mess` aus (Rad-Koordinaten): `crossFore.hinterHT` muss true sein, `dForeHT` ≥ 0,06. Stand: Gravel 12,6 cm hinter dem Steuerrohr, 9,5 cm Abstand; MTB 15,7 cm, 13,1 cm. Ansicht `fl` = Hicores Kamera vorne links. Alt: `window.OLD_CARRYGRIP2`.
 
+- 0.19.8 (Hicore mit Screenshots: beim Absteigen ging das rechte Bein durch den Rahmen): Übergang `CY.k` in Phasen. Kurbel dreht zum Absteigen auf linkes Pedal unten (bis k 0,85, dann waagerecht). `carryBody`: k 0–0,15 Becken aus dem Sattel nach vorn/links/oben über das linke Pedal, k 0,45–0,78 zum Gehen. Rechtes Bein k 0,1–0,72: Fuß hinten hoch (Scheitel 8 cm über Hüfthöhe, 85 cm hinter dem Tretlager, Knie leicht gebeugt, Knie-Pol nach unten), Seitenwechsel nur oben (x-Wechsel bei u 0,35–0,65), Landung links neben dem Rad (x 0,36), dann in die Gehspur. Linker Fuß bleibt bis k 0,72 auf dem Pedal. Hände/Rad heben erst ab k 0,7 (`carryRig` w). Aufsteigen = rückwärts. Test `tests/tdismount.js` (KS = k-Werte, Bildfolge, `mess` mit Fuß/Knie). Alt: `window.OLD_DISMOUNT`.
 - 0.19.7 (Hicore: „erst durch den Rahmen, um das Steuerrohr herum und dann zurück zum Lenker; das Steuerrohr klemmt in der Achselhöhle“): In 0.19.6 lag die Schulter schon außen (x −0,05 im Rad-System), der Oberarm kreuzte die Rahmenebene nie. Jetzt Gravel t 0,83, dx −0,03 (Schulter innen, x +0,04), E (−0,08, 0,74, 0,6): Oberarm kreuzt 4,8 cm HINTER der Steuerrohrachse durchs Dreieck (`crossUpper`), Ellbogen außen vorn, Unterarm kreuzt 9,7 cm VOR der Achse (`crossFore`). Gleich in allen Schrittphasen. MTB unverändert. Alt: `window.OLD_CARRYGRIP4`. tcarry: `VIEWS=none` misst nur. Bild vorschau/197_schultern_achsel.jpg.
 - 0.19.6 (Hicore mit Foto 1 und Render nebeneinander: Unterarm muss aus Sicht von vorn VOR dem Steuerrohr liegen; „hinter“ in seiner früheren Nachricht war falsch verstanden): `carryGripPar(T)` liefert je Rad Kontaktpunkt `t`, Kippung `ex`, Ellbogen-Pol `E`, Griffverschiebung `gz`, Schulterversatz `dx`. Gravel: t 0,7, ex 0,15, E (−0,35, 0,75, 0,5), gz 0, dx 0,06 → Unterarm kreuzt 7,3 cm VOR der Steuerrohrachse (`abstand` > 0 in `mess`), 6,8 cm Abstand. MTB bleibt 0,4/0,15/(−0,3,0,6,0,2)/0,06 (Flatbar-Griff neben dem Steuerrohr, vorn herum geht nicht ohne Durchdringung). Probieren mit `window.__CA={…}`. Alt: `window.OLD_CARRYGRIP3`.
 
@@ -179,7 +181,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 ## 6. Nächste Schritte
 
 1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
-1a. 0.19.7 am iPad prüfen: Schultern Gravel (Steuerrohr in der Achsel) wie Foto? Gabeln 0.19.5 (Gravel starr, MTB federt genug/zu viel?), Treppe Oybin Kammstraße frei (0.19.2). Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).
+1a. 0.19.8 am iPad prüfen: Absteigen/Aufsteigen über den Sattel natürlich? Schultern Gravel (0.19.7) hat Hicore bestätigt. Gabeln 0.19.5 (Gravel starr, MTB federt genug/zu viel?), Treppe Oybin Kammstraße frei (0.19.2). Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).
 2. Poly-Haven-Paket **Stufe 2** (freigegeben): white_plaster_02, beige_wall_001, weathered_brown_planks, old_stone_wall, clay_roof_tiles_02, roof_slates_03, sandstone_cracks oder mossy_sandstone, bark_brown_02 oder pine_bark. Über die Sandbox holen, umschaltbar, Vergleichsbilder.
 3. Grashalme nur ca. 20–30 m um den Fahrer.
 4. Leistung Teil 2 nur bei Bedarf: Modelle nach Bedarf laden, Wald-Instanzen bündeln (Rad-Verschmelzen ist seit 0.16.0 erledigt).
