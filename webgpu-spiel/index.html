@@ -7309,11 +7309,18 @@ function gtChurch(C){ const {P,area,u0,u1,v0,v1,p3,gmin,y0,rnd,isCity,quad,tri,l
     lathe('roofS',[[tr*1.22,0],[tr*0.9,sh*0.12],[0.03,sh]],8,tc[0],ty+0.3,tc[2],rot+Math.PI/8,sla);
     lathe('flat',[[0.01,-0.3],[0.35,0],[0.01,0.35]],6,tc[0],ty+0.3+sh+0.2,tc[2],0,gold);
     if (v===4){ [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([a,b])=>{ const p=p3(uW+dir*TW*0.45+a*tr*0.85,vm+b*tr*0.85,0); lathe('roofS',[[0.55,0],[0.02,3.6]],4,p[0],ty+0.3,p[2],rot+Math.PI/4,sla); }); } } }
-function gtFinish(J){ const geo=J.geo, i=J.i, j=J.j; geo.setAttribute('color',new THREE.BufferAttribute(J.col,3)); geo.setAttribute('luk',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count).fill(1),1)); geo.computeVertexNormals();
-  const m=new THREE.Mesh(geo, GT.mat); m.receiveShadow=true; GT.grp.add(m);
-  let sg=null; const l=GT.sig.get(i+','+j); if (l){ sg=new THREE.Group(); l.forEach(o=>{ try{ sg.add(buildSign(o)); }catch(e){ console.warn('schild',e); } }); GT.grp.add(sg); }
-  let sr=null, sp=null; try{ sr=gtSideMesh(i,j); if (sr) GT.grp.add(sr); sp=gtSideMesh(i,j,true); { let stm=null; try{ stm=stairsMesh(i,j); }catch(e){ console.warn('treppen',e); } if (stm){ if (sp) sp.add(stm); else sp=stm; } } if (sp){ sp.visible=false; GT.grp.add(sp); } }catch(e){ console.warn('nebenstr',e); }
+/* 0.22.0 (Hicore: kleine Ruckler beim Nachladen): Fertigstellen einer Geländekachel in 5 Teilschritten auf aufeinanderfolgende Bilder verteilt
+   (Normalen · Schilder · Nebenstraßen · Wege+Treppen · Einhängen), sichtbar wird die Kachel erst komplett im letzten Schritt. Alt: window.OLD_GTFS */
+function gtFinishStep(J){ const geo=J.geo, i=J.i, j=J.j, st=J.fs|0; J.fs=st+1;
+  if (st===0){ geo.setAttribute('color',new THREE.BufferAttribute(J.col,3)); geo.setAttribute('luk',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count).fill(1),1)); geo.computeVertexNormals(); return null; }
+  if (st===1){ const l=GT.sig.get(i+','+j); if (l){ J.sg=new THREE.Group(); l.forEach(o=>{ try{ J.sg.add(buildSign(o)); }catch(e){ console.warn('schild',e); } }); } return null; }
+  if (st===2){ try{ J.sr=gtSideMesh(i,j); }catch(e){ console.warn('nebenstr',e); } return null; }
+  if (st===3){ try{ let sp=gtSideMesh(i,j,true); { let stm=null; try{ stm=stairsMesh(i,j); }catch(e){ console.warn('treppen',e); } if (stm){ if (sp) sp.add(stm); else sp=stm; } } J.sp=sp; }catch(e){ console.warn('nebenstr',e); } return null; }
+  const m=new THREE.Mesh(geo, GT.mat); m.receiveShadow=true; GT.grp.add(m); const sg=J.sg||null, sr=J.sr||null, sp=J.sp||null;
+  if (sg) GT.grp.add(sg); if (sr) GT.grp.add(sr); if (sp){ sp.visible=false; GT.grp.add(sp); }
   return {i,j,m,sg,sr,sp,fo:null,hs:undefined}; }
+function gtFinish(J){ let t=null; J.fs=0; while (!(t=gtFinishStep(J))); return t; }
+function gtJobDrop(J){ try{ J.geo.dispose(); if (J.sg) disposeSigns(J.sg); if (J.sr) J.sr.geometry.dispose(); if (J.sp){ if (J.sp.geometry) J.sp.geometry.dispose(); J.sp.children.forEach(c=>c.geometry&&c.geometry.dispose()); } }catch(e){} }
 /* 0.11.0 (Hicore): alle übrigen Straßen aus OSM sichtbar (nicht befahrbar): Wohnstraßen, Nebenstraßen, Zufahrten, feste Wege. Pro 500-m-Kachel ein Netz,
    Stücke, die auf befahrbaren Straßen liegen, fallen weg; Einmündungen enden am Fahrbahnrand. Belag: Asphalt, Pflaster oder Schotter (OSM surface). */
 let SIDE_IDX=null, SIDE_MAT=null, WAYS_MAT=null; const WAYS_H=new Map();
@@ -7502,9 +7509,9 @@ function gtStream(cam, budget){ if (!GT.on) return; const S=GT.S, R=GT.R, ci=Mat
   const want=[]; for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const i=ci+a, j=cj+b, dx=Math.max(0,Math.abs(cam.x-(i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(j+0.5)*S)-S/2), dd=Math.hypot(dx,dz); if (dd<rr(i,j)) want.push([dd,i,j]); }
   want.sort((p,q)=>p[0]-q[0]);
   if (budget>1){ for (const [dd,i,j] of want){ const k=i+','+j; if (GT.tiles.has(k)) continue; if (built>=budget) break; GT.tiles.set(k,gtBuild(i,j)); built++; changed=true; } }
-  else { if (GT.job && !want.some(w=>w[1]===GT.job.i&&w[2]===GT.job.j)){ GT.job.geo.dispose(); GT.job=null; }
+  else { if (GT.job && !want.some(w=>w[1]===GT.job.i&&w[2]===GT.job.j)){ gtJobDrop(GT.job); GT.job=null; }
     if (!GT.job){ for (const [dd,i,j] of want){ if (!GT.tiles.has(i+','+j)){ GT.job=gtStart(i,j); break; } } }
-    if (GT.job && gtStep(GT.job, MINI?2:3)){ GT.tiles.set(GT.job.i+','+GT.job.j, gtFinish(GT.job)); GT.job=null; changed=true; } }
+    if (GT.job){ const J=GT.job; if (window.OLD_GTFS){ if (gtStep(J, MINI?2:3)){ GT.tiles.set(J.i+','+J.j, gtFinish(J)); GT.job=null; changed=true; } } else if (J.fs!=null){ const t=gtFinishStep(J); if (t){ GT.tiles.set(J.i+','+J.j, t); GT.job=null; changed=true; } } else if (gtStep(J, MINI?2:3)) J.fs=0; } }
   GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>rr(t.i,t.j)+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } if (t.sr){ GT.grp.remove(t.sr); t.sr.geometry.dispose(); } if (t.sp){ GT.grp.remove(t.sp); t.sp.geometry.dispose(); t.sp.children.forEach(c=>c.geometry&&c.geometry.dispose()); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
   GT.tiles.forEach(t=>{ if (t.sp){ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); t.sp.visible=Math.hypot(dx,dz)<(MINI?300:LITE?450:650); } });   /* 0.14.0: schmale Pfade nur in der Nähe */
   if (changed){ gtMask(); GT.flast=null; } if (budget>1){ while (gtHouseStep(cam)); while (gtForestRange(cam)); } else if (!GT.job){ if (!gtHouseStepPending(cam)) gtForestRange(cam, MINI?2:3); } gtForestLOD(cam); }
@@ -10084,7 +10091,7 @@ async function connectHR(){
 // ================= Deko-Objekte aus Blender (GLB, eingebettet) =================
 const PROP_GLB = window.PROP_GLB || {};          // Name -> Base64
 const PROP_LIB = {};
-const PROP_FIX = { reh:{h:1.15,ry:Math.PI}, hirsch:{h:2.35,ry:Math.PI}, eichhorn:{h:0.26}, katze:{h:0.34,ry:Math.PI}, meise:{h:0.13}, bussard:{h:0.45}, jaeger:{h:1.8,ry:Math.PI/2}, polizist:{h:1.82,ry:Math.PI/2}, jeep:{h:1.95,ry:Math.PI/2}, polizeiauto:{h:1.75,ry:Math.PI/2}, auto_rot:{h:1.45,ry:Math.PI/2,keepLow:1}, hase:{h:0.55,ry:-Math.PI/2}, kuh:{h:1.5,ry:Math.PI}, schaf:{h:1.0}, pferd:{h:1.75}, ziege:{h:0.9}, huhn:{h:0.42}, hahn:{h:0.55,ry:Math.PI}, ente:{h:0.36}, kletterer:{h:2.9}, kirche_spitzk:{h:30}, amt_spitzk:{h:16}, kirche_oybin:{h:20}, hochwaldturm:{h:30}, gruft:{h:10}, kelchsteine:{h:12.5}, jaegerwaeldchen:{h:11}, wanderer1:{h:1.8}, wanderer2:{h:1.68,ry:-Math.PI/2}, bank_wanderer:{h:1.3,ry:Math.PI}, kletterer2:{h:2.4}, sonnebergbaude:{h:13}, hubertusbaude:{h:14}, ruebezahlbaude:{h:14}, oybin_berg:{h:100}, hw_turm:{h:30}, hw_baude:{h:17}, hotel_hwb:{h:15}, kreuzhaus:{h:13}, tree_spruce:{h:12.8}, tree_beech:{h:15.5}, jq_haus:{h:11.5}, jq_quelle:{h:2.6}, veh_klein:{h:1.48,len:4.05,ry:-Math.PI/2}, zsb_lok:{h:3.3,len:10.2,ry:-Math.PI/2}, zsb_gruen:{h:3.25,len:10.6}, zsb_rot:{h:3.3,len:11.2}, veh_kombi:{h:1.5,len:4.75,ry:-Math.PI/2}, veh_suv:{h:1.68,len:4.6,ry:-Math.PI/2}, veh_van:{h:2.55,len:5.95,ry:-Math.PI/2}, veh_traktor:{h:2.95,len:4.4,ry:-Math.PI/2} };                             // Name -> [{geo, mat}] (zu einem Objekt verschmolzen)
+const PROP_FIX = { reh:{h:1.15,ry:0,ry0:Math.PI}, hirsch:{h:2.35,ry:-Math.PI/2,ry0:Math.PI}, eichhorn:{h:0.26}, katze:{h:0.34,ry:Math.PI}, meise:{h:0.13}, bussard:{h:0.45}, jaeger:{h:1.8,ry:Math.PI/2}, polizist:{h:1.82,ry:Math.PI/2}, jeep:{h:1.95,ry:Math.PI/2}, polizeiauto:{h:1.75,ry:Math.PI/2}, auto_rot:{h:1.45,ry:Math.PI/2,keepLow:1}, hase:{h:0.55,ry:-Math.PI/2}, kuh:{h:1.5,ry:-Math.PI/2,ry0:Math.PI}, schaf:{h:1.0}, pferd:{h:1.75,ry:Math.PI,ry0:0}, ziege:{h:0.9,ry:-Math.PI/4,ry0:0}, huhn:{h:0.42,ry:Math.PI,ry0:0}, hahn:{h:0.55,ry:Math.PI}, ente:{h:0.36}, kletterer:{h:2.9}, kirche_spitzk:{h:30}, amt_spitzk:{h:16}, kirche_oybin:{h:20}, hochwaldturm:{h:30}, gruft:{h:10}, kelchsteine:{h:12.5}, jaegerwaeldchen:{h:11}, wanderer1:{h:1.8}, wanderer2:{h:1.68,ry:-Math.PI/2}, bank_wanderer:{h:1.3,ry:Math.PI}, kletterer2:{h:2.4}, sonnebergbaude:{h:13}, hubertusbaude:{h:14}, ruebezahlbaude:{h:14}, oybin_berg:{h:100}, hw_turm:{h:30}, hw_baude:{h:17}, hotel_hwb:{h:15}, kreuzhaus:{h:13}, tree_spruce:{h:12.8}, tree_beech:{h:15.5}, jq_haus:{h:11.5}, jq_quelle:{h:2.6}, veh_klein:{h:1.48,len:4.05,ry:-Math.PI/2}, zsb_lok:{h:3.3,len:10.2,ry:-Math.PI/2}, zsb_gruen:{h:3.25,len:10.6}, zsb_rot:{h:3.3,len:11.2}, veh_kombi:{h:1.5,len:4.75,ry:-Math.PI/2}, veh_suv:{h:1.68,len:4.6,ry:-Math.PI/2}, veh_van:{h:2.55,len:5.95,ry:-Math.PI/2}, veh_traktor:{h:2.95,len:4.4,ry:-Math.PI/2} };                             // Name -> [{geo, mat}] (zu einem Objekt verschmolzen)
 function b64ToBuf(b64){ const s=atob(b64), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u.buffer; }
 /* 0.13.0: Auf Tablet/Handy die 1536er-Texturen von Autos und Zügen auf 1024 verkleinern (je ca. 12 MB -> 5 MB Grafikspeicher, schnelleres Hochladen beim ersten Auftauchen).
    Wahrzeichen bleiben unverändert. ?texcap=0 aus, ?texcap=1024 erzwingt es auch am Rechner. */
@@ -10108,7 +10115,7 @@ function loadProps(){
       PROP_LIB[name]=[...parts.entries()].map(([mat,geos])=>({mat, geo: geos.length===1?geos[0]:mergeGeoC(geos)}));
       if (PROP_FIX[name]&&PROP_FIX[name].keepLow) propKeepLow(PROP_LIB[name]);   /* 0.9.10: GLB enthielt zwei Autos übereinander, nur das untere behalten */
       const FX=PROP_FIX[name]; if (FX){ const bb=new THREE.Box3(); PROP_LIB[name].forEach(({geo})=>{ geo.computeBoundingBox(); bb.union(geo.boundingBox); }); const sz=bb.getSize(new THREE.Vector3()), k=FX.h/sz.y;   /* 0.9.5 Higgsfield-Modelle: auf echte Höhe, Füße auf 0, Blick nach +z */
-        PROP_LIB[name].forEach(({geo,mat})=>{ geo.translate(-(bb.min.x+bb.max.x)/2,-bb.min.y,-(bb.min.z+bb.max.z)/2); if (FX.len){ const kx=FX.len/Math.max(sz.x,sz.z); geo.scale(kx,k,kx); } else geo.scale(k,k,k); if (FX.ry) geo.rotateY(FX.ry); geo.computeVertexNormals&&0; geo.computeBoundingSphere(); if (mat.map) mat.map.anisotropy=4; mat.metalness!==undefined&&(mat.metalness=Math.min(mat.metalness,0.1)); }); }
+        PROP_LIB[name].forEach(({geo,mat})=>{ geo.translate(-(bb.min.x+bb.max.x)/2,-bb.min.y,-(bb.min.z+bb.max.z)/2); if (FX.len){ const kx=FX.len/Math.max(sz.x,sz.z); geo.scale(kx,k,kx); } else geo.scale(k,k,k); { const ry=(window.OLD_ANIM && FX.ry0!=null)?FX.ry0:FX.ry; if (ry) geo.rotateY(ry); }   /* 0.22.0: Blickrichtung korrigiert (Reh lief rückwärts, Hirsch/Kuh seitwärts, Pferd/Huhn rückwärts, Ziege schräg) */ geo.computeVertexNormals&&0; geo.computeBoundingSphere(); if (mat.map) mat.map.anisotropy=4; mat.metalness!==undefined&&(mat.metalness=Math.min(mat.metalness,0.1)); }); }
       res();
     }, e=>{ console.warn('Prop', name, e); res(); });
   })).catch(e=>console.warn('Prop laden', name, e))));
@@ -10137,8 +10144,103 @@ function placeInstanced(group, name, mats){
   const lib=PROP_LIB[name]; if (!lib || !mats.length) return;
   lib.forEach(({geo,mat})=>{ const im=mkIM(geo,mat,mats.length); mats.forEach((m,i)=>im.setMatrixAt(i,m)); im.castShadow=true; im.receiveShadow=true; group.add(im); });
 }
+/*ANIM-START*/
+/* 0.22.0 (Hicore: der Hirsch an der Kammstraße hüpfte statt zu laufen): Tiere bekommen beim Laden automatisch ein einfaches Skelett
+   (Rumpf, Kopf/Hals, je Bein Ober- und Unterschenkel), die Modelle selbst bleiben unverändert. Beine werden aus der Form gefunden
+   (Punkte unter dem Bauch, nach vorn/hinten und links/rechts gruppiert). Gangarten nach Biomechanik-Literatur:
+   Schritt = laterale Folge LH, LV, RH, RV je 1/4 versetzt, Bodenkontakt 65 % · Trab = diagonale Paare, 45 % · Galopp (Hirsch, Reh, Pferd)
+   = Transversalgalopp mit Schwebephase, 35 % · Sprunggalopp (Katze, Eichhörnchen) = Vorder- und Hinterbeine fast paarweise.
+   Wechsel nach Froude-Zahl Fr = v²/(g·Beinlänge): Trab ab ca. 0,5, Galopp ab ca. 2,5 (Alexander & Jayes 1983),
+   Schrittlänge λ = 2,3 · Beinlänge · Fr^0,3, Schrittfrequenz = v/λ – so gleiten die Hufe nicht über den Boden.
+   Kopf nickt im Schritt (Huftiere), Rumpf schwingt im Galopp, Grasen senkt Kopf und Hals. Aus: window.OLD_ANIM */
+const ANIM_CFG={
+  hirsch:{bf:0.35, gr:1.05, run:'gal', vmax:12},  reh:{bf:0.40, gr:1.1, run:'gal', vmax:11},
+  pferd:{bf:0.38, gr:1.0, run:'gal'}, kuh:{bf:0.37, gr:0.75, run:'trot'}, schaf:{bf:0.28, gr:0.35, run:'trot'}, ziege:{bf:0.30, gr:0.9, run:'trot'},
+  katze:{bf:0.22, gr:0.5, run:'bound'}, eichhorn:{bf:0.2, gr:0.4, run:'bound'},
+  huhn:{bf:0.12, gr:1.0, nl:2, bi:1}, hahn:{bf:0.13, gr:1.0, nl:2, bi:1} };
+const ANIM_GAITS={   /* Beinreihenfolge: LH, LV, RH, RV (links/rechts, hinten/vorn) */
+  walk:{off:[0,0.25,0.5,0.75], du:0.65}, trot:{off:[0,0.5,0.5,0], du:0.45},
+  gal:{off:[0,0.42,0.12,0.55], du:0.35}, bound:{off:[0,0.5,0.06,0.56], du:0.35}, bi:{off:[0,0,0.5,0.5], du:0.6} };
+function animSS(a,b,x){ const t=Math.max(0,Math.min(1,(x-a)/(b-a))); return t*t*(3-2*t); }
+function animRig(name){ const C=ANIM_CFG[name], lib=PROP_LIB[name]; if (!C || !lib || window.OLD_ANIM) return null; if (lib._rig!==undefined) return lib._rig; lib._rig=null;
+  try{
+    const bb=new THREE.Box3(); lib.forEach(({geo})=>{ geo.computeBoundingBox(); bb.union(geo.boundingBox); });
+    const H=bb.max.y-bb.min.y, Lz=bb.max.z-bb.min.z, y0=bb.min.y, yB=y0+C.bf*H, NL=C.nl||4;
+    const V=[]; lib.forEach(({geo})=>{ const p=geo.attributes.position; for (let i=0;i<p.count;i++) V.push(p.getX(i),p.getY(i),p.getZ(i)); });
+    const nv=V.length/3, low=[], up=[];
+    for (let i=0;i<nv;i++){ const y=V[i*3+1]; if (y<y0+(yB-y0)*0.3) low.push(i); else if (y>y0+(yB-y0)*0.6 && y<yB-(yB-y0)*0.05) up.push(i); }
+    if (low.length<NL*6) return null;
+    /* Füße gruppieren: k-Mittel in einer Achse, Start an den Enden */
+    const km2=(ids,ax)=>{ let a=1e9,b=-1e9; ids.forEach(i=>{ const v=V[i*3+ax]; if (v<a) a=v; if (v>b) b=v; }); let A=[],B=[];
+      for (let it=0;it<8;it++){ A=[]; B=[]; ids.forEach(i=>{ const v=V[i*3+ax]; (Math.abs(v-a)<Math.abs(v-b)?A:B).push(i); }); if (!A.length||!B.length) break; a=A.reduce((s,i)=>s+V[i*3+ax],0)/A.length; b=B.reduce((s,i)=>s+V[i*3+ax],0)/B.length; } return [A,B]; };
+    let groups;   /* je Bein: {ids, hind, side} */
+    if (NL===2){ const [A,B]=km2(low,0); groups=[{ids:A,hind:0,side:-1},{ids:B,hind:0,side:1}]; }
+    else { const [Bk,Fr]=km2(low,2); groups=[]; [[Bk,1],[Fr,0]].forEach(([ids,hind])=>{ const [A,B]=km2(ids,0); groups.push({ids:A,hind,side:-1},{ids:B,hind,side:1}); }); }
+    const mean=(ids,k)=>ids.reduce((s,i)=>s+V[i*3+k],0)/Math.max(1,ids.length);
+    const legs=groups.map(G=>{ const fx=mean(G.ids,0), fz=mean(G.ids,2), fy=mean(G.ids,1); const ds=G.ids.map(i=>Math.hypot(V[i*3]-fx,V[i*3+2]-fz)).sort((p,q)=>p-q);
+      return {hind:G.hind, side:G.side, fx, fz, fy, r:Math.max(0.03*H, ds[Math.floor(ds.length*0.85)]*1.5), ux:fx, uz:fz, uy:(y0+yB)/2}; });
+    /* obere Beinmitte (Beine stehen oft schräg) */
+    const ul=legs.map(()=>[]); up.forEach(i=>{ let bi=-1, bd=1e9; legs.forEach((l,k)=>{ const d=Math.hypot(V[i*3]-l.fx,V[i*3+2]-l.fz); if (d<bd){ bd=d; bi=k; } }); if (bd<legs[bi].r*2.2) ul[bi].push(i); });
+    legs.forEach((l,k)=>{ if (ul[k].length>8){ l.ux=mean(ul[k],0); l.uz=mean(ul[k],2); l.uy=mean(ul[k],1); } });
+    if (legs.some(l=>!isFinite(l.fx))) return null;
+    const ax=(l,y)=>{ const t=Math.max(-0.2,Math.min(1.6,(y-l.fy)/Math.max(1e-3,l.uy-l.fy))); return [l.fx+(l.ux-l.fx)*t, l.fz+(l.uz-l.fz)*t]; };
+    const front=legs.filter(l=>!l.hind), back=legs.filter(l=>l.hind), zF=front.reduce((s,l)=>s+l.uz,0)/front.length, zH=back.length?back.reduce((s,l)=>s+l.uz,0)/back.length:zF;
+    let top=y0; for (let i=0;i<nv;i++){ const z=V[i*3+2]; if (z>zH-0.05*Lz && z<zF+0.02*Lz && V[i*3+1]>top) top=V[i*3+1]; }
+    if (C.bi) top=Math.min(top, y0+H*0.7);
+    const yHip=Math.min(yB+0.08*H, (yB+top)/2), yKnee=y0+(yB-y0)*0.5, zN=zF+0.04*Lz, zNw=0.14*Lz, yNeck=yB+(top-yB)*0.62;
+    /* Knochen: 0 Wurzel, 1 Rumpf, 2 Kopf, dann je Bein oben/unten */
+    const bp=[{par:-1,p:[0,0,0]},{par:0,p:[0,(yB+top)/2,(zF+zH)/2]},{par:1,p:[0,yNeck,zF]}];
+    legs.forEach(l=>{ const [hx,hz]=ax(l,yHip), [kx,kz]=ax(l,yKnee); l.bi=bp.length; bp.push({par:1,p:[hx,yHip,hz]}); bp.push({par:l.bi,p:[kx,yKnee,kz]}); });
+    const bones=bp.map(b=>new THREE.Bone()); bp.forEach((b,i)=>{ const w=new THREE.Vector3(...b.p), pw=b.par>=0?new THREE.Vector3(...bp[b.par].p):new THREE.Vector3(); bones[i].position.copy(w.sub(pw)); if (b.par>=0) bones[b.par].add(bones[i]); });
+    bones[0].updateMatrixWorld(true); const inv=bones.map(b=>b.matrixWorld.clone().invert());
+    const parts=lib.map(({geo,mat})=>{ const g=geo.clone(), p=g.attributes.position, n=p.count, SI=new Uint16Array(n*4), SW=new Float32Array(n*4);
+      for (let i=0;i<n;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i); let bl=-1, bd=1e9; legs.forEach((l,k)=>{ const [cx,cz]=ax(l,Math.min(y,yB)), d=Math.hypot(x-cx,z-cz)/l.r; if (d<bd){ bd=d; bl=k; } });
+        const wl=(1-animSS(yB-0.03*H, yB+0.07*H, y))*(1-animSS(1.0,1.8,bd)), wlo=1-animSS(yKnee-0.05*H, yKnee+0.05*H, y);
+        const wh=animSS(zN, zN+zNw, z)*animSS(yB-0.1*H, yB+0.04*H, y)*(C.bi?animSS(top-0.25*H,top,y):1), l=legs[bl];
+        SI[i*4]=1; SW[i*4]=(1-wl)*(1-wh); SI[i*4+1]=2; SW[i*4+1]=(1-wl)*wh; SI[i*4+2]=l.bi; SW[i*4+2]=wl*(1-wlo); SI[i*4+3]=l.bi+1; SW[i*4+3]=wl*wlo; }
+      g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(SI,4)); g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(SW,4)); g.computeBoundingSphere(); return {geo:g, mat}; });
+    const Lh=yHip-y0;
+    lib._rig={parts, bp, inv, C, H, Lh, legs:legs.map(l=>({bi:l.bi, hind:l.hind, side:l.side, k:(l.side<0?0:2)+(l.hind?0:1)})), dbg:{yB,yHip,yKnee,top,zF,zH}};
+  }catch(e){ console.warn('tier-skelett', name, e); }
+  return lib._rig; }
+function animObject(name){ const R=animRig(name); if (!R) return null; const g=new THREE.Group();
+  const bones=R.bp.map(b=>{ const o=new THREE.Bone(); return o; }); R.bp.forEach((b,i)=>{ const pw=b.par>=0?R.bp[b.par].p:[0,0,0]; bones[i].position.set(b.p[0]-pw[0], b.p[1]-pw[1], b.p[2]-pw[2]); if (b.par>=0) bones[b.par].add(bones[i]); });
+  const sk=new THREE.Skeleton(bones, R.inv);
+  R.parts.forEach(({geo,mat},k)=>{ const m=new THREE.SkinnedMesh(geo,mat); m.castShadow=true; if (k===0) m.add(bones[0]); m.bind(sk, new THREE.Matrix4()); m.boundingSphere=geo.boundingSphere.clone(); m.boundingSphere.radius*=1.35; g.add(m); });
+  g.userData.an={R, b:bones, ph:Math.random(), off:ANIM_GAITS[R.C.bi?'bi':'walk'].off.slice(), gait:R.C.bi?'bi':'walk', v:0, gz:0, hx:0, hy:0, amp:0, rest:bones.map(b=>b.position.clone())};
+  return g; }
+/* Pose für ein Bild: v = Tempo (m/s), o.graze 0..1 (Kopf unten), o.look = Kopfdrehung (rad), o.peck */
+function animUpdate(an, dt, v, o){ o=o||{}; const R=an.R, C=R.C, B=an.b, Lh=Math.max(0.05,R.Lh); dt=Math.min(dt,0.1);
+  an.v+=(v-an.v)*Math.min(1,dt*6); const vv=an.v, Fr=vv*vv/(9.81*Lh);
+  let gait=an.gait; if (C.bi) gait='bi'; else { const run=C.run||'trot';
+    if (gait==='walk' && Fr>0.6) gait=run==='gal'?(Fr>2.5?'gal':'trot'):run; else if (gait==='trot' && Fr<0.4) gait='walk'; else if (gait==='trot' && run!=='trot' && Fr>2.8) gait=run; else if ((gait==='gal'||gait==='bound') && Fr<1.8) gait=run==='bound'?(Fr<0.5?'walk':'bound'):'trot';
+    if (gait==='bound' && Fr<0.35) gait='walk'; }
+  an.gait=gait; const G=ANIM_GAITS[gait];
+  for (let k=0;k<4;k++){ let d=G.off[k]-an.off[k]; d-=Math.round(d); an.off[k]+=d*Math.min(1,dt*4); }
+  const lam=Lh*2.3*Math.pow(Math.max(Fr,0.02),0.3), f=vv>0.02?vv/lam:0; an.ph=(an.ph+f*dt)%1;
+  const ampT=vv<0.03?0:Math.min(0.62, Math.atan(lam*G.du/2/Lh)); an.amp+=(ampT-an.amp)*Math.min(1,dt*5); const A=an.amp, mv=Math.min(1,vv/0.25);
+  const kneeK=(gait==='gal'||gait==='bound'?1.25:gait==='trot'?0.95:0.75)*Math.min(1,A/0.22+0.25);
+  let drop=0;
+  for (const l of R.legs){ const p=((an.ph+an.off[l.k])%1+1)%1; let hip, kn;
+    if (p<G.du){ const s=p/G.du; hip=A*(1-2*s); kn=0.06*Math.sin(Math.PI*s)*mv; }
+    else { const s=(p-G.du)/(1-G.du); hip=-A+2*A*(0.5-0.5*Math.cos(Math.PI*s)); kn=Math.sin(Math.PI*Math.min(1,s*1.15))*kneeK*mv; }
+    const hb=B[l.bi], kb=B[l.bi+1];
+    if (C.bi){ hb.rotation.x=-hip*1.2; kb.rotation.x=-kn*0.8; }
+    else { hb.rotation.x=-hip; kb.rotation.x=l.hind? -kn*0.55 : kn; if (l.hind) hb.rotation.x+= kn*0.3; }
+    drop+=(1-Math.cos(hip)); }
+  drop/=R.legs.length;
+  /* Rumpf: Heben/Senken, Nicken im Galopp; Kopf nickt im Schritt, grast, schaut */
+  const tw=Math.PI*2*an.ph, body=B[1], r1=an.rest[1];
+  let by=0, bp=0, hn=0;
+  if (gait==='walk' || gait==='bi'){ by=0.012*Lh*Math.cos(2*tw)*mv; hn=(C.bi?0.18:0.07)*Math.sin(2*tw)*mv; }
+  else if (gait==='trot'){ by=0.03*Lh*Math.cos(2*tw); hn=0.03*Math.sin(2*tw); }
+  else { by=0.07*Lh*Math.sin(tw); bp=0.09*Math.sin(tw+0.6); hn=-bp*0.7; }
+  body.position.set(r1.x, r1.y+by-drop*Lh*0.6, r1.z); body.rotation.x=bp;
+  an.gz+=((o.graze||0)-an.gz)*Math.min(1,dt*(o.graze?1.6:3.2)); an.hy+=((o.look||0)-an.hy)*Math.min(1,dt*3);
+  const head=B[2]; head.rotation.order='YXZ'; head.rotation.y=an.hy*(1-an.gz); head.rotation.x=an.gz*(C.gr||0.9)+hn+(o.peck||0)+(o.chew?Math.sin(performance.now()*0.012)*0.02*an.gz:0); }
+/*ANIM-END*/
 // Einzelobjekt (für animierte Tiere)
-function propObject(name){ const lib=PROP_LIB[name]; if(!lib) return null; const g=new THREE.Group(); lib.forEach(({geo,mat})=>{ const m=new THREE.Mesh(geo,mat); m.castShadow=true; g.add(m); }); return g; }
+function propObject(name){ if (ANIM_CFG[name] && !window.OLD_ANIM){ const a=animObject(name); if (a) return a; } const lib=PROP_LIB[name]; if(!lib) return null; const g=new THREE.Group(); lib.forEach(({geo,mat})=>{ const m=new THREE.Mesh(geo,mat); m.castShadow=true; g.add(m); }); return g; }
 
 const _pm=new THREE.Matrix4(), _pq=new THREE.Quaternion(), _ps=new THREE.Vector3(), _pp=new THREE.Vector3();
 // Position neben der Straße: Abstand d, Seite side (+1 rechts/-1 links), Versatz off (m), Blick zur Straße
@@ -10826,7 +10928,7 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
         for (let t=0;t<nt;t++){ for (let ai=0;ai<2;ai++){ const A=axles[ai]; let ok=true; for (let q=0;q<3;q++){ const i=t*3+q, x=P.getX(i), y=P.getY(i), z=P.getZ(i); if (Math.abs(x-xc)<xin || Math.hypot(y-A.y,z-A.z)>A.r*1.03){ ok=false; break; } } if (ok){ own[t]=ai; break; } } }
         const mB=new Uint8Array(nt), m0=new Uint8Array(nt), m1=new Uint8Array(nt); let cB=0,c0=0,c1=0; for (let t=0;t<nt;t++){ if (own[t]===0){ m0[t]=1; c0++; } else if (own[t]===1){ m1[t]=1; c1++; } else { mB[t]=1; cB++; } }
         body.push({geo:subset(g,mB,cB), mat}); if (c0) axles[0].parts.push({geo:subset(g,m0,c0,axles[0].y,axles[0].z), mat}); if (c1) axles[1].parts.push({geo:subset(g,m1,c1,axles[1].y,axles[1].z), mat}); });
-      out.body=body; out.axles=axles.filter(a=>a.parts.length); console.log('verkehr räder', T.m, JSON.stringify(axles.map(a=>[+a.z.toFixed(2),+a.y.toFixed(2),a.parts.length])), xc.toFixed(2), hw.toFixed(2), y0.toFixed(2)); out.n=out.axles.reduce((n,a)=>n+a.parts.reduce((k,p)=>k+p.geo.attributes.position.count/3,0),0);
+      out.body=body; out.hw=hw; out.xc=xc; out.axles=axles.filter(a=>a.parts.length); console.log('verkehr räder', T.m, JSON.stringify(axles.map(a=>[+a.z.toFixed(2),+a.y.toFixed(2),a.parts.length])), xc.toFixed(2), hw.toFixed(2), y0.toFixed(2)); out.n=out.axles.reduce((n,a)=>n+a.parts.reduce((k,p)=>k+p.geo.attributes.position.count/3,0),0);
     }catch(e){ console.warn('verkehr räder', e); }
     return out; },
   model(ti, col){ const T=this.types[ti], key=ti+':'+(T.paint?col:0); if (this.cache.has(key)) return this.cache.get(key); const SP=this.split(T), lib=SP.body; if (!lib) return null;
@@ -10856,18 +10958,64 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
   auOff(car){ const au=car&&car.au; if (!au) return; try{ const t=AMB.ctx.currentTime; au.g.gain.setTargetAtTime(0,t,0.05); au.s.stop(t+0.4); }catch(e){} car.au=null; },
   /* Lenkung: Fahrzeug dreht leicht in Fahrtrichtung (Spurwechsel), Vorderräder schlagen nach Gierrate ein */
   /* 0.10.4b (Hicore): Karosserie folgt nur der Fahrbahn (kein Eiern mehr), nur die Vorderräder lenken: Lenkwinkel aus der Krümmung der Fahrspur, ruhig geglättet */
-  steerStep(c, dt, gr){ if (dt<=0) return; const o=c.o.position, pp=c.pp; c.pp={x:o.x,z:o.z}; const sp=pp?Math.hypot(o.x-pp.x,o.z-pp.z)/dt:0;
-    c.o.rotation.set(0,c.hd,0); c.o.rotateX(-Math.atan(gr));
-    let w=0; if (c.hd0!=null){ let dp=c.hd-c.hd0; dp=Math.atan2(Math.sin(dp),Math.cos(dp)); w=dp/dt; } c.hd0=c.hd; c.wf=(c.wf||0)+(w-(c.wf||0))*Math.min(1,dt*2.5);
+  /* 0.22.0 (Hicore: Autos sollen sich natürlicher bewegen): Karosserie zeigt beim Spurwechsel in die Bewegungsrichtung (Gierwinkel = atan(Seitentempo/Tempo)),
+     Vorderräder lenken dabei mit; Wanken nach außen mit ca. 3,7° je g Querbeschleunigung, Nicken beim Bremsen/Anfahren ca. 2,6° je g, beides über eine
+     gedämpfte Feder (ca. 1,4 Hz, Dämpfung 0,4 wie ein üblicher Pkw-Aufbau), deshalb weich mit leichtem Nachschwingen. Alt: window.OLD_CARDYN */
+  steerStep(c, dt, gr){ if (dt<=0) return; const o=c.o.position, pp=c.pp; c.pp={x:o.x,z:o.z}; const sp=pp?Math.hypot(o.x-pp.x,o.z-pp.z)/dt:0, dyn=!window.OLD_CARDYN;
+    if (dyn){ const yo=Math.atan2(c.lv||0, Math.max(c.v,2.5)); c.yo=(c.yo||0)+(yo-(c.yo||0))*Math.min(1,dt*6); } const H=c.hd+(dyn?c.yo:0);
+    c.o.rotation.set(0,H,0); c.o.rotateX(-Math.atan(gr));
+    let w=0; if (c.hd0!=null){ let dp=H-c.hd0; dp=Math.atan2(Math.sin(dp),Math.cos(dp)); w=dp/dt; } c.hd0=H; c.wf=(c.wf||0)+(w-(c.wf||0))*Math.min(1,dt*2.5);
     const tgt=sp>1?clamp(Math.atan((c.wb||2.6)*c.wf/Math.max(sp,3)),-0.45,0.45):(c.st||0); c.st=(c.st||0)+(tgt-(c.st||0))*Math.min(1,dt*3);
-    if (c.wh) c.wh.forEach(q=>{ if (q.steer) q.pv.rotation.y=q.ry0+c.st; }); },
+    if (c.wh) c.wh.forEach(q=>{ if (q.steer) q.pv.rotation.y=q.ry0+c.st; });
+    if (dyn){ const al=c.vp!=null?(c.v-c.vp)/dt:0; c.vp=c.v; c.al=(c.al||0)+(clamp(al,-9,6)-(c.al||0))*Math.min(1,dt*8);
+      const k=this.types[c.ti]&&this.types[c.ti].slow?0.6:1, tR=clamp(c.v*c.wf*0.0065*k,-0.06,0.06), tP=clamp(-c.al*0.0045*k,-0.035,0.035), om=8.8, ze=0.4;
+      let rest=Math.min(dt,0.1); while (rest>1e-4){ const h=Math.min(rest,0.02); rest-=h; c.rlv=(c.rlv||0)+(om*om*(tR-(c.rl||0))-2*ze*om*(c.rlv||0))*h; c.rl=(c.rl||0)+c.rlv*h; c.ptv=(c.ptv||0)+(om*om*(tP-(c.pt||0))-2*ze*om*(c.ptv||0))*h; c.pt=(c.pt||0)+c.ptv*h; }
+      c.o.rotateX(c.pt); c.o.rotateZ(c.rl); } },
+  /* 0.22.0 (Hicore): Blinker beim Ausscheren/Wiedereinscheren, beim Anfahren vom Rand, beim Rechtsranfahren und vor dem Abbiegen an Kreuzungen.
+     1,5 Hz (90 Takte/min wie vorgeschrieben), mindestens 3 Takte, nach dem Manöver noch kurz weiter. */
+  turnAt(c){ const R=NET&&NET.cur, en=R&&R.ents, D=GN.rg; if (!en || en.length<2 || !D) return 0; let lo=0, hi=en.length-1; while (hi>lo){ const m=(lo+hi+1)>>1; if (en[m].r0<=c.d) lo=m; else hi=m-1; }
+    const k=c.cd>0?lo+1:lo; if (k<=0 || k>=en.length) return 0; const dj=en[k].r0, ah=(dj-c.d)*c.cd; if (ah<-4 || ah>Math.max(35,c.v*4.5)) return 0;
+    const E0=D.edges[en[k-1].e], E1=D.edges[en[k].e]; if (!E0 || !E1 || E0===E1) return 0; const n=(E0.a===E1.a||E0.a===E1.b)?E0.a:E0.b, A=D.adjR||D.adjS; if (A && A[n] && A[n].length<3) return 0;
+    let dh=headingAt(dj+c.cd*14)-headingAt(dj-c.cd*10); dh=Math.atan2(Math.sin(dh),Math.cos(dh)); return Math.abs(dh)>0.55?Math.sign(dh):0; },
+  blinkStep(c, dt, r){ let want=0; const dl=c.latT-c.lat;
+    if (c.pbT>0 || dl>0.35) want=1; else if (dl<-0.35 && (c.v>0.5 || c.mode==='stop')) want=-1;
+    if (c.mode==='stop' && c.stopT<3.5 && Math.abs(r)>60) want=1;
+    if (!want && NET && NET.graph && c.v>1){ c.tchk=(c.tchk||0)-dt; if (c.tchk<=0){ c.tchk=0.3; try{ c.turn=this.turnAt(c); }catch(e){ c.turn=0; } } want=c.turn||0; }
+    if (want){ if (c.blS!==want){ c.blS=want; c.blT0=performance.now(); } c.blT=Math.max(c.blT||0, 2); } else if (c.blT>0) c.blT-=dt;
+    const on=c.blS && c.blT>0 && ((performance.now()-(c.blT0||0))/1000*1.5)%1<0.5;
+    c.bl.L.forEach(q=>q.visible=!!on && c.blS>0); c.bl.R.forEach(q=>q.visible=!!on && c.blS<0); if (!(c.blT>0)) c.blS=0; },
   halves(A){ if (A._h!==undefined) return A._h; A._h=null; try{ let x0=1e9,x1=-1e9; A.parts.forEach(({geo})=>{ const p=geo.attributes.position; for (let i=0;i<p.count;i++){ const x=p.getX(i); if (x<x0)x0=x; if (x>x1)x1=x; } }); const xm=(x0+x1)/2;
       const H=[-1,1].map(sd=>{ let sx=0, n=0; const parts=A.parts.map(({geo,mat})=>{ const p=geo.attributes.position, nt=p.count/3|0, keep=[]; for (let t=0;t<nt;t++){ const cx=(p.getX(t*3)+p.getX(t*3+1)+p.getX(t*3+2))/3; if ((cx-xm)*sd>0){ keep.push(t); sx+=cx; n++; } }
           if (!keep.length) return null; const ng=new THREE.BufferGeometry(); for (const nm in geo.attributes){ const At=geo.attributes[nm], is=At.itemSize, src=At.array, dst=new src.constructor(keep.length*3*is); let o=0; keep.forEach(t=>{ for (let q=0;q<3*is;q++) dst[o++]=src[t*3*is+q]; }); ng.setAttribute(nm,new THREE.BufferAttribute(dst,is,At.normalized)); } return {geo:ng,mat}; }).filter(Boolean);
         const xw=n?sx/n:0; parts.forEach(q=>{ q.geo.translate(-xw,0,0); q.geo.computeBoundingSphere(); }); return {xw, parts}; });
       if (H[0].parts.length && H[1].parts.length) A._h=H; }catch(e){ console.warn('räder halb',e); } return A._h; },
+  /* 0.22.0 (Hicore: Räder wirkten flach und achteckig wie ausgeschnitten): Räder selbst gebaut statt aus dem Modell geschnitten – runder Reifen mit
+     gewölbter Flanke (Drehkörper, 32 Segmente), vertiefte Alufelge mit 5 Speichen (Bild), Nabe. Je Rad 1 Zeichenaufruf. Dreht schneller als ca. 4 Umdrehungen/s,
+     wechselt die Felge auf ein verwischtes Bild (sonst Stroboskop-Effekt, Speichen scheinen rückwärts zu laufen). Alt: window.OLD_WHEELS */
+  wheelTex(slow, blur){ const k=(slow?'t':'c')+(blur?'b':''); this._wt=this._wt||{}; if (this._wt[k]) return this._wt[k]; const S=256, cv=document.createElement('canvas'); cv.width=cv.height=S; const x=cv.getContext('2d'), C=S/2;
+    x.fillStyle='#161616'; x.fillRect(0,0,S,S);
+    const rim=slow?['#a8841c','#d2ad3a','#6e5410']:['#8d939a','#d6dade','#4a4f55'];
+    let gr=x.createRadialGradient(C,C,C*0.1,C,C,C*0.98); gr.addColorStop(0,rim[1]); gr.addColorStop(0.75,rim[0]); gr.addColorStop(0.9,rim[1]); gr.addColorStop(1,rim[2]); x.fillStyle=gr; x.beginPath(); x.arc(C,C,C*0.98,0,7); x.fill();
+    if (!blur){ x.fillStyle='#1b1d20'; const n=slow?8:5; for (let k2=0;k2<n;k2++){ const a=k2/n*Math.PI*2, da=Math.PI/n*(slow?0.42:0.62); x.beginPath(); x.moveTo(C+Math.cos(a)*C*0.36,C+Math.sin(a)*C*0.36); x.arc(C,C,C*0.8,a-da,a+da); x.closePath(); x.fill(); } }
+    else { x.fillStyle='rgba(30,32,35,0.55)'; x.beginPath(); x.arc(C,C,C*0.8,0,7); x.arc(C,C,C*0.36,0,7,true); x.fill(); }
+    x.strokeStyle=rim[2]; x.lineWidth=S*0.025; x.beginPath(); x.arc(C,C,C*0.8,0,7); x.stroke();
+    gr=x.createRadialGradient(C,C,0,C,C,C*0.3); gr.addColorStop(0,rim[1]); gr.addColorStop(1,rim[0]); x.fillStyle=gr; x.beginPath(); x.arc(C,C,C*0.3,0,7); x.fill();
+    x.fillStyle=rim[2]; for (let k2=0;k2<5;k2++){ const a=k2/5*Math.PI*2; x.beginPath(); x.arc(C+Math.cos(a)*C*0.17,C+Math.sin(a)*C*0.17,S*0.018,0,7); x.fill(); }
+    x.fillStyle='#202020'; x.fillRect(0,0,12,12);
+    const t=new THREE.CanvasTexture(cv); t.anisotropy=4; if (THREE.SRGBColorSpace) t.colorSpace=THREE.SRGBColorSpace; return this._wt[k]=t; },
+  axleX(A,SP){ if (A._xo!=null) return A._xo; let m=0; const xs=[]; A.parts.forEach(({geo})=>{ const p=geo.attributes.position; for (let i=0;i<p.count;i++) xs.push(Math.abs(p.getX(i)-SP.xc)); }); xs.sort((a,b)=>a-b); m=xs.length>20?xs[Math.floor(xs.length*0.97)]:SP.hw-0.06; return A._xo=Math.min(m, SP.hw-0.02); },
+  wheelMat(slow, blur){ const k=(slow?'t':'c')+(blur?'b':''); this._wm=this._wm||{}; if (this._wm[k]) return this._wm[k]; const m=new THREE.MeshStandardMaterial({map:this.wheelTex(slow,blur), roughness:0.55, metalness:0.25}); m.userData.snowCar=true; return this._wm[k]=m; },
+  wheelGeo(R, W, slow){ const key=R.toFixed(3)+'|'+W.toFixed(3); this._wg=this._wg||new Map(); if (this._wg.has(key)) return this._wg.get(key);
+    const rr=R*(slow?0.6:0.68), h=W/2, SEG=32, prof=[[rr,-h*0.92],[rr+0.01,-h],[R-0.05,-h*0.98],[R-0.02,-h*0.85],[R,-h*0.62],[R,h*0.62],[R-0.02,h*0.85],[R-0.05,h*0.98],[rr+0.01,h],[rr,h*0.92]].map(([a,b])=>new THREE.Vector2(a,b));
+    const tire=new THREE.LatheGeometry(prof, SEG); { const uv=tire.attributes.uv; for (let i=0;i<uv.count;i++) uv.setXY(i,0.02,0.98); }
+    const parts=[tire]; [-1,1].forEach(sd=>{ const d=new THREE.CircleGeometry(rr+0.006, SEG); d.rotateX(sd>0?-Math.PI/2:Math.PI/2); d.translate(0, sd*(h*0.92-0.025), 0); parts.push(d);
+      const cup=new THREE.CylinderGeometry(rr+0.004, rr+0.004, 0.03, SEG, 1, true); { const uv=cup.attributes.uv; for (let i=0;i<uv.count;i++) uv.setXY(i,0.5+0.48*Math.cos(i),0.5); } cup.translate(0, sd*(h*0.92-0.012), 0); parts.push(cup); });
+    const out=new THREE.BufferGeometry(), at={position:[],normal:[],uv:[]}, idx=[]; let off=0;
+    parts.forEach(q=>{ const g2=q.index?q:q; ['position','normal','uv'].forEach(n=>{ const A=g2.attributes[n]; for (let i=0;i<A.count*A.itemSize;i++) at[n].push(A.array[i]); }); const ix=g2.index; if (ix) for (let i=0;i<ix.count;i++) idx.push(ix.getX(i)+off); else for (let i=0;i<g2.attributes.position.count;i++) idx.push(i+off); off+=g2.attributes.position.count; });
+    out.setAttribute('position',new THREE.Float32BufferAttribute(at.position,3)); out.setAttribute('normal',new THREE.Float32BufferAttribute(at.normal,3)); out.setAttribute('uv',new THREE.Float32BufferAttribute(at.uv,2)); out.setIndex(idx);
+    out.rotateZ(Math.PI/2); out.computeBoundingSphere(); this._wg.set(key,out); return out; },
   make(c){ /* 0.13.0: jedes Pool-Auto nur einmal bauen und danach wiederverwenden (vorher bei jedem Auftauchen neu: Ruckler und wachsender Grafikspeicher) */
-    const pk=c.pick, KF=['wh','wb','blue','plate','fl','lights'];
+    const pk=c.pick, KF=['wh','wb','blue','plate','fl','lights','bl'];
     if (pk && pk._mk && !window.NO_CARCACHE){ KF.forEach(k=>{ if (pk._mk.f[k]!==undefined) c[k]=pk._mk.f[k]; }); return pk._mk.g; }
     const g=this.make0(c); if (g && pk && !window.NO_CARCACHE){ const f={}; KF.forEach(k=>f[k]=c[k]); pk._mk={g,f}; } return g; },
   /* nach dem Start die Pool-Autos nach und nach im Hintergrund vorbauen (ein Auto alle 0,4 s), damit beim Auftauchen nichts mehr gerechnet werden muss */
@@ -10893,7 +11041,10 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
   make0(c){ const P=this.model(c.ti,c.col); if (!P) return null; const g=new THREE.Group(); P.parts.forEach(({geo,mat})=>{ const m=new THREE.Mesh(geo,mat); m.castShadow=true; m.receiveShadow=true; if (P.T.rot) m.rotation.y=P.T.rot; g.add(m); });
     /* 0.10.4: Vorderräder einzeln, damit sie einlenken können (Achse 0 = vorn, beim gedrehten Modell Achse 1) */
     const rot=P.T.rot||0, cs=Math.cos(rot), sn=Math.sin(rot), fi=P.axles.length===2?(rot?1:0):-1; c.wh=[]; c.wb=P.axles.length===2?Math.abs(P.axles[0].z-P.axles[1].z):2.6;
-    P.axles.forEach((A,ai)=>{ if (ai===fi){ const H=this.halves(A); if (H){ H.forEach(h=>{ const pv=new THREE.Group(); pv.position.set(A.z*sn+h.xw*cs, A.y, A.z*cs-h.xw*sn); pv.rotation.y=rot; pv.rotation.order='YXZ'; h.parts.forEach(({geo,mat})=>{ const m=new THREE.Mesh(geo,mat); m.castShadow=true; pv.add(m); }); g.add(pv); c.wh.push({pv, r:A.r, a:0, s:rot?-1:1, steer:true, ry0:rot}); }); return; } }
+    const SP=this.split(P.T), NW=!window.OLD_WHEELS && SP.hw>0.3;
+    if (NW) P.axles.forEach((A,ai)=>{ const front=ai===fi, tw=P.T.slow?(ai===(rot?0:1)?0.46:0.3):(P.T.m==='veh_van'?0.23:0.21), xo=this.axleX(A,SP)-tw/2-0.01;
+        [-1,1].forEach(sd=>{ const x=SP.xc+sd*xo, pv=new THREE.Group(); pv.position.set(A.z*sn+x*cs, A.y, A.z*cs-x*sn); pv.rotation.y=rot; pv.rotation.order='YXZ'; const m=new THREE.Mesh(this.wheelGeo(A.r,tw,!!P.T.slow), this.wheelMat(!!P.T.slow,0)); m.castShadow=true; pv.add(m); g.add(pv); c.wh.push({pv, m, r:A.r, a:Math.random()*6, s:rot?-1:1, steer:front, ry0:rot, slow:!!P.T.slow}); }); });
+    else P.axles.forEach((A,ai)=>{ if (ai===fi){ const H=this.halves(A); if (H){ H.forEach(h=>{ const pv=new THREE.Group(); pv.position.set(A.z*sn+h.xw*cs, A.y, A.z*cs-h.xw*sn); pv.rotation.y=rot; pv.rotation.order='YXZ'; h.parts.forEach(({geo,mat})=>{ const m=new THREE.Mesh(geo,mat); m.castShadow=true; pv.add(m); }); g.add(pv); c.wh.push({pv, r:A.r, a:0, s:rot?-1:1, steer:true, ry0:rot}); }); return; } }
       const pv=new THREE.Group(); pv.position.set(A.z*sn, A.y, A.z*cs); pv.rotation.y=rot; pv.rotation.order='YXZ'; A.parts.forEach(({geo,mat})=>{ const m=new THREE.Mesh(geo,mat); m.castShadow=true; pv.add(m); }); g.add(pv); c.wh.push({pv, r:A.r, a:0, s:rot?-1:1}); });
     if (P.T.police){ const bm=new THREE.MeshBasicMaterial({color:0x2a6bff, transparent:true, opacity:0.95, blending:THREE.AdditiveBlending, depthWrite:false}), bg=new THREE.SphereGeometry(0.16,10,8); c.blue=[-0.32,0.32].map((x2,i)=>{ const m=new THREE.Mesh(bg,bm.clone()); m.position.set(x2,1.78,-0.25); m.visible=false; g.add(m); return m; }); }
     /* Hicore: Görlitzer Kennzeichen (GR oder ZI), vorn und hinten */
@@ -10927,6 +11078,11 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
           const hx2=LF.sides.reduce((a,q)=>a+Math.abs(q.x-cxm),0)/LF.sides.length, hyF2=Math.min(hyF, LF.sides[0].y-H*0.05);
           [-1,1].forEach(sx=>{ const x2=cxm+sx*Math.min(hx2,FF.x); const a=new THREE.Mesh(hg,hm); a.scale.set(1.25,0.6,0.35); a.position.set(x2,hyF2,FF.z); L.add(a); const h=glow(0xfff0d0, 0.75, 0.45, 0.85); h.position.set(x2,hyF2,FF.z-bd*0.06); L.add(h); }); }
         else [-1,1].forEach(sx=>{ const x2=cxm+sx*FF.x, x3=cxm+sx*RR.x; const a=new THREE.Mesh(hg,hm); a.scale.set(1.5,0.9,0.45); a.position.set(x2,hyF,FF.z); L.add(a); const b2=new THREE.Mesh(hg,tm); b2.scale.set(1.3,0.7,0.4); b2.position.set(x3,hyR,RR.z); L.add(b2); });
+        /* 0.22.0 (Hicore): Blinker vorn und hinten an den Ecken (gelb, mit Lichthof), links = +x in Fahrtrichtung */
+        if (!window.OLD_BLINK){ const om=new THREE.MeshBasicMaterial({color:0xff8c10, transparent:true, opacity:1, blending:THREE.AdditiveBlending, depthWrite:false, fog:false}); om.userData.noSnow=true; const og=new THREE.SphereGeometry(0.075,10,8), bx=(bb.max.x-bb.min.x)/2;
+          const mk=(x,y,z,zo)=>{ const q=new THREE.Group(); const a=new THREE.Mesh(og,om); a.scale.set(1.3,0.75,0.45); q.add(a); const h=glow(0xffa020,0.55,0.38,0.95); h.position.z=zo; q.add(h); q.position.set(x,y,z); q.visible=false; g.add(q); return q; };
+          const rx=LF?LF.sides.reduce((a2,q2)=>a2+Math.abs(q2.x-cxm),0)/LF.sides.length:RR.x, ry2=LF?LF.sides[0].y:hyR, fx=Math.min(bx-0.1, FF.x+0.14);
+          c.bl={L:[],R:[]}; [1,-1].forEach(sd=>{ const arr=sd>0?c.bl.L:c.bl.R; arr.push(mk(cxm+sd*fd*fx, hyF, FF.z+fd*0.02, fd*0.05), mk(cxm+sd*fd*Math.min(bx-0.06,rx+0.06), ry2+0.09, RR.z-fd*0.02, -fd*0.05)); }); }
         if (!TRAFFIC.beamTex){ const cv2=document.createElement('canvas'); cv2.width=64; cv2.height=128; const x2=cv2.getContext('2d'), gr=x2.createRadialGradient(32,128,4,32,128,128); gr.addColorStop(0,'rgba(255,240,205,0.75)'); gr.addColorStop(0.55,'rgba(255,235,190,0.22)'); gr.addColorStop(1,'rgba(255,235,190,0)'); x2.fillStyle=gr; x2.beginPath(); x2.moveTo(26,128); x2.lineTo(38,128); x2.lineTo(64,0); x2.lineTo(0,0); x2.closePath(); x2.fill(); TRAFFIC.beamTex=new THREE.CanvasTexture(cv2); }
         const bm2=new THREE.MeshBasicMaterial({map:TRAFFIC.beamTex, transparent:true, opacity:0.55, blending:THREE.AdditiveBlending, depthWrite:false, fog:true, polygonOffset:true, polygonOffsetFactor:-2}), bq=new THREE.Mesh(new THREE.PlaneGeometry(7,16),bm2);
         bq.rotation.x=-Math.PI/2; if (fd>0) bq.rotation.z=Math.PI; bq.position.set(0,0.06,fz+fd*8.2); bq.renderOrder=3; L.add(bq); } }catch(e){}
@@ -11022,10 +11178,15 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
       /* Abstand zu anderen Fahrzeugen derselben Richtung */
       for (const o of this.act){ if (o===c || o.cd!==c.cd) continue; const dd=((o.d-c.d)*c.cd%L+L)%L; if (dd>0 && dd<35 && Math.abs(o.lat-c.lat)<1.6){ vt=Math.min(vt, dd<12?0:o.v); } }
       const a=vt>c.v?2.2:6; c.v+=Math.sign(vt-c.v)*Math.min(Math.abs(vt-c.v),a*dt);
-      c.d+=c.cd*c.v*dt; c.lat+=Math.sign(c.latT-c.lat)*Math.min(Math.abs(c.latT-c.lat),(c.mode==='pass'?1.4:1.0)*dt);
+      c.d+=c.cd*c.v*dt;
+      if (window.OLD_CARDYN) c.lat+=Math.sign(c.latT-c.lat)*Math.min(Math.abs(c.latT-c.lat),(c.mode==='pass'?1.4:1.0)*dt);
+      else { /* 0.22.0: Spurwechsel weich (Seitentempo mit begrenzter Beschleunigung, statt gleichförmig); vor dem Ausscheren ca. 1 s blinken */
+        if (c.mode==='pass'){ if (c.pbT==null) c.pbT=c.lat<0?1.0:0; } else c.pbT=null; let lt=c.latT; if (c.pbT>0){ c.pbT-=dt; lt=c.lat; }
+        const lm=c.mode==='pass'?1.5:1.1, want=clamp((lt-c.lat)*1.3,-lm,lm); c.lv=(c.lv||0)+clamp(want-(c.lv||0),-1.8*dt,1.8*dt); c.lat+=c.lv*dt; }
+      if (c.bl && !window.OLD_BLINK) this.blinkStep(c, dt, r);
       /* Position wie placeRider: rechts der eigenen Fahrtrichtung, Spur über lat */
       const P2=posAt(c.d), hd=headingAt(c.d), rev=c.cd<0, ln=rev?-c.lat:c.lat, gr=gradeAt(c.d)*(rev?-1:1);
-      c.o.position.set(P2.x+Math.cos(hd)*ln, P2.y+0.06, P2.z-Math.sin(hd)*ln); c.hd=hd+(rev?Math.PI:0); c.o.rotation.set(0,c.hd,0); c.o.rotateX(-Math.atan(gr)); if (rev && NET && NET.graph){ const RB=gnRBAt(P2.x,P2.z,0.4); if (RB) this.rbFix(c,RB,P2); } this.steerStep(c, dt, gr); if (c.wh) c.wh.forEach(w=>{ w.a+=w.s*c.v*dt/w.r; w.pv.rotation.x=w.a; });
+      c.o.position.set(P2.x+Math.cos(hd)*ln, P2.y+0.06, P2.z-Math.sin(hd)*ln); c.hd=hd+(rev?Math.PI:0); c.o.rotation.set(0,c.hd,0); c.o.rotateX(-Math.atan(gr)); if (rev && NET && NET.graph){ const RB=gnRBAt(P2.x,P2.z,0.4); if (RB) this.rbFix(c,RB,P2); } this.steerStep(c, dt, gr); if (c.wh) c.wh.forEach(w=>{ w.a+=w.s*c.v*dt/w.r; w.pv.rotation.x=w.a; if (w.m){ const bl=c.v/w.r>26; if (bl!==!!w.bl){ w.bl=bl; w.m.material=this.wheelMat(w.slow, bl); } } });
       /* Fahrer weicht nach rechts, wenn ein Auto nah ist; überholt selbst langsame/parkende Fahrzeuge links */
       /* Hicore: überholt der Fahrer ein fahrendes Auto, hupt es manchmal (Land eher, Stadt selten) */
       if (same && c.mode!=='stop' && !c.police && c.v>2 && c.pr!=null && c.pr>0 && r<=0 && !(this.hornCd>0)){ const tw2=this.town(p.x,p.z); if (Math.random()<(tw2?0.12:0.45)){ this.hornCd=tw2?150:60; const k=T.slow||T.m==='veh_van'?0.8:1; setTimeout(()=>this.horn(k, Math.random()<0.5), 300+Math.random()*1200); } }
@@ -11370,8 +11531,9 @@ function eggStep(dt){ if (!WORLD || !WORLD.graph || !GN.d || typeof me==='undefi
         for (let i=0;i<n;i++){ const xx=x+(R()-0.5)*6, zz=z+(R()-0.5)*6; eggSpawn(stag?'hirsch':'reh',xx,zz,R()*6.28,{deer:1,fx,fz}); } } }
   }
   for (let i=EGG.list.length-1;i>=0;i--){ const e=EGG.list[i], o=e.o; e.t+=dt; let done=false;
-    if (e.A){ const L=Math.hypot(e.B[0]-e.A[0],e.B[1]-e.A[1]), u=Math.min(1,e.t*e.sp/L); const x=e.A[0]+(e.B[0]-e.A[0])*u, z=e.A[1]+(e.B[1]-e.A[1])*u; o.position.set(x,terrainH(x,z)+Math.abs(Math.sin(e.t*e.hf))*e.hop,z); if (u>=1) done=true; }
+    if (e.A){ const L=Math.hypot(e.B[0]-e.A[0],e.B[1]-e.A[1]), u=Math.min(1,e.t*e.sp/L); const x=e.A[0]+(e.B[0]-e.A[0])*u, z=e.A[1]+(e.B[1]-e.A[1])*u, an=o.userData.an; if (an){ o.position.set(x,terrainH(x,z),z); animUpdate(an,dt,u>=1?0:e.sp); } else o.position.set(x,terrainH(x,z)+Math.abs(Math.sin(e.t*e.hf))*e.hop,z); if (u>=1) done=true; }
     else if (e.fly){ const a=e.t*0.42+e.ph; o.position.set(e.cx+Math.cos(a)*e.r, terrainH(e.cx,e.cz)+e.h+Math.sin(e.t*0.7)*1.5, e.cz+Math.sin(a)*e.r); o.rotation.set(0,-a,0); o.rotateZ(0.32); e.cx+=(P.x-e.cx)*dt*0.05; e.cz+=(P.z-e.cz)*dt*0.05; if (e.t>e.life){ e.h+=dt*6; if (e.t>e.life+8) done=true; } }
+    else if (e.deer && o.userData.an){ if (deerStep(e,o,dt,P)) done=true; }
     else if (e.deer){ const dd=Math.hypot(o.position.x-P.x,o.position.z-P.z); if (!e.flee && dd<40) e.flee=1; if (e.flee){ const dx=e.fx-o.position.x, dz=e.fz-o.position.z, l=Math.hypot(dx,dz)||1; o.rotation.y=Math.atan2(dx,dz); o.position.x+=dx/l*dt*8; o.position.z+=dz/l*dt*8; o.position.y=terrainH(o.position.x,o.position.z)+Math.abs(Math.sin(e.t*7))*0.45; if (l<2||e.flee++>400) done=true; } else if (Math.random()<dt*0.2) o.rotation.y+=(Math.random()-0.5)*0.8; if (dd>260) done=true; }
     else if (e.tit){ const sh=new THREE.Vector3(); const BB=me.glb&&me.glb.B, HB=BB&&(BB.head_end||BB.Head); if (BB&&BB.Head&&BB.head_end){ const a=BB.Head.getWorldPosition(new THREE.Vector3()), b=BB.head_end.getWorldPosition(new THREE.Vector3()); sh.copy(a).lerp(b,0.5); sh.y+=Math.min(0.2,a.distanceTo(b)*0.5)+(window.TIT_DY!=null?window.TIT_DY:0.035); if (!e.rc || e.t-e.rc.t>0.3){ let hy=null; try{ const rc=new THREE.Raycaster(new THREE.Vector3(sh.x,sh.y+0.6,sh.z), new THREE.Vector3(0,-1,0), 0, 1.0), H=rc.intersectObject(me.glb.holder,true).filter(h=>h.object.visible && h.object.isMesh); if (H.length) hy=H[0].point.y; }catch(_){} e.rc={t:e.t, dy:hy!=null?hy-sh.y:0}; } sh.y+=e.rc.dy; } else if (HB){ HB.getWorldPosition(sh); sh.y+=0.02; } else { sh.set(0,1.75,0.1); me.g.localToWorld(sh); }
       if (meP.v>1 && e.t<6 && !e.go) { e.go=1; e.t=Math.max(e.t,6); }   /* losgefahren: sofort wegfliegen */
@@ -11381,9 +11543,35 @@ function eggStep(dt){ if (!WORLD || !WORLD.graph || !GN.d || typeof me==='undefi
     if (!done && Math.hypot(o.position.x-P.x,o.position.z-P.z)>400) done=true;
     if (done){ o.parent&&o.parent.remove(o); EGG.list.splice(i,1); } } }
 
+/* 0.22.0: Wild mit Skelett: grast, schaut auf, geht ein paar Schritte; kommt der Fahrer näher, hebt es den Kopf und schaut her, unter 40 m Flucht:
+   kurzer Schreck, dann Antraben und Galopp in den Wald (Reh bis ca. 40 km/h, Hirsch ca. 43 km/h), Wenden mit begrenzter Drehrate */
+function deerStep(e,o,dt,P){ const an=o.userData.an, dd=Math.hypot(o.position.x-P.x,o.position.z-P.z); e.v=e.v||0;
+  if (!e.flee && dd<40){ e.flee=1; e.ft=0; }
+  let v=0, look=0, graze=0;
+  if (e.flee){ e.ft+=dt; const dx=e.fx-o.position.x, dz=e.fz-o.position.z, l=Math.hypot(dx,dz)||1; let dy=Math.atan2(dx,dz)-o.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); o.rotation.y+=clamp(dy,-2.6*dt,2.6*dt);
+    if (!e.vf) e.vf=0.85+Math.random()*0.25; const vm=(ANIM_CFG[e.kind]&&ANIM_CFG[e.kind].vmax||10)*e.vf; if (e.ft>0.35) e.v=Math.min(vm, e.v+(Math.abs(dy)>1.2?2.5:6.5)*dt); v=e.v;
+    if (l<3 || e.ft>40) return true; }
+  else { e.st=(e.st||0)-dt; if (e.st<=0){ const r=Math.random(); e.mode=r<0.55?'graze':r<0.8?'look':'walk'; e.st=e.mode==='walk'?2+Math.random()*3:3+Math.random()*6; if (e.mode==='walk') e.wy=o.rotation.y+(Math.random()-0.5)*1.6; }
+    const m=dd<75?'look':e.mode; if (m==='walk'){ let dy=e.wy-o.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); o.rotation.y+=clamp(dy,-0.9*dt,0.9*dt); v=0.9; }
+    if (m==='look'){ let a=Math.atan2(P.x-o.position.x,P.z-o.position.z)-o.rotation.y; a=Math.atan2(Math.sin(a),Math.cos(a)); look=clamp(a,-1.1,1.1); if (Math.abs(a)>1.6 && dd<75) o.rotation.y+=clamp(a,-0.6*dt,0.6*dt); }
+    graze=m==='graze'?1:0; e.v=v; }
+  o.position.x+=Math.sin(o.rotation.y)*v*dt; o.position.z+=Math.cos(o.rotation.y)*v*dt; o.position.y=terrainH(o.position.x,o.position.z);
+  animUpdate(an, dt, v, {graze, look, chew:graze}); return dd>260; }
+/* 0.22.0: Weide- und Hoftiere mit Skelett: grasen (Kopf runter), stehen, gehen ab und zu ein paar Meter im Schritt, bleiben nahe ihrem Platz.
+   Hühner trippeln kurz und picken. Weiter als ca. 160 m vom Blick: Pose bleibt stehen (spart Rechenzeit). */
+function critterAnim(c,dt){ const o=c.o, an=o.userData.an, bi=!!an.R.C.bi, cp=camera.position, far=Math.abs(o.position.x-cp.x)+Math.abs(o.position.z-cp.z)>160;
+  if (c.st==null){ c.st=Math.random()*8; c.m=bi?'peck':'graze'; }
+  c.st-=dt; if (c.st<=0){ const r=Math.random(); if (bi){ c.m=r<0.45?'walk':r<0.8?'peck':'stand'; c.st=c.m==='walk'?0.6+Math.random()*1.4:0.8+Math.random()*2.2; }
+    else { c.m=r<0.6?'graze':r<0.8?'stand':'walk'; c.st=c.m==='walk'?2.5+Math.random()*4:5+Math.random()*12; }
+    if (c.m==='walk'){ const away=o.position.distanceTo(c.base)>(bi?3:5); c.wy=away?Math.atan2(c.base.x-o.position.x,c.base.z-o.position.z):o.rotation.y+(Math.random()-0.5)*(bi?2.5:1.4); } }
+  let v=0; if (c.m==='walk'){ const vw=bi?0.45:c.kind==='pferd'?1.1:c.kind==='kuh'?0.9:0.7; let dy=c.wy-o.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); o.rotation.y+=clamp(dy,-(bi?4:0.8)*dt,(bi?4:0.8)*dt); v=vw*(Math.abs(dy)>1?0.4:1);
+    o.position.x+=Math.sin(o.rotation.y)*v*dt; o.position.z+=Math.cos(o.rotation.y)*v*dt; o.position.y=terrainH(o.position.x,o.position.z); }
+  if (far && an._f && c.m!=='walk') return; an._f=1;
+  animUpdate(an, dt, v, {graze:c.m==='graze'?1:0, chew:c.m==='graze', peck:c.m==='peck'?(Math.sin(c.t*9+c.phase)>0.3?0.85:0.1):0}); }
 function animateCritters(dt){
   for (const c of critters){
     c.t+=dt;
+    if (c.o.userData.an){ critterAnim(c,dt); continue; }
     if (c.kind==='hase'){
       // alle paar Sekunden ein paar Hüpfer
       const cyc=c.t%5; if (cyc<1.2){ const hop=Math.abs(Math.sin(cyc*Math.PI*2.5)); c.o.position.y=terrainH(c.o.position.x,c.o.position.z)+hop*0.18;
@@ -11959,7 +12147,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.21.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.22.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
