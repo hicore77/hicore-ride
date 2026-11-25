@@ -556,3 +556,18 @@ Die Sandbox ist über das Higgsfield-MCP-Werkzeug `sandbox_exec` erreichbar und 
 - Nicht geändert: Hochwald-Schotterstück (0.9.10, Teil einer Hauptstraßenkante), Nebenstraßen ohne Belagsangabe zählen weiter als Asphalt (side2.bin hat kein „geschätzt“-Flag, Generator nicht im Repo).
 - Gut erreichbare Treppen (Hicore genannt): Jonsdorf Auf der Heide 9 Stufen, Oybin Kammstraße ca. 10, Friedrich-Engels-Str. (S 133) 6 Felsstufen, Waltersdorf Hauptstraße 25, Kammstraße bei Hölle 3. Hochwald (80) und Lausche (58) sind Sackgassen ohne Hinweis.
 
+
+## Aus UEBERGABE.md verschoben (Stand 0.20.0): 0.19.1 und 0.19.2
+
+**Tschechien, Treppen, Arm (0.19.1)**
+- Tschechischer Teil (Süd: Lausche, Krompach, Jiřetín; West: Varnsdorf-Rand) jetzt wie Sachsen: `dop_gebiet.py ergaenzen [sek] cz` holt Orthofoto ČÚZK (WMS `ags.cuzk.cz/arcgis1/services/ORTOFOTO`, © ČÚZK, offene Daten CC BY 4.0, nur RGB) für alle Kachelzellen ohne sächsisches Luftbild; Vegetation aus Grünanteil (ExG) statt NDVI, Schatten/dunkles Nadelholz zählt als Krone. Sachsen-Zellen bleiben unverändert (Original in Sandbox `dop/ks/`). Dann `packen` → PNG-Transfer → `dop_einfuegen.py`. Ergebnis gesamt 397.679 Bäume + 70.718 Sträucher (+127k/+21k), Kacheln 3,7 → 4,4 MB.
+- Polen (schmaler Streifen östlich der Neiße, ca. 0,6 km²): Geoportal-WMS (`mapy.geoportal.gov.pl …/ORTO/WMS`) liefert aus der Sandbox nur leere Bilder (4326 und 2180 getestet), bleibt ESA/OSM.
+- Treppen: siehe Höhe oben. Test `tests/tstairfit.js` (alle Treppen alt/neu: sink/float/flach). Ergebnis neu: von 483 Treppen 9 mehr als 10 cm unter Gelände (alt 186), Rest-Ausreißer bei sehr steilen langen Treppen (Stufen max. 24 cm). `tstair.js` neu: `SIDE=1,-1` (mehrere Seiten), `FLOAT=1` (Treppe mit größtem Überstand im Umkreis 2,5 km).
+- Achtung: 0.19.0/0.19.1 nannten Weg-ID 41396618 „Oybin Kammstraße“, die liegt aber in **Jonsdorf** (x −2510, z −478). Die echte Oybiner Treppe ist 1209305178 (siehe 0.19.2).
+- Schultern 0.19.1 (Arm hängt gestreckt) war für Hicore „noch schlimmer“, ersetzt in 0.19.2. Alt: `window.OLD_CARRYARM3`.
+
+**Hotfix 0.19.2**
+- Zaun Oybin Kammstraße: kam nicht aus OSM (`gtFenceMesh`), sondern aus der Runden-Deko `placeInstanced(g,'zaun',…)` (Weidezaun-Modell, 7,5 m neben der Startrunde, zufällig). Neu `propOnWay(x,z,m)` (nur Zittau: Nebenstraße per `gnNear` oder `waysNear`, enthält Treppen): Zaunfeld wird an Mitte und beiden Enden geprüft, `roadside()` (Bäume, Schilder usw.) prüft die Mitte. 24 von 452 Zaunfeldern fallen weg (`window.__PW`). Tor statt Lücke verworfen: der Weidezaun gehört dort nicht hin. Alt: `window.OLD_PROPWAY`.
+- Schultern: linker Arm angewinkelt (Ellbogen ca. 90°, nach hinten-unten), Hand locker vor der Hüfte, schwingt mit dem Schritt (Referenz: Hicores Cyclocross-Fotos vom 24.11., `uploads/hearth/432deada…`).
+- Neue Tests: `tests/tprobe.js` (listet alle Meshes im Umkreis `R` um `X,Z`, Zaunfeld-Zähler, mit `OUT`+`CAMS="x,y,z,lx,ly,lz;…"` Bilder an genau der Stelle; ca. 8 min), `tests/tcarry.js` (Studio-Bilder der Schulter-Pose ohne Welt, `US` Schrittphase, `OLD=1`; ca. 3 min). `tstair.js` kann jetzt `WID=` (findet die Oybiner Treppe trotzdem nicht, weil unten kein Weg > 25 m anschließt).
+

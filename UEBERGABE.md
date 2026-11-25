@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 25.11.2026. Letzte veröffentlichte Version: **0.19.8 Beta** (Absteigen/Aufsteigen über den Sattel; davor 0.19.7 Schultern Gravel mit Steuerrohr in der Achselhöhle, 0.19.5 Gabeln).
+Stand: 25.11.2026. Letzte veröffentlichte Version: **0.20.0 Beta** (Leistung: Wald gebündelt, FPS-Logik). Davor **0.19.8 Beta** (Absteigen/Aufsteigen über den Sattel; davor 0.19.7 Schultern Gravel mit Steuerrohr in der Achselhöhle, 0.19.5 Gabeln).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,10 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
+| **0.20.0** | **Leistung: Wald gebündelt (Zeichenaufrufe halbiert), Baumschatten nur nah, HUD ohne Layout je Bild, Auflösung bleibt 100 % wenn Senken nichts bringt, FPS-Anzeige mit CPU-Zeit** |
 | 0.19.4 | Schultern: Oberarm unter dem Oberrohr, Unterarm hinter dem Steuerrohr durch an den inneren Unterlenker (siehe unten) |
 | 0.19.5 | Gabeln: Gravel Carbon-Starrgabel aus einem Stück (`taperLeg`), MTB-Federgabel federt (`forkStep`) (siehe unten) |
-| **0.19.8** | **Absteigen: links auf dem Pedal, rechtes Bein angewinkelt hinten über den Sattel** (siehe unten) |
+| 0.19.8 | Absteigen: links auf dem Pedal, rechtes Bein angewinkelt hinten über den Sattel (siehe unten) |
 | 0.19.7 | Schultern Gravel: Steuerrohr in der Achselhöhle, Oberarm durchs Dreieck, Unterarm vorn herum zur Hand |
 | 0.19.6 | Schultern Gravel: Ellbogen außen, Unterarm vor dem Steuerrohr (Oberarm lief noch außen am Rahmen) |
 
@@ -132,17 +133,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Treppen: dunkle Vorderkante je Stufe (alt: `window.OLD_STAIRVIS`). Zäune: jedes Zaunfeld an 5 Punkten gegen Straßen/Wege/Treppen geprüft (vorher nur Mitte, Zaun stand quer über Treppe Oybin Kammstraße). Schultern: linker Arm hängt locker, Ellbogen nach hinten-unten (alt: `window.OLD_CARRYARM`).
 - Aus: `window.NO_DOPT` (alles Luftbild-Zeug inkl. Sträucher und Acker-Zustand).
 
-**Tschechien, Treppen, Arm (0.19.1)**
-- Tschechischer Teil (Süd: Lausche, Krompach, Jiřetín; West: Varnsdorf-Rand) jetzt wie Sachsen: `dop_gebiet.py ergaenzen [sek] cz` holt Orthofoto ČÚZK (WMS `ags.cuzk.cz/arcgis1/services/ORTOFOTO`, © ČÚZK, offene Daten CC BY 4.0, nur RGB) für alle Kachelzellen ohne sächsisches Luftbild; Vegetation aus Grünanteil (ExG) statt NDVI, Schatten/dunkles Nadelholz zählt als Krone. Sachsen-Zellen bleiben unverändert (Original in Sandbox `dop/ks/`). Dann `packen` → PNG-Transfer → `dop_einfuegen.py`. Ergebnis gesamt 397.679 Bäume + 70.718 Sträucher (+127k/+21k), Kacheln 3,7 → 4,4 MB.
-- Polen (schmaler Streifen östlich der Neiße, ca. 0,6 km²): Geoportal-WMS (`mapy.geoportal.gov.pl …/ORTO/WMS`) liefert aus der Sandbox nur leere Bilder (4326 und 2180 getestet), bleibt ESA/OSM.
-- Treppen: siehe Höhe oben. Test `tests/tstairfit.js` (alle Treppen alt/neu: sink/float/flach). Ergebnis neu: von 483 Treppen 9 mehr als 10 cm unter Gelände (alt 186), Rest-Ausreißer bei sehr steilen langen Treppen (Stufen max. 24 cm). `tstair.js` neu: `SIDE=1,-1` (mehrere Seiten), `FLOAT=1` (Treppe mit größtem Überstand im Umkreis 2,5 km).
-- Achtung: 0.19.0/0.19.1 nannten Weg-ID 41396618 „Oybin Kammstraße“, die liegt aber in **Jonsdorf** (x −2510, z −478). Die echte Oybiner Treppe ist 1209305178 (siehe 0.19.2).
-- Schultern 0.19.1 (Arm hängt gestreckt) war für Hicore „noch schlimmer“, ersetzt in 0.19.2. Alt: `window.OLD_CARRYARM3`.
-
-**Hotfix 0.19.2**
-- Zaun Oybin Kammstraße: kam nicht aus OSM (`gtFenceMesh`), sondern aus der Runden-Deko `placeInstanced(g,'zaun',…)` (Weidezaun-Modell, 7,5 m neben der Startrunde, zufällig). Neu `propOnWay(x,z,m)` (nur Zittau: Nebenstraße per `gnNear` oder `waysNear`, enthält Treppen): Zaunfeld wird an Mitte und beiden Enden geprüft, `roadside()` (Bäume, Schilder usw.) prüft die Mitte. 24 von 452 Zaunfeldern fallen weg (`window.__PW`). Tor statt Lücke verworfen: der Weidezaun gehört dort nicht hin. Alt: `window.OLD_PROPWAY`.
-- Schultern: linker Arm angewinkelt (Ellbogen ca. 90°, nach hinten-unten), Hand locker vor der Hüfte, schwingt mit dem Schritt (Referenz: Hicores Cyclocross-Fotos vom 24.11., `uploads/hearth/432deada…`).
-- Neue Tests: `tests/tprobe.js` (listet alle Meshes im Umkreis `R` um `X,Z`, Zaunfeld-Zähler, mit `OUT`+`CAMS="x,y,z,lx,ly,lz;…"` Bilder an genau der Stelle; ca. 8 min), `tests/tcarry.js` (Studio-Bilder der Schulter-Pose ohne Welt, `US` Schrittphase, `OLD=1`; ca. 3 min). `tstair.js` kann jetzt `WID=` (findet die Oybiner Treppe trotzdem nicht, weil unten kein Weg > 25 m anschließt).
+**Tschechien (0.19.1), Hotfix Zaun/Arm (0.19.2):** Details (ČÚZK-Orthofoto, `dop_gebiet.py ergaenzen cz`, `tstairfit`, `propOnWay`, `tprobe`, `tcarry`) jetzt in `docs/ARCHIV.md`. Achtung: Weg-ID 41396618 liegt in Jonsdorf, die Oybiner Treppe ist 1209305178.
 
 **Schultern 0.19.3** (Hicore am iPad: linke Schulter hängt, Körper gebogen, Griff von außen über dem Oberrohr)
 - Ursache Biegung: Rücken-Bogen in `poseGLB` hatte seinen Kontrollpunkt bei x der Fahrposition (`hx/sx` ≈ Radmitte), beim Tragen stehen Becken/Schulter aber 22 cm daneben. Jetzt Mitte aus `hipL/sh`. Schlüsselbeine beim Tragen waagerecht statt vorn-unten. Alt: `window.OLD_CARRYSPINE`.
@@ -158,6 +149,16 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Gravel: Gabelbein jetzt `taperLeg()` (CatmullRom-Rohr, 2,0 → 1,05 cm, oval, leicht nach vorn gebogen) statt zwei `ft`-Stücken mit Absatz. Alt: `window.OLD_GRAVELFORK`.
 - MTB: Tauchrohre, Brücke, Ausfallenden, Vorderrad (`wF`), Achse, Scheibe und Sattel liegen in Gruppe `r.fork.g` (aus `buildDirtBike`, nicht verschmolzen). `forkStep(r)` (aus `placeRider`, nur eigener Fahrer) = Feder-Dämpfer k 800, ζ 0,45, Ziel aus `WF.rough`·Tempo·Rauschen, `WF.y`, `STAIR.bump`, Bremsen; Weg 0–6 cm entlang Lenkachse. Schotter bei 18 km/h: 6–15 mm. Beim Tragen 0. Aus: `window.NO_FORKMOVE`.
 - Test: `FORKX=0.05 BIKES=mtb VIEWS=forkS,fork node tbike.js` (Zeile `gabel` = Federweg-Simulation, Bild mit festem Einfederweg).
+
+**Leistung 0.20.0** (Hicore: Chrome am iPad konstant „30 FPS · 70 %“, auch an einfachen Stellen)
+- Ursache 30: Die Logik senkte erst die Auflösung bis 70 % (`DRES`), dann begrenzte `FCAP` fest auf 30. Da 70 % nicht half, war das Gerät nicht an den Pixeln, sondern an CPU/Zeichenaufrufen begrenzt. Neu: bringt eine Senkung keine Verbesserung (< 6 %), geht die Auflösung zurück auf 100 % und bleibt 3 min gesperrt (`DRES.chk/block`). Alt: `window.OLD_DRES`.
+- FPS-Anzeige zeigt jetzt „· max 30“ (Begrenzung aktiv) und „CPU x ms“ (JS + Zeichenbefehle je Bild, `window.FPSINFO`). CPU klein, aber trotzdem 30 → Grafikkarte oder Gerät (Stromsparmodus begrenzt Safari/WebKit auf 30).
+- Messung neu: `tests/tgpuperf.js` (Zeichenaufrufe je Bild nach Gruppe, Präfix `S:` = Schattendurchgang, CPU-Zeit von `POST.render`; `GFX=0.5|0.7`, `QS='&gl=1'`, `WAIT`, `NF`). Echtes WebGPU über SwiftShader geht mit `channel:'chromium'` + `--enable-unsafe-webgpu --use-webgpu-adapter=swiftshader`, aber das Gerät geht nach kurzer Zeit verloren (Speicher), deshalb mit `&gl=1` messen.
+- Ergebnis Jonsdorf, Mittel: Zeichenaufrufe ca. 1.450 → ca. 700 je Bild, `POST.render` CPU 33 → 19 ms (Cloud). Davon Wald-Kacheln 913 → ca. 100.
+- Kachelwald gebündelt (`GT.w`, `gtwSet`): Nah-/Mittelstufe je Baumart und Teil ein Instanz-Mesh für alle Kacheln (wächst bei Bedarf ×1,4). Minikronen je Kachel nur noch 2 Meshes (`F.m2`, Kegel/Krone als Einheitsform `gtMiniU`, Größe in der Instanzmatrix `mp.P`, Farbe in der Instanzfarbe). Alt: `window.OLD_GTW`.
+- Baumschatten (Strecken-Bäume `TREE_LOD`): nur Bäume im Schattenbereich (`nearS`, Radius `TREE_SHR` = Schattenausschnitt + 40 m) werfen Schatten, ferne nie. Alt: `window.OLD_TREESH`. Leere Instanz-Meshes werden unsichtbar geschaltet (`OLD_IMVIS`).
+- HUD nur 10×/s und nur geänderte Texte, Fahrerliste 2×/s, Höhenprofil 5×/s ohne `clientWidth` je Bild (erzwang nach den Textänderungen jedes Bild ein Layout), Grundbild per `drawImage`. Alt: `window.OLD_HUD`.
+- Noch offen (falls nötig): eigener Fahrer 57 Zeichenaufrufe + 55 im Schatten, unbenannte Deko-Gruppe ca. 90, Häuser je Kachel ca. 60.
 
 **Offen / unsicher**
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung, Ruckler beim ersten Auto/Zug/Regen, FPS-Anzeige mit Prozent (Details 0.13.0 in docs/ARCHIV.md).
@@ -184,7 +185,8 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 1a. 0.19.8 am iPad prüfen: Absteigen/Aufsteigen über den Sattel natürlich? Schultern Gravel (0.19.7) hat Hicore bestätigt. Gabeln 0.19.5 (Gravel starr, MTB federt genug/zu viel?), Treppe Oybin Kammstraße frei (0.19.2). Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).
 2. Poly-Haven-Paket **Stufe 2** (freigegeben): white_plaster_02, beige_wall_001, weathered_brown_planks, old_stone_wall, clay_roof_tiles_02, roof_slates_03, sandstone_cracks oder mossy_sandstone, bark_brown_02 oder pine_bark. Über die Sandbox holen, umschaltbar, Vergleichsbilder.
 3. Grashalme nur ca. 20–30 m um den Fahrer.
-4. Leistung Teil 2 nur bei Bedarf: Modelle nach Bedarf laden, Wald-Instanzen bündeln (Rad-Verschmelzen ist seit 0.16.0 erledigt).
+1b. 0.20.0 am iPad prüfen (Chrome und Bluefy): FPS-Anzeige ablesen (FPS, „max 30“, Prozent, CPU ms) an Start, im Ort, im Wald; Bäume/Wald unverändert? Stromsparmodus aus. Je nach CPU-Wert nächster Schritt: CPU hoch → weitere Zeichenaufrufe bündeln (Fahrer, Deko, Häuser); CPU niedrig → Grafiklast (Blattkarten-Bäume, Schatten, Nachbearbeitung).
+4. Leistung Teil 3 nur bei Bedarf: Modelle nach Bedarf laden (Rad-Verschmelzen seit 0.16.0, Wald-Bündeln seit 0.20.0 erledigt).
 5. Später: dezente Farbauswahl je Rad (über `BIKE_COLS`), Laufmodus (RSC/FTMS) auf demselben Netz.
 6. Treppen: erledigt in 0.18.0. Mögliche Verfeinerung: echte Zwischenpodeste, Treppen-Zählung aus Luftbild, Mitspieler tragen sichtbar.
 7. Accounts (Supabase Auth mit Google), Easter Eggs, später Abo.
