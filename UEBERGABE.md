@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 25.11.2026. Letzte veröffentlichte Version: **0.20.2 Beta** (Auflösungslogik: knapp unter 60 erst Auflösung senken statt auf 30 begrenzen). Davor 0.20.1 (Leistungstest), **0.20.0** (Leistung: Wald gebündelt, FPS-Logik). Davor **0.19.8 Beta** (Absteigen/Aufsteigen über den Sattel; davor 0.19.7 Schultern Gravel mit Steuerrohr in der Achselhöhle, 0.19.5 Gabeln).
+Stand: 25.11.2026. Letzte veröffentlichte Version: **0.20.3 Beta** (neuer Bildraten-Regler `FPSCTL`). Davor 0.20.2 (Auflösungslogik), 0.20.1 (Leistungstest), **0.20.0** (Leistung: Wald gebündelt, FPS-Logik). Davor **0.19.8 Beta** (Absteigen/Aufsteigen über den Sattel; davor 0.19.7 Schultern Gravel mit Steuerrohr in der Achselhöhle, 0.19.5 Gabeln).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,7 +100,8 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.20.2** | **Auflösung senken statt 30er-Grenze, wenn knapp unter 54 FPS** (siehe Leistung 0.20.0) |
+| **0.20.3** | **Bildraten-Regler `FPSCTL`: 50–60 FPS ungebremst, seltene Auflösungswechsel, Probelauf alle 3 min** |
+| 0.20.2 | Auflösung senken statt 30er-Grenze |
 | 0.20.1 | Leistungstest: FPS-Anzeige antippen |
 | 0.20.0 | Leistung: Wald gebündelt (Zeichenaufrufe halbiert), Baumschatten nur nah, HUD ohne Layout je Bild, Auflösung bleibt 100 % wenn Senken nichts bringt, FPS-Anzeige mit CPU-Zeit** |
 | 0.19.4 | Schultern: Oberarm unter dem Oberrohr, Unterarm hinter dem Steuerrohr durch an den inneren Unterlenker (siehe unten) |
@@ -161,9 +162,10 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Baumschatten (Strecken-Bäume `TREE_LOD`): nur Bäume im Schattenbereich (`nearS`, Radius `TREE_SHR` = Schattenausschnitt + 40 m) werfen Schatten, ferne nie. Alt: `window.OLD_TREESH`. Leere Instanz-Meshes werden unsichtbar geschaltet (`OLD_IMVIS`).
 - HUD nur 10×/s und nur geänderte Texte, Fahrerliste 2×/s, Höhenprofil 5×/s ohne `clientWidth` je Bild (erzwang nach den Textänderungen jedes Bild ein Layout), Grundbild per `drawImage`. Alt: `window.OLD_HUD`.
 - iPad-Werte 0.20.0 (Hicore, Chrome, 25.11.): Hoch 24 FPS · max 30 · CPU 10 ms (ruckelt), Mittel 29 FPS · max 30 · CPU 9,4 ms (flüssig). CPU reicht für 60, die **Grafikkarte** ist die Grenze.
-- 0.20.1 `LTEST` (Tipp auf `#fps`): misst je 5 s ohne 30er-Grenze Basis, ohne Bloom, ohne Schatten, Auflösung 70/50 %, ohne Alphatest-Laub/Gras, ohne Bäume, ohne Gras/Deko; versteckt per `layers.set(7)`, Ergebnis-Tabelle oben, `window.LTEST_RES`. In der Cloud nur Ablauf prüfbar (0 FPS).
+- 0.20.1 `LTEST` (Tipp auf `#fps`): misst je 5 s ohne 30er-Grenze Basis, ohne Bloom, ohne Schatten, Auflösung 70/50 %, ohne Alphatest-Laub/Gras, ohne Bäume, ohne Gras/Deko; versteckt per `layers.set(7)`, Ergebnis-Tabelle oben, `window.LTEST_RES`. In der Cloud nur Ablauf prüfbar (0 FPS). 
 - Leistungstest am iPad (25.11., Mittel, Pixel 1,4): **Chrome** Basis 51 FPS, ohne Bloom 54, ohne Schatten 59, Auflösung 70 % 60, ohne Bäume 55 (Werte durch überholende Autos verrauscht). **Bluefy** Basis 36, Auflösung egal (32–33), ohne Alpha-Laub/Gras 45, ohne Bäume 49. CPU überall ca. 10 ms. Lesart: Chrome hängt knapp unter der 54er-Schwelle und an den Pixeln, Bluefy an den Bäumen (Blattkarten, vermutlich Eckpunkt-Last), nicht an der Auflösung.
-- 0.20.2: Senkung gilt erst als wirkungslos, wenn sie ≤ 1,5 FPS bringt (vorher < 6 %, ein 10-%-Schritt bringt aber nur ca. 5 %, deshalb fiel Chrome sofort auf 30). Beim Probelauf alle 45/90 s wird bei 42–53 FPS erst ein Auflösungsschritt versucht statt wieder zu begrenzen. Alt: `window.OLD_DRES2`.
+- 0.20.3 (Hicore: 0.20.2 lief erst 60 FPS/90 %, dann alle ~30 s Ruckler und wieder „28 FPS · max 30“): `FPSCTL.win(fps, maxFrameMs)` ersetzt `DRES.tick`/FCAP-Zweig. Unter 55 FPS Auflösung −10 % bis 70 % (nach jedem Wechsel ein Fenster Pause), kein Gewinn bei 70 % (< 3 FPS ggü. 100 %) → zurück auf 100 % und 5 min Sperre; 50–55 ungebremst, < 50 → 30er-Grenze, Probe alle 3 min; hoch +5 % nach 4×≥59, fällt es binnen 12 s → 3 min keine Erhöhung; Fenster mit Bild > 250 ms (Nachladen) zählen nicht. Alt: `window.OLD_FPSCTL`.
+- **Geplant 0.21.0 (Hicore will vollen Wald, nicht lichter):** Impostors: je Baumart beim Laden aus 8 Winkeln in einen Atlas rendern, ab ca. 50–60 m statt Blattkarten-Modell ein Billboard (2 Dreiecke) am echten Platz; volle 3D-Bäume nah und an Wegen. Laub nutzt bereits Alpha-Test (kein Blending). Vergleichsbilder alt/neu.
 - Nächster Hebel für Bluefy (falls Hicore dort 60 will): Nahstufe der Bäume billiger (weniger Blattkarten, kleinerer Radius `gtNearR`/`GFX_TREE_R`), sichtbar prüfen.
 - Noch offen (falls nötig): eigener Fahrer 57 Zeichenaufrufe + 55 im Schatten, unbenannte Deko-Gruppe ca. 90, Häuser je Kachel ca. 60.
 

@@ -7457,7 +7457,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.20.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.20.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7795,6 +7795,22 @@ const DRES={k:1, base:1, MIN:0.7, good:0, on(){ const e=document.getElementById(
     if (this.chk && !window.OLD_DRES){ const c=this.chk; this.chk=null; if (fps<=c.fps+(window.OLD_DRES2?c.fps*0.06+1:1.5)){ this.set(1); this.block=now+180000; this.nogain=(this.nogain||0)+1; return false; } }
     if ((!capped && fps<54 && fps>18) || (capped && fps<27 && fps>10)){ this.good=0; if (this.k>this.MIN+1e-3 && !(now<(this.block||0))){ this.chk={fps, k:this.k}; this.set(this.k-0.1); return true; } return false; }
     if (!capped && fps>=58 && this.k<1){ if (++this.good>=3){ this.good=0; this.set(this.k+0.05); } } else this.good=0; return false; } };
+/* 0.20.3 Bildraten-Regler (ersetzt DRES.tick/FCAP-Logik, alt: window.OLD_FPSCTL). Je 2-s-Fenster:
+   - unter 55 FPS: Auflösung in 10-%-Schritten bis 70 % senken; nach jeder Änderung ein Fenster Pause (Größenwechsel ruckelt kurz).
+   - bei 70 % und kein Gewinn gegenüber 100 % (< 3 FPS): zurück auf 100 %, 5 min nicht mehr senken (z. B. Bluefy, dort bremsen die Bäume, nicht die Pixel).
+   - 50-55 FPS werden ungebremst gezeigt; erst unter 50 fest auf 30 begrenzen, Probelauf nur alle 3 min (vorher 45/90 s, jedes Mal spürbar).
+   - hoch nur nach 4 Fenstern ≥ 59 FPS in 5-%-Schritten; fällt es danach gleich wieder, 3 min nicht mehr hochgehen (kein Pendeln).
+   - Fenster mit Nachladerucklern (ein Bild > 250 ms) werden nicht gewertet. */
+const FPSCTL={settle:0, probe:0, good:0, f1:null, block:0, upAt:0, upLock:0, log:[],
+  win(fps, mx, now){ const F=FCAP, D=DRES; if (!D.on() && D.k<1) D.set(1);
+    if (this.settle>0){ this.settle--; return; } if (mx>250) return;
+    if (F.cap){ if (now>F.next){ F.cap=false; this.probe=1; this.settle=1; } return; }
+    if (this.probe>0){ this.probe=0; if (fps<55){ if (D.on() && D.k>D.MIN+1e-3 && !(now<this.block)){ D.set(D.k-0.1); this.settle=1; return; } if (fps<50){ F.cap=true; F.next=now+180000; } } return; }
+    if (fps<55){ this.good=0; if (now-this.upAt<12000) this.upLock=now+180000;
+      if (D.on() && D.k>D.MIN+1e-3 && !(now<this.block)){ if (D.k>=0.999) this.f1=fps; D.set(D.k-0.1); this.settle=1; return; }
+      if (D.k<=D.MIN+1e-3 && this.f1!=null && fps<this.f1+3){ D.set(1); this.block=now+300000; this.f1=null; this.settle=1; return; }
+      if (fps<50 && fps>10){ F.cap=true; F.next=now+180000; } return; }
+    if (fps>=59 && D.k<0.999 && !(now<this.upLock)){ if (++this.good>=4){ this.good=0; D.set(D.k+0.05); this.upAt=now; this.settle=1; } } else if (fps<59) this.good=0; } };
 let GFX_TREE_R=200, GFX_BUILD_R=200, BUILT_R=0, fpsAcc=0, fpsN=0, fpsT=0;
 // ---------- Wehende Blätter: lösen sich bei Böen von nahen Bäumen, trudeln, rutschen über die Straße ----------
 const LEAVES={ cols:[], im:null, n:90, L:[], acc:0, scanT:0, near:[], wind:new THREE.Vector3(),
@@ -7895,13 +7911,13 @@ function frame(now){
   if (SIGS.ph.length) zgSignalsTick(now);
   if (!builtWorld || window.LOADING){ last=now; return; }   /* WebGPU: während des Ladens nicht zeichnen, Shader werden parallel vorbereitet */
   /* Gleichmäßiger Bildtakt: schafft das Gerät keine ~55 Bilder/s, wird fest auf 30 begrenzt (jedes 2. Bild). 40-50 fps mit wechselnden Abständen ruckeln sichtbar, 30 gleichmäßige nicht. ?fps=60 schaltet das ab. */
-  { const F=FCAP; if (F.cap && now-F.ld < 1000/30-6) return; F.ld=now; F.n++; if (!F.t0) F.t0=now;
-    if (now-F.t0>=2000){ const fps=F.n*1000/(now-F.t0); F.n=0; F.t0=now; if (S.running && !F.off){
+  { const F=FCAP; if (F.cap && now-F.ld < 1000/30-6) return; const fiv=F.ld?now-F.ld:0; F.ld=now; F.n++; if (fiv>(F.mx||0)) F.mx=fiv; if (!F.t0) F.t0=now;
+    if (now-F.t0>=2000){ const fps=F.n*1000/(now-F.t0), fmx=F.mx||0; F.n=0; F.t0=now; F.mx=0; if (S.running && !F.off){ if (!window.OLD_FPSCTL){ FPSCTL.win(fps, fmx, now); } else {
       if (!F.probe && DRES.tick(fps, F.cap)){ /* erst Auflösung senken, dann begrenzen */ }
       else if (!F.cap && !F.probe && fps<54 && fps>18){ F.cap=true; F.next=now+45000; }
       else if (F.cap && now>F.next){ F.cap=false; F.probe=true; }
       else if (F.probe){ F.probe=false; if (fps<54){ /* 0.20.2: knapp unter 54 (z. B. 51 in Chrome am iPad) erst die Auflösung einen Schritt senken und ungebremst weitermessen */
-          if (!window.OLD_DRES2 && fps>=42 && DRES.on() && DRES.k>DRES.MIN+1e-3 && !(now<(DRES.block||0))){ DRES.chk={fps, k:DRES.k}; DRES.set(DRES.k-0.1); } else { F.cap=true; F.next=now+90000; } } } } } }
+          if (!window.OLD_DRES2 && fps>=42 && DRES.on() && DRES.k>DRES.MIN+1e-3 && !(now<(DRES.block||0))){ DRES.chk={fps, k:DRES.k}; DRES.set(DRES.k-0.1); } else { F.cap=true; F.next=now+90000; } } } } } } }
   const fcpu0=performance.now();
   if (window.LOADT && LOADT.ff){ const L=LOADT; L.ff=0; const tot=(performance.now()-L.t0)/1000; try{ toast('Geladen in '+tot.toFixed(1)+' s (Welt '+(L.b/1000).toFixed(1)+' s, Shader '+((L.c||0)/1000).toFixed(1)+' s, Vorbereitung '+((L.v||0)/1000).toFixed(1)+' s, erstes Bild '+((L.w||0)/1000).toFixed(1)+' s)'); }catch(e){} }
   window.FRC=(window.FRC||0)+1; if (FRN<=60){ FRN++; if (FRN===1||FRN===2||FRN===10||FRN===60) STG('Bild '+FRN+(window.glbRiderReady?' mit Fahrer':'')); }
