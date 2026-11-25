@@ -2,14 +2,14 @@
 const {chromium}=require('playwright'); const serve=require('./serve');
 (async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']}); const ctx=await b.newContext({viewport:{width:700,height:620}}); await serve(ctx);
  const p=await ctx.newPage(); p.on('pageerror',e=>console.log('PE',e.message));
- await p.addInitScript(o=>{ if (o) window.OLD_CARRYARM2=true; }, !!process.env.OLD);
+ await p.addInitScript(([o,ca])=>{ if (o) window.OLD_CARRYARM2=true; if (ca) window.__CA=JSON.parse(ca); }, [!!process.env.OLD, process.env.CA||'']);
  await p.goto('http://127.0.0.1:8765/index.html?gl=1'); await p.waitForFunction(()=>window.glbRiderReady && GPU_READY,null,{timeout:800000});
  await p.evaluate(()=>{ const cv=renderer.domElement; document.querySelectorAll('body *').forEach(e=>{ if(e!==cv && !e.contains(cv)) e.style.visibility='hidden'; }); cv.style.visibility='visible'; cv.style.zIndex=99999;
    const st=new THREE.Scene(); st.background=new THREE.Color(0xc8d4de); scene.remove(me.g); st.add(me.g); me.g.position.set(0,0,0); me.g.rotation.set(0,0,0);
    const gr=new THREE.Mesh(new THREE.PlaneGeometry(20,20).rotateX(-Math.PI/2), new THREE.MeshStandardMaterial({color:0x9a9a90, roughness:1})); st.add(gr);
    st.add(new THREE.HemisphereLight(0xffffff,0x606050,1.6)); const d=new THREE.DirectionalLight(0xffffff,2.2); d.position.set(3,6,4); st.add(d);
    window._ST=st; window._SC=new THREE.PerspectiveCamera(30, innerWidth/innerHeight, 0.05, 50); });
- const CAM={ left:[[-3.4,1.2,0.4],[0.1,1.0,0.1]], right:[[3.4,1.2,0.4],[0.1,1.0,0.1]], front:[[0.3,1.3,3.4],[0.15,1.0,0]], q34:[[-2.2,1.6,2.4],[0.1,1.0,0.1]], back:[[-1.2,1.5,-3.0],[0.1,1.0,0]] };
+ const CAM={ left:[[-3.4,1.2,0.4],[0.1,1.0,0.1]], right:[[3.4,1.2,0.4],[0.1,1.0,0.1]], front:[[0.3,1.3,3.4],[0.15,1.0,0]], q34:[[-2.2,1.6,2.4],[0.1,1.0,0.1]], back:[[0.2,1.4,-3.2],[0.1,1.1,0]], outer:[[-2.6,1.4,1.2],[0,1.15,0.2]], ic:[[1.3,1.35,1.1],[0.0,1.15,0.35]], oc:[[-1.4,1.35,1.0],[0.0,1.15,0.35]] };
  const bikes=(process.env.BIKES||'gravel').split(','), views=(process.env.VIEWS||'left,front,q34,right').split(','), us=(process.env.US||'0.5').split(',').map(Number);
  for (const bk of bikes) for (const u of us){
    await p.evaluate(([bk,u])=>{ if (window.setRiderBike) setRiderBike(me,bk); me.stairK=1; me.stairM='shoulder';
@@ -17,6 +17,6 @@ const {chromium}=require('playwright'); const serve=require('./serve');
      window.stairCarry=r=>({k:1, mode:'shoulder', xr:0.22, hz:0.02, yb:0, feet:{Left:f(1,0),Right:f(-1,1)}, u, up:1, lift:0, bg:r.bikeG});
      for (let i=0;i<30;i++) animRider(me,0,0,0.05,0); },[bk,u]);
    for (const v of views){ await p.evaluate(([c])=>{ _SC.position.set(...c[0]); _SC.lookAt(...c[1]); renderer.setRenderTarget(null); renderer.render(_ST,_SC); },[CAM[v]]);
-     await p.waitForTimeout(300); await p.screenshot({path:(process.env.OUT||'.')+`/carry_${bk}_${u}_${v}${process.env.OLD?'_old':''}.jpg`,quality:86}); console.log('bild',bk,u,v); }
+     await p.waitForTimeout(300); await p.screenshot({path:(process.env.OUT||'.')+`/carry_${process.env.TAG||''}${bk}_${u}_${v}${process.env.OLD?'_old':''}.jpg`,quality:86}); console.log('bild',bk,u,v); }
  }
  await b.close(); })();
