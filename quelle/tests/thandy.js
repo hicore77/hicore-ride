@@ -51,4 +51,11 @@ const {chromium}=require('playwright'); const serve=require('./serve'); const fs
  const ap=await g.evaluate(()=>{ const d0=S.dist; for (let d=d0+3; d<d0+L-200; d+=3){ S.dist=d; gNetStep(); const P=NET.pend; if (P && P.opts.some(o=>o.a<=-28)){ CMP.frame(0.016,true); const o=P.opts.find(x=>x.e===NET.pick); return {gewaehlt:o&&o.label, a:o&&Math.round(o.a), rest:!!CMP.want}; } } return null; });
  ok('Vorwahl an nächster Kreuzung angewendet', ap && ap.a<=-28 && !ap.rest, ap);
  const msgT=await h.evaluate(()=>document.getElementById('msg').textContent); ok('Rückmeldung am Handy', msgT.length>0, msgT);
+ // 0.23.1: Datei ans Handy (FIT ~150 KB) und Speichern-Fenster
+ const fr=await g.evaluate(async()=>{ const u=new Uint8Array(150000); for (let i=0;i<u.length;i++) u[i]=(i*7+13)&255; const r=await CMP.sendFile(new Blob([u]),'test.fit','application/octet-stream',()=>{}); return r; });
+ ok('Datei am Handy bestätigt', fr && fr.ok, fr);
+ await h.waitForTimeout(800); const fh=await h.evaluate(async()=>{ const a=document.getElementById('fDl'); const buf=new Uint8Array(await (await fetch(a.href)).arrayBuffer()); let ok=buf.length===150000; for (let i=0;i<buf.length&&ok;i+=997) if (buf[i]!==((i*7+13)&255)) ok=false; return {sichtbar:document.getElementById('file').style.display, name:a.download, gleich:ok}; });
+ ok('Handy zeigt Datei, Bytes gleich', fh.sichtbar==='flex' && fh.gleich && fh.name==='test.fit', fh); await h.screenshot({path:OUT+'/handy_datei.png'});
+ const sv=await g.evaluate(()=>{ saveSheet(new Blob([new Uint8Array(5000)]),'Hicore-Ride_test.fit','application/octet-stream',t=>{ try{ return new File([new Uint8Array(5000)],'x.fit',{type:t}); }catch(e){ return null; } }); const o=document.getElementById('saveov'); return o?[...o.querySelectorAll('[data-k]')].map(e=>e.dataset.k):null; });
+ ok('Speichern-Fenster mit Teilen/Handy/Download', sv && sv.includes('share') && sv.includes('phone') && sv.includes('dl'), sv); await g.screenshot({path:OUT+'/spiel_speichern.jpg', quality:85, timeout:240000});
  console.log(res.join('\n')); console.log(errs.length?errs.join('\n'):'keine Seitenfehler'); await b.close(); })();

@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.23.0 Beta** (Handy als Fernbedienung, Companion-Seite `webgpu-spiel/handy/`). Davor 0.22.0 (Tiere laufen natürlich, Autos lenken/blinken, weniger Nachlade-Ruckler), 0.21.0 (Impostors).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.23.1 Beta** (schwebende Weg-/Treppenenden, Dachschnee mit Kante, Schneeknirschen, Speichern in Bluefy). Davor 0.23.0 (Handy als Fernbedienung), 0.22.0 (Tiere, Autos).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.23.0** | **Handy-Fernbedienung (Companion): Abbiegen, Wenden, Gesten, Pause/Kamera, Live-Werte, Kopplung per QR/Code** |
+| **0.23.1** | **Schwebende Weg-/Treppenenden behoben, Dachschnee mit Kante, Schneeknirschen, Speichern-Fenster für Bluefy + Datei ans Handy** |
+| 0.23.0 | Handy-Fernbedienung (Companion): Abbiegen, Wenden, Gesten, Pause/Kamera, Live-Werte, Kopplung per QR/Code |
 | 0.22.0 | Tiere laufen mit Skelett (Schritt/Trab/Galopp, Grasen), Autos lenken/wanken/blinken, runde Autoräder, Kachel-Fertigstellung auf 5 Bilder verteilt |
-| 0.21.0 | Impostors: Bäume ab 60 m als Bild (1 Zeichenaufruf), voller Wald; kleinere Pufferuploads gegen Ruckler; Poly Haven Standard |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -136,6 +136,14 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 **Leistung 0.20.0–0.21.0** (Details 0.20.0–0.20.2 in `docs/ARCHIV.md`): Kachelwald gebündelt (`GT.w`, `OLD_GTW`), Baumschatten nur nah (`OLD_TREESH`), HUD sparsam (`OLD_HUD`), Leistungstest per Tipp auf FPS-Anzeige (`LTEST`), Messung `tests/tgpuperf.js`. iPad-Lesart: Chrome hängt an Pixeln, Bluefy an den Bäumen.
 - 0.20.3 (Hicore: 0.20.2 lief erst 60 FPS/90 %, dann alle ~30 s Ruckler und wieder „28 FPS · max 30“): `FPSCTL.win(fps, maxFrameMs)` ersetzt `DRES.tick`/FCAP-Zweig. Unter 55 FPS Auflösung −10 % bis 70 % (nach jedem Wechsel ein Fenster Pause), kein Gewinn bei 70 % (< 3 FPS ggü. 100 %) → zurück auf 100 % und 5 min Sperre; 50–55 ungebremst, < 50 → 30er-Grenze, Probe alle 3 min; hoch +5 % nach 4×≥59, fällt es binnen 12 s → 3 min keine Erhöhung; Fenster mit Bild > 250 ms (Nachladen) zählen nicht. Alt: `window.OLD_FPSCTL`.
+**Restpunkte 0.23.1** (Hicore 25.11.: schwimmendes Feldwegende, Schneekante auf Dächern, FIT-Download)
+- Prüfskript `tests/twend.js` (ca. 40 s): misst jede Wegecke (29.000 Stücke) gegen das gezeichnete Gelände (10-m-Raster), dazu Brückendecks und Treppen. Ergebnis vorher: 169 Treppen standen über 0,8 m (bis 6,4 m) in der Luft, der Weg am Treppenende schwebte mit (`stairBlend`); Wege auf Kuppen bis 1,4 m über dem sichtbaren Boden, in Mulden darunter; an Straßen angehobene Wegenden (`wayLiftY0`, meist 0,35–0,7 m) ohne Unterbau. Meldungen „einschnitt“ sind Fehlalarm (feines Einschnitt-Netz deckt das abgesenkte Raster).
+- Treppen (`stairInit`): OSM-incline gegen das Gelände (> 0,5 m andersrum) → Gelände gewinnt; steht die Treppe schon 30 cm über dem Boden, Podest statt Stufe, fällt das Gelände (Kuppe), geht sie wieder hinunter (Rückseite gezeichnet). Jetzt 0 Treppen über 0,8 m. Alt: `window.OLD_STAIRFLOAT`.
+- Wege: `terrMeshY(x,z)` = Höhe des gezeichneten Rasters (Cache `TMY`), genutzt in `gtSideMesh`, `rgPts` (Fahrlinie auf Wegen), Wurzeln. Alt: `OLD_WAYMESHY`. Böschung (Grasschicht 6, im Wald 7) an jeder Wegkante, die > 10 cm über dem Raster liegt. Alt: `OLD_WAYSKIRT`.
+- Dachschnee (`roofSnowMesh`, `scFace`, `SNOWCAP.th`, `roofSnowTick`): je Häuserkachel eine Schneedecke auf Sattel-/Walmdächern (Attribut `so` = Verschiebung je m), Kante und 12 cm Überhang an der Traufe, First geschlossen. Dicke bis 24 cm nur bei geschlossener Schneelage („viel“), bei Tauwetter weniger, sonst unsichtbar. Nicht auf MINI. Aus: `NO_ROOFSNOW`. Sonderbauten (Kirchen, Higgsfield) ohne.
+- Schneeknirschen (`AMB.snowBuf` erzeugt die Schleife, `snowUnder`): auf Wegen/Nebenstraßen nach Schneelage, Hauptstraße nur festgefahren (geräumt wenig Matsch), Abrollrauschen dann leiser. Regler „Fahrgeräusch“. Aus: `NO_SNOWSND`.
+- Speichern (`saveFile`, `saveSheet`): auf iPad/iPhone immer eigenes Fenster; Teilen erst beim Tipp dort (Geste ging beim Bild vorher verloren), probiert mehrere Dateitypen, zeigt Fehlername; „An gekoppeltes Handy senden“ (`CMP.sendFile`, Kanal-Ereignis `f` in 40.000-Zeichen-Stücken, Bestätigung `fa`; Handy-Seite zeigt Teilen/Herunterladen), „Bild kopieren“, Download-Link. Alt: `OLD_SAVE`. Test `thandy` prüft Übertragung (150 KB) und Fenster.
+
 **Handy-Fernbedienung 0.23.0** (Hicore 25.11.: „wie bei Zwift eine Companion-App“)
 - Seite `quelle/handy/index.html` (Quelle) → `build_gpu.py` kopiert nach `gpu/handy/` mit `qrcode.js` (qrcode-generator 2.0.4, MIT) und `supabase.js`. Online: https://hicore77.github.io/hicore-ride/webgpu-spiel/handy/ (ohne App Store, im Handy-Browser).
 - Kopplung: Spiel erzeugt einen 6-stelligen Code (`store cmpCode`, bleibt gleich, „Neuer Code“ im Fenster), Kanal `hc:CODE` über dasselbe Supabase-Projekt, getrennt vom Multiplayer-Raum. Öffnen über 📱 oben rechts im Spiel oder Menü › 1 · Welt › unter Gruppenfahrt „Handy koppeln“ (QR-Code + Link). Einmal gekoppelt verbindet sich das Spiel beim Start selbst (`cmpOn`), das Handy merkt sich den Code.
@@ -153,15 +161,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Nachladen: `gtFinishStep` verteilt das Fertigstellen einer Geländekachel auf 5 Bilder (Normalen, Schilder, Nebenstraßen, Wege+Treppen, Einhängen), `gtJobDrop`. Alt: `OLD_GTFS`.
 - Test `tests/tanim.js` (`TI=1,4` Autotypen, `KINDS=reh,hirsch`, `OUT`): Auto seitlich/vorn/hinten mit Blinker, Tier ruhig/Schritt/Flucht. Gangbilder ohne Spiel: Harness in der Thread-Sandbox (lädt `props/*.glb` + Block ANIM), Bild vorschau/220_tiere.jpg, 221_autos.jpg.
 
-- **0.21.0 Impostors (Bild-Bäume)**, Hicore will vollen Mischwald: `IMP`, `impAtlas` rendert beim Laden jede Art (`IMP.kinds`, 14 ohne Obstbäume) aus 8 Richtungen in einen Atlas (`RenderTarget` 8×256 × 14×256 px, Mipmaps, schwarz+Alpha 0 = vormultipliziert; LITE 128 px). `impCal` misst einmal per 2-Farben-Bild, ob das Backend Render-Target-Texturen gespiegelt ausliest (`IMP.fl`; WebGL2 ja). `impSet`/`impPut`/`impFin`: ein Mesh (`InstancedBufferGeometry`, Attribute `iP` x,y,z,rIn · `iS` Breite,Höhe,Drehung,Zeile · `iC` Farbe,rOut) = 1 Zeichenaufruf für alle Bild-Bäume. In `gpuFx` Zweig `fx.imp`: Quad dreht zur Kamera, Atlasspalte aus Blickwinkel minus Baumdrehung, Nachbarspalten weich gemischt, Normale kugelförmig (Licht wie Blattkarten), Instanzfarbe nach der Gamma-Umrechnung (wie 3D-Bäume), Schnee wie Laub, Gegenlicht-Schimmer, Alpha-Anhebung bei Verkleinerung. Übergang 3D ↔ Bild per Raster über `LOD_B` 12 m, Bild ↔ Fernkrone (Streckenbäume) ebenso.
-  - Radien: 3D bis `impR()` = 60 m (LITE 45, MINI 35, `window.__IR` zum Probieren), Kachelwald Bild bis `gtMidR` 280 m, dann Minikronen wie bisher. Streckenbäume (`TREE_LOD.I`): 3D bis max(60, Schattenbereich `TREE_SHR`), Bild bis `GFX_TREE_R`, dann Fernkrone. Mittelstufe (vereinfachte Kronen) entfällt für Arten mit Bild.
-  - Neu für alle Baumstufen: Instanzmitte `iO` (gesetzt über Hook in `setMatrixAt`), Vertex-Shader legt Bäume außerhalb ihres Bereichs auf einen Punkt (vorher bis 30 m Überhang voll gerechnet und nur per Raster verworfen). Alt: `window.OLD_NCULL`.
-  - Alt komplett: `window.OLD_IMP` oder `?oldimp=1`. Test `tests/timp.js` (`FPT=1` Waldrand-Punkte, `PRE='window.__IR=8'` = fast alles als Bild zum Vergleich, Atlas als `atlas*.jpg`). Bild vorschau/210_impostors.jpg.
-  - Zahlen Waldrand Jonsdorf: 3D-Bäume 480–620 → 90–140 je Bild, dazu 1.100–1.600 Bild-Bäume in einem Aufruf; Mittelstufe 1.100–1.600 → 0.
-- Ruckler (0.21.0, `tests/tstutter2.js` fährt die Strecke in 8-m-Schritten ohne Bildaufbau ab und misst die Streaming-Funktionen): Spitzen kommen von `gtFinish` (Gelände-Kachel fertigstellen, Cloud bis 18 ms), `gtForestRange` (bis 11 ms) und `fvFill` (Fernsicht neu verteilen, 5–13 ms, lief beim Nachrechnen alle 0,5 s und lud jedes Mal bis 8,5 MB Instanzdaten hoch). Neu: `upR` lädt nur den belegten Teil der Instanzpuffer hoch (Fernsicht, Wald, Bild-Bäume), Fernsicht beim Nachrechnen höchstens alle 2,5 s. Alt: `window.OLD_UPR`. `gtFinish` ist seit 0.22.0 in Zeitscheiben.
-- Poly-Haven-Bodentexturen (0.21.0) sind Standard: gleiche Größe (512 px) und Anzahl wie die bisherigen, also kein FPS-/Speicherunterschied. Einmalige Umstellung über `hicoreRide.tex21`, danach gilt die Wahl im Menü.
-- Nächster Hebel für Bluefy (falls Hicore dort 60 will): Nahstufe der Bäume billiger (weniger Blattkarten, kleinerer Radius `gtNearR`/`GFX_TREE_R`), sichtbar prüfen.
-- Noch offen (falls nötig): eigener Fahrer 57 Zeichenaufrufe + 55 im Schatten, unbenannte Deko-Gruppe ca. 90, Häuser je Kachel ca. 60.
+- 0.21.0 Impostors (`IMP`, `impR` 60 m, `OLD_IMP`), Ruckler-Messung `tstutter2`, `upR`/`OLD_UPR`: Details in `docs/ARCHIV.md`. Poly Haven ist Standard.
 
 **Offen / unsicher**
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung, Ruckler beim ersten Auto/Zug/Regen, FPS-Anzeige mit Prozent (Details 0.13.0 in docs/ARCHIV.md).
@@ -176,8 +176,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.16.1 am iPad prüfen: Vorauswahl in Orten (Spitzkunnersdorf), ob dezente Abzweig-Hinweise reichen, Ruckler beim automatischen Neuberechnen, Optik der Einmündungen.
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
 - 0.15.0 am iPad prüfen: Fahrgefühl Gravel/MTB, Ladezeit (+0,7 s), Wurzeln/Brücken.
-- Schnee-Reste aus 0.12.0: Dach-Schneekanten, Schneegeräusche (Details in docs/ARCHIV.md).
-- FIT- und Fahrtbild-Download in Bluefy kaputt. KI-Gespräch mit Figuren auf dem iPad unzuverlässig.
+- 0.23.1 am iPad prüfen: Speichern in Bluefy (Teilen-Knopf, sonst „An Handy senden“), Dachschnee bei „viel“, Knirschen, Treppen/Wegenden. KI-Gespräch mit Figuren auf dem iPad unzuverlässig.
 - Redmi Note 10 Pro stürzt ab (ruht). Häuserflackern auf „Hoch“ (Chrome iPad) unbestätigt.
 - `tjun` meldet 3 bekannte, unkritische Artefakte.
 

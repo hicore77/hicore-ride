@@ -6593,7 +6593,7 @@ function gNodeY(n){ if (n.y==null) n.y=wayLiftY(n.x,n.z,terrainH(n.x,n.z)+0.08);
 /* Punkte eines Weg-Stücks erst bei Bedarf (Höhe aus dem Gelände wie das Wege-Netz, an Straßen auf Fahrbahnhöhe übergeblendet, Brücken gerade) */
 function rgPts(E){ const R=GN.rg, xz=E.xz, n=xz.length/2, Q=[]; for (let i=0;i<n;i++){ const x=xz[2*i], z=xz[2*i+1]; if (i){ const px=xz[2*i-2], pz=xz[2*i-1], l=Math.hypot(x-px,z-pz), m=Math.ceil(l/6); for (let k=1;k<m;k++) Q.push([px+(x-px)*k/m, pz+(z-pz)*k/m]); } Q.push([x,z]); }
   const na=R.nodes[E.a], nb=R.nodes[E.b], ya=gNodeY(na), yb=gNodeY(nb), s=[0]; for (let i=1;i<Q.length;i++) s.push(s[i-1]+Math.hypot(Q[i][0]-Q[i-1][0],Q[i][1]-Q[i-1][1])); const T=s[s.length-1]||1;
-  const P=Q.map(([x,z],i)=>new THREE.Vector3(x, E.st?stairY(E.st,E.stS0+(E.stS1-E.stS0)*s[i]/T):E.br?ya+(yb-ya)*s[i]/T:terrainH(x,z)+0.08, z));
+  const P=Q.map(([x,z],i)=>new THREE.Vector3(x, E.st?stairY(E.st,E.stS0+(E.stS1-E.stS0)*s[i]/T):E.br?ya+(yb-ya)*s[i]/T:terrMeshY(x,z)+0.08, z));
   if (!E.br && !E.st){ for (let it=0;it<2;it++){ const y=P.map(p=>p.y); for (let i=1;i<P.length-1;i++) P[i].y=(y[i-1]+2*y[i]+y[i+1])/4; }
     P.forEach((p,i)=>{ p.y=wayLiftY(p.x,p.z,p.y); if (na.road){ const w=clamp(s[i]/10,0,1); p.y=ya*(1-w)+p.y*w; } if (nb.road){ const w=clamp((T-s[i])/10,0,1); p.y=yb*(1-w)+p.y*w; } }); }
   P[0].y=ya; P[P.length-1].y=yb; return P; }
@@ -6934,7 +6934,14 @@ function buildZtMarks(){ const Z=window.ZGZT; if (!Z || !GN.d) return null; cons
   grp.userData.stat={nDash,nArrow,nBike,nSign}; return grp; }
 /* ---------- Gelände in Kacheln (World Streaming): 500-m-Kacheln mit 10-m-Raster rund um den Fahrer, grobes Gesamtgelände darunter ---------- */
 const GT={on:false, tiles:new Map(), S:500, NS:50};
-function gtInit(def, coarse, gt){ GT.on=true; GT.pp=null; GT.dv=null; GT.tiles=new Map(); GT.job=null; GT.fk=null; GT.flast=null; GT.w=null; GT.imp=null; GT.imi=null; GT.mu=null; GT.hm=null; GT.hj=null; GT.def=def; GT.R=LITE?(MINI?700:1100):1750;
+/* 0.23.1: Höhe des tatsächlich gezeichneten Geländes (10-m-Raster der Kachel, gleiche Dreiecksteilung wie PlaneGeometry). terrainH ist feiner;
+   auf Kuppen lagen Wege deshalb bis 1,4 m über dem sichtbaren Boden, in Mulden darunter (Test twend). Wege/Wurzeln/Fahrlinie auf Wegen nutzen jetzt diese Höhe. Alt: window.OLD_WAYMESHY */
+const TMY={C:10, m:new Map()};
+function terrMeshY(x,z){ if (window.OLD_WAYMESHY || !GT.on) return terrainH(x,z); const C=GT.S/GT.NS, M=TMY.m; if (M.size>400000) M.clear();
+  const gx=Math.floor(x/C), gz=Math.floor(z/C), u=x/C-gx, v=z/C-gz, g=(a,b)=>{ const k=a*65536+b; let h=M.get(k); if (h===undefined){ h=terrainH(a*C,b*C); M.set(k,h); } return h; };
+  const ha=g(gx,gz), hb=g(gx,gz+1), hc=g(gx+1,gz+1), hd=g(gx+1,gz);
+  return (u+v<=1) ? ha+(hd-ha)*u+(hb-ha)*v : hc+(hb-hc)*(1-u)+(hd-hc)*(1-v); }
+function gtInit(def, coarse, gt){ GT.on=true; TMY.m.clear(); GT.pp=null; GT.dv=null; GT.tiles=new Map(); GT.job=null; GT.fk=null; GT.flast=null; GT.w=null; GT.imp=null; GT.imi=null; GT.mu=null; GT.hm=null; GT.hj=null; GT.def=def; GT.R=LITE?(MINI?700:1100):1750;
   const m2=new THREE.MeshLambertMaterial({vertexColors:true, map:gt}); m2.userData.lu=coarse.material.userData.lu; terrainHoleMaterial(m2, def.roadW||7, {S:4}); m2.userData.worldAO=true; m2.userData.pbr={n:1.2, r:0.95, e:0.7}; GT.mat=m2;
   GT.cv=coarse.material.userData.holeCv; GT.tex=coarse.material.userData.holeTex; GT.grp=new THREE.Group(); worldGroup.add(GT.grp);
   const st=gnSigns(); GT.sig=new Map(); st.forEach(o=>{ const k=Math.floor(o.x/GT.S)+','+Math.floor(o.z/GT.S); let l=GT.sig.get(k); if (!l) GT.sig.set(k,l=[]); l.push(o); });
@@ -7215,10 +7222,35 @@ function htPick(b, area, asp, rnd, city, mtn){ const W=(o)=>{ let t=0; for (cons
   if (area>130 && asp>1.45) o.DOPPEL=1.2; if (area>150) o.VILLA=0.5; if (area>280) o.BLOCK=0.6;
   if (area>65 && area<300 && asp>1.3){ const ug=['U_turk','U_redu','U_fach','U_ocker','U_schiefer','U_gruen','U_grau','U_rotfach']; ug.forEach(u=>o[u]=1.05); if (mtn){ o.U_fach=2.2; o.U_gruen=0.4; o.U_turk=0.5; o.JONS+=1.5; } }   // Oberlausitzer Umgebindehäuser: lang gestreckt, mittelgroß
   return W(o); }
+const SNOWCAP={th:GUR(0), mat:null, v:0};
+function roofSnowMat(){ if (SNOWCAP.mat) return SNOWCAP.mat; const T=TSL, H=gpuHelpers(), m=new THREE.MeshLambertNodeMaterial({side:THREE.DoubleSide});
+  m.positionNode=T.positionLocal.add(T.attribute('so','vec3').mul(SNOWCAP.th));
+  const P=T.positionWorld.xz, scol=T.mix(T.vec3(0.84,0.87,0.93), T.vec3(0.56,0.58,0.6), SNOW.m.mul(0.55)).mul(H.vnz(P.mul(0.7)).mul(0.08).add(0.94));
+  m.colorNode=T.vec4(scol,1.0); m.userData.noSnow=true; m.visible=SNOWCAP.v>0.01; SNOWCAP.mat=m; return m; }
+function roofSnowMesh(SC){ const R=0.2, v=new Float32Array(SC.v.length); for (let i=0;i<v.length;i++) v[i]=SC.v[i]+SC.o[i]*R;   /* Normalen an der Bezugsdicke 20 cm */
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); g.computeVertexNormals(); g.computeBoundingSphere(); g.computeBoundingBox();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(SC.v,3)); g.setAttribute('so',new THREE.Float32BufferAttribute(SC.o,3));
+  const m=new THREE.Mesh(g,roofSnowMat()); m.name='dachschnee'; m.castShadow=false; m.receiveShadow=true; return m; }
+/* Schneehöhe auf Dächern aus der Schneelage: nur bei geschlossener Decke (viel Schnee), bei Tauwetter weniger */
+function roofSnowTick(){ const a=SNOW.a.value, d=SNOW.d.value, mm=SNOW.m.value, k=clamp((a-0.62)/0.38,0,1), th=0.24*k*k*(3-2*k)*d*(1-0.8*mm);
+  if (Math.abs(th-SNOWCAP.v)<0.002) return; SNOWCAP.v=th; SNOWCAP.th.value=th; if (SNOWCAP.mat) SNOWCAP.mat.visible=th>0.01; GURtouch(); }
 function gtHouses(i,j){ const g=gtHousesGen(i,j); let r; do r=g.next(); while(!r.done); return r.value; }
 function* gtHousesGen(i,j){ const M=gtBldIndex(); if (!M) return null; const L=M.get(i+','+j); if (!L || !L.length) return null; const T=facadeTextures();
   if (!GT.hm){ const at=T.atlasFn(); const lam=o=>new THREE.MeshLambertMaterial(Object.assign({side:THREE.DoubleSide, vertexColors:true},o)); GT.hm={wall:lam({map:at}), roof:lam({map:T.roof}), roofS:lam({map:T.slate}), flat:lam({color:0xffffff})}; }
   const G={wall:[[],[],[]], roof:[[],[],[]], roofS:[[],[],[]], flat:[[],[],[]]}, col=new THREE.Color();
+  /* 0.23.1: Schneedecke auf Dächern mit sichtbarer Kante an der Traufe. Eigene Geometrie je Kachel: Grundlage = Dachfläche, Attribut so = Verschiebung je Meter Schneehöhe
+     (Normale, an der Traufe zusätzlich 0,6 nach außen = Überhang). Höhe kommt aus SNOWCAP.th (nur bei viel Schnee), sonst unsichtbar. Aus: window.NO_ROOFSNOW */
+  const SC=(!window.NO_ROOFSNOW && !MINI)?{v:[],o:[]}:null;
+  const scTri=(A,oA,B,oB,C,oC)=>{ SC.v.push(...A,...B,...C); SC.o.push(...oA,...oB,...oC); };
+  const scFace=(A,B,C,D)=>{ /* Dachfläche A-B (Traufe, unten), C-D (oben), D über A. D kann gleich C sein (Walm-Dreieck) */
+    const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]], crs=(a,b)=>[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]], nrm=a=>{ const l=Math.hypot(a[0],a[1],a[2])||1; return [a[0]/l,a[1]/l,a[2]/l]; };
+    const e=nrm(sub(B,A)); let n=nrm(crs(e,sub(D===C?C:D,A))); if (n[1]<0) n=n.map(x=>-x); if (n[1]<0.45) return;
+    let o=nrm(crs(e,n)); if (o[1]>0) o=o.map(x=>-x); const L=0.6, oT=[n[0]+o[0]*L,n[1]+o[1]*L,n[2]+o[2]*L], oB=[o[0]*L,o[1]*L,o[2]*L], Z=[0,0,0];
+    scTri(A,oT,B,oT,C,n); if (D!==C) scTri(A,oT,C,n,D,n);          /* Oberseite */
+    scTri(A,oB,B,oB,B,oT); scTri(A,oB,B,oT,A,oT);                     /* Kante an der Traufe */
+    scTri(A,Z,B,Z,B,oB); scTri(A,Z,B,oB,A,oB);                        /* Unterseite des Überhangs */
+    scTri(A,oB,A,oT,D,n); scTri(A,oB,D,n,D,Z); scTri(B,oB,B,oT,C,n); scTri(B,oB,C,n,C,Z);   /* Seiten (Giebel/Grat) */
+    return n; };
   const tri=(g,a,b,c,ua,ub,uc,cl)=>{ const [v,uv,cc]=G[g]; v.push(...a,...b,...c); uv.push(...ua,...ub,...uc); for (let q=0;q<3;q++) cc.push(cl.r,cl.g,cl.b); };
   const E6=0.006, cl01=x=>Math.min(1-E6,Math.max(E6,x));
   const WU=(ci,fu,fv)=>[((ci%8)+cl01(fu))/8, 1-((ci>>3)+1-cl01(fv))*0.1875];      // Wandzelle
@@ -7271,10 +7303,13 @@ function* gtHousesGen(i,j){ const M=gtBldIndex(); if (!M) return null; const L=M
     if (rk==='roof'){ const g2=0.8+rnd()*0.25; col.setRGB(g2,g2*(0.84+rnd()*0.12),g2*(0.78+rnd()*0.12)); if (rnd()<0.18) col.setRGB(0.55,0.42,0.38); if (OV&&OV.r) col.setRGB(OV.r[0]/0.86,OV.r[1]/0.62,OV.r[2]/0.52); } else { const g2=0.78+rnd()*0.3; col.setRGB(g2,g2*1.01,g2*1.04); }
     const rl=(uo1-uo0)/3, sl=Math.hypot(hw+ov,(hw+ov)*pitch)/3;
     if (ty.hip){ const uc=(u0+u1)/2, rr=Math.max(0,(uo1-uo0)/2-(hw+ov)); const ra=uc-rr, rb=uc+rr;
-      [[vo0],[vo1]].forEach(([ve])=>{ const a=p3(uo0,ve,Ee), b2=p3(uo1,ve,Ee), c=p3(rb,vm,Hr), d=p3(ra,vm,Hr); tri(rk,a,b2,c,[0,0],[rl,0],[(rb-uo0)/3,sl],col); tri(rk,a,c,d,[0,0],[(rb-uo0)/3,sl],[(ra-uo0)/3,sl],col); });
+      [[vo0],[vo1]].forEach(([ve])=>{ const a=p3(uo0,ve,Ee), b2=p3(uo1,ve,Ee), c=p3(rb,vm,Hr), d=p3(ra,vm,Hr); tri(rk,a,b2,c,[0,0],[rl,0],[(rb-uo0)/3,sl],col); tri(rk,a,c,d,[0,0],[(rb-uo0)/3,sl],[(ra-uo0)/3,sl],col);
+        if (SC){ if (ve===vo0) scFace(a,b2,c,d); else scFace(b2,a,d,c); } });
+      if (SC){ scFace(p3(uo0,vo1,Ee),p3(uo0,vo0,Ee),p3(ra,vm,Hr),p3(ra,vm,Hr)); scFace(p3(uo1,vo0,Ee),p3(uo1,vo1,Ee),p3(rb,vm,Hr),p3(rb,vm,Hr)); }
       const wv=(vo1-vo0)/3; [[uo0,ra],[uo1,rb]].forEach(([ue,ur])=>{ tri(rk,p3(ue,vo0,Ee),p3(ue,vo1,Ee),p3(ur,vm,Hr),[0,0],[wv,0],[wv/2,sl],col); });
       continue; }
     [[vo0],[vo1]].forEach(([ve])=>{ const a=p3(uo0,ve,Ee), b2=p3(uo1,ve,Ee), c=p3(uo1,vm,Hr), d=p3(uo0,vm,Hr); tri(rk,a,b2,c,[0,0],[rl,0],[rl,sl],col); tri(rk,a,c,d,[0,0],[rl,sl],[0,sl],col); });
+    if (SC){ const R1=p3(uo0,vm,Hr), R2=p3(uo1,vm,Hr), n1=scFace(p3(uo0,vo0,Ee),p3(uo1,vo0,Ee),R2,R1), n2=scFace(p3(uo1,vo1,Ee),p3(uo0,vo1,Ee),R1,R2); if (n1&&n2){ scTri(R1,n1,R2,n1,R2,n2); scTri(R1,n1,R2,n2,R1,n2); } }   /* First geschlossen */
     [[u0,wc],[u1,wc2]].forEach(([ue,gc])=>{ const a=p3(ue,v0,E), b2=p3(ue,v1,E), c=p3(ue,vm,Hr-0.05); const gi=ty.g!==undefined?ty.g:14; tri('wall',a,b2,c,GU(gi,0,0),GU(gi,1,0),GU(gi,0.5,1),gc); });
     // Traufbrett mit Dachrinne, Ortgangbretter, Firstziegel, Schornstein
     const fb=new THREE.Color(); if (ty.ug||tn==='SCHEUNE'||tn==='SCHEUNE2'||tn==='SCHUPPEN') fb.setRGB(0.32,0.22,0.15); else if (rnd()<0.6) fb.setRGB(0.93,0.92,0.9); else fb.setRGB(0.42,0.3,0.22);
@@ -7287,7 +7322,8 @@ function* gtHousesGen(i,j){ const M=gtBldIndex(); if (!M) return null; const L=M
     if (!/SCHEUNE|STALL|SCHUPPEN|HALLE|GARAGE|BLECH/.test(tn) && rnd()<0.85){ const cu=um+(rnd()-0.5)*(u1-u0)*0.45, dv=(rnd()<0.5?-1:1)*hw*(0.15+rnd()*0.3), ry=Hr-Math.abs(dv)*pitch; const [cx,cz]=Wp(cu,vm+dv);
       const brick=rnd()<0.55, cc=brick?new THREE.Color(0.56,0.3,0.24):rk==='roofS'?new THREE.Color(0.32,0.33,0.36):new THREE.Color(0.86,0.84,0.8);
       box('flat',cx,cz,0.55,0.55,ry-0.4,Math.max(ry+0.6,Hr+0.5),ax,az,cc,new THREE.Color(0.12,0.12,0.12)); } }
-  const grp=new THREE.Group(); Object.entries(G).forEach(([key,[v,uv,cc]])=>{ if (!v.length) return; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); g.computeVertexNormals(); const m=new THREE.Mesh(g,GT.hm[key]); m.castShadow=true; m.receiveShadow=true; grp.add(m); });
+  const grp=new THREE.Group(); if (SC && SC.v.length){ try{ grp.add(roofSnowMesh(SC)); }catch(e){ console.warn('dachschnee',e); } }
+  Object.entries(G).forEach(([key,[v,uv,cc]])=>{ if (!v.length) return; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(cc,3)); g.computeVertexNormals(); const m=new THREE.Mesh(g,GT.hm[key]); m.castShadow=true; m.receiveShadow=true; grp.add(m); });
   GT.grp.add(grp); return grp; }
 /* Kirchen in 4 Varianten, ganz in der Kachel-Geometrie (kein eigener Draw Call):
    1 Dorfkirche wie Spitzkunnersdorf/Waltersdorf (weiß, rote Lisenen, Ziegeldach, Turm mit welscher Haube und Laterne),
@@ -7363,7 +7399,10 @@ function stairInit(T){ if (T.y0!=null) return T;
   const onR=s=>{ const q=stairPt(T,s), n=gnNear(q[0],q[1],20); return n.k>=0 && n.d<n.w/2+0.15; }; let s0=0, s1=T.L; while (s0<T.L*0.45 && onR(s0)) s0+=0.25; while (s1>T.L*0.55 && onR(s1)) s1-=0.25; T.s0=s0; T.s1=s1;
   const L=Math.max(0.3,s1-s0), pa=stairPt(T,s0), pb=stairPt(T,s1);
   const ta=wayLiftY0(pa[0],pa[1],terrainH(pa[0],pa[1])+0.08), tb=wayLiftY0(pb[0],pb[1],terrainH(pb[0],pb[1])+0.08), dl=tb-ta;
-  const sg=(T.fl&1)?((T.fl&2)?1:-1):(dl>=0?1:-1), dp=sg*dl;
+  let sg=(T.fl&1)?((T.fl&2)?1:-1):(dl>=0?1:-1);
+  /* 0.23.1: OSM-Richtung (incline) gegen das Gelände: steigt das Gelände über 0,5 m in die Gegenrichtung, gewinnt das Gelände (vorher stand das obere Ende bis 6 m in der Luft, der Weg schwebte mit) */
+  if (!window.OLD_STAIRFLOAT && (T.fl&1) && sg*dl<-0.5) sg=dl>=0?1:-1;
+  const dp=sg*dl;
   let n=T.n; if (!n) n=clamp(Math.round(Math.max(Math.abs(dl),L*0.22)/0.165),2,Math.max(2,Math.floor(L/0.26)));
   const r0=s0>0.05, r1=s1<T.L-0.05;
   if (window.OLD_STAIRFIT){
@@ -7379,7 +7418,10 @@ function stairInit(T){ if (T.y0!=null) return T;
   const tLo=sg>0?ta:tb, tHi=sg>0?tb:ta, dpp=Math.max(0,tHi-tLo), rLo=sg>0?r0:r1, rHi=sg>0?r1:r0;
   /* Stufen folgen dem Geländeverlauf (ungleich hoch wie bei echten Treppen im Hang), jede mindestens hmin, höchstens 24 cm */
   const nv=Math.max(n, Math.ceil(dpp/0.22)), hmin=Math.min(0.10, Math.max((dpp+0.75)/nv, 0.04)), YT=new Float32Array(nv), yLo=tLo-(rLo?0:0.02);
-  let prev=yLo; for (let k=0;k<nv;k++){ const tg=Math.max(tAt((k+0.5)/nv)+0.04, tAt((k+1)/nv)-0.02); prev=clamp(tg, prev+hmin, prev+0.24); YT[k]=prev; }
+  let prev=yLo; for (let k=0;k<nv;k++){ const tg=Math.max(tAt((k+0.5)/nv)+0.04, tAt((k+1)/nv)-0.02);
+    /* 0.23.1: Podest statt Stufe, wenn die Treppe schon 30 cm über dem Gelände steht (lange OSM-Treppen mit flachen Stücken stiegen sonst bis 6 m über den Boden) */
+    if (!window.OLD_STAIRFLOAT && tg<prev+hmin && prev-tAt((k+1)/nv)>0.3){ if (tg<prev-0.3) prev=Math.max(tg, prev-0.24); YT[k]=prev; continue; }   /* fällt das Gelände (Kuppe), geht die Treppe wieder hinunter */
+    prev=clamp(tg, prev+hmin, prev+0.24); YT[k]=prev; }
   if (rHi){ const d=tHi-YT[nv-1]; if (d>0) for (let k=0;k<nv;k++) YT[k]+=d*(k+1)/nv;
     else { const sc=Math.max(0.03,(tHi-yLo))/Math.max(0.01,YT[nv-1]-yLo); for (let k=0;k<nv;k++) YT[k]=yLo+(YT[k]-yLo)*sc; } }
   const R=YT[nv-1]-yLo; T.up=sg; T.nv=nv; T.R=R; T.h=R/nv; T.t=L/nv; T.TS=TS; T.YT=YT; T.rHi=rHi; T.rLo=rLo;
@@ -7426,7 +7468,7 @@ function stairsMesh(i,j){ const ST=stairsData(); if (!ST || !(WORLD&&WORLD.id===
       if (!window.OLD_STAIRVIS){ const e=0.06, ek=[ct[0]*0.45,ct[1]*0.45,ct[2]*0.45], y2=y+0.012; quad([aL[0],y2,aL[2]],[aL[0]+dx*e,y2,aL[2]+dz*e],[aR[0]+dx*e,y2,aR[2]+dz*e],[aR[0],y2,aR[2]],ek); }   /* 0.19.0 (Hicore): dunkle Stufenkante, Stufen auch bei flachem Gelände klar erkennbar */
       quad(D(aR),aR,aL,D(aL),earth?cR:cr);  /* Setzstufe (bei Erdstufen Holzbalken) */
       quad(D(aL),aL,bL,D(bL),cs); quad(D(bR),bR,aR,D(aR),cs);
-      if (k===T.nv-1) quad(D(bL),bL,bR,D(bR),cs); }
+      if (k===T.nv-1 || stairStepY(T,k+1)<y-0.005) quad(D(bL),bL,bR,D(bR),cs); }
     if (T.fl&4){ const rc=[0.22,0.23,0.24], Le=T.s1-T.s0, n=Math.max(2,Math.ceil(Le/1.4)); let prev=null;
       for (let q=0;q<=n;q++){ const s=T.s0+Le*q/n, p=stairPt(T,s), s2=stairPt(T,Math.min(T.L,s+0.05)), s1=stairPt(T,Math.max(0,s-0.05)); let dx=s2[0]-s1[0], dz=s2[1]-s1[1]; const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
         const x=p[0]-dz*(hw+0.05), z=p[1]+dx*(hw+0.05), y0=stairTop(T,s), y1=stairY(T,s)+0.95+T.h*0.5, ex=dx*0.025, ez=dz*0.025, fx=-dz*0.025, fz=dx*0.025;
@@ -7482,10 +7524,17 @@ function gtSideMesh(i,j,fineOnly){ const L=gtSideIdx().get(i+','+j); if (!L || !
   if (!wm && !SIDE_MAT) SIDE_MAT=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.95, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2});
   const pos=[], col=[], idx=[], uv=[], wl=[]; let rs=(i*7919+j*104729)%1000; const C=[[0.33,0.335,0.345],[0.43,0.40,0.37],[0.60,0.56,0.49]];
   L.forEach(({P,w,sf,ly,rut,fine})=>{ if (!!fine!==!!fineOnly) return; if (!wm && fine) return; const cc=C[sf]||C[0], b0=pos.length/3; let along=0; rs=(rs*9301+49297)%233280; const ro=rs/233280;
+    const SK=[]; let skMax=0;   /* 0.23.1: Böschung, wo der Weg über dem sichtbaren Gelände liegt (an Straßen angehoben, Treppenenden) */
     for (let k=0;k<P.length;k++){ const a=P[Math.max(0,k-1)], b=P[Math.min(P.length-1,k+1)]; let tx=b[0]-a[0], tz=b[1]-a[1]; const l=Math.hypot(tx,tz)||1; tx/=l; tz/=l; const nx=-tz*w/2, nz=tx*w/2;
       if (k) along+=Math.hypot(P[k][0]-P[k-1][0],P[k][1]-P[k-1][1]);
-      [[P[k][0]+nx,P[k][1]+nz,0],[P[k][0]-nx,P[k][1]-nz,1]].forEach(([x,z,s])=>{ pos.push(x,wayLiftY(x,z,terrainH(x,z)+(fine?0.07:0.09)),z); if (wm){ uv.push(s,along); wl.push(ly,rut,w,ro); } else { const f=0.94+Math.random()*0.08; col.push(cc[0]*f,cc[1]*f,cc[2]*f); } });
-      if (k){ const v=b0+k*2; idx.push(v-2,v,v-1, v-1,v,v+1); } } });
+      [[P[k][0]+nx,P[k][1]+nz,0],[P[k][0]-nx,P[k][1]-nz,1]].forEach(([x,z,s])=>{ const y=wayLiftY(x,z,terrMeshY(x,z)+(fine?0.07:0.09)); pos.push(x,y,z); if (wm){ uv.push(s,along); wl.push(ly,rut,w,ro); } else { const f=0.94+Math.random()*0.08; col.push(cc[0]*f,cc[1]*f,cc[2]*f); }
+        if (wm && !window.OLD_WAYSKIRT){ const sg=s?-1:1, fl=Math.max(0,y-terrMeshY(x,z)-0.06); SK.push([x,z,y,nx/(w/2)*sg,nz/(w/2)*sg,fl,along]); if (fl>skMax) skMax=fl; } });
+      if (k){ const v=b0+k*2; idx.push(v-2,v,v-1, v-1,v,v+1); } }
+    if (skMax>0.1){ const fo=gnForest(P[0][0],P[0][1])?7:6;
+      for (let side=0;side<2;side++){ const s0=pos.length/3; let n=0;
+        for (let k=side;k<SK.length;k+=2){ const [x,z,y,ux,uz,fl,al]=SK[k], d=0.05+fl*1.7, ox=x+ux*d, oz=z+uz*d;
+          pos.push(x,y-0.01,z, ox,terrMeshY(ox,oz)-0.06,oz); uv.push(0.5,al,0.5,al); wl.push(fo,0,4,ro,fo,0,4,ro); n++; }
+        for (let q=1;q<n;q++){ const v=s0+q*2; if (side===0) idx.push(v-1,v+1,v-2, v-2,v+1,v); else idx.push(v-2,v,v-1, v-1,v,v+1); } } } });
   if (!idx.length) return null;
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); if (wm){ g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setAttribute('wl',new THREE.Float32BufferAttribute(wl,4)); } else g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setIndex(idx); g.computeVertexNormals();
   const m=new THREE.Mesh(g,wm||SIDE_MAT); m.receiveShadow=true; m.name=fineOnly?'pfade':'nebenstrassen'; if (fineOnly){ try{ const rm=gtRootMesh(i,j); if (rm) m.add(rm); }catch(e){ console.warn('wurzeln',e); } } return m; }
@@ -7495,7 +7544,7 @@ function gtRootMesh(i,j){ const R=GN.rg; if (!R || !R.roots.size) return null; c
   for (let a=Math.floor(i*S/50); a<=Math.floor(((i+1)*S-0.01)/50); a++) for (let b=Math.floor(j*S/50); b<=Math.floor(((j+1)*S-0.01)/50); b++){ const l=R.roots.get(a+','+b); if (!l) continue;
     for (const r of l){ if (r[0]<i*S || r[0]>=(i+1)*S || r[1]<j*S || r[1]>=(j+1)*S) continue; if (r[5]<0) r[5]=gnForest(r[0],r[1])?1:0; if (!r[5]) continue; let sd=Math.floor(r[6]*1e6)+7; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
       const n=6+Math.floor(rnd()*5); for (let k=0;k<n;k++){ const al=(rnd()-0.5)*5, yaw=(rnd()-0.5)*1.3, full=r[4]/2+0.6, hw=full*(0.35+rnd()*0.65), th=0.025+rnd()*0.035, c0=(rnd()-0.5)*(full-hw)*2, cx=r[0]+r[2]*al, cz=r[1]+r[3]*al, ux=-r[3]*Math.cos(yaw)+r[2]*Math.sin(yaw), uz=r[2]*Math.cos(yaw)+r[3]*Math.sin(yaw), vx=-uz, vz=ux, wa=(rnd()-0.5)*0.5, wf=2+rnd()*3;
-        const b0=pos.length/3, M=8; for (let q=0;q<=M;q++){ const f=q/M, t=c0+(f*2-1)*hw, wig=Math.sin(f*wf+k)*wa*0.4, x=cx+ux*t+vx*wig, z=cz+uz*t+vz*wig, y=terrainH(x,z)+0.07, tp=Math.min(1,Math.sin(f*Math.PI)*2.2), w2=th*(0.4+0.6*tp); pos.push(x+vx*w2, y-0.01, z+vz*w2, x, y+w2*1.6, z, x-vx*w2, y-0.01, z-vz*w2); if (q){ const v=b0+q*3; idx.push(v-3,v,v-2, v-2,v,v+1, v-2,v+1,v-1, v-1,v+1,v+2); } } } } }
+        const b0=pos.length/3, M=8; for (let q=0;q<=M;q++){ const f=q/M, t=c0+(f*2-1)*hw, wig=Math.sin(f*wf+k)*wa*0.4, x=cx+ux*t+vx*wig, z=cz+uz*t+vz*wig, y=terrMeshY(x,z)+0.07, tp=Math.min(1,Math.sin(f*Math.PI)*2.2), w2=th*(0.4+0.6*tp); pos.push(x+vx*w2, y-0.01, z+vz*w2, x, y+w2*1.6, z, x-vx*w2, y-0.01, z-vz*w2); if (q){ const v=b0+q*3; idx.push(v-3,v,v-2, v-2,v,v+1, v-2,v+1,v-1, v-1,v+1,v+2); } } } } }
   if (!idx.length) return null; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals();
   if (!ROOT_MAT) ROOT_MAT=new THREE.MeshStandardMaterial({color:0x3e2c1d, roughness:0.85}); const m=new THREE.Mesh(g,ROOT_MAT); m.name='wurzeln'; m.receiveShadow=true; return m; }
 /* 0.15.0: Brücken auf Wegen und Nebenstraßen (OSM bridge): gerades Deck zwischen den Brückenenden, Holz oder Beton, mit Geländer. Je 1-km-Feld ein Netz. */
@@ -9685,7 +9734,7 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), sn:_ls('snow','keine'
       if (a>0){ hemi.groundColor.lerp(new THREE.Color(0xb8c4d8).convertSRGBToLinear(), a*0.75); hemi.intensity=this.hi*=1+0.22*a; }   /* Schnee wirft Licht zurück: hellere, bläuliche Schatten */
       if (a>0.1 && !fest) WET.tw=Math.max(WET.tw, N.m>0.5?0.85:0.4*a);   /* geräumt und gestreut: feucht, bei Tauwetter nass und spiegelnd */
       this.snowAmt=W.snow||0; if (W.snow && !fest) WET.tw=Math.max(WET.tw,0.35); if (this.flk) this.flk.visible=this.snowAmt>0;
-      if (this._snInit===undefined){ this._snInit=1; for (const k of ['a','d','m','r']) SNOW[k].value=SNOW.t[k]; } }
+      if (this._snInit===undefined){ this._snInit=1; for (const k of ['a','d','m','r']) SNOW[k].value=SNOW.t[k]; try{ roofSnowTick(); }catch(e){} } }
     if (this._wetInit===undefined){ this._wetInit=1; WET.w.value=WET.tw; WET.s.value=WET.ts; }
     const B=this.base; if (!B) return;
     scene.background=this.tint(B.bg,T.sky); scene.fog.color.copy(this.tint(B.fog,T.fog));
@@ -9720,7 +9769,7 @@ const ATMO={ tod:_ls('tod','nachm'), wx:_ls('wx','sonne'), sn:_ls('snow','keine'
       wet(WET.w,WET.tw,720); wet(WET.s,WET.ts,1100);
       /* 0.17.1 (Hicore): Pfützen entstehen erst mit der Regendauer (Regen ca. 18 min bis voll, Gewitter ca. 8 min) und trocknen langsam (ca. 45 min). Test: window.PUD_SET=0..1 */
       { const u=WET.p, tp=WET.tw>0.5?Math.min(1,0.75+0.25*WET.tw+0.3*WET.ts):0; if (window.PUD_SET!=null) u.value=+window.PUD_SET; else if (tp>u.value) u.value=Math.min(tp,u.value+dt*(1+1.3*WET.ts)/1080); else u.value=Math.max(tp,u.value-dt/2700); }
-      for (const k of ['a','d','m','r']){ const u=SNOW[k], t=SNOW.t[k]; u.value+=(t-u.value)*Math.min(1,dt*0.8); if (Math.abs(t-u.value)<0.002) u.value=t; } GURtouch(); }
+      for (const k of ['a','d','m','r']){ const u=SNOW[k], t=SNOW.t[k]; u.value+=(t-u.value)*Math.min(1,dt*0.8); if (Math.abs(t-u.value)<0.002) u.value=t; } GURtouch(); try{ roofSnowTick(); }catch(e){} }
     if (this.flk && this.flk.visible && camera){ const cp=camera.position, W2=this.W(), gp=!!W2.graupel, P=this.flkP, Sz=this.flkS, Ph=this.flkPh, B=34, BH=20, q=this.flk.geometry.attributes.position.array;
       const n=Math.round(this.flkN*Math.min(1,0.35+0.65*this.snowAmt)); const e=camera.matrixWorld.elements, rx=e[0], ry=e[1], rz=e[2], ux=e[4], uy=e[5], uz=e[6];
       if (!this.flk0){ this.flk0=true; for (let i=0;i<this.flkN;i++){ P[i*3]=cp.x+(Math.random()-0.5)*B; P[i*3+1]=cp.y-6+Math.random()*BH; P[i*3+2]=cp.z+(Math.random()-0.5)*B; } }
@@ -11729,13 +11778,48 @@ function makeShareImage(cb){
   if (endShot){ const im=new Image(); im.onload=()=>{ const s=Math.max(W/im.width,H/im.height); g.drawImage(im,(W-im.width*s)/2,(H-im.height*s)/2,im.width*s,im.height*s); finish(); }; im.onerror=finish; im.src=endShot; }
   else finish();
 }
-/* Speichern: am iPad/iPhone über das Teilen-Menü (Dateien, Strava, Fotos …), sonst normaler Download */
-async function saveFile(blob, name, type){ const file=(()=>{ try{ return new File([blob], name, {type:type||blob.type||'application/octet-stream'}); }catch(e){ return null; } })();
+/* Speichern: am iPad/iPhone über das Teilen-Menü (Dateien, Strava, Fotos …), sonst normaler Download.
+   0.23.1 (Hicore: in Bluefy klappte weder FIT noch Bild): auf iOS immer ein eigenes Fenster. Das Teilen startet erst mit dem Tipp dort (frische Nutzergeste;
+   vorher ging die Geste beim Bild über das asynchrone Erzeugen verloren), versucht mehrere Dateitypen, zeigt Fehler an. Dazu: an das gekoppelte Handy senden,
+   Bild kopieren, normaler Download. Alt: window.OLD_SAVE */
+const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Macintosh/.test(navigator.userAgent));
+async function saveFile(blob, name, type){ type=type||blob.type||'application/octet-stream';
+  const mkFile=t=>{ try{ return new File([blob], name, {type:t}); }catch(e){ return null; } };
+  if (window.OLD_SAVE) return saveFileOld(blob,name,type,mkFile(type));
+  if (!IS_MOBILE){ saveBlob(blob,name); return 'dl'; }
+  if (!IS_IOS){ const f=mkFile(type); if (f && navigator.canShare && navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f], title:name}); return 'share'; }catch(e){ if (e && e.name==='AbortError') return 'abort'; } } saveBlob(blob,name); return 'dl'; }
+  saveSheet(blob,name,type,mkFile); return 'view'; }
+function saveSheet(blob, name, type, mkFile){ let ov=$('saveov'); if (ov) ov.remove(); ov=document.createElement('div'); ov.id='saveov';
+  ov.style.cssText='position:fixed;inset:0;z-index:99;background:rgba(10,14,20,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;color:#fff;font:15px system-ui;text-align:center;overflow:auto';
+  const img=/^image\//.test(type), url=URL.createObjectURL(blob), kb=Math.max(1,Math.round(blob.size/1024)), bs='padding:12px 18px;border-radius:12px;border:0;font-size:16px;min-width:240px;';
+  const ph=(typeof CMP!=='undefined' && CMP.ch && CMP.on && CMP.phone>0);
+  ov.innerHTML=(img?'<img src="'+url+'" style="max-width:92vw;max-height:46vh;border-radius:10px">':'<div style="font-size:40px">📄</div>')+
+    '<div><b>'+name+'</b><br><span style="opacity:.7">'+kb+' KB</span></div>'+
+    '<button data-k="share" style="'+bs+'background:#2f7df6;color:#fff">📤 Teilen / In „Dateien“ sichern</button>'+
+    (ph?'<button data-k="phone" style="'+bs+'background:#1f9d55;color:#fff">📱 An gekoppeltes Handy senden</button>':'')+
+    (img?'<button data-k="copy" style="'+bs+'">📋 Bild kopieren</button>':'')+
+    '<a data-k="dl" href="'+url+'" download="'+name+'" style="color:#7cc4ff;font-size:16px;padding:6px">⬇️ Herunterladen</a>'+
+    '<div id="saveMsg" style="min-height:20px;max-width:92vw;opacity:.85">'+(img?'Oder Bild lange drücken und „Zu Fotos hinzufügen“ wählen.':'')+(ph?'':' Tipp: Mit gekoppeltem Handy (📱) geht auch „An Handy senden“.')+'</div>'+
+    '<button data-k="close" style="'+bs+'background:#444;color:#fff">Schließen</button>';
+  document.body.appendChild(ov); const msg=t=>{ const m=$('saveMsg'); if (m) m.textContent=t; };
+  ov.addEventListener('click', async ev=>{ const b=ev.target.closest('[data-k]'); if (!b) return; const k=b.dataset.k;
+    if (k==='close'){ ov.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000); return; }
+    if (k==='share'){ if (!navigator.share){ msg('Teilen gibt es in diesem Browser nicht. Nimm „An Handy senden“ oder „Herunterladen“.'); return; }
+      /* Typ wählen, den der Browser teilen will (FIT-Dateien kennt iOS nicht immer) */
+      const types=[type,'application/octet-stream','application/vnd.ant.fit','text/plain'].filter((t,i,a)=>a.indexOf(t)===i); let f=null;
+      for (const t of types){ const x=mkFile(t); if (x && (!navigator.canShare || navigator.canShare({files:[x]}))){ f=x; break; } }
+      if (!f) f=mkFile(type);
+      try{ await navigator.share({files:[f], title:name}); msg('✓ Geteilt'); }catch(e){ if (e && e.name==='AbortError'){ msg('Abgebrochen'); return; } msg('Teilen ging nicht ('+(e&&e.name||'Fehler')+'). Nimm „An Handy senden“ oder „Herunterladen“.'); }
+      return; }
+    if (k==='phone'){ msg('Sende ans Handy …'); try{ await CMP.sendFile(blob,name,type,msg); }catch(e){ msg('Senden fehlgeschlagen: '+(e&&e.message||e)); } return; }
+    if (k==='copy'){ try{ const png=type==='image/png'?blob:await new Promise(res=>{ const im=new Image(); im.onload=()=>{ const cv=document.createElement('canvas'); cv.width=im.naturalWidth; cv.height=im.naturalHeight; cv.getContext('2d').drawImage(im,0,0); cv.toBlob(res,'image/png'); }; im.src=url; });
+        await navigator.clipboard.write([new ClipboardItem({'image/png':png})]); msg('✓ Kopiert, z. B. in Fotos oder Strava einfügen'); }catch(e){ msg('Kopieren ging nicht ('+(e&&e.name||'Fehler')+')'); } return; }
+    if (k==='dl') setTimeout(()=>msg('Falls nichts passiert: „Teilen“ oder „An Handy senden“ nehmen.'),800); }); }
+async function saveFileOld(blob, name, type, file){
   if (IS_MOBILE && file && navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file], title:name}); return 'share'; }catch(e){ if (e && e.name==='AbortError') return 'abort'; } }
   if (!IS_MOBILE || !/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){ saveBlob(blob,name); return 'dl'; }
-  /* Fallback für iOS-Browser ohne Download (z. B. Bluefy): Datei in einer Ansicht zeigen */
   const rd=new FileReader(); rd.onload=()=>{ let ov=$('saveov'); if (!ov){ ov=document.createElement('div'); ov.id='saveov'; ov.style.cssText='position:fixed;inset:0;z-index:99;background:rgba(10,14,20,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;color:#fff;font:15px system-ui;text-align:center'; document.body.appendChild(ov); }
-    const img=/^image\//.test(blob.type); ov.innerHTML=(img?'<img src="'+rd.result+'" style="max-width:92vw;max-height:62vh;border-radius:10px"><div>Bild lange gedrückt halten und „Zu Fotos hinzufügen“ wählen.</div>':'<div style="font-size:17px"><b>'+name+'</b></div><a href="'+rd.result+'" download="'+name+'" target="_blank" style="color:#7cc4ff;font-size:17px">Datei öffnen / sichern</a><div>Falls nichts passiert: Link lange drücken und „Link laden“ oder „Teilen“ wählen.</div>')+'<button style="padding:10px 18px;border-radius:10px;border:0;font-size:16px">Schließen</button>';
+    const img=/^image\//.test(blob.type); ov.innerHTML=(img?'<img src="'+rd.result+'" style="max-width:92vw;max-height:62vh;border-radius:10px"><div>Bild lange gedrückt halten und „Zu Fotos hinzufügen“ wählen.</div>':'<div style="font-size:17px"><b>'+name+'</b></div><a href="'+rd.result+'" download="'+name+'" target="_blank" style="color:#7cc4ff;font-size:17px">Datei öffnen / sichern</a>')+'<button style="padding:10px 18px;border-radius:10px;border:0;font-size:16px">Schließen</button>';
     ov.querySelector('button').onclick=()=>ov.remove(); }; rd.readAsDataURL(blob); return 'view'; }
 function saveBlob(blob, name){
   const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),5000);
@@ -11770,7 +11854,7 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
     for (let ch=0; ch<2; ch++){ const d=ir.getChannelData(ch); for (let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3)*0.5; }
     rv.buffer=ir; const rg=c.createGain(); rg.gain.value=0.25; this.birdBus.connect(rv); rv.connect(rg); rg.connect(m);
     this.animBus=c.createGain(); this.animBus.connect(m); this.animBus.connect(rv);
-    this.buf={}; const SX=window.SFX_B64||{}; Object.keys(SX).forEach(k=>{ try{ const v=SX[k], dec=ab=>c.decodeAudioData(ab, b=>{ this.buf[k]=b; this.edge(b); }, ()=>{}); if (v.length<300 && v.indexOf('/')>=0){ fetch(v).then(r=>r.arrayBuffer()).then(dec).catch(()=>{}); return; } const bin=atob(v), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); dec(u.buffer); }catch(e){} });   /* 0.11.6: Töne als eigene Dateien data/img/sfx_*.mp3 */   /* echte Aufnahmen (ElevenLabs) statt Synthese, falls vorhanden */
+    this.buf={}; try{ if (!window.NO_SNOWSND) this.buf.schnee=this.snowBuf(c); }catch(e){ console.warn('schneeklang',e); } const SX=window.SFX_B64||{}; Object.keys(SX).forEach(k=>{ try{ const v=SX[k], dec=ab=>c.decodeAudioData(ab, b=>{ this.buf[k]=b; this.edge(b); }, ()=>{}); if (v.length<300 && v.indexOf('/')>=0){ fetch(v).then(r=>r.arrayBuffer()).then(dec).catch(()=>{}); return; } const bin=atob(v), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); dec(u.buffer); }catch(e){} });   /* 0.11.6: Töne als eigene Dateien data/img/sfx_*.mp3 */   /* echte Aufnahmen (ElevenLabs) statt Synthese, falls vorhanden */
     this.clickBus=c.createGain(); this.clickBus.connect(m);
     const cb=c.createBuffer(1,Math.round(c.sampleRate*0.012),c.sampleRate), cd=cb.getChannelData(0); for (let i=0;i<cd.length;i++) cd[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.0012)); this.clickBuf=cb;
     document.addEventListener('visibilitychange',()=>{ if (!this.ctx) return; if (document.hidden) this.ctx.suspend().catch(()=>{}); else this.ctx.resume().catch(()=>{}); });
@@ -11778,6 +11862,16 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
   },
   set(node, v, tc){ node.setTargetAtTime(v, this.ctx.currentTime, tc||0.15); },
   /* MP3 hat am Anfang/Ende etwas Stille (Encoder) -> Schleifenpunkte dahinter legen */
+  /* 0.23.1: Reifen auf Schnee: knirschende Körner (viele kurze helle Knackser, ab und zu lauter) über einem dumpfen Pressen, als Schleife erzeugt (keine Aufnahme nötig) */
+  snowBuf(c){ const sr=c.sampleRate, n=Math.floor(sr*3.2), b=c.createBuffer(1,n,sr), d=b.getChannelData(0); let sd=12345; const R=()=>((sd=(sd*16807)%2147483647)/2147483647);
+    let t=0; while (t<n){ t+=Math.floor(-Math.log(1-R()+1e-9)*sr/240); const L=Math.floor(sr*(0.003+R()*0.02)), A=Math.pow(R(),3)*0.9+0.08, f=0.25+R()*0.6; let h=0, pv=0;
+      for (let i=0;i<L;i++){ const w=R()*2-1; h=f*(h+w-pv); pv=w; const env=Math.min(1,i/(sr*0.0008))*Math.exp(-i/(L*0.35)); d[(t+i)%n]+=h*A*env; } }
+    let lp=0, bt=0; for (let i=0;i<n;i++){ if (i>=bt) bt=i+Math.floor(sr*(0.05+R()*0.08)); const ph=1-(bt-i)/(sr*0.1), env=Math.max(0,Math.sin(Math.PI*Math.min(1,Math.max(0,ph))));
+      lp+=(R()*2-1-lp)*0.06; d[i]+=lp*0.9*env; }
+    let pk=0; for (let i=0;i<n;i++) pk=Math.max(pk,Math.abs(d[i])); for (let i=0;i<n;i++) d[i]*=0.85/(pk||1); b._ls=0; b._le=n/sr; return b; },
+  /* Wie viel Schnee liegt unter den Reifen: Wege/Nebenstraßen wie das Gelände, Hauptstraße nur festgefahren (geräumt: wenig Matsch) */
+  snowUnder(){ const a=SNOW.a.value, d=SNOW.d.value, m=SNOW.m.value; if (a<0.35 || window.NO_SNOWSND) return 0; let E=null; try{ if (S.running && NET && NET.graph && GN.rg) E=gEdgeAt(S.dist); }catch(e){}
+    const cov=clamp((a-0.45)/0.4,0,1)*(0.35+0.65*d)*(1-0.5*m); return (!E || E.kind==='r') ? cov*(SNOW.r.value>0.5?1:0.15) : cov; },
   edge(b){ const d=b.getChannelData(0), n=d.length, lim=Math.min(n>>2, Math.round(b.sampleRate*0.15)); let a=0, e=n-1; while (a<lim && Math.abs(d[a])<2e-4) a++; while (e>n-lim && Math.abs(d[e])<2e-4) e--; b._ls=a/b.sampleRate; b._le=(e+1)/b.sampleRate; },
   /* echte Aufnahme als Endlosschleife; liefert {g,s} oder null, wenn es die Aufnahme nicht gibt */
   lp(k){ this.loops=this.loops||{}; if (this.loops[k]) return this.loops[k]; const b=this.buf&&this.buf[k]; if (!b) return null; const c=this.ctx, g=c.createGain(), R=Math.random; g.gain.value=0; g.connect(this.master);
@@ -11820,7 +11914,8 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
     this.near(world,V,t);
     const sv=clamp(v/13,0,1.4);
     const wet=Math.min(1,Math.max(ATMO.rainAmt||0,WET.w.value*0.8)), nite=ATMO.night(); this.mixL('regen', V('sndWind')*0.75*Math.min(1.3,ATMO.rainAmt||0), 1.2); this.mixL('nassreifen', V('sndRide')*wet*Math.pow(sv,1.1)*0.9, 0.25, null, 0.8+0.35*sv); this.mixL('nacht', nite&&world!=='pass'?V('sndAnimal')*0.55:0, 1.5);
-    /* 2.9: Reifen-Sample (klickerte wie eine Kette) ersetzt durch weiches Abrollrauschen */ { this.set(this.tyre.g.gain, V('sndRide')*Math.pow(sv,1.5)*0.35, 0.2); this.set(this.tyre.f.frequency, 300+420*sv, 0.3); }
+    const su=this.snowUnder(); this.mixL('schnee', V('sndRide')*su*Math.pow(Math.min(1,sv),0.7)*(v>0.4?0.85:0), 0.25, null, 0.7+0.45*sv);
+    /* 2.9: Reifen-Sample (klickerte wie eine Kette) ersetzt durch weiches Abrollrauschen */ { this.set(this.tyre.g.gain, V('sndRide')*Math.pow(sv,1.5)*0.35*(1-0.6*su), 0.2); this.set(this.tyre.f.frequency, 300+420*sv, 0.3); }
     if (!this.mixL('fahrtwind', V('sndRide')*sv*sv*0.55, 0.3, [this.air], 0.85+0.3*sv)) this.set(this.air.g.gain, V('sndRide')*sv*sv*0.12, 0.3);
     /* Grillen über Wiesen und Feldern (nicht im Hochgebirge) */
     this.mixL('grillen', world==='pass'||wet?0:V('sndAnimal')*(0.16+0.08*Math.sin(t*0.05))*(ATMO.tod==='abend'?1.8:nite?0.6:ATMO.tod==='morgen'?0.5:1), 1.5);
@@ -12100,6 +12195,7 @@ const CMP={ sb:null, ch:null, on:false, code:'', phone:0, sendT:0, want:null, wa
     try{ if (!this.sb) this.sb=supabase.createClient(MP.URL,MP.KEY,{auth:{persistSession:false,autoRefreshToken:false}, realtime:{params:{eventsPerSecond:10}}});
       const ch=this.sb.channel('hc:'+this.code,{config:{broadcast:{self:false,ack:false}, presence:{key:this.id}}}); this.ch=ch;
       ch.on('broadcast',{event:'k'},({payload})=>this.rx(payload));
+      ch.on('broadcast',{event:'fa'},({payload})=>{ const w=this.fWait; if (w && payload && payload.id===w.id){ this.fWait=null; w.res(payload); } });
       ch.on('presence',{event:'sync'},()=>this.sync());
       ch.subscribe(st=>{ if (this.ch!==ch) return; if (st==='SUBSCRIBED'){ this.on=true; try{ ch.track({r:'game'}); }catch(e){} this.sync(); } else if (st==='CHANNEL_ERROR'||st==='TIMED_OUT'){ this.on=false; this.ui('Keine Verbindung zum Server, ich versuche es weiter …'); } else if (st==='CLOSED') this.on=false; });
       this.ui(); }catch(e){ console.warn('CMP',e); this.ch=null; this.ui('Fehler: '+e.message); } },
@@ -12115,6 +12211,15 @@ const CMP={ sb:null, ch:null, on:false, code:'', phone:0, sendT:0, want:null, wa
     const draw=()=>{ try{ const q=qrcode(0,'M'); q.addData(this.url()); q.make(); const n=q.getModuleCount(), cv=$('cmpQr'), s=Math.floor(220/(n+8)), w=s*(n+8); cv.width=cv.height=w; const g=cv.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,w,w); g.fillStyle='#000';
       for (let r=0;r<n;r++) for (let c=0;c<n;c++) if (q.isDark(r,c)) g.fillRect((c+4)*s,(r+4)*s,s,s); }catch(e){ console.warn('QR',e); } };
     if (window.qrcode) draw(); else { const sc=document.createElement('script'); sc.src='handy/qrcode.js'; sc.onload=draw; document.head.appendChild(sc); } },
+  /* 0.23.1: Datei (FIT, Fahrtbild) ans gekoppelte Handy schicken: Base64 in Stücken à 40.000 Zeichen über den Kanal, das Handy setzt zusammen und bietet Teilen/Download an */
+  async sendFile(blob, name, type, msg){ if (!this.ch || !this.on || !this.phone) throw new Error('kein Handy verbunden');
+    const u=new Uint8Array(await blob.arrayBuffer()); let b64=''; for (let i=0;i<u.length;i+=0x8000) b64+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); b64=btoa(b64);
+    const CH=40000, n=Math.ceil(b64.length/CH), id='f'+Date.now().toString(36);
+    const ackP=new Promise(res=>{ this.fWait={id,res}; });   /* vor dem Senden warten, sonst kann die Bestätigung schon vor dem Warten kommen */
+    for (let i=0;i<n;i++){ const r=await this.ch.send({type:'broadcast', event:'f', payload:{id, name, type, i, n, d:b64.slice(i*CH,(i+1)*CH)}}); if (r!=='ok' && r!==undefined) throw new Error('Server: '+r); if (msg) msg('Sende ans Handy … '+Math.round((i+1)/n*100)+' %'); await new Promise(z=>setTimeout(z,130)); }
+    const a=await Promise.race([ackP, new Promise(res=>setTimeout(()=>res(null),12000))]); if (this.fWait && this.fWait.id===id) this.fWait=null;
+    const t=a?(a.ok?'✓ Am Handy angekommen. Dort „Teilen“ oder „Herunterladen“ tippen.':'Handy meldet: '+(a.msg||'unvollständig, bitte nochmal senden')):'Gesendet, aber keine Bestätigung vom Handy. Ist die Handy-Seite offen?';
+    if (msg) msg(t); toast('📱 '+t); return a; },
   ack(id, ok, msg){ if (this.ch && this.on) this.ch.send({type:'broadcast', event:'ack', payload:{id, ok, msg}}).catch(()=>{}); if (msg) toast('📱 '+msg); },
   /* Abbiegen: L/R/S wählt an der anstehenden Kreuzung; ohne Kreuzung gilt der Wunsch für die nächste (60 s) */
   turn(a){ if (!NET) return [false,'Hier gibt es keine Kreuzungen']; const p=NET.pend;
@@ -12224,7 +12329,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.23.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.23.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{

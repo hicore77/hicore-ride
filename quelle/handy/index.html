@@ -52,6 +52,7 @@ button:disabled{opacity:.35}
 .gest button small{font-size:10px;color:var(--mut)}
 h5{margin:2px 0 -4px;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
 #msg{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%) translateY(20px);background:rgba(22,27,34,.97);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;max-width:calc(100% - 32px);text-align:center;z-index:9}
+#file{position:fixed;inset:0;background:rgba(10,13,18,.94);z-index:8;display:flex;align-items:center;justify-content:center;padding:18px}.fbox{display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;width:100%;max-width:420px}.fbox button,.fbox a{width:100%;height:54px;font-size:17px;font-weight:600;border-radius:14px;display:flex;align-items:center;justify-content:center;text-decoration:none}#fShare{background:var(--acc);border-color:var(--acc);color:#111}#fDl{border:1px solid var(--line);color:inherit}
 #msg.show{opacity:1;transform:translateX(-50%)}#msg.err{border-color:var(--err)}
 #pair{display:none;flex-direction:column;gap:12px;margin-top:8vh;text-align:center}
 #pair h1{font-size:22px;margin:0}
@@ -101,6 +102,8 @@ h5{margin:2px 0 -4px;font-size:11px;color:var(--mut);text-transform:uppercase;le
   </div>
   <div class="note" id="note">Bildschirm bleibt an, solange diese Seite offen ist.</div>
 </div>
+<div id="file" style="display:none"><div class="fbox"><div style="font-size:34px">📄</div><b id="fName"></b><span id="fInfo" class="note"></span><img id="fImg" style="display:none;max-width:100%;max-height:40vh;border-radius:10px">
+  <button id="fShare">📤 Teilen / Sichern</button><a id="fDl" download>⬇️ Herunterladen</a><button id="fClose" class="sec">Schließen</button></div></div>
 <div id="msg"></div>
 <script src="supabase.js"></script>
 <script>
@@ -122,9 +125,21 @@ function connect(code){ code=clean(code); if (code.length<4){ showPair('Der Code
   const ch=H.sb.channel('hc:'+code,{config:{broadcast:{self:false,ack:false}, presence:{key:'p'+Math.random().toString(36).slice(2,8)}}}); H.ch=ch; H.on=false; H.game=0; H.last=0;
   ch.on('broadcast',{event:'s'},({payload})=>{ H.st=payload; H.last=Date.now(); render(); });
   ch.on('broadcast',{event:'ack'},({payload})=>{ if (!payload) return; const p=H.pend.get(payload.id); if (p){ clearTimeout(p); H.pend.delete(payload.id); } if (payload.msg) msg(payload.msg, !payload.ok); else if (!payload.ok) msg('Ging nicht', true); });
+  ch.on('broadcast',{event:'f'},({payload})=>fileRx(payload));
   ch.on('presence',{event:'sync'},()=>{ let n=0; try{ for (const v of Object.values(ch.presenceState())) if (v[0] && v[0].r==='game') n++; }catch(e){} H.game=n; status(); });
   ch.subscribe(s=>{ if (H.ch!==ch) return; if (s==='SUBSCRIBED'){ H.on=true; try{ ch.track({r:'phone'}); }catch(e){} } else if (s==='CHANNEL_ERROR'||s==='TIMED_OUT'){ H.on=false; } else if (s==='CLOSED') H.on=false; status(); });
   status(); wake(); }
+/* 0.23.1: Datei vom Spiel (FIT, Fahrtbild): Stücke sammeln, dann Teilen/Herunterladen anbieten (iPad-Browser wie Bluefy können selbst nicht speichern) */
+const FR={id:'', parts:[], got:0, n:0, t:null, f:null, url:''};
+function fileRx(p){ if (!p || !p.id) return; if (FR.id!==p.id){ FR.id=p.id; FR.parts=new Array(p.n); FR.got=0; FR.n=p.n; }
+  if (FR.parts[p.i]==null){ FR.parts[p.i]=p.d; FR.got++; } msg('Datei vom Spiel … '+Math.round(FR.got/FR.n*100)+' %');
+  clearTimeout(FR.t); if (FR.got<FR.n){ FR.t=setTimeout(()=>{ msg('Datei unvollständig, bitte im Spiel nochmal senden', true); try{ H.ch.send({type:'broadcast', event:'fa', payload:{id:p.id, ok:false, msg:'unvollständig ('+FR.got+'/'+FR.n+'), bitte nochmal senden'}}); }catch(e){} },8000); return; }
+  try{ const bin=atob(FR.parts.join('')), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+    const blob=new Blob([u],{type:p.type||'application/octet-stream'}); if (FR.url) URL.revokeObjectURL(FR.url); FR.url=URL.createObjectURL(blob);
+    try{ FR.f=new File([blob], p.name, {type:p.type||'application/octet-stream'}); }catch(e){ FR.f=null; }
+    $('fName').textContent=p.name; $('fInfo').textContent=Math.max(1,Math.round(u.length/1024))+' KB'; $('fDl').href=FR.url; $('fDl').download=p.name;
+    const img=/^image\//.test(p.type||''); $('fImg').style.display=img?'':'none'; if (img) $('fImg').src=FR.url; $('file').style.display='flex'; buzz(30);
+    H.ch.send({type:'broadcast', event:'fa', payload:{id:p.id, ok:true}}).catch(()=>{}); }catch(e){ msg('Datei kaputt: '+e.message, true); H.ch.send({type:'broadcast', event:'fa', payload:{id:p.id, ok:false, msg:'Datei kaputt'}}).catch(()=>{}); } }
 function status(){ const fresh=Date.now()-H.last<3500, st=H.st; let cls='', t='';
   if (!H.on){ t='Verbinde mit Server …'; }
   else if (!H.game && !fresh){ cls='wait'; t='Warte auf das Spiel (Code '+H.code+')'; }
@@ -160,6 +175,10 @@ document.addEventListener('visibilitychange',()=>{ if (document.visibilityState=
 setInterval(status,1000);
 const q=new URLSearchParams(location.search).get('c'); const c0=clean(q||LS.get('code',''));
 if (c0.length>=4) connect(c0); else showPair('');
+$('fClose').onclick=()=>{ $('file').style.display='none'; };
+$('fShare').onclick=async()=>{ if (!FR.f || !navigator.share){ msg('Teilen geht hier nicht, nimm „Herunterladen“', true); return; }
+  let f=FR.f; if (navigator.canShare && !navigator.canShare({files:[f]})){ try{ const g=new File([f], f.name, {type:'application/octet-stream'}); if (navigator.canShare({files:[g]})) f=g; }catch(e){} }
+  try{ await navigator.share({files:[f], title:f.name}); }catch(e){ if (!e || e.name!=='AbortError') msg('Teilen ging nicht ('+(e&&e.name||'Fehler')+'), nimm „Herunterladen“', true); } };
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // 0.19.2: Was steht an einer Stelle? Listet alle Meshes/Instanzen im Umkreis R um X,Z (Standard: Treppe Oybin Kammstraße)
 const {chromium}=require('playwright'); const serve=require('./serve');
-(async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']}); const ctx=await b.newContext({viewport:{width:640,height:400}}); await serve(ctx);
+(async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']}); const ctx=await b.newContext({viewport:{width:640,height:400}}); await serve(ctx); if (process.env.PRE) await ctx.addInitScript(process.env.PRE);
  const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push('PE '+(e.stack||e.message).slice(0,300)));
  await p.goto('http://127.0.0.1:8765/index.html?gl=1'); await p.waitForFunction(()=>window.glbRiderReady,null,{timeout:800000});
  await p.evaluate(()=>{ selWorld='zittau'; $('bots').value='0'; ATMO.wx='sonne'; ATMO.sn='keine'; ATMO.tod='mittag'; ATMO.apply(); $('bSim').click(); });
