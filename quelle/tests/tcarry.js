@@ -20,7 +20,7 @@ const {chromium}=require('playwright'); const serve=require('./serve');
    console.log('mess', bk, u, JSON.stringify(await p.evaluate(()=>{ const bg=me.bikeG, B=me.glb.B, V=THREE.Vector3; me.g.updateMatrixWorld(true); const L=b=>bg.worldToLocal(B[b].getWorldPosition(new V()));
      const s=L('RightArm'), e=L('RightForeArm'), w=L('RightHand'), G=BIKE_GEO[me.rig&&me.rig.T||'gravel']||BIKE_GEO.gravel, ht0=G.HT, ht1=G.HB;
      const segD=(a,b,c,d)=>{ let m=1e9; for (let i=0;i<=20;i++){ const p=a.clone().lerp(b,i/20); for (let j=0;j<=20;j++) m=Math.min(m,p.distanceTo(c.clone().lerp(d,j/20))); } return m; };
-     const cross=(a,b)=>{ if ((a.x>0)===(b.x>0)) return null; const t=a.x/(a.x-b.x), q=a.clone().lerp(b,t); const k=(q.y-ht1.y)/(ht0.y-ht1.y), hz=ht1.z+(ht0.z-ht1.z)*k; return {y:+q.y.toFixed(3), z:+q.z.toFixed(3), htZ:+hz.toFixed(3), hinterHT:q.z<hz}; };
+     const cross=(a,b)=>{ if ((a.x>0)===(b.x>0)) return null; const t=a.x/(a.x-b.x), q=a.clone().lerp(b,t); const k=(q.y-ht1.y)/(ht0.y-ht1.y), hz=ht1.z+(ht0.z-ht1.z)*k; return {y:+q.y.toFixed(3), z:+q.z.toFixed(3), htZ:+hz.toFixed(3), hinterHT:q.z<hz, abstand:+(q.z-hz).toFixed(3)}; };
      const f=v=>v.toArray().map(x=>+x.toFixed(3));
      return {sh:f(s), el:f(e), wr:f(w), crossUpper:cross(s,e), crossFore:cross(e,w), dForeHT:+segD(e,w,ht0,ht1).toFixed(3), dUpperHT:+segD(s,e,ht0,ht1).toFixed(3), wrSide:w.x>0?'innen':'aussen'}; })));
    for (const v of views){ await p.evaluate(([c])=>{ _SC.position.set(...c[0]); _SC.lookAt(...c[1]); renderer.setRenderTarget(null); renderer.render(_ST,_SC); },[CAM[v]]);
