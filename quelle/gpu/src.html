@@ -4936,7 +4936,8 @@ function carryBody(CY,L,hipL,sh){ const w=_sst(0,1,CY.k), hipH=0.085+0.95*(L.thi
    MTB (Flatbar, Griff liegt neben dem Steuerrohr): bleibt bei 0.19.4, Unterarm hinter dem Steuerrohr. Alt (0.19.4 auch für Gravel): window.OLD_CARRYGRIP3. Messung: tests/tcarry.js Zeile mess */
 function carryGripPar(T){ const w=window.__CA; if (w) return Object.assign({t:0.4,ex:0.15,E:[-0.3,0.6,0.2],gz:0.06,dx:0.035},w);
   if (T==='mtb' || window.OLD_CARRYGRIP3) return {t:0.4, ex:0.15, E:[-0.3,0.6,0.2], gz:0.06, dx:0.035};
-  return {t:0.7, ex:0.15, E:[-0.35,0.75,0.5], gz:0, dx:0.06}; }
+  if (window.OLD_CARRYGRIP4) return {t:0.7, ex:0.15, E:[-0.35,0.75,0.5], gz:0, dx:0.06};
+  return {t:0.83, ex:0.15, E:[-0.08,0.74,0.6], gz:0, dx:-0.03}; }   /* 0.19.7 (Hicore: Steuerrohr klemmt in der Achselhöhle): Rad weiter vorn auf der Schulter, Schulter innen, Oberarm kreuzt die Rahmenebene ca. 5 cm hinter dem Steuerrohr durchs Dreieck, Ellbogen außen vor dem Steuerrohr, Unterarm ca. 8 cm vor dem Steuerrohr zurück zur inneren Lenkerhand. Alt (0.19.6): window.OLD_CARRYGRIP4 */
 function carryRig(R,G,K,CY,hipY){ const B=R.B, V3=THREE.Vector3, w=_sst(0,1,CY.k), bg=CY.bg; if (!bg) return null;
   const T=K.T||'gravel', TT=bikeTT(T), q=new THREE.Quaternion(), p=new V3();
   if (CY.mode==='lift') p.set(0,CY.lift,0);
@@ -7408,7 +7409,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.6 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.7 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{

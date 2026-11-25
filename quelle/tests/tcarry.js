@@ -10,7 +10,7 @@ const {chromium}=require('playwright'); const serve=require('./serve');
    st.add(new THREE.HemisphereLight(0xffffff,0x606050,1.6)); const d=new THREE.DirectionalLight(0xffffff,2.2); d.position.set(3,6,4); st.add(d);
    window._ST=st; window._SC=new THREE.PerspectiveCamera(30, innerWidth/innerHeight, 0.05, 50); });
  const CAM={ left:[[-3.4,1.2,0.4],[0.1,1.0,0.1]], right:[[3.4,1.2,0.4],[0.1,1.0,0.1]], front:[[0.3,1.3,3.4],[0.15,1.0,0]], fl:[[1.6,1.6,2.4],[0.1,1.1,0.2]], q34:[[-2.2,1.6,2.4],[0.1,1.0,0.1]], back:[[0.2,1.4,-3.2],[0.1,1.1,0]], outer:[[-2.6,1.4,1.2],[0,1.15,0.2]], ic:[[1.3,1.35,1.1],[0.0,1.15,0.35]], oc:[[-1.4,1.35,1.0],[0.0,1.15,0.35]] };
- const bikes=(process.env.BIKES||'gravel').split(','), views=(process.env.VIEWS||'left,front,q34,right').split(','), us=(process.env.US||'0.5').split(',').map(Number);
+ const bikes=(process.env.BIKES||'gravel').split(','), views=(process.env.VIEWS||'left,front,q34,right').split(',').filter(v=>CAM[v]), us=(process.env.US||'0.5').split(',').map(Number);
  for (const bk of bikes) for (const u of us){
    await p.evaluate(([bk,u])=>{ if (window.setRiderBike) setRiderBike(me,bk); me.stairK=1; me.stairM='shoulder';
      const f=(s,ph)=>{ const w=(u-ph)/2, fr=w-Math.floor(w); return fr<0.5?{x:0.22+s*0.11,y:0,gr:0,z:-0.35+fr*0.0,heel:0}:{x:0.22+s*0.11,y:Math.sin(Math.PI*(fr-0.5)*2)*0.1,gr:0,z:-0.35+(fr-0.5)*2*0.7,heel:0}; };
