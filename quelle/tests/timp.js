@@ -1,0 +1,22 @@
+// 0.21.0: Bild-Bäume (Impostors). Atlas als PNG, Zählung, Bilder an PTS. PRE='window.OLD_IMP=1' für alt. OUT Ordner, TAG Namenszusatz.
+const {chromium}=require('playwright'); const serve=require('./serve'); const fs=require('fs');
+(async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']}); const ctx=await b.newContext({viewport:{width:900,height:520}}); await serve(ctx);
+ const p=await ctx.newPage(); p.on('pageerror',e=>console.log('PE',e.message)); p.on('console',m=>{ const t=m.text(); if(m.type()==='error'||/impostor|GPU-Material|TSL/i.test(t)) console.log('C',t.slice(0,300)); });
+ if (process.env.PRE) await p.addInitScript(process.env.PRE);
+ await p.goto('http://127.0.0.1:8765/index.html?gl=1'+(process.env.QS||'')); await p.waitForFunction(()=>window.glbRiderReady,null,{timeout:800000});
+ await p.evaluate(()=>{ selWorld='zittau'; $('bots').value='0'; ATMO.wx='sonne'; ATMO.sn=window.__SN||'keine'; ATMO.tod='mittag'; ATMO.apply(); $('bSim').click(); });
+ await p.waitForFunction(()=>S.running,null,{timeout:1200000});
+ const OUT=process.env.OUT||'.', TAG=process.env.TAG||'';
+ const at=await p.evaluate(async()=>{ if (!IMP.rt) return null; const W=IMP.rt.width, H=IMP.rt.height; const px=await renderer.readRenderTargetPixelsAsync(IMP.rt,0,0,W,H); const c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d'); const id=g.createImageData(W,H);
+   for (let y=0;y<H;y++) for (let x=0;x<W;x++){ const s=((H-1-y)*W+x)*4, d=(y*W+x)*4, a=px[s+3]/255; const bg=((x>>4)+(y>>4))&1?200:150; for (let k=0;k<3;k++) id.data[d+k]=px[s+k]*a+bg*(1-a); id.data[d+3]=255; } g.putImageData(id,0,0); return {W,H,url:c.toDataURL('image/jpeg',0.8), info:IMP.info}; });
+ if (at){ fs.writeFileSync(OUT+'/atlas'+TAG+'.jpg', Buffer.from(at.url.split(',')[1],'base64')); console.log('ATLAS',at.W,at.H,'cal',JSON.stringify(await p.evaluate(()=>IMP.cal))); } else console.log('kein Atlas');
+ const PTS=process.env.PTS?JSON.parse(process.env.PTS):process.env.FPT?await p.evaluate(()=>{ const v=(GN.d.vill||[]).find(q=>q.name==='Jonsdorf'); const out=[]; const cand=[]; GN.d.edges.forEach(E=>{ for (let i=0;i+4<E.P.length;i+=2){ const q=E.P[i], c=E.P[i+4], L=Math.hypot(c.x-q.x,c.z-q.z)||1, ux=(c.x-q.x)/L, uz=(c.z-q.z)/L; const dv=Math.hypot(q.x-v.x,q.z-v.z); if (dv>2500) continue; if (gnForest(q.x,q.z)) continue; let f=0; for (let d=70; d<=220; d+=30) if (gnForest(q.x+ux*d,q.z+uz*d)) f++; if (f>=4) cand.push([dv,q.x,q.z,q.x+ux*100,q.z+uz*100,1.8]); } }); cand.sort((a,b)=>a[0]-b[0]); const r=[cand[0]]; for (const c of cand){ if (r.length>=3) break; if (r.every(o=>Math.hypot(o[1]-c[1],o[2]-c[2])>300)) r.push(c); } return r.filter(Boolean).map(c=>c.slice(1)); }):await p.evaluate(()=>{ const v=(GN.d.vill||[]).find(q=>q.name==='Jonsdorf'); let best=null, bd=1e9; GN.d.edges.forEach(E=>{ for (let i=0;i+4<E.P.length;i++){ const q=E.P[i], d=Math.hypot(q.x-v.x,q.z-v.z); if (d<bd){ bd=d; best=[q,E.P[i+4]]; } } });
+   const [a,c]=best, L=Math.hypot(c.x-a.x,c.z-a.z)||1, ux=(c.x-a.x)/L, uz=(c.z-a.z)/L; return [[a.x,a.z,a.x+ux*60,a.z+uz*60,2.5],[a.x-ux*60,a.z-uz*60,a.x+ux*40,a.z+uz*40,2.5],[v.x-60,v.z+260,v.x,v.z-80,110]]; });
+ console.log('PTS',JSON.stringify(PTS.map(q=>q.map(Math.round))));
+ for (let k=0;k<PTS.length;k++){ const [x,z,lx,lz,hh]=PTS[k];
+  await p.evaluate(([x,z,lx,lz,hh])=>{ $('simW').value=0; TRAFFIC.nextT=1e9; document.querySelectorAll('body>div').forEach(e=>{if(!e.querySelector('canvas'))e.style.visibility='hidden'}); const y=terrainH(x,z); window._camFix=[x,y+(hh||3),z,lx,terrainH(lx,lz)+1,lz]; me.g.position.set(x,y,z); camera.position.set(x,y+(hh||3),z); }, [x,z,lx,lz,hh]);
+  await p.evaluate(([x,z])=>kcWait([{x,z}],2600,30000).then(()=>{ gtStream({x,z},999); GT.flast=null; try{ gpuFixInst(scene); }catch(e){} }), [x,z]);
+  await p.evaluate(()=>{ window.__F0=FRC; }); await p.waitForFunction(()=>FRC>=window.__F0+6,null,{timeout:1600000});
+  const info=await p.evaluate(()=>{ let near=0, far=0; for (const k in (GT.w||{})){ const S=GT.w[k]; if (S.near[0]) near+=S.near[0].count; if (S.far[0]) far+=S.far[0].count; } return {imp:GT.imp?GT.imp.n:-1, impCap:GT.imp?GT.imp.cap:0, near, far, tl:TREE_LOD&&TREE_LOD.I?TREE_LOD.I.n:-1, wg:worldGroup.position.toArray()}; }); console.log('Bild',k,JSON.stringify(info));
+  await p.screenshot({timeout:300000,path:OUT+'/imp_'+TAG+k+'.jpg',quality:85}); }
+ await b.close(); })();

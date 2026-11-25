@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 25.11.2026. Letzte veröffentlichte Version: **0.20.3 Beta** (neuer Bildraten-Regler `FPSCTL`). Davor 0.20.2 (Auflösungslogik), 0.20.1 (Leistungstest), **0.20.0** (Leistung: Wald gebündelt, FPS-Logik). Davor **0.19.8 Beta** (Absteigen/Aufsteigen über den Sattel; davor 0.19.7 Schultern Gravel mit Steuerrohr in der Achselhöhle, 0.19.5 Gabeln).
+Stand: 25.11.2026. Letzte veröffentlichte Version: **0.21.0 Beta** (Impostors: Bäume ab 60 m als Bild, Poly Haven Standard). Davor 0.20.3 (Bildraten-Regler `FPSCTL`), 0.20.2 (Auflösungslogik), 0.20.1 (Leistungstest), **0.20.0** (Leistung: Wald gebündelt, FPS-Logik). Davor **0.19.8 Beta** (Absteigen/Aufsteigen über den Sattel; davor 0.19.7 Schultern Gravel mit Steuerrohr in der Achselhöhle, 0.19.5 Gabeln).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,7 +100,8 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.20.3** | **Bildraten-Regler `FPSCTL`: 50–60 FPS ungebremst, seltene Auflösungswechsel, Probelauf alle 3 min** |
+| **0.21.0** | **Impostors: Bäume ab 60 m als Bild (1 Zeichenaufruf), voller Wald; kleinere Pufferuploads gegen Ruckler; Poly Haven Standard** |
+| 0.20.3 | Bildraten-Regler `FPSCTL`: 50–60 FPS ungebremst, seltene Auflösungswechsel, Probelauf alle 3 min |
 | 0.20.2 | Auflösung senken statt 30er-Grenze |
 | 0.20.1 | Leistungstest: FPS-Anzeige antippen |
 | 0.20.0 | Leistung: Wald gebündelt (Zeichenaufrufe halbiert), Baumschatten nur nah, HUD ohne Layout je Bild, Auflösung bleibt 100 % wenn Senken nichts bringt, FPS-Anzeige mit CPU-Zeit** |
@@ -138,20 +139,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 **Tschechien (0.19.1), Hotfix Zaun/Arm (0.19.2):** Details (ČÚZK-Orthofoto, `dop_gebiet.py ergaenzen cz`, `tstairfit`, `propOnWay`, `tprobe`, `tcarry`) jetzt in `docs/ARCHIV.md`. Achtung: Weg-ID 41396618 liegt in Jonsdorf, die Oybiner Treppe ist 1209305178.
 
-**Schultern 0.19.3** (Hicore am iPad: linke Schulter hängt, Körper gebogen, Griff von außen über dem Oberrohr)
-- Ursache Biegung: Rücken-Bogen in `poseGLB` hatte seinen Kontrollpunkt bei x der Fahrposition (`hx/sx` ≈ Radmitte), beim Tragen stehen Becken/Schulter aber 22 cm daneben. Jetzt Mitte aus `hipL/sh`. Schlüsselbeine beim Tragen waagerecht statt vorn-unten. Alt: `window.OLD_CARRYSPINE`.
-- Griff: Rad Euler x 0,2 → 0,35 (vorn tiefer), Ellbogen-Pol (−0,15, −0,6, 1): Arm unter dem Oberrohr durchs Dreieck, Hand am inneren Unterlenker (`GRIPF[2]` gespiegelt). Bei Gravel liegt die Rahmentasche im Dreieck, der Arm verschwindet dahinter (kein sichtbares Durchdringen). Alt: `window.OLD_CARRYGRIP`.
-- Prüfen mit `tests/tcarry.js` (Ansichten `front,back,outer,ic,oc,left,right,q34`; `outer`/`oc` = Radseite).
-- 0.19.4 (Hicore: Unterarm lag noch VOR dem Steuerrohr, Referenz Foto 1 vom 24.11.): Kontaktpunkt am Oberrohr 0,32 → 0,40, Rad Euler x 0,35 → 0,15, Ellbogen-Ziel `H.Right.E` im Rad-System (−0,3, 0,6, 0,2) als Pol, Griff am inneren Unterlenker 6 cm weiter hinten. `tcarry.js` gibt je Bild eine Zeile `mess` aus (Rad-Koordinaten): `crossFore.hinterHT` muss true sein, `dForeHT` ≥ 0,06. Stand: Gravel 12,6 cm hinter dem Steuerrohr, 9,5 cm Abstand; MTB 15,7 cm, 13,1 cm. Ansicht `fl` = Hicores Kamera vorne links. Alt: `window.OLD_CARRYGRIP2`.
-
-- 0.19.8 (Hicore mit Screenshots: beim Absteigen ging das rechte Bein durch den Rahmen): Übergang `CY.k` in Phasen. Kurbel dreht zum Absteigen auf linkes Pedal unten (bis k 0,85, dann waagerecht). `carryBody`: k 0–0,15 Becken aus dem Sattel nach vorn/links/oben über das linke Pedal, k 0,45–0,78 zum Gehen. Rechtes Bein k 0,1–0,72: Fuß hinten hoch (Scheitel 8 cm über Hüfthöhe, 85 cm hinter dem Tretlager, Knie leicht gebeugt, Knie-Pol nach unten), Seitenwechsel nur oben (x-Wechsel bei u 0,35–0,65), Landung links neben dem Rad (x 0,36), dann in die Gehspur. Linker Fuß bleibt bis k 0,72 auf dem Pedal. Hände/Rad heben erst ab k 0,7 (`carryRig` w). Aufsteigen = rückwärts. Test `tests/tdismount.js` (KS = k-Werte, Bildfolge, `mess` mit Fuß/Knie). Alt: `window.OLD_DISMOUNT`.
-- 0.19.7 (Hicore: „erst durch den Rahmen, um das Steuerrohr herum und dann zurück zum Lenker; das Steuerrohr klemmt in der Achselhöhle“): In 0.19.6 lag die Schulter schon außen (x −0,05 im Rad-System), der Oberarm kreuzte die Rahmenebene nie. Jetzt Gravel t 0,83, dx −0,03 (Schulter innen, x +0,04), E (−0,08, 0,74, 0,6): Oberarm kreuzt 4,8 cm HINTER der Steuerrohrachse durchs Dreieck (`crossUpper`), Ellbogen außen vorn, Unterarm kreuzt 9,7 cm VOR der Achse (`crossFore`). Gleich in allen Schrittphasen. MTB unverändert. Alt: `window.OLD_CARRYGRIP4`. tcarry: `VIEWS=none` misst nur. Bild vorschau/197_schultern_achsel.jpg.
-- 0.19.6 (Hicore mit Foto 1 und Render nebeneinander: Unterarm muss aus Sicht von vorn VOR dem Steuerrohr liegen; „hinter“ in seiner früheren Nachricht war falsch verstanden): `carryGripPar(T)` liefert je Rad Kontaktpunkt `t`, Kippung `ex`, Ellbogen-Pol `E`, Griffverschiebung `gz`, Schulterversatz `dx`. Gravel: t 0,7, ex 0,15, E (−0,35, 0,75, 0,5), gz 0, dx 0,06 → Unterarm kreuzt 7,3 cm VOR der Steuerrohrachse (`abstand` > 0 in `mess`), 6,8 cm Abstand. MTB bleibt 0,4/0,15/(−0,3,0,6,0,2)/0,06 (Flatbar-Griff neben dem Steuerrohr, vorn herum geht nicht ohne Durchdringung). Probieren mit `window.__CA={…}`. Alt: `window.OLD_CARRYGRIP3`.
-
-**Gabeln 0.19.5** (Hicore: MTB soll federn, Gravel sah nach Federgabel aus)
-- Gravel: Gabelbein jetzt `taperLeg()` (CatmullRom-Rohr, 2,0 → 1,05 cm, oval, leicht nach vorn gebogen) statt zwei `ft`-Stücken mit Absatz. Alt: `window.OLD_GRAVELFORK`.
-- MTB: Tauchrohre, Brücke, Ausfallenden, Vorderrad (`wF`), Achse, Scheibe und Sattel liegen in Gruppe `r.fork.g` (aus `buildDirtBike`, nicht verschmolzen). `forkStep(r)` (aus `placeRider`, nur eigener Fahrer) = Feder-Dämpfer k 800, ζ 0,45, Ziel aus `WF.rough`·Tempo·Rauschen, `WF.y`, `STAIR.bump`, Bremsen; Weg 0–6 cm entlang Lenkachse. Schotter bei 18 km/h: 6–15 mm. Beim Tragen 0. Aus: `window.NO_FORKMOVE`.
-- Test: `FORKX=0.05 BIKES=mtb VIEWS=forkS,fork node tbike.js` (Zeile `gabel` = Federweg-Simulation, Bild mit festem Einfederweg).
+**Schultern 0.19.3–0.19.8, Gabeln 0.19.5:** Details (`carryGripPar`, `carryBody`, `carryRig`, `taperLeg`, `forkStep`, Tests `tcarry`/`tdismount`/`tbike`, Schalter `OLD_CARRY*`, `OLD_DISMOUNT`, `OLD_GRAVELFORK`, `NO_FORKMOVE`) jetzt in `docs/ARCHIV.md`.
 
 **Leistung 0.20.0** (Hicore: Chrome am iPad konstant „30 FPS · 70 %“, auch an einfachen Stellen)
 - Ursache 30: Die Logik senkte erst die Auflösung bis 70 % (`DRES`), dann begrenzte `FCAP` fest auf 30. Da 70 % nicht half, war das Gerät nicht an den Pixeln, sondern an CPU/Zeichenaufrufen begrenzt. Neu: bringt eine Senkung keine Verbesserung (< 6 %), geht die Auflösung zurück auf 100 % und bleibt 3 min gesperrt (`DRES.chk/block`). Alt: `window.OLD_DRES`.
@@ -165,7 +153,13 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.20.1 `LTEST` (Tipp auf `#fps`): misst je 5 s ohne 30er-Grenze Basis, ohne Bloom, ohne Schatten, Auflösung 70/50 %, ohne Alphatest-Laub/Gras, ohne Bäume, ohne Gras/Deko; versteckt per `layers.set(7)`, Ergebnis-Tabelle oben, `window.LTEST_RES`. In der Cloud nur Ablauf prüfbar (0 FPS). 
 - Leistungstest am iPad (25.11., Mittel, Pixel 1,4): **Chrome** Basis 51 FPS, ohne Bloom 54, ohne Schatten 59, Auflösung 70 % 60, ohne Bäume 55 (Werte durch überholende Autos verrauscht). **Bluefy** Basis 36, Auflösung egal (32–33), ohne Alpha-Laub/Gras 45, ohne Bäume 49. CPU überall ca. 10 ms. Lesart: Chrome hängt knapp unter der 54er-Schwelle und an den Pixeln, Bluefy an den Bäumen (Blattkarten, vermutlich Eckpunkt-Last), nicht an der Auflösung.
 - 0.20.3 (Hicore: 0.20.2 lief erst 60 FPS/90 %, dann alle ~30 s Ruckler und wieder „28 FPS · max 30“): `FPSCTL.win(fps, maxFrameMs)` ersetzt `DRES.tick`/FCAP-Zweig. Unter 55 FPS Auflösung −10 % bis 70 % (nach jedem Wechsel ein Fenster Pause), kein Gewinn bei 70 % (< 3 FPS ggü. 100 %) → zurück auf 100 % und 5 min Sperre; 50–55 ungebremst, < 50 → 30er-Grenze, Probe alle 3 min; hoch +5 % nach 4×≥59, fällt es binnen 12 s → 3 min keine Erhöhung; Fenster mit Bild > 250 ms (Nachladen) zählen nicht. Alt: `window.OLD_FPSCTL`.
-- **Geplant 0.21.0 (Hicore will vollen Wald, nicht lichter):** Impostors: je Baumart beim Laden aus 8 Winkeln in einen Atlas rendern, ab ca. 50–60 m statt Blattkarten-Modell ein Billboard (2 Dreiecke) am echten Platz; volle 3D-Bäume nah und an Wegen. Laub nutzt bereits Alpha-Test (kein Blending). Vergleichsbilder alt/neu.
+- **0.21.0 Impostors (Bild-Bäume)**, Hicore will vollen Mischwald: `IMP`, `impAtlas` rendert beim Laden jede Art (`IMP.kinds`, 14 ohne Obstbäume) aus 8 Richtungen in einen Atlas (`RenderTarget` 8×256 × 14×256 px, Mipmaps, schwarz+Alpha 0 = vormultipliziert; LITE 128 px). `impCal` misst einmal per 2-Farben-Bild, ob das Backend Render-Target-Texturen gespiegelt ausliest (`IMP.fl`; WebGL2 ja). `impSet`/`impPut`/`impFin`: ein Mesh (`InstancedBufferGeometry`, Attribute `iP` x,y,z,rIn · `iS` Breite,Höhe,Drehung,Zeile · `iC` Farbe,rOut) = 1 Zeichenaufruf für alle Bild-Bäume. In `gpuFx` Zweig `fx.imp`: Quad dreht zur Kamera, Atlasspalte aus Blickwinkel minus Baumdrehung, Nachbarspalten weich gemischt, Normale kugelförmig (Licht wie Blattkarten), Instanzfarbe nach der Gamma-Umrechnung (wie 3D-Bäume), Schnee wie Laub, Gegenlicht-Schimmer, Alpha-Anhebung bei Verkleinerung. Übergang 3D ↔ Bild per Raster über `LOD_B` 12 m, Bild ↔ Fernkrone (Streckenbäume) ebenso.
+  - Radien: 3D bis `impR()` = 60 m (LITE 45, MINI 35, `window.__IR` zum Probieren), Kachelwald Bild bis `gtMidR` 280 m, dann Minikronen wie bisher. Streckenbäume (`TREE_LOD.I`): 3D bis max(60, Schattenbereich `TREE_SHR`), Bild bis `GFX_TREE_R`, dann Fernkrone. Mittelstufe (vereinfachte Kronen) entfällt für Arten mit Bild.
+  - Neu für alle Baumstufen: Instanzmitte `iO` (gesetzt über Hook in `setMatrixAt`), Vertex-Shader legt Bäume außerhalb ihres Bereichs auf einen Punkt (vorher bis 30 m Überhang voll gerechnet und nur per Raster verworfen). Alt: `window.OLD_NCULL`.
+  - Alt komplett: `window.OLD_IMP` oder `?oldimp=1`. Test `tests/timp.js` (`FPT=1` Waldrand-Punkte, `PRE='window.__IR=8'` = fast alles als Bild zum Vergleich, Atlas als `atlas*.jpg`). Bild vorschau/210_impostors.jpg.
+  - Zahlen Waldrand Jonsdorf: 3D-Bäume 480–620 → 90–140 je Bild, dazu 1.100–1.600 Bild-Bäume in einem Aufruf; Mittelstufe 1.100–1.600 → 0.
+- Ruckler (0.21.0, `tests/tstutter2.js` fährt die Strecke in 8-m-Schritten ohne Bildaufbau ab und misst die Streaming-Funktionen): Spitzen kommen von `gtFinish` (Gelände-Kachel fertigstellen, Cloud bis 18 ms), `gtForestRange` (bis 11 ms) und `fvFill` (Fernsicht neu verteilen, 5–13 ms, lief beim Nachrechnen alle 0,5 s und lud jedes Mal bis 8,5 MB Instanzdaten hoch). Neu: `upR` lädt nur den belegten Teil der Instanzpuffer hoch (Fernsicht, Wald, Bild-Bäume), Fernsicht beim Nachrechnen höchstens alle 2,5 s. Alt: `window.OLD_UPR`. Nächster Kandidat: `gtFinish` in Zeitscheiben (Normalen, Nebenstraßen-Netz).
+- Poly-Haven-Bodentexturen (0.21.0) sind Standard: gleiche Größe (512 px) und Anzahl wie die bisherigen, also kein FPS-/Speicherunterschied. Einmalige Umstellung über `hicoreRide.tex21`, danach gilt die Wahl im Menü.
 - Nächster Hebel für Bluefy (falls Hicore dort 60 will): Nahstufe der Bäume billiger (weniger Blattkarten, kleinerer Radius `gtNearR`/`GFX_TREE_R`), sichtbar prüfen.
 - Noch offen (falls nötig): eigener Fahrer 57 Zeichenaufrufe + 55 im Schatten, unbenannte Deko-Gruppe ca. 90, Häuser je Kachel ca. 60.
 
@@ -183,7 +177,6 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
 - 0.15.0 am iPad prüfen: Fahrgefühl Gravel/MTB, Ladezeit (+0,7 s), Wurzeln/Brücken.
 - Schnee-Reste aus 0.12.0: Dach-Schneekanten, Schneegeräusche (Details in docs/ARCHIV.md).
-- Poly-Haven-Texturen als Standard? Hicore soll am iPad vergleichen.
 - FIT- und Fahrtbild-Download in Bluefy kaputt. KI-Gespräch mit Figuren auf dem iPad unzuverlässig.
 - Redmi Note 10 Pro stürzt ab (ruht). Häuserflackern auf „Hoch“ (Chrome iPad) unbestätigt.
 - `tjun` meldet 3 bekannte, unkritische Artefakte.
@@ -194,6 +187,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 1a. 0.19.8 am iPad prüfen: Absteigen/Aufsteigen über den Sattel natürlich? Schultern Gravel (0.19.7) hat Hicore bestätigt. Gabeln 0.19.5 (Gravel starr, MTB federt genug/zu viel?), Treppe Oybin Kammstraße frei (0.19.2). Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).
 2. Poly-Haven-Paket **Stufe 2** (freigegeben): white_plaster_02, beige_wall_001, weathered_brown_planks, old_stone_wall, clay_roof_tiles_02, roof_slates_03, sandstone_cracks oder mossy_sandstone, bark_brown_02 oder pine_bark. Über die Sandbox holen, umschaltbar, Vergleichsbilder.
 3. Grashalme nur ca. 20–30 m um den Fahrer.
+1c. 0.21.0 am iPad prüfen (Chrome und Bluefy): FPS am Waldrand/im Wald, fällt der Wechsel 3D ↔ Bild auf (ca. 50–60 m), Bäume von oben/Berg, Ruckler noch da? Falls Übergang sichtbar: `impR` größer, Atlas 256 → 384 px.
 1b. 0.20.0 am iPad prüfen (Chrome und Bluefy): FPS-Anzeige ablesen (FPS, „max 30“, Prozent, CPU ms) an Start, im Ort, im Wald; Bäume/Wald unverändert? Stromsparmodus aus. Je nach CPU-Wert nächster Schritt: CPU hoch → weitere Zeichenaufrufe bündeln (Fahrer, Deko, Häuser); CPU niedrig → Grafiklast (Blattkarten-Bäume, Schatten, Nachbearbeitung).
 4. Leistung Teil 3 nur bei Bedarf: Modelle nach Bedarf laden (Rad-Verschmelzen seit 0.16.0, Wald-Bündeln seit 0.20.0 erledigt).
 5. Später: dezente Farbauswahl je Rad (über `BIKE_COLS`), Laufmodus (RSC/FTMS) auf demselben Netz.

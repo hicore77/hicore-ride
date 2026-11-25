@@ -232,7 +232,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
       <div class="spage" id="sGfx" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Grafik &amp; Anzeige</h3>
       <div class="grid">
         <div><label>Grafikqualität</label><select id="gfx"><option value="1.25">Ultra (volle Auflösung, beste Schatten, weite Baumdetails)</option><option value="1">Hoch (volle Auflösung)</option><option value="0.7" selected>Mittel</option><option value="0.5">Niedrig (Tablet/Laptop)</option><option value="0.35">Smartphone (minimal, läuft auf fast jedem Handy)</option></select></div>
-        <div><label>Bodentexturen</label><select id="texSet"><option value="alt" selected>bisherige</option><option value="neu">neu (Poly Haven, Test)</option></select></div>
+        <div><label>Bodentexturen</label><select id="texSet"><option value="neu" selected>Poly Haven (Standard)</option><option value="alt">bisherige</option></select></div>
         <div><label>Leuchten heller Stellen (Bloom)</label><select id="bloom"><option value="1" selected>an</option><option value="0">aus</option></select></div>
         <div><label>Auflösung automatisch anpassen</label><select id="dres"><option value="1" selected>an (senkt bei Ruckeln die Auflösung leicht)</option><option value="0">aus</option></select></div>
         <div><label>Bilder pro Sekunde anzeigen</label><select id="fpsShow"><option value="0">aus</option><option value="1" selected>an</option></select></div>
@@ -4831,7 +4831,9 @@ const PHOTO={};
 /* 0.11.6: Bilder liegen als eigene Dateien unter data/img (Browser lädt parallel und speichert zwischen), alte Einbettung als base64 geht weiter */
 function jpgSrc(v){ return (v.length<300 && v.indexOf('/')>=0) ? v : 'data:image/jpeg;base64,'+v; }
 /* 0.11.8 (Hicore): Poly-Haven-Texturen (CC0) für Wiese, Asphalt, Waldboden, Feldweg, Schotter als Alternative; Schalter in den Einstellungen, alt bleibt erhalten */
-window.TEX_NEU=(()=>{ const q=location.search; if (/[?&]tex=neu\b/.test(q)) return true; if (/[?&]tex=alt\b/.test(q)) return false; try{ return JSON.parse(localStorage.getItem('hicoreRide.tex')||'"alt"')==='neu'; }catch(e){ return false; } })();
+/* 0.21.0 (Hicore): Poly-Haven-Bodentexturen sind Standard (gleiche Größe 512 px, gleiche Anzahl -> kein Unterschied bei FPS/Speicher). Einmalig auf „neu“ umgestellt, danach gilt wieder die eigene Wahl. */
+try{ if (!localStorage.getItem('hicoreRide.tex21')){ localStorage.setItem('hicoreRide.tex21','1'); localStorage.setItem('hicoreRide.tex',JSON.stringify('neu')); } }catch(e){}
+window.TEX_NEU=(()=>{ const q=location.search; if (/[?&]tex=neu\b/.test(q)) return true; if (/[?&]tex=alt\b/.test(q)) return false; try{ return JSON.parse(localStorage.getItem('hicoreRide.tex')||'"neu"')==='neu'; }catch(e){ return true; } })();
 if (window.TEX_NEU && window.TEX_JPG_PH && window.TEX_JPG) Object.assign(window.TEX_JPG, window.TEX_JPG_PH);
 window.PHOTO_READY=new Promise(res=>{ const T=window.TEX_JPG||{}, ks=Object.keys(T); let n=ks.length; if (!n) return res(); const done=()=>{ if (--n<=0) res(); }; ks.forEach(k=>{ const im=new Image(); im.onload=done; im.onerror=done; im.src=jpgSrc(T[k]); PHOTO[k]=im; }); setTimeout(res,15000); });
 function photo(k){ const im=PHOTO[k]; return (im && im.complete && im.naturalWidth) ? im : null; }
@@ -5380,16 +5382,17 @@ function GURtouch(){ if (window.GPU_MODE) TSL.renderGroup.needsUpdate=true; }
 function GUT(){ if (!window.GPU_MODE) return {value:null}; const d=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1); d.needsUpdate=true; const n=TSL.texture(d); const proxy={ get value(){ return n.value===d?null:n.value; }, set value(t){ n.value=t||d; }, node:n }; return proxy; }
 function gpuFixInst(root){ if (!window.GPU_MODE || !root) return; root.traverse(o=>{ if (!o.isInstancedMesh || !o.instanceColor || o._icPow) return; const m=Array.isArray(o.material)?o.material[0]:o.material; const u=(m&&m.userData)||{}, b=(u.pbrOrig&&u.pbrOrig.userData)||{};
     if (!((u.pbrPrep||b.pbrPrep) && !u.lin)) return; const a=o.instanceColor.array; for (let i=0;i<a.length;i++) a[i]=Math.pow(Math.max(0,a[i]),2.2); o.instanceColor.needsUpdate=true; o._icPow=true; }); }
+if (window.GPU_MODE) try{ const sm=THREE.InstancedMesh.prototype.setMatrixAt; THREE.InstancedMesh.prototype.setMatrixAt=function(i,m){ sm.call(this,i,m); const o=this.geometry.attributes.iO; if (o){ o.array[i*2]=m.elements[12]; o.array[i*2+1]=m.elements[14]; o.needsUpdate=true; } }; }catch(e){}   /* 0.21.0: Baummitte für das Wegschneiden im Vertex-Shader */
 if (window.GPU_MODE) try{ const sc=THREE.InstancedMesh.prototype.setColorAt; THREE.InstancedMesh.prototype.setColorAt=function(i,c){ sc.call(this,i,c); if (this._icPow){ const a=this.instanceColor.array; for (let k=i*3;k<i*3+3;k++) a[k]=Math.pow(Math.max(0,a[k]),2.2); } }; }catch(e){}
 /* 0.12.0 (Hicore): Schnee. Art je Material: t Gelände, r Straße, g Gras, b Baumlaub, h alles andere (Dächer, Autos, Mauern …); Fahrer und Figuren nie */
 function snowKind(m){ const u=m.userData||{}, fx=u.fx||{}; if (u.isWater||u.noSnow||u.lin&&u.noSnowLin) return ''; if (!(m.isMeshLambertMaterial||m.isMeshStandardMaterial||m.isMeshPhongMaterial)) return '';
-  if (fx.terrain||fx.ways) return 't'; if (m.map&&m.map.userData&&m.map.userData.road) return 'r'; if (fx.wind) return fx.wind.hRef<2.5?'g':'b'; if (fx.dith&&fx.dith.tree) return 'b'; if (u.snowCar) return 'c'; return 'h'; }
+  if (fx.terrain||fx.ways) return 't'; if (fx.imp) return 'b'; if (m.map&&m.map.userData&&m.map.userData.road) return 'r'; if (fx.wind) return fx.wind.hRef<2.5?'g':'b'; if (fx.dith&&fx.dith.tree) return 'b'; if (u.snowCar) return 'c'; return 'h'; }
 function noSnow(root){ if (root) root.traverse(o=>{ if (o.material) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if (m&&m.userData) m.userData.noSnow=true; }); }); }
 function gpuSetup(){ const lib=renderer.library, orig=lib.fromMaterial.bind(lib);
   /* 0.4.8: WebGPU bildet den Pipeline-Schlüssel aus den Material-Eigenschaften (Funktionen nur als Quelltext). gpuFx baut Texturen fest ein,
      daher teilten z. B. Wertungs-Torbögen die Pipeline samt Start-Tor-Textur. Texturen als Text-Eigenschaft in den Schlüssel bringen. */
   if (!Object.getOwnPropertyDescriptor(THREE.Material.prototype,'gpuTexKey')) Object.defineProperty(THREE.Material.prototype,'gpuTexKey',{enumerable:true, configurable:true, set(v){},
-    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); const fx=this.userData&&this.userData.fx; if (fx){ for (const n of ['terrain','mask']) if (fx[n]&&fx[n].t&&fx[n].t.uuid) k+=n[0]+fx[n].t.uuid.slice(0,8); if (fx.ways) k+='WAYS'; if (fx.dith) k+='d'+fx.dith.mode+(fx.dith.a||'')+'-'+(fx.dith.b||''); if (fx.wind) k+='w'+fx.wind.amp; } const sk=snowKind(this); if (sk) k+='S'+sk; if (this.userData&&this.userData.mini) k+='mini'; return k; } });   /* 0.8.2: auch Überblendung/Wind, sonst bekamen ferne Kronen die Pipeline der Mini-Bäume (dunkle Kugeln neben Detailbäumen) */   /* 0.7.2: Loch-Masken mit in den Schlüssel, sonst teilten Kacheln und Grobgelände eine Maske (Löcher mit Himmel) */
+    get(){ let k=''; for (const n of ['map','alphaMap','normalMap','emissiveMap']){ const t=this[n]; if (t&&t.uuid) k+=t.uuid.slice(0,8); } const lu=this.userData&&this.userData.lu; if (lu) for (const v of Object.values(lu)) if (v&&v.uuid) k+=v.uuid.slice(0,8); const fx=this.userData&&this.userData.fx; if (fx){ for (const n of ['terrain','mask']) if (fx[n]&&fx[n].t&&fx[n].t.uuid) k+=n[0]+fx[n].t.uuid.slice(0,8); if (fx.ways) k+='WAYS'; if (fx.imp) k+='IMP'+fx.imp.t.uuid.slice(0,8); if (fx.dith) k+='d'+fx.dith.mode+(fx.dith.a||'')+'-'+(fx.dith.b||''); if (fx.wind) k+='w'+fx.wind.amp; } const sk=snowKind(this); if (sk) k+='S'+sk; if (this.userData&&this.userData.mini) k+='mini'; return k; } });   /* 0.8.2: auch Überblendung/Wind, sonst bekamen ferne Kronen die Pipeline der Mini-Bäume (dunkle Kugeln neben Detailbäumen) */   /* 0.7.2: Loch-Masken mit in den Schlüssel, sonst teilten Kacheln und Grobgelände eine Maske (Löcher mit Himmel) */
   /* Farben wie im alten Spiel roh lassen (ColorManagement aus), aber sRGB-Texturen und Bildausgabe trotzdem richtig umrechnen */
   const CSN=THREE.ColorSpaceNode; if (CSN && !CSN._hp){ CSN._hp=1; const o=CSN.prototype.setup; CSN.prototype.setup=function(b){ const CM=THREE.ColorManagement, e=CM.enabled; CM.enabled=true; try{ return o.call(this,b); } finally{ CM.enabled=e; } }; }
   lib.fromMaterial=m=>{ const nm=orig(m); if (nm && !m.isNodeMaterial){ try{ gpuFx(nm, m); }catch(e){ console.warn('GPU-Material',e); } }
@@ -5422,7 +5425,7 @@ function gpuWater(nm, m){ const T=TSL, nt=m.normalMap; if (!nt) return; const {v
   nm.emissiveNode=sky.mul(F.mul(0.8)).add(vec3(1.0,0.92,0.75).mul(glint)); }
 function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater){ gpuWater(nm,m); return; } const lin=!!u.lin, prep=!!u.pbrPrep, gam=prep && !lin && !(fx.terrain), ao=!!u.worldAO && !(fx.terrain);   /* Gelände: im alten Spiel griffen Gamma und AO nie (Anker im Shader ersetzt) -> hier auch nicht */
   const {vec2,vec3,vec4,float,texture,positionWorld,positionGeometry,positionLocal,cameraPosition,smoothstep,mix,clamp,length,normalize,dot,max,pow,Discard,If,screenCoordinate,modelWorldMatrixInverse}=T;
-  const isRoad=!!(m.map&&m.map.userData&&m.map.userData.road), sk=snowKind(m); const need=gam||ao||fx.mask||fx.terrain||fx.ways||fx.wind||fx.dith||isRoad||sk; if (!need) return;
+  const isRoad=!!(m.map&&m.map.userData&&m.map.userData.road), sk=snowKind(m); const need=gam||ao||fx.mask||fx.terrain||fx.ways||fx.wind||fx.dith||fx.imp||isRoad||sk; if (!need) return;
   const H=gpuHelpers();
   const P=positionWorld.xz;
   /* Grundfarbe: Material-Farbe * Textur (wie im Spiel als sRGB gemeint) */
@@ -5537,8 +5540,23 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
     if (m.vertexColors){ nm.vertexColors=false; c=c.mul(mix(T.vertexColor().rgb,vec3(1.0),luW)); }
     col=vec4(c, tex.a.mul(T.materialReference('opacity','float')));
   }
+  /* 0.21.0 Bild-Baum (Impostor): Quad dreht sich zur Kamera, Atlasbild nach Blickrichtung relativ zur Baumdrehung, zwei Nachbarrichtungen weich überblendet */
+  let impK=null;
+  if (fx.imp){ const I=fx.imp, iP=T.attribute('iP','vec4'), iS=T.attribute('iS','vec4'), iC=T.attribute('iC','vec4'), pg=positionGeometry, C=iP.xyz;
+    const dv=cameraPosition.xz.sub(C.xz), dO=length(dv), phW=T.atan(dv.x,dv.y), Rv=vec3(T.cos(phW),0.0,T.sin(phW).negate()), Fv=vec3(T.sin(phW),0.0,T.cos(phW));
+    const vis=dO.greaterThan(iP.w.sub(LOD_B+4.0)).and(dO.lessThan(iC.w.add(4.0)));
+    const pos=C.add(Rv.mul(pg.x.sub(0.5).mul(iS.x))).add(vec3(0.0,pg.y.mul(iS.y),0.0));
+    nm.positionNode=T.select(vis,pos,vec3(0.0,-1.0e5,0.0));
+    const fr=T.fract(phW.sub(iS.z).div(6.283185307)).mul(I.F), f0=T.floor(fr), fb=fr.sub(f0), f1=T.mod(f0.add(1.0),I.F);
+    const vv=mix(iS.w.add(pg.y).div(I.N), float(1.0).sub(iS.w.add(pg.y).div(I.N)), IMP.fl), uv0=T.varying(vec2(f0.add(pg.x).div(I.F), vv)), uv1=T.varying(vec2(f1.add(pg.x).div(I.F), vv)), vb=T.varying(fb);
+    const F3=normalize(cameraPosition.sub(C.add(vec3(0.0,iS.y.mul(0.5),0.0)))), nW=T.varying(normalize(Rv.mul(pg.x.sub(0.5).mul(1.5)).add(vec3(0.0,pg.y.sub(0.55).mul(1.1).add(0.3),0.0)).add(F3.mul(0.85))));   /* von oben gesehen zeigt die Normale nach oben (sonst dunkle Kronen vom Berg aus) */
+    nm.normalNode=normalize(T.cameraViewMatrix.mul(vec4(normalize(nW),0.0)).xyz);
+    const s0=texture(I.t,uv0), s1=texture(I.t,uv1), sm=mix(s0,s1,vb);
+    const dd=max(T.abs(T.dFdx(uv0)),T.abs(T.dFdy(uv0))).mul(vec2(I.F*I.S,I.N*I.S));
+    const a=clamp(sm.a.mul(float(1.0).add(max(float(0.0),T.log2(max(dd.x,dd.y))).mul(window.IMP_AB||0.35))),0.0,1.0);   /* Mipmaps: Krone dünnt in der Ferne nicht aus */
+    col=vec4(sm.rgb.div(max(sm.a,float(0.004))), a); impK={iP, iC}; }
   if (!col && (gam||ao||fx.dith||isRoad||sk)){ let c=vec4(T.materialReference('color','color'), T.materialReference('opacity','float')); if (m.map && m.alphaTest>0){ if (!m.map.premultiplyAlpha){ m.map.premultiplyAlpha=true; m.map.needsUpdate=true; } const tx=texture(m.map); c=c.mul(vec4(tx.rgb.div(max(tx.a,float(0.004))),tx.a)); } else if (m.map) c=c.mul(texture(m.map)); if (m.vertexColors){ nm.vertexColors=false; c=vec4(c.rgb.mul(T.vertexColor().rgb), c.a); } col=c; }
-  if (col){ let rgb=col.rgb; if (gam) rgb=toLin(rgb); if (ao){ const aoS=PBR.aoU.node.sample(positionWorld.xz.sub(vec2(PBR.aoOE.x)).div(PBR.aoOE.y)).r; rgb=rgb.mul(mix(float(1.0),aoS,PBR.aoOn)); } col=vec4(rgb,col.a); }
+  if (col){ let rgb=col.rgb; if (gam) rgb=toLin(rgb); if (impK) rgb=rgb.mul(impK.iC.rgb);   /* Instanzfarbe wie bei den 3D-Bäumen nach der Umrechnung (dort ohne _icPow) */ if (ao){ const aoS=PBR.aoU.node.sample(positionWorld.xz.sub(vec2(PBR.aoOE.x)).div(PBR.aoOE.y)).r; rgb=rgb.mul(mix(float(1.0),aoS,PBR.aoOn)); } col=vec4(rgb,col.a); }
   /* 0.12.0 Schnee: liegt zuerst auf flachen Flächen, Fleckenmuster statt Teppich, Höhe zählt (Lausche/Kamm länger weiß), bei Tauwetter tauen Süd- und Steilhänge zuerst */
   let snowE=null, snowR=null;
   if (col && sk){ const S=SNOW, Pw=positionWorld, n=normalize(T.normalWorldGeometry), up=m.side===THREE.DoubleSide?T.abs(n.y):n.y;   /* doppelseitige Flächen haben oft nach unten zeigende Normalen */
@@ -5612,6 +5630,8 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
     else if (D.mode==='R') lodP=smoothstep(D.a,D.b,length(positionWorld.xz.sub(WIND.rp.xz)));
     else lodP=smoothstep(D.a,D.b,length(positionWorld.xz.sub(cameraPosition.xz)));
     if (D.tree) lodP=smoothstep(T.attribute('iLodR','float').sub(LOD_B),T.attribute('iLodR','float'),length(positionWorld.xz.sub(cameraPosition.xz)));
+    /* 0.21.0: Baum ganz außerhalb seines Bereichs (Instanzmitte iO) -> alle Ecken auf einen Punkt, kein Pixel wird mehr berechnet. Vorher liefen Nahbäume bis 30 m über die Grenze voll durch (nur per Raster verworfen). Alt: window.OLD_NCULL */
+    if (D.tree && !window.OLD_NCULL){ const iO=T.attribute('iO','vec2'), dO=length(iO.sub(cameraPosition.xz)), Rl=T.attribute('iLodR','float'); const vis=D.mode==='F'?dO.greaterThan(Rl.sub(LOD_B+14.0)):dO.lessThan(Rl.add(14.0)); nm.positionNode=T.select(vis, nm.positionNode||positionLocal, vec3(0.0,-1.0e5,0.0)); }
     const keepF=D.mode==='F'?lodP:float(1.0).sub(lodP);
     if (D.tree && D.hasMap && col){ const uvn=T.uv(), dd=max(T.abs(T.dFdx(uvn)),T.abs(T.dFdy(uvn))).mul(256.0); col=vec4(col.rgb, clamp(col.a.mul(float(1.0).add(max(float(0.0),T.log2(max(dd.x,dd.y))).mul(0.18))),0.0,1.0)); }   /* Laub dünnt in der Ferne nicht aus */
     if (D.a2c){ col=vec4(col.rgb, col.a.mul(keepF)); }
@@ -5620,6 +5640,9 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
       if (window.OLD_LEAFGLOW || /[?&]oldleaf=1/.test(location.search)){ const bl=pow(max(0.0,dot(vd,SUNU)),5.0); nm.emissiveNode=col.rgb.mul(vec3(0.8,0.9,0.3)).mul(bl).mul(1.4); }
       else { /* 0.13.0 (Hicore: Laub leuchtet im Gegenlicht grell hellgrün): Durchscheinen schwächer, enger um die Sonne, natürlicheres Grün, bei Schneelage kaum noch */
         const bl=pow(max(0.0,dot(vd,SUNU)),8.0), sn=float(1.0).sub(smoothstep(0.0,0.12,SNOW.a).mul(0.75)); nm.emissiveNode=col.rgb.mul(vec3(0.45,0.62,0.2)).mul(bl).mul(0.65).mul(sn); } } }
+  if (impK && col){ const dF=length(positionWorld.xz.sub(cameraPosition.xz)), lin=smoothstep(impK.iP.w.sub(LOD_B),impK.iP.w,dF), lout=smoothstep(impK.iC.w.sub(LOD_B),impK.iC.w,dF), lh=H.bay8(screenCoordinate.xy);
+    const kill=lh.greaterThanEqual(lin).or(lh.lessThan(lout)); nm.maskNode=nm.maskNode?nm.maskNode.and(kill.not()):kill.not();
+    const vd=normalize(positionWorld.sub(cameraPosition)), bl=pow(max(0.0,dot(vd,SUNU)),8.0), sn=float(1.0).sub(smoothstep(0.0,0.12,SNOW.a).mul(0.75)); nm.emissiveNode=(nm.emissiveNode?nm.emissiveNode:vec3(0.0)).add(col.rgb.mul(vec3(0.45,0.62,0.2)).mul(bl).mul(0.65).mul(sn)); }
   if (col) nm.colorNode=col;
 }
 // Wind für Gras, Sträucher und Blätter: leichtes Wehen + Fahrtwind des Fahrers (Gras wird beim Vorbeifahren weggedrückt und schwingt nach)
@@ -6002,20 +6025,22 @@ function treeKit(def){
 function treeTint(c,f){ const r=rand(); if (r<0.55) c.setRGB(f*(0.92+rand()*0.12),f*(0.97+rand()*0.06),f*(0.85+rand()*0.15)); else if (r<0.77) c.setRGB(f*1.12,f*1.07,f*0.72); else if (r<0.95) c.setRGB(f*1.0,f*0.92,f*0.64); else c.setRGB(f*1.15,f*0.92,f*0.62); return c; }   // Farbvielfalt: grün, gelbgrün, oliv, bronze
 // Bäume: nahe = volle Blattkarten, ferne = einfache Kronen; wird beim Fahren neu verteilt
 let TREE_LOD=null;
-function setupTreeLOD(sets, kit, grp){
-  const types=Object.values(sets).filter(st=>st&&st.c>0).map(st=>{ const mkSet=(parts,far,sh)=>parts.map(([geo,mat,vary])=>{ if (geo.attributes.iLodR) geo=geo.clone(); geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(st.c),1)); const im=mkIM(geo,lodMat(mat,far),st.c); im.castShadow=!st.k.startsWith('bush') && (window.OLD_TREESH || sh); im.userData.vary=!!vary; if (vary) im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(st.c*3).fill(1),3); im.count=0; grp.add(im); return im; });
+function setupTreeLOD(sets, kit, grp){ const IMPI=impAtlas(null);
+  const types=Object.values(sets).filter(st=>st&&st.c>0).map(st=>{ const mkSet=(parts,far,sh)=>parts.map(([geo,mat,vary])=>{ if (geo.attributes.iLodR) geo=geo.clone(); geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(st.c),1)); geo.setAttribute('iO',new THREE.InstancedBufferAttribute(new Float32Array(st.c*2),2)); const im=mkIM(geo,lodMat(mat,far),st.c); im.castShadow=!st.k.startsWith('bush') && (window.OLD_TREESH || sh); im.userData.vary=!!vary; if (vary) im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(st.c*3).fill(1),3); im.count=0; grp.add(im); return im; });
     const pos=new Float32Array(st.c*2); st.mats.forEach((m,i)=>{ pos[i*2]=m.elements[12]; pos[i*2+1]=m.elements[14]; });
     /* 0.20.0: Schatten werfen nur Bäume im Schattenbereich (nearS, Radius TREE_SHR um die Kamera). Vorher liefen alle Instanzen bis ca. 1 km (nah und fern) jedes Bild ein zweites Mal durch den Schattendurchgang. Alt: window.OLD_TREESH */
-    return {st, near:mkSet(kit.TYPES[st.k](),false,false), nearS:window.OLD_TREESH?null:mkSet(kit.TYPES[st.k](),false,true), far:mkSet(kit.FAR[st.k](),true,false), pos}; });
-  TREE_LOD={types, last:null, R:GFX_TREE_R}; updateTreeLOD(new THREE.Vector3(1e9,0,1e9)); }
+    return {st, imp:IMPI&&IMPI[st.k]||null, near:mkSet(kit.TYPES[st.k](),false,false), nearS:window.OLD_TREESH?null:mkSet(kit.TYPES[st.k](),false,true), far:mkSet(kit.FAR[st.k](),true,false), pos}; });
+  let I=null; if (IMPI){ const n=types.reduce((a,t)=>a+(t.imp?t.st.c:0),0); if (n){ I=impSet(n); grp.add(I.m); } }   /* 0.21.0: Bild-Bäume der Streckenbäume, ein Zeichenaufruf */
+  TREE_LOD={types, last:null, R:GFX_TREE_R, I}; updateTreeLOD(new THREE.Vector3(1e9,0,1e9)); }
 function updateTreeLOD(cp, force){ const T=TREE_LOD; if (!T) return; if (!force && T.last && Math.hypot(cp.x-T.last.x,cp.z-T.last.z)<(LITE?10:25)) return; const LM=LITE?12:LOD_M; T.last={x:cp.x,z:cp.z}; const R2=T.R*T.R;
-  const SHR=window.TREE_SHR||80; for (const t of T.types){ let a=0, b=0, cs=0; const st=t.st;
+  const SHR=window.TREE_SHR||80, I=T.I, RI=Math.max(impR(),SHR); if (I) I.n=0; for (const t of T.types){ let a=0, b=0, cs=0; const st=t.st;
     for (let i=0;i<st.c;i++){ const dx=t.pos[i*2]-cp.x, dz=t.pos[i*2+1]-cp.z, rf=st.rf&&st.rf[i]||1, Rt=T.R*Math.sqrt(rf), d=Math.sqrt(dx*dx+dz*dz);
-      const put=(set,j)=>{ for (const im of set){ im.setMatrixAt(j,st.mats[i]); im.geometry.attributes.iLodR.array[j]=Rt; if (im.userData.vary) im.setColorAt(j,st.cols[i]); } };
-      if (d<Rt+LM){ if (t.nearS && d<SHR) put(t.nearS,cs++); else put(t.near,a++); } if (d>Rt-LOD_B-LM && !(LITE ? (st.k.startsWith('bush') ? (d>(MINI?120:200) || (d>90 && (i&3))) : ((d>170 && (i&1)) || (d>340 && (i&3)) || d>(MINI?320:480))) : (st.k.startsWith('bush') ? (d>380 || (d>200 && (i&1))) : ((d>420 && (i&1)) || d>950)))) put(t.far,b++); }   // im Übergangsband in beiden Stufen, der Shader blendet per Raster über
+      const ti=I&&t.imp&&Rt>RI+LOD_B, Rn=ti?RI:Rt;   /* 0.21.0: 3D nur bis RI (mind. Schattenbereich), dahinter Bild-Baum bis Rt, dann wie bisher Fernkrone */
+      const put=(set,j)=>{ for (const im of set){ im.setMatrixAt(j,st.mats[i]); im.geometry.attributes.iLodR.array[j]=Rn; if (im.userData.vary) im.setColorAt(j,st.cols[i]); } };
+      if (d<Rn+LM){ if (t.nearS && d<SHR) put(t.nearS,cs++); else put(t.near,a++); } if (ti && d>Rn-LOD_B-LM && d<Rt+LM) impPut(I,st.mats[i],st.cols[i],t.imp,Rn,Rt); if (d>Rt-LOD_B-LM && !(LITE ? (st.k.startsWith('bush') ? (d>(MINI?120:200) || (d>90 && (i&3))) : ((d>170 && (i&1)) || (d>340 && (i&3)) || d>(MINI?320:480))) : (st.k.startsWith('bush') ? (d>380 || (d>200 && (i&1))) : ((d>420 && (i&1)) || d>950)))) put(t.far,b++); }   // im Übergangsband in beiden Stufen, der Shader blendet per Raster über
     t.near.forEach(im=>{ im.count=a; im.visible=a>0||!!window.OLD_IMVIS; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
     if (t.nearS) t.nearS.forEach(im=>{ im.count=cs; im.visible=cs>0||!!window.OLD_IMVIS; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
-    t.far.forEach(im=>{ im.count=b; im.visible=b>0||!!window.OLD_IMVIS; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; }); } }
+    t.far.forEach(im=>{ im.count=b; im.visible=b>0||!!window.OLD_IMVIS; im.instanceMatrix.needsUpdate=true; im.geometry.attributes.iLodR.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; }); } if (I) impFin(I); }
 // Weicher Wechsel grob <-> fein: beide Stufen im Band LOD_B, pro Pixel per geordnetem Raster (Bayer 8x8) überblendet
 const LOD_B=12, LOD_M=30;
 const CAMP_GLSL='(-vec3(dot(viewMatrix[0].xyz,viewMatrix[3].xyz),dot(viewMatrix[1].xyz,viewMatrix[3].xyz),dot(viewMatrix[2].xyz,viewMatrix[3].xyz)))';
@@ -6047,6 +6072,50 @@ function ditherMat(mat, mode, a, b){ let c=DITH_MC.get(mat); if (!c){ c={}; DITH
   const okc=ok&&ok!==THREE.Material.prototype.customProgramCacheKey?ok:null; w.customProgramCacheKey=()=>(okc?okc.call(base):'')+'|dith'+ck+(a2c?'a':'');
   c[ck]=w; return w; }
 function lodMat(mat, far){ return ditherMat(mat, far?'F':'N'); }
+/* 0.21.0 Impostors (Hicore: voller Mischwald, aber flüssig): jede Baumart wird beim Laden einmal aus 8 Richtungen in einen Bildatlas gerendert (Zeile = Art, Spalte = Blickrichtung).
+   Ab ca. 60 m steht statt des 3D-Baums ein zur Kamera gedrehtes Bild (2 Dreiecke) an der echten Stelle, mit echter Größe, Drehung, Farbe, Licht, Nebel und Schnee.
+   Übergang 3D <-> Bild per Pixelraster über 12 m (wie bisher zwischen Nah- und Fernstufe), zwischen zwei Blickrichtungen wird weich überblendet.
+   Alle Bild-Bäume zusammen sind EIN Zeichenaufruf. Alt (nur 3D bis 150 m, dahinter vereinfachte Kronen): window.OLD_IMP */
+const IMP={on:!!window.GPU_MODE && !window.OLD_IMP && !/[?&]oldimp=1/.test(location.search), kinds:['spruce','pine','beech','beech2','oak','oak2','birch','birch2','maple','linden','linden2','ash','bushA','bushB'], F:8, info:null, tex:null};
+function impR(){ return window.__IR||(MINI?35:LITE?45:60); }
+function impAtlas(def){ if (!IMP.on) return null; if (IMP.info) return IMP.info; if (IMP.fail || !GPU_READY) return null;
+  try{ const T=TSL, kit=treeKit(def||{}), F=IMP.F, S=window.__IMPS||(LITE?128:256), list=IMP.kinds.filter(k=>kit.TYPES[k]), N=list.length; if (!N){ IMP.fail=1; return null; }
+    const sc=new THREE.Scene(), BM=new Map(), geos=[], texs=new Set(), info={};
+    const bm=(m)=>{ let b=BM.get(m); if (b) return b; b=new THREE.MeshBasicNodeMaterial(); b.side=THREE.DoubleSide; b.fog=false; const c=m.color||new THREE.Color(1,1,1); let rgb=T.vec3(c.r,c.g,c.b), a=T.float(1.0);
+      if (m.map){ texs.add(m.map); if (m.alphaTest>0 && !m.map.premultiplyAlpha){ m.map.premultiplyAlpha=true; m.map.needsUpdate=true; } const tx=T.texture(m.map); rgb=rgb.mul(m.map.premultiplyAlpha?tx.rgb.div(T.max(tx.a,T.float(0.004))):tx.rgb); if (m.alphaTest>0) a=T.select(tx.a.greaterThanEqual(m.alphaTest),T.float(1.0),T.float(0.0)); }
+      if (m.vertexColors) rgb=rgb.mul(T.vertexColor().rgb); b.colorNode=T.vec4(rgb,a); b.alphaTest=0.5; BM.set(m,b); return b; };
+    const q=new THREE.Quaternion(), UP=new THREE.Vector3(0,1,0);
+    list.forEach((k,row)=>{ const parts=kit.TYPES[k](); let w2=0.1, y0=1e9, y1=-1e9;
+      parts.forEach(([g])=>{ const p=g.attributes.position; for (let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i); w2=Math.max(w2,Math.hypot(x,z)); y0=Math.min(y0,y); y1=Math.max(y1,y); } geos.push(g); });
+      w2*=1.02; const H=(y1-y0)*1.02; info[k]={row, w2, y0, H};
+      for (let f=0;f<F;f++){ const th=f/F*Math.PI*2; q.setFromAxisAngle(UP,-th);
+        parts.forEach(([g,m])=>{ const o=new THREE.Mesh(g,bm(m)); o.matrixAutoUpdate=false; const M=new THREE.Matrix4().makeTranslation(f+0.5,row,0).multiply(new THREE.Matrix4().makeScale(1/(2*w2),1/H,1/(2*w2))).multiply(new THREE.Matrix4().makeRotationFromQuaternion(q)).multiply(new THREE.Matrix4().makeTranslation(0,-y0,0)); o.matrix.copy(M); o.frustumCulled=false; sc.add(o); }); } });
+    const cam=new THREE.OrthographicCamera(0,F,N,0,0.1,20); cam.position.set(0,0,5); cam.updateMatrixWorld(true);
+    const rt=new THREE.RenderTarget(F*S, N*S, {generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter, magFilter:THREE.LinearFilter, depthBuffer:true});
+    const cc=new THREE.Color(); renderer.getClearColor(cc); const ca=renderer.getClearAlpha(), ac=renderer.autoClear, prt=renderer.getRenderTarget();
+    renderer.setRenderTarget(rt); renderer.setClearColor(new THREE.Color(0,0,0),0);   /* schwarz+0: Atlas ist damit vormultipliziert, Mipmaps mischen keine Fremdfarbe ein */ renderer.autoClear=true; renderer.render(sc,cam);
+    renderer.setRenderTarget(prt); renderer.setClearColor(cc,ca); renderer.autoClear=ac;
+    BM.forEach(b=>b.dispose()); geos.forEach(g=>g.dispose()); texs.forEach(t=>t.dispose());
+    IMP.tex=rt.texture; IMP.rt=rt; IMP.N=N; IMP.S=S; IMP.info=info; impCal(cam); return info;
+  }catch(e){ console.warn('impostor',e); IMP.fail=1; IMP.on=false; return null; } }
+/* Ob Render-Target-Texturen beim Auslesen oben/unten vertauscht sind, hängt vom Backend ab (WebGPU/WebGL2): einmal mit einem 2-Farben-Bild messen statt raten */
+function impCal(cam){ const T=TSL; IMP.fl=IMP.fl||T.uniform(0.0); try{ const c=new THREE.RenderTarget(2,2), o=new THREE.RenderTarget(1,1), sc=new THREE.Scene(), sc2=new THREE.Scene(), g=new THREE.PlaneGeometry(1,0.5), mats=[];
+    [[1,0,0,0.25],[0,1,0,0.75]].forEach(([r,gg,b,y])=>{ const m=new THREE.MeshBasicNodeMaterial(); m.colorNode=T.vec4(r,gg,b,1.0); mats.push(m); const q=new THREE.Mesh(g,m); q.position.set(0.5,y,0); sc.add(q); });
+    const c2=new THREE.OrthographicCamera(0,1,1,0,0.1,20); c2.position.set(0,0,5); c2.updateMatrixWorld(true);
+    const m2=new THREE.MeshBasicNodeMaterial(); m2.colorNode=T.texture(c.texture,T.vec2(0.5,0.25)); mats.push(m2); const g2=new THREE.PlaneGeometry(1,1); const q2=new THREE.Mesh(g2,m2); q2.position.set(0.5,0.5,0); sc2.add(q2);
+    const prt=renderer.getRenderTarget(); renderer.setRenderTarget(c); renderer.render(sc,c2); renderer.setRenderTarget(o); renderer.render(sc2,c2); renderer.setRenderTarget(prt);
+    renderer.readRenderTargetPixelsAsync(o,0,0,1,1).then(px=>{ IMP.cal=Array.from(px); IMP.fl.value=px[1]>px[0]?1.0:0.0; c.dispose(); o.dispose(); g.dispose(); g2.dispose(); mats.forEach(m=>m.dispose()); }).catch(e=>console.warn('impostor cal',e));
+  }catch(e){ console.warn('impostor cal',e); } }
+/* Bild-Baum-Set: InstancedBufferGeometry (Quad) + Attribute iP(x,y,z,rIn) iS(breite,höhe,drehung,zeile) iC(r,g,b,rOut) */
+function impSet(cap){ const g=new THREE.InstancedBufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0, 1,0,0, 0,1,0, 1,1,0],3)); g.setAttribute('normal',new THREE.Float32BufferAttribute([0,0.75,0.66, 0,0.75,0.66, 0,0.75,0.66, 0,0.75,0.66],3)); g.setIndex([0,1,2, 2,1,3]);
+  const at=n=>{ const a=new THREE.InstancedBufferAttribute(new Float32Array(cap*4),4); a.setUsage(THREE.DynamicDrawUsage); g.setAttribute(n,a); return a; }; const iP=at('iP'), iS=at('iS'), iC=at('iC'); g.instanceCount=0;
+  if (!IMP.mat){ IMP.mat=new THREE.MeshLambertMaterial({color:0xffffff, alphaTest:0.5}); IMP.mat.userData.fx={imp:{t:IMP.tex, N:IMP.N, S:IMP.S, F:IMP.F}}; }
+  const m=new THREE.Mesh(g, IMP.mat); m.frustumCulled=false; m.castShadow=false; m.receiveShadow=true; m.visible=false; m.userData.imp=true;
+  return {m, g, cap, iP, iS, iC, n:0}; }
+function impPut(I, mm, cc, inf, rIn, rOut){ const n=I.n++; if (n>=I.cap) return; const e=mm.elements, sx=Math.hypot(e[0],e[1],e[2]), sy=Math.hypot(e[4],e[5],e[6]), sz=Math.hypot(e[8],e[9],e[10]);
+  const P=I.iP.array, Sa=I.iS.array, C=I.iC.array, o=n*4; P[o]=e[12]; P[o+1]=e[13]+inf.y0*sy; P[o+2]=e[14]; P[o+3]=rIn; Sa[o]=inf.w2*(sx+sz); Sa[o+1]=inf.H*sy; Sa[o+2]=Math.atan2(e[8],e[10]); Sa[o+3]=inf.row; C[o]=cc.r; C[o+1]=cc.g; C[o+2]=cc.b; C[o+3]=rOut; }
+function impFin(I){ const n=Math.min(I.n,I.cap); I.g.instanceCount=n; I.m.visible=n>0; if (n){ upR(I.iP,n); upR(I.iS,n); upR(I.iC,n); } }
 function pickMix(mix){ let r=rand(); for (const [k,w] of mix){ if (r<w) return k; r-=w; } return mix[mix.length-1][0]; }
 // ---------- Zäune und Hecken (prozedural) ----------
 function buildFencesHedges(def, grp, W){
@@ -6852,7 +6921,7 @@ function buildZtMarks(){ const Z=window.ZGZT; if (!Z || !GN.d) return null; cons
   grp.userData.stat={nDash,nArrow,nBike,nSign}; return grp; }
 /* ---------- Gelände in Kacheln (World Streaming): 500-m-Kacheln mit 10-m-Raster rund um den Fahrer, grobes Gesamtgelände darunter ---------- */
 const GT={on:false, tiles:new Map(), S:500, NS:50};
-function gtInit(def, coarse, gt){ GT.on=true; GT.pp=null; GT.dv=null; GT.tiles=new Map(); GT.job=null; GT.fk=null; GT.flast=null; GT.w=null; GT.mu=null; GT.hm=null; GT.hj=null; GT.def=def; GT.R=LITE?(MINI?700:1100):1750;
+function gtInit(def, coarse, gt){ GT.on=true; GT.pp=null; GT.dv=null; GT.tiles=new Map(); GT.job=null; GT.fk=null; GT.flast=null; GT.w=null; GT.imp=null; GT.imi=null; GT.mu=null; GT.hm=null; GT.hj=null; GT.def=def; GT.R=LITE?(MINI?700:1100):1750;
   const m2=new THREE.MeshLambertMaterial({vertexColors:true, map:gt}); m2.userData.lu=coarse.material.userData.lu; terrainHoleMaterial(m2, def.roadW||7, {S:4}); m2.userData.worldAO=true; m2.userData.pbr={n:1.2, r:0.95, e:0.7}; GT.mat=m2;
   GT.cv=coarse.material.userData.holeCv; GT.tex=coarse.material.userData.holeTex; GT.grp=new THREE.Group(); worldGroup.add(GT.grp);
   const st=gnSigns(); GT.sig=new Map(); st.forEach(o=>{ const k=Math.floor(o.x/GT.S)+','+Math.floor(o.z/GT.S); let l=GT.sig.get(k); if (!l) GT.sig.set(k,l=[]); l.push(o); });
@@ -6870,6 +6939,7 @@ function gtForestKit(){ if (GT.fk) return GT.fk; const kit=treeKit(GT.def), fk={
   ['spruce','pine','beech','beech2','oak','birch','maple','ash','linden2','bushA','bushB','apple','pear','cherry','plum','walnut'].filter(k=>kit.TYPES[k]).forEach(k=>{ fk[k]={near:kit.TYPES[k](), far:kit.FAR[k]()}; fk[k].nearM=fk[k].near.map(pp=>lodMat(pp[1],false)); fk[k].farM=fk[k].far.map(pp=>lodMat(pp[1],true)); fk[k].mini=gtMiniTree(k,fk[k].far); });
   /* 0.9.8 Test: Higgsfield-Baummodelle (ca. 3.000 Dreiecke, eine 512er Textur) als Nahstufe für Fichte und Buche; Fern- und Minikronen bleiben. Test 0.9.8: optisch schlechter als die Blattkarten-Bäume, daher aus (Modelle in props_test) */
   if (/baum3d=1/.test(location.search)) [['spruce','tree_spruce'],['beech','tree_beech']].forEach(([k,n])=>{ if (!fk[k] || !PROP_LIB[n]) return; fk[k].near=PROP_LIB[n].map(({geo,mat})=>{ if (mat.map) mat.map.anisotropy=2; return [geo,mat]; }); fk[k].nearM=fk[k].near.map(pp=>lodMat(pp[1],false)); fk[k].hf=true; });
+  try{ GT.imi=impAtlas(GT.def); }catch(e){ GT.imi=null; }
   GT.fk=fk; GT.mixLo=[['beech',0.16],['beech2',0.12],['spruce',0.3],['oak',0.08],['birch',0.08],['pine',0.1],['maple',0.05],['ash',0.06],['linden2',0.05]].filter(e=>fk[e[0]]); GT.mixHi=[['spruce',0.64],['pine',0.1],['beech',0.14],['birch',0.06],['beech2',0.06]].filter(e=>fk[e[0]]); return fk; }
 /* 0.7.2: dritte Stufe für ferne Bäume: ein einfacher Kegel bzw. eine Krone aus wenigen Dreiecken, undurchsichtig, ca. 5 bis 24 Dreiecke statt 160 bis 670 */
 function gtMiniTree(k, far){ const bb=new THREE.Box3(); let col=null, best=-1; far.forEach(([g,m])=>{ if (!g.boundingBox) g.computeBoundingBox(); bb.union(g.boundingBox); const c=m&&m.color; if (c && c.g-c.r>best){ best=c.g-c.r; col=c; } });
@@ -6918,7 +6988,7 @@ function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S
       e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(t===6?0.6+rnd()*0.3:0.85+rnd()*0.35),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
       const f=0.76+rnd()*0.32; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[kt]=by[kt]||[]).push([m.clone(),col.clone()]); } }
   const grp=new THREE.Group(), RT=gtNearR(), out={grp, types:[], cx:x0+S/2, cz:z0+S/2}, bs=new THREE.Sphere(new THREE.Vector3(x0+S/2, terrainH(x0+S/2,z0+S/2), z0+S/2), S*0.72+90);   /* Kachel-Hülle: Wald hinter der Kamera wird nicht gezeichnet */
-  Object.entries(by).forEach(([k,L])=>{ const c=L.length, mk=(parts,mats,far)=>parts.map(([g],pi)=>{ const geo=new THREE.BufferGeometry(); for (const nm in g.attributes) if (nm!=='iLodR') geo.setAttribute(nm,g.attributes[nm]); if (g.index) geo.setIndex(g.index); geo.groups=g.groups; geo.boundingSphere=g.boundingSphere;   /* Puffer teilen statt kopieren */ geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(c).fill(RT),1)); const im=mkIM(geo,mats[pi],c); im.castShadow=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ im.setMatrixAt(ii,mm); im.setColorAt(ii,cc); }); im.count=0; im.frustumCulled=true; im.boundingSphere=bs; grp.add(im); return im; });
+  Object.entries(by).forEach(([k,L])=>{ const c=L.length, mk=(parts,mats,far)=>parts.map(([g],pi)=>{ const geo=new THREE.BufferGeometry(); for (const nm in g.attributes) if (nm!=='iLodR'&&nm!=='iO') geo.setAttribute(nm,g.attributes[nm]); if (g.index) geo.setIndex(g.index); geo.groups=g.groups; geo.boundingSphere=g.boundingSphere;   /* Puffer teilen statt kopieren */ geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(c).fill(RT),1)); geo.setAttribute('iO',new THREE.InstancedBufferAttribute(new Float32Array(c*2),2)); const im=mkIM(geo,mats[pi],c); im.castShadow=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ im.setMatrixAt(ii,mm); im.setColorAt(ii,cc); }); im.count=0; im.frustumCulled=true; im.boundingSphere=bs; grp.add(im); return im; });
     let mi=null; if (!GTW_ON){ mi=mkIM(fk[k].mini[0],fk[k].mini[1],c); mi.castShadow=false; mi.frustumCulled=true; mi.boundingSphere=bs; mi.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(c*3).fill(1),3); L.forEach(([mm,cc],ii)=>{ mi.setMatrixAt(ii,mm); mi.setColorAt(ii,cc); }); mi.count=c; grp.add(mi); }
     out.types.push({L, k, st:'m', mini:mi, mp:fk[k].mini[0].userData.mp, near:GTW_ON?[]:mk(fk[k].near,fk[k].nearM,false), far:GTW_ON?[]:mk(fk[k].far,fk[k].farM,true)}); });
   if (GTW_ON && out.types.length){ const U=gtMiniU(); let nc=0, nb=0; out.types.forEach(T=>{ if (T.mp.con) nc+=T.L.length; else nb+=T.L.length; });
@@ -6943,19 +7013,22 @@ function gtHouseStep(cp, ms){ let best=null, bd=1e9; GT.tiles.forEach(t=>{ if (t
 /* 0.20.0: Nah- und Mittelstufe des Kachelwalds gebündelt: je Baumart und Teil EIN Instanz-Mesh für alle Kacheln (GT.w) statt eines je 500-m-Kachel.
    Vorher ca. 750 Zeichenaufrufe je Bild nur für den Wald (Kacheln x Arten x Teile), jetzt ca. 50. Minikronen bleiben je Kachel. Alt: window.OLD_GTW */
 const GTW_ON=!window.OLD_GTW;
-function gtwSet(k, cap){ const fk=GT.fk[k], RT=gtNearR(); const mk=(parts,mats)=>parts.map(([g],pi)=>{ const geo=new THREE.BufferGeometry(); for (const nm in g.attributes) if (nm!=='iLodR') geo.setAttribute(nm,g.attributes[nm]); if (g.index) geo.setIndex(g.index); geo.groups=g.groups; geo.boundingSphere=g.boundingSphere;
-    geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(cap).fill(RT),1)); const im=mkIM(geo,mats[pi],cap); im.castShadow=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(cap*3).fill(1),3); im.count=0; im.visible=false; im.userData.gtw=true; GT.grp.add(im); return im; });
-  return {cap, near:mk(fk.near,fk.nearM), far:mk(fk.far,fk.farM)}; }
-function gtwDrop(W){ [...W.near,...W.far].forEach(im=>{ GT.grp.remove(im); im.geometry.deleteAttribute('iLodR'); im.dispose&&im.dispose(); }); }
-function gtForestLOD(cp){ if (!GT.on) return; if (GT.flast && Math.hypot(cp.x-GT.flast.x,cp.z-GT.flast.z)<(LITE?10:20)) return; GT.flast={x:cp.x,z:cp.z}; const RT=gtNearR(), RM=gtMidR(), R2=(RT+LOD_M)*(RT+LOD_M), M2=RM*RM; const W=GTW_ON?(GT.w||(GT.w={})):null, WA={}, WB={}; let grow=false;
+function gtwSet(k, cap){ const fk=GT.fk[k], RT=gtNearRk(k); const mk=(parts,mats)=>parts.map(([g],pi)=>{ const geo=new THREE.BufferGeometry(); for (const nm in g.attributes) if (nm!=='iLodR'&&nm!=='iO') geo.setAttribute(nm,g.attributes[nm]); if (g.index) geo.setIndex(g.index); geo.groups=g.groups; geo.boundingSphere=g.boundingSphere;
+    geo.setAttribute('iLodR',new THREE.InstancedBufferAttribute(new Float32Array(cap).fill(RT),1)); geo.setAttribute('iO',new THREE.InstancedBufferAttribute(new Float32Array(cap*2),2)); const im=mkIM(geo,mats[pi],cap); im.castShadow=false; im.receiveShadow=true; im.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(cap*3).fill(1),3); im.count=0; im.visible=false; im.userData.gtw=true; GT.grp.add(im); return im; });
+  return {cap, near:mk(fk.near,fk.nearM), far:GT.imi&&GT.imi[k]?[]:mk(fk.far,fk.farM)}; }
+function gtNearRk(k){ return GT.imi&&GT.imi[k] ? impR() : gtNearR(); }   /* 0.21.0: Arten mit Bild-Baum nur bis ca. 60 m in 3D */
+function gtImpNew(cap){ const I=impSet(cap); GT.grp.add(I.m); return I; }
+function gtwDrop(W){ [...W.near,...W.far].forEach(im=>{ GT.grp.remove(im); im.geometry.deleteAttribute('iLodR'); im.geometry.deleteAttribute('iO'); im.dispose&&im.dispose(); }); }
+function gtForestLOD(cp){ if (!GT.on) return; if (GT.flast && Math.hypot(cp.x-GT.flast.x,cp.z-GT.flast.z)<(LITE?10:20)) return; GT.flast={x:cp.x,z:cp.z}; const RT=gtNearR(), RM=gtMidR(), R2=(RT+LOD_M)*(RT+LOD_M), M2=RM*RM; const W=GTW_ON?(GT.w||(GT.w={})):null, WA={}, WB={}; let grow=false; const IMI=W&&GT.imi, RI=impR(), RI2=(RI+LOD_M)*(RI+LOD_M), II2=Math.max(0,RI-LOD_B-LOD_M)**2, I=IMI?(GT.imp||(GT.imp=gtImpNew(4096))):null; if (I) I.n=0;
   GT.tiles.forEach(t=>{ const F=t.fo; if (!F) return; const dc=Math.hypot(cp.x-F.cx,cp.z-F.cz), near=dc<GT.S*0.72+RT+LOD_M, mid=dc<GT.S*0.72+RM;
-    if (W && F.m2){ const C=F.m2, fin=(im,n)=>{ im.count=n; im.visible=n>0; im.instanceMatrix.needsUpdate=true; im.instanceColor.needsUpdate=true; };
+    if (W && F.m2){ const C=F.m2, fin=(im,n)=>{ im.count=n; im.visible=n>0; upR(im.instanceMatrix,n); upR(im.instanceColor,n); };
       if (!mid){ if (F.st!=='m'){ let a=0, b=0; F.types.forEach(T=>T.L.forEach(([mm,cc])=>gtMiniPut(C,T,T.mp.con?a++:b++,mm,cc))); fin(C.con,a); fin(C.br,b); F.st='m'; } return; }
       F.st='x'; let ca=0, cb=0;
       F.types.forEach(T=>{ const k=T.k; if (!W[k]) W[k]=gtwSet(k,512); const S=W[k], cap=S.cap; let a=WA[k]||0, b=WB[k]||0;
+        const inf=IMI&&IMI[k], NR2=inf?RI2:R2;
         T.L.forEach(([mm,cc])=>{ const dx=mm.elements[12]-cp.x, dz=mm.elements[14]-cp.z, d2=dx*dx+dz*dz;
-          if (near && d2<R2){ if (a<cap) for (const im of S.near){ im.setMatrixAt(a,mm); im.setColorAt(a,cc); } a++; }
-          if (d2<M2){ if (b<cap) for (const im of S.far){ im.setMatrixAt(b,mm); im.setColorAt(b,cc); } b++; } else gtMiniPut(C,T,T.mp.con?ca++:cb++,mm,cc); });
+          if (near && d2<NR2){ if (a<cap) for (const im of S.near){ im.setMatrixAt(a,mm); im.setColorAt(a,cc); } a++; }
+          if (d2<M2){ if (inf){ if (d2>II2) impPut(I,mm,cc,inf,RI,1e5); } else { if (b<cap) for (const im of S.far){ im.setMatrixAt(b,mm); im.setColorAt(b,cc); } b++; } } else gtMiniPut(C,T,T.mp.con?ca++:cb++,mm,cc); });
         WA[k]=a; WB[k]=b; if (a>cap || b>cap) grow=true; });
       fin(C.con,ca); fin(C.br,cb); return; }
     F.types.forEach(T=>{ const up=(ims,n)=>ims.forEach(im=>{ im.count=n; im.visible=n>0||!!window.OLD_IMVIS; im.instanceMatrix.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; });
@@ -6971,15 +7044,18 @@ function gtForestLOD(cp){ if (!GT.on) return; if (GT.flast && Math.hypot(cp.x-GT
         if (d2<M2){ for (const im of T.far){ im.setMatrixAt(b,mm); im.setColorAt(b,cc); } b++; } else { T.mini.setMatrixAt(c,mm); T.mini.setColorAt(c,cc); c++; } });
       if (a || T.near[0] && T.near[0].count) up(T.near,a); up(T.far,b); up([T.mini],c); }); });
   if (!W) return;
+  if (I){ if (I.n>I.cap){ GT.grp.remove(I.m); I.g.dispose(); GT.imp=gtImpNew(Math.ceil(I.n*1.4/1024)*1024); grow=true; } else impFin(I); }
   for (const k in W){ const S=W[k], a=WA[k]||0, b=WB[k]||0;
     if (a>S.cap || b>S.cap){ gtwDrop(S); W[k]=gtwSet(k, Math.ceil(Math.max(a,b)*1.4/256)*256); continue; }
-    const upd=(ims,n)=>ims.forEach(im=>{ const was=im.count; im.count=n; im.visible=n>0; if (n||was){ im.instanceMatrix.needsUpdate=true; im.instanceColor.needsUpdate=true; } }); upd(S.near,a); upd(S.far,b); }
+    const upd=(ims,n)=>ims.forEach(im=>{ const was=im.count; im.count=n; im.visible=n>0; if (n||was){ upR(im.instanceMatrix,n); upR(im.instanceColor,n); const o=im.geometry.attributes.iO; if (o) upR(o,n); } }); upd(S.near,a); upd(S.far,b); }
   if (grow){ GT.flast=null; GTW.grows=(GTW.grows||0)+1; } }
 const GTW={};
 /* 0.11.7 Fernsicht (Hicore): hinter den Detailkacheln steht der Wald als einfache Kronen (Nadel = Kegel, Laub = Kugel) und jedes OSM-Haus als Klötzchen mit Satteldach,
    bis ca. 6 km (LITE 2,4 km, MINI aus). Daten je 500-m-Zelle einmal in Zeitscheiben berechnet, dann vier Instanz-Meshes für die ganze Fernsicht (4 Zeichenaufrufe).
    Nach außen wird der Wald lichter, die Kronen dafür größer, damit die Fläche geschlossen wirkt. Zellen mit echtem Wald bzw. echten Häusern werden ausgelassen. */
 const FV={on:false};
+/* 0.21.0 (Ruckler): nur den belegten Teil eines Instanzpuffers zur Grafikkarte schicken statt immer den ganzen (Fernsicht: bis 8,5 MB je Neuverteilung). Alt: window.OLD_UPR */
+function upR(a, n){ if (!a) return; if (!window.OLD_UPR){ a.clearUpdateRanges(); a.addUpdateRange(0, Math.max(1,n)*a.itemSize); } a.needsUpdate=true; }
 function fvInit(){ FV.on=!!(WORLD&&WORLD.graph) && !MINI && !window.NO_FV; if (!FV.on) return; FV.R=LITE?2400:6000; FV.cells=new Map(); FV.last=null; FV.sig=''; FV.gen=null; FV.dirty=true;
   const lam=()=>new THREE.MeshLambertMaterial({color:0xffffff});
   const cone=new THREE.ConeGeometry(1,1,6,1,true); cone.translate(0,0.5,0);
@@ -7006,7 +7082,7 @@ function fvStep(cp){ if (!FV.on || !GT.on) return; const S=GT.S, R=FV.R, ci=Math
       for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const i=ci+a, j=cj+b, d=Math.hypot((i+0.5)*S-cp.x,(j+0.5)*S-cp.z); if (d>R+S*0.7 || d<GT.S*1.5) continue; const k=i+','+j; if (!FV.cells.has(k) && d<bd && kcReady(i,j)){ bd=d; best=[i,j,k]; } }
       if (!best){ FV.full={x:cp.x,z:cp.z}; break; } FV.full=null; FV.gen={k:best[2], g:fvCellGen(best[0],best[1])}; }
     let q; do q=FV.gen.g.next(); while(!q.done && performance.now()-t0<bud); if (q.done){ FV.cells.set(FV.gen.k,q.value); FV.gen=null; FV.dirty=true; } }
-  if (FV.dirty && FV.gen && performance.now()-(FV.tf||0)<500) return;
+  if (FV.dirty && FV.gen && performance.now()-(FV.tf||0)<(window.OLD_UPR?500:2500)) return;   /* 0.21.0: während Zellen nachgerechnet werden höchstens alle 2,5 s neu verteilen (vorher 0,5 s, je 5–13 ms) */
   /* 2) Instanzen neu verteilen, wenn sich die Kamera 150 m bewegt hat oder Detailkacheln dazukamen/wegfielen */
   let sig=''; GT.tiles.forEach((t,k)=>{ if (t.fo||t.hs) sig+=k+(t.fo?'f':'')+(t.hs?'h':'')+';'; });
   if (!FV.dirty && sig===FV.sig && FV.last && Math.hypot(cp.x-FV.last.x,cp.z-FV.last.z)<150) return;
@@ -7022,7 +7098,7 @@ function fvFill(cp){ const [mc,mb,mw,mr]=FV.mk, S=GT.S, R=FV.R, R2=R*R, D0=LITE?
         const W1=B[q+3], L1=B[q+4], a=B[q+5], H=B[q+6], rt=B[q+8], sh=0.85+((x*0.37+z*0.11)%1+1)%1*0.2;
         col.setRGB(0.86*sh,0.83*sh,0.76*sh); put(mw,nw,x,B[q+1],z,L1,H+0.4,W1,-a,col);
         const rc=rt===0?[0.55,0.22,0.15]:rt===1?[0.28,0.28,0.3]:[0.45,0.43,0.4]; col.setRGB(rc[0]*sh,rc[1]*sh,rc[2]*sh); const rh=rt===2?0.6:Math.min(W1*0.55,7); put(mr,nw,x,B[q+1]+H+0.4,z,W1*1.06,rh,L1*1.02,-a+Math.PI/2,col); nw++; } } });
-  mc.count=nc; mb.count=nb; mw.count=nw; mr.count=nw; FV.mk.forEach(im=>{ im.instanceMatrix.needsUpdate=true; im.instanceColor.needsUpdate=true; }); FV.n=[nc,nb,nw]; }
+  mc.count=nc; mb.count=nb; mw.count=nw; mr.count=nw; FV.mk.forEach(im=>{ upR(im.instanceMatrix,im.count); upR(im.instanceColor,im.count); }); FV.n=[nc,nb,nw]; }
 function gtNearR(){ return window.__NR||(MINI?45:LITE?80:150); }
 function gtMidR(){ return MINI?110:LITE?160:280; }
 /* Gebäude aus Overture Maps (OpenStreetMap + Gebäudeerkennung), je Kachel: echte Grundrisse, Satteldach über dem ausgerichteten Rechteck */
@@ -11883,7 +11959,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.20.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.21.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
