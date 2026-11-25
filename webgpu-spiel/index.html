@@ -8748,6 +8748,12 @@ function bikeBags(bike, M, TTa, TTb, rTT, DT0, BB, sp){ const dir=TTb.clone().su
   { const zp=P(0.62,rTT+0.05); const pull=new THREE.Mesh(new THREE.BoxGeometry(0.004,0.022,0.007),red); [-1,1].forEach(sx=>{ const q=pull.clone(); q.position.set(sx*0.0255,zp.y-0.004,zp.z+0.005); bike.add(q); }); }
   return fM; }
 /* Statische Teile je Material zu einem Mesh verschmelzen (weniger Zeichenaufrufe). Aus: window.NO_BIKEMERGE */
+/* 0.19.5: verjüngtes Rohr entlang einer Kurve (ovaler Querschnitt sx quer, sz längs), z. B. Gabelbein */
+function taperLeg(pts, r0, r1, sx, sz, mat){ const cu=new THREE.CatmullRomCurve3(pts), N=16, S=16, pos=[], idx=[], X=new THREE.Vector3(1,0,0);
+  for (let i=0;i<=N;i++){ const t=i/N, p=cu.getPointAt(t), T=cu.getTangentAt(t), a=X.clone().addScaledVector(T,-X.dot(T)).normalize(), b=new THREE.Vector3().crossVectors(T,a).normalize(), r=r0+(r1-r0)*Math.pow(t,0.85);
+    for (let j=0;j<S;j++){ const w=j/S*Math.PI*2; pos.push(p.x+a.x*Math.cos(w)*r*sx+b.x*Math.sin(w)*r*sz, p.y+a.y*Math.cos(w)*r*sx+b.y*Math.sin(w)*r*sz, p.z+a.z*Math.cos(w)*r*sx+b.z*Math.sin(w)*r*sz); } }
+  for (let i=0;i<N;i++) for (let j=0;j<S;j++){ const A=i*S+j, B=i*S+(j+1)%S, C=A+S, D=B+S; idx.push(A,C,B, B,C,D); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); return new THREE.Mesh(g,mat); }
 function mergeBikeStatic(bike, keep){ if (window.NO_BIKEMERGE) return; const by=new Map();
   bike.children.slice().forEach(o=>{ if (!o.isMesh || o.isInstancedMesh || keep.has(o) || Array.isArray(o.material) || !o.geometry.attributes.normal) return; const k=o.material; if (!by.has(k)) by.set(k,[]); by.get(k).push(o); });
   by.forEach((list,mat)=>{ if (list.length<2) return; const parts=list.map(o=>{ o.updateMatrix(); return [o.geometry, o.matrix.clone()]; }); const m=new THREE.Mesh(mergeGeo(parts), mat); m.castShadow=true; m.receiveShadow=true; m.userData.merged=true;
@@ -8763,7 +8769,7 @@ function buildBike(type, opt, g, seatUp){ const T=BIKE_GEO[type]?type:'road', M=
 function setRiderBike(r, type){ if (!r || !r.g) return; const T=BIKE_GEO[type]?type:'road'; if (r.type===T && r.bikeG) return;
   const old=r.bikeG; if (old){ r.g.remove(old); const keep=new Set(Object.values(_geoCache)); old.traverse(o=>{ if (o.geometry && !keep.has(o.geometry)) o.geometry.dispose(); }); }
   const BK=buildBike(T, r.opt||{}, r.g, r.glb?RIG.SEAT_UP:0);
-  Object.assign(r, {bikeG:BK.bike, wF:BK.wF, wR:BK.wR, crank:BK.crank, pedals:BK.pedals, chainUpd:BK.chainUpd, BB:BK.BB, seat:BK.seat, type:BK.type, rig:BK.rig, wheelR:BK.wheelR});
+  Object.assign(r, {bikeG:BK.bike, fork:BK.fork||null, wF:BK.wF, wR:BK.wR, crank:BK.crank, pedals:BK.pedals, chainUpd:BK.chainUpd, BB:BK.BB, seat:BK.seat, type:BK.type, rig:BK.rig, wheelR:BK.wheelR});
   try{ pbrApply(BK.bike); }catch(e){}   /* Farben wie beim Weltaufbau umrechnen (sonst blass bis zum nächsten pbrApply) */
   r._lod=null; if (r.glb && r.glb._btl){ r.g.remove(r.glb._btl); r.glb._btl=null; }
   r.crank.rotation.x=r.crankAng; if (r.chainUpd) r.chainUpd(r.crankAng); poseRider(r,0); }
@@ -8788,28 +8794,32 @@ function buildDirtBike(T, bike, M, g, opt, seatUp){ const G=BIKE_GEO[T], C=M.C, 
     const ss0=V(s*0.016,SSa.y,SSa.z-0.006), ssm=ss0.clone().lerp(V(x,RA.y+0.02,RA.z+0.012),0.3).add(V(s*0.018,0,0)); ft(mtb?0.0125:0.011,ss0,ssm,mtb?0.012:0.0105,0.9,1.1); ft(mtb?0.012:0.0105,ssm,V(x,RA.y+0.02,RA.z+0.012),mtb?0.01:0.0088,0.9,1.1);   // Sitzstreben
     const dp=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.04,0.034),M.frame); dp.position.set(x,RA.y+0.006,RA.z+0.004); bike.add(dp); });
   /* Gabel: Gravel starr (Rahmenfarbe), MTB Federgabel (orange Tauchrohre/Krone, dunkle Standrohre) */
-  const FX=G.forkX;
+  const FX=G.forkX, FLW=[];
   if (!mtb){ [-1,1].forEach(s=>{ const x=s*FX, fk0=V(s*0.046,HB.y-0.035,HB.z+0.012), fk1=V(x,FA.y+0.012,FA.z-0.004), fkm=fk0.clone().lerp(fk1,0.6).add(V(0,0,0.01));
-      ft(0.021,fk0,fkm,0.0175,0.78,1.4); ft(0.0175,fkm,fk1,0.012,0.78,1.3); const dp=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.036,0.03),M.frame); dp.position.set(x,FA.y+0.004,FA.z); bike.add(dp); });
+      if (window.OLD_GRAVELFORK){ ft(0.021,fk0,fkm,0.0175,0.78,1.4); ft(0.0175,fkm,fk1,0.012,0.78,1.3); }
+      else bike.add(taperLeg([fk0, fk0.clone().lerp(fk1,0.35).add(V(0,0,0.004)), fk0.clone().lerp(fk1,0.7).add(V(0,0,0.009)), fk1], 0.02, 0.0105, 0.8, 1.35, M.frame));   /* 0.19.5 (Hicore: sah wie Federgabel aus): Carbon-Starrgabel, Bein aus einem Stück, gleichmäßig verjüngt, leicht nach vorn gebogen */
+      const dp=new THREE.Mesh(new THREE.BoxGeometry(0.008,0.036,0.03),M.frame); dp.position.set(x,FA.y+0.004,FA.z); bike.add(dp); });
     const cr=new THREE.Mesh(sphG(0.054,18,12),M.frame); cr.scale.set(1.05,0.42,0.62); cr.position.set(0,HB.y-0.035,HB.z+0.012); bike.add(cr); }
   else { const FM=M.fork||M.accent, stM=new THREE.MeshStandardMaterial({color:0x2b2d31, roughness:0.25, metalness:0.8});
     const legTop=FA.clone().addScaledVector(aUp,(HB.y-0.04-FA.y)/aUp.y);   // Beinlinie durch die Achse, parallel zur Lenkachse
     const crownC=HB.clone().addScaledVector(aUp,-0.045);
     [-1,1].forEach(s=>{ const x=s*FX, t0=legTop.clone().setX(x), t1=t0.clone().addScaledVector(aUp,-0.13), lo0=t0.clone().addScaledVector(aUp,-0.1), lo1=FA.clone().setX(x).addScaledVector(aUp,-0.022);
       ft(0.0175,t1,t0,0.0175,1,1,stM);                       // Standrohr
-      ft(0.0225,lo1,lo0,0.0235,1,1.05,FM);                    // Tauchrohr
-      const seal=new THREE.Mesh(new THREE.CylinderGeometry(0.0235,0.0235,0.012,16),M.black); seal.position.copy(lo0); seal.quaternion.setFromUnitVectors(UPV,aUp); bike.add(seal);
-      const dp=new THREE.Mesh(new THREE.BoxGeometry(0.014,0.04,0.04),FM); dp.position.set(x,FA.y,FA.z); bike.add(dp); });
+      FLW.push(ft(0.0225,lo1,lo0,0.0235,1,1.05,FM));                    // Tauchrohr
+      const seal=new THREE.Mesh(new THREE.CylinderGeometry(0.0235,0.0235,0.012,16),M.black); seal.position.copy(lo0); seal.quaternion.setFromUnitVectors(UPV,aUp); bike.add(seal); FLW.push(seal);
+      const dp=new THREE.Mesh(new THREE.BoxGeometry(0.014,0.04,0.04),FM); dp.position.set(x,FA.y,FA.z); bike.add(dp); FLW.push(dp); });
     { const cr=new THREE.Mesh(new THREE.BoxGeometry(2*FX+0.045,0.026,0.048),FM); cr.position.copy(legTop.clone().setX(0).lerp(crownC,0.5)); cr.quaternion.setFromUnitVectors(UPV,aUp); bike.add(cr);
       const cr2=new THREE.Mesh(sphG(0.04,14,10),FM); cr2.scale.set(1.6,0.6,1); cr2.position.copy(crownC); cr2.quaternion.copy(cr.quaternion); bike.add(cr2); }
     { const a0=legTop.clone().addScaledVector(aUp,-0.115), p=[V(-FX,0,0),V(-FX*0.55,0.018,0.03),V(0,0.026,0.04),V(FX*0.55,0.018,0.03),V(FX,0,0)].map(q=>a0.clone().setX(0).add(q).add(V(0,0,0.004)));   // Gabelbrücke vor dem Reifen
-      for (let i=0;i<4;i++) ft(0.011,p[i],p[i+1],0.011,1,1.3,FM); }
+      for (let i=0;i<4;i++) FLW.push(ft(0.011,p[i],p[i+1],0.011,1,1.3,FM)); }
     tube(bike,M.black,0.0175,crownC,HB.clone().addScaledVector(aUp,0.02)); }   // Gabelschaft unten
   /* Laufräder */
   const wR=dirtWheel(bike,RA,G.W,M,T), wF=dirtWheel(bike,FA,G.W,M,T);
   [RA,FA].forEach(P=>{ const ax=new THREE.Mesh(cylG(0.0075,0.0075,10),M.black); stretch(ax,V(-(SX+0.012),P.y,P.z),V(SX+0.012,P.y,P.z)); bike.add(ax);
     const lev=new THREE.Mesh(new THREE.BoxGeometry(0.006,0.012,0.045),M.black); lev.position.set(SX+0.016,P.y-0.006,P.z-0.018); lev.rotation.x=0.4; bike.add(lev); });
   bikeDiscs(bike, M, RA, FA, G.rot, mtb?0.05:0.045);
+  /* 0.19.5 (Hicore): Federgabel federt. Tauchrohre, Brücke, Ausfallenden, Vorderrad, Achse, Bremsscheibe/-sattel in eine eigene Gruppe, die entlang der Lenkachse einfedert (forkStep). Aus: window.NO_FORKMOVE */
+  let fork=null; if (mtb && !window.NO_FORKMOVE){ const fl=new THREE.Group(); bike.add(fl); FLW.forEach(o=>fl.attach(o)); fl.attach(wF); bike.children.slice().forEach(o=>{ if (o!==fl && o.isMesh && o.position.distanceTo(FA)<0.11) fl.attach(o); }); fork={g:fl, ax:aUp.clone(), x:0, v:0}; }
   /* Cockpit */
   const stT=HT.clone().addScaledVector(aUp,0.03);   // Gabelschaft oben (über den Spacern)
   [0.014,0.026].forEach(k=>{ const p=HT.clone().addScaledVector(aUp,k); const sp=new THREE.Mesh(new THREE.CylinderGeometry(0.0185,0.0185,0.011,14),M.black); sp.position.copy(p); sp.quaternion.setFromUnitVectors(UPV,aUp); bike.add(sp); });
@@ -8864,7 +8874,7 @@ function buildDirtBike(T, bike, M, g, opt, seatUp){ const G=BIKE_GEO[T], C=M.C, 
   { const cl=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.016,0.03),M.black); cl.position.set(0,0.925+dy+seatUp,-0.275); bike.add(cl); }
   [saddle,nose,post].forEach(o=>keep.add(o));
   mergeBikeStatic(bike, keep);
-  return {wF, wR, crank:D.crank, pedals:D.pedals, chainUpd:D.updateChain, BB, seat:{saddle, nose, post, ST:mtb?STt.clone().addScaledVector(sdir,0.11):STt, SP}}; }
+  return {wF, wR, crank:D.crank, pedals:D.pedals, chainUpd:D.updateChain, BB, fork, seat:{saddle, nose, post, ST:mtb?STt.clone().addScaledVector(sdir,0.11):STt, SP}}; }
 function bikeRotorGeos(){
   const rotorG=_geoCache.rotor||(_geoCache.rotor=(()=>{ const sh=new THREE.Shape(); sh.absarc(0,0,0.08,0,Math.PI*2,false); const h=new THREE.Path(); h.absarc(0,0,0.062,0,Math.PI*2,true); sh.holes.push(h);
       for (let k=0;k<18;k++){ const a=k/18*Math.PI*2, hh=new THREE.Path(); hh.absarc(Math.cos(a)*0.071,Math.sin(a)*0.071,0.0035,0,Math.PI*2,true); sh.holes.push(hh); }
@@ -9109,7 +9119,7 @@ function makeRider(o){
     fore:add(forearmG,M.skin), hand:(()=>{ const h=new THREE.Group(); const palm=new THREE.Mesh(sphG(0.035,10,8),M.glove); palm.scale.set(0.8,1,1.25); h.add(palm);
       const fing=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.03,0.05),M.glove); fing.position.set(0,-0.02,0.035); h.add(fing); body.add(h); return h; })() }));
   g.traverse(x=>{ if(x.isMesh){ x.castShadow=true; } });
-  const r={g, wF:BK.wF, wR:BK.wR, crank:BK.crank, pedals:BK.pedals, chainUpd:BK.chainUpd, legs, arms, body, head, BB:BK.BB, crankAng:Math.random()*6, seat:BK.seat, bikeG:bike, type:BK.type, rig:BK.rig, wheelR:BK.wheelR, opt};
+  const r={g, fork:BK.fork||null, wF:BK.wF, wR:BK.wR, crank:BK.crank, pedals:BK.pedals, chainUpd:BK.chainUpd, legs, arms, body, head, BB:BK.BB, crankAng:Math.random()*6, seat:BK.seat, bikeG:bike, type:BK.type, rig:BK.rig, wheelR:BK.wheelR, opt};
   { const c=document.createElement('canvas'); c.width=c.height=64; const gx=c.getContext('2d'), gr=gx.createRadialGradient(32,32,2,32,32,31); gr.addColorStop(0,'rgba(0,0,0,.55)'); gr.addColorStop(1,'rgba(0,0,0,0)'); gx.fillStyle=gr; gx.fillRect(0,0,64,64);
     const blob=new THREE.Mesh(new THREE.PlaneGeometry(0.75,2.0).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false}));   /* weicher Schatten unter dem Rad, wenn Schatten aus sind */
     blob.position.set(0.12,0.02,0.05); blob.renderOrder=1; blob.visible=!renderer.shadowMap.enabled; g.add(blob); (window.RIDER_BLOBS=window.RIDER_BLOBS||[]).push(blob); }
@@ -11819,7 +11829,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -11972,9 +11982,20 @@ function placeRider(r, d, lane, rev){
   const p=posAt(d,tmp), hd=headingAt(d)+(rev?Math.PI:0); const gr=gradeAt(d)*(rev?-1:1); r.gr=gr;
   const Wr=roadWAt(d); const hd0=hd-(rev?Math.PI:0), ln=rev?-lane:lane; r.g.position.set(p.x+Math.cos(hd0)*ln, p.y+roadCrown(clamp(0.5-ln/Wr,0,1))+0.009, p.z-Math.sin(hd0)*ln);
   if (r===me && !S.ut){ const wf=WF, a=wf.slipA||0, fa=0.6; r.g.position.y+=wf.y; if (a){ const sx=-fa*Math.sin(a); r.g.position.x+=Math.cos(hd)*sx; r.g.position.z-=Math.sin(hd)*sx; }
+    if (r.fork) forkStep(r);
     const ck=(r.stairM && r.stairM!=='ride')?(r.stairK||0):0; r.g.position.y+=STAIR.bump||0; r.g.rotation.set(0,hd+wf.yaw+a,0); r.g.rotateX((-Math.atan(gr)-wf.pitch)*(1-ck)); curveLean(r, d, rev); r.g.rotateZ(((r.lean||0)+(r.cl||0)+wf.roll)*(1-ck)); if (r.wF) r.wF.rotation.y=(r.cst||0)-a*0.8; return; }
   r.g.rotation.set(0,hd,0); r.g.rotateX(-Math.atan(gr)); curveLean(r, d, rev); if (r.lean || r.cl) r.g.rotateZ((r.lean||0)+(r.cl||0));
 }
+/* 0.19.5 (Hicore): Federgabel MTB federt. Feder-Dämpfer (ca. 4,5 Hz, Dämpfung 0,45), angeregt von Untergrund (WF.rough, Tempo), Stößen (WF.y/Huckel), Treppen (STAIR.bump) und Bremsen (Eintauchen).
+   Weg = Vorderrad und Tauchrohre wandern entlang der Lenkachse nach oben (0 bis 6 cm). Aus: window.NO_FORKMOVE */
+function forkStep(r){ const F=r.fork, now=performance.now(), dt=F.t?Math.min(0.05,(now-F.t)/1000):0; F.t=now; if (!(dt>0)) return;
+  const v=Math.max(0,meP.v||0), s=S.dist||0, sp=clamp(v/5,0,1.3), ro=WF.rough||0;
+  const nz=Math.sin(s*7.3)+0.6*Math.sin(s*13.1+1.0)+0.35*Math.sin(s*23.7+2.3);
+  const dv=F.pv==null?0:(v-F.pv)/dt; F.pv=v; const brake=clamp(-dv/4,0,1);
+  let u=0.006+ro*sp*(0.006+0.006*nz)+Math.max(0,WF.y||0)*1.6+Math.abs(STAIR.bump||0)*1.2+0.012*brake*sp;
+  if (S.ut || r.stairM && r.stairM!=='ride' && (r.stairK||0)>0.3) u=0;
+  const k=800, c=2*0.45*Math.sqrt(k); F.v+=(k*(u-F.x)-c*F.v)*dt; F.x+=F.v*dt; if (F.x<0){ F.x=0; F.v=Math.max(0,F.v); } if (F.x>0.06){ F.x=0.06; F.v=Math.min(0,F.v); }
+  F.g.position.copy(F.ax).multiplyScalar(F.x); }
 /* 0.16.1 (Hicore): in Kurven neigen sich Fahrer und Rad (Neigung = atan(v²·k/g), k = Krümmung der Fahrlinie), das Vorderrad lenkt leicht ein (Lenkwinkel ≈ Radstand·k).
    Krümmung über ±12 m gemittelt, Tempo aus der Bewegung, alles weich nachgeführt und begrenzt (max. ca. 23° Neigung, 7° Lenkeinschlag). Aus: window.NO_CURVELEAN */
 function curveLean(r, d, rev){ if (window.NO_CURVELEAN){ r.cl=0; return; } const now=performance.now(), dt=r._clt?Math.min(0.25,(now-r._clt)/1000):0; r._clt=now; if (!(dt>0)){ r._cld=d; return; }

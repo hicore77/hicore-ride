@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 25.11.2026. Letzte veröffentlichte Version: **0.19.4 Beta** (Schultern: Unterarm hinter dem Steuerrohr durch; davor 0.19.3 Oberkörper gerade, 0.19.2 Deko-Zaun Oybin).
+Stand: 25.11.2026. Letzte veröffentlichte Version: **0.19.5 Beta** (Gravel-Starrgabel aus einem Stück, MTB-Federgabel federt; davor 0.19.4 Schultern mit Unterarm hinter dem Steuerrohr).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| 0.19.2 | Hotfix: Deko an der Runde nie auf Wegen/Treppen (Zaun Oybin Kammstraße), linker Arm beim Schultern angewinkelt (siehe unten) |
 | 0.19.3 | Schultern: Oberkörper aufrecht, Schultern waagerecht (siehe unten) |
-| **0.19.4** | **Schultern: Oberarm unter dem Oberrohr, Unterarm hinter dem Steuerrohr durch an den inneren Unterlenker** (siehe unten) |
+| 0.19.4 | Schultern: Oberarm unter dem Oberrohr, Unterarm hinter dem Steuerrohr durch an den inneren Unterlenker (siehe unten) |
+| **0.19.5** | **Gabeln: Gravel Carbon-Starrgabel aus einem Stück (`taperLeg`), MTB-Federgabel federt (`forkStep`)** (siehe unten) |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -148,6 +148,11 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Prüfen mit `tests/tcarry.js` (Ansichten `front,back,outer,ic,oc,left,right,q34`; `outer`/`oc` = Radseite).
 - 0.19.4 (Hicore: Unterarm lag noch VOR dem Steuerrohr, Referenz Foto 1 vom 24.11.): Kontaktpunkt am Oberrohr 0,32 → 0,40, Rad Euler x 0,35 → 0,15, Ellbogen-Ziel `H.Right.E` im Rad-System (−0,3, 0,6, 0,2) als Pol, Griff am inneren Unterlenker 6 cm weiter hinten. `tcarry.js` gibt je Bild eine Zeile `mess` aus (Rad-Koordinaten): `crossFore.hinterHT` muss true sein, `dForeHT` ≥ 0,06. Stand: Gravel 12,6 cm hinter dem Steuerrohr, 9,5 cm Abstand; MTB 15,7 cm, 13,1 cm. Ansicht `fl` = Hicores Kamera vorne links. Alt: `window.OLD_CARRYGRIP2`.
 
+**Gabeln 0.19.5** (Hicore: MTB soll federn, Gravel sah nach Federgabel aus)
+- Gravel: Gabelbein jetzt `taperLeg()` (CatmullRom-Rohr, 2,0 → 1,05 cm, oval, leicht nach vorn gebogen) statt zwei `ft`-Stücken mit Absatz. Alt: `window.OLD_GRAVELFORK`.
+- MTB: Tauchrohre, Brücke, Ausfallenden, Vorderrad (`wF`), Achse, Scheibe und Sattel liegen in Gruppe `r.fork.g` (aus `buildDirtBike`, nicht verschmolzen). `forkStep(r)` (aus `placeRider`, nur eigener Fahrer) = Feder-Dämpfer k 800, ζ 0,45, Ziel aus `WF.rough`·Tempo·Rauschen, `WF.y`, `STAIR.bump`, Bremsen; Weg 0–6 cm entlang Lenkachse. Schotter bei 18 km/h: 6–15 mm. Beim Tragen 0. Aus: `window.NO_FORKMOVE`.
+- Test: `FORKX=0.05 BIKES=mtb VIEWS=forkS,fork node tbike.js` (Zeile `gabel` = Federweg-Simulation, Bild mit festem Einfederweg).
+
 **Offen / unsicher**
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung, Ruckler beim ersten Auto/Zug/Regen, FPS-Anzeige mit Prozent (Details 0.13.0 in docs/ARCHIV.md).
 - 0.16.0 am iPad prüfen: Optik Gravel/MTB, Sitzhaltung, ob Farben direkt nach dem Radwechsel stimmen; Lenkerbreite/Flare/Hoods-Winkel ggf. in `GRAVEL_BAR` nachjustieren.
@@ -170,7 +175,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 ## 6. Nächste Schritte
 
 1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
-1a. 0.19.4 am iPad prüfen: Schultern (Unterarm hinter dem Steuerrohr), Treppe Oybin Kammstraße frei (0.19.2). Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).
+1a. 0.19.5 am iPad prüfen: Gabeln (Gravel starr, MTB federt auf Schotter genug/zu viel?), Schultern 0.19.4, Treppe Oybin Kammstraße frei (0.19.2). Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).
 2. Poly-Haven-Paket **Stufe 2** (freigegeben): white_plaster_02, beige_wall_001, weathered_brown_planks, old_stone_wall, clay_roof_tiles_02, roof_slates_03, sandstone_cracks oder mossy_sandstone, bark_brown_02 oder pine_bark. Über die Sandbox holen, umschaltbar, Vergleichsbilder.
 3. Grashalme nur ca. 20–30 m um den Fahrer.
 4. Leistung Teil 2 nur bei Bedarf: Modelle nach Bedarf laden, Wald-Instanzen bündeln (Rad-Verschmelzen ist seit 0.16.0 erledigt).

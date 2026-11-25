@@ -12,9 +12,10 @@ const {chromium}=require('playwright'); const serve=require('./serve');
    window._ST=st; window._SC=new THREE.PerspectiveCamera(30, innerWidth/innerHeight, 0.05, 50); });
  const bikes=(process.env.BIKES||'road').split(','), views=(process.env.VIEWS||'side,q34,front,top,hands').split(','), grips=(process.env.GRIPS||'1').split(',').map(Number);
  const CAM={ side:[[3.6,0.95,0.1],[0,0.85,0.05]], side2:[[-3.6,0.95,0.1],[0,0.85,0.05]], q34:[[2.6,1.5,2.6],[0,0.8,0.1]], front:[[0,1.15,3.4],[0,0.95,0.2]], top:[[0.01,3.2,0.6],[0,0.8,0.45]],
-   hands:[[0.9,1.25,1.25],[0.1,0.9,0.5]], handsF:[[0,1.05,1.45],[0,0.9,0.5]], back:[[1.5,1.4,-2.6],[0,0.8,0]] };
+   hands:[[0.9,1.25,1.25],[0.1,0.9,0.5]], handsF:[[0,1.05,1.45],[0,0.9,0.5]], back:[[1.5,1.4,-2.6],[0,0.8,0]], fork:[[0.9,0.75,1.3],[0,0.6,0.45]], forkS:[[1.3,0.6,0.45],[0,0.6,0.45]] };
  for (const bk of bikes) for (const gi of grips){
    const ok=await p.evaluate(([bk,gi,STOP,DRINK])=>{ if (window.setRiderBike) setRiderBike(me,bk); window.GRIP_FORCE=gi; window.STOP_FORCE=+(STOP||0); if (DRINK){ GEST.id="drink"; GEST.t=+DRINK; GEST.dur=4.6; S.running=true; } const ST=+(window.__STAND||0); if (ST) me.gr=0.13; for (let i=0;i<40;i++) animRider(me, ST?70:85, ST?3:8, 0.05, ST?260:200); return !!me.g; },[bk,gi,process.env.STOP,process.env.DRINK]);
+   if (process.env.FORKX){ console.log('gabel', JSON.stringify(await p.evaluate(x=>{ const F=me.fork; if (!F) return null; const o={max:0,min:1,avg:0,n:0}; WF.rough=0.7; meP.v=5; S.dist=0; let T=1000; const pn=performance.now; performance.now=()=>T; for (let i=0;i<600;i++){ T+=1000/60; S.dist+=5/60; forkStep(me); if (i>120){ o.max=Math.max(o.max,F.x); o.min=Math.min(o.min,F.x); o.avg+=F.x; o.n++; } } performance.now=pn; o.avg/=o.n; WF.rough=0; F.x=+x; F.g.position.copy(F.ax).multiplyScalar(F.x); return {rau:{max:+o.max.toFixed(4),min:+o.min.toFixed(4),avg:+o.avg.toFixed(4)}, kinder:F.g.children.length}; }, process.env.FORKX))); }
    for (const v of views){ await p.evaluate(([c])=>{ _SC.position.set(...c[0]); _SC.lookAt(...c[1]); renderer.setRenderTarget(null); renderer.render(_ST,_SC); },[CAM[v]]);
      await p.waitForTimeout(300); await p.screenshot({path:(process.env.OUT||'.')+`/${bk}_${gi}_${v}.jpg`,quality:88}); console.log('bild',bk,gi,v); }
  }
