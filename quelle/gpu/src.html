@@ -7457,7 +7457,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.20.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.20.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7792,7 +7792,7 @@ const DRES={k:1, base:1, MIN:0.7, good:0, on(){ const e=document.getElementById(
   /* wird alle 2 s mit der gemessenen Bildrate aufgerufen; true = Auflösung wurde gesenkt (dann noch nicht begrenzen) */
   tick(fps, capped){ if (!this.on()){ if (this.k<1) this.set(1); return false; } const now=performance.now();
     /* 0.20.0: hat die letzte Senkung nichts gebracht (Gerät rechnet sich an der CPU fest, nicht an den Pixeln), Auflösung zurück auf 100 % und 3 min nicht mehr senken. Alt: window.OLD_DRES */
-    if (this.chk && !window.OLD_DRES){ const c=this.chk; this.chk=null; if (fps<c.fps*1.06+1){ this.set(1); this.block=now+180000; this.nogain=(this.nogain||0)+1; return false; } }
+    if (this.chk && !window.OLD_DRES){ const c=this.chk; this.chk=null; if (fps<=c.fps+(window.OLD_DRES2?c.fps*0.06+1:1.5)){ this.set(1); this.block=now+180000; this.nogain=(this.nogain||0)+1; return false; } }
     if ((!capped && fps<54 && fps>18) || (capped && fps<27 && fps>10)){ this.good=0; if (this.k>this.MIN+1e-3 && !(now<(this.block||0))){ this.chk={fps, k:this.k}; this.set(this.k-0.1); return true; } return false; }
     if (!capped && fps>=58 && this.k<1){ if (++this.good>=3){ this.good=0; this.set(this.k+0.05); } } else this.good=0; return false; } };
 let GFX_TREE_R=200, GFX_BUILD_R=200, BUILT_R=0, fpsAcc=0, fpsN=0, fpsT=0;
@@ -7900,7 +7900,8 @@ function frame(now){
       if (!F.probe && DRES.tick(fps, F.cap)){ /* erst Auflösung senken, dann begrenzen */ }
       else if (!F.cap && !F.probe && fps<54 && fps>18){ F.cap=true; F.next=now+45000; }
       else if (F.cap && now>F.next){ F.cap=false; F.probe=true; }
-      else if (F.probe){ F.probe=false; if (fps<54){ F.cap=true; F.next=now+90000; } } } } }
+      else if (F.probe){ F.probe=false; if (fps<54){ /* 0.20.2: knapp unter 54 (z. B. 51 in Chrome am iPad) erst die Auflösung einen Schritt senken und ungebremst weitermessen */
+          if (!window.OLD_DRES2 && fps>=42 && DRES.on() && DRES.k>DRES.MIN+1e-3 && !(now<(DRES.block||0))){ DRES.chk={fps, k:DRES.k}; DRES.set(DRES.k-0.1); } else { F.cap=true; F.next=now+90000; } } } } } }
   const fcpu0=performance.now();
   if (window.LOADT && LOADT.ff){ const L=LOADT; L.ff=0; const tot=(performance.now()-L.t0)/1000; try{ toast('Geladen in '+tot.toFixed(1)+' s (Welt '+(L.b/1000).toFixed(1)+' s, Shader '+((L.c||0)/1000).toFixed(1)+' s, Vorbereitung '+((L.v||0)/1000).toFixed(1)+' s, erstes Bild '+((L.w||0)/1000).toFixed(1)+' s)'); }catch(e){} }
   window.FRC=(window.FRC||0)+1; if (FRN<=60){ FRN++; if (FRN===1||FRN===2||FRN===10||FRN===60) STG('Bild '+FRN+(window.glbRiderReady?' mit Fahrer':'')); }
