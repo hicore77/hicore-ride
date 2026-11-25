@@ -1,7 +1,7 @@
 // 0.18.0 Treppen: Netz-Statistik, Tragen/Fahren über eine echte Treppe. BIKE gravel|mtb|road, PL Ort, NV "min,max" Stufen, UP 1 hoch / -1 runter, OUT Bilder (leer = nur Logik)
 const {chromium}=require('playwright'); const serve=require('./serve');
 (async()=>{ const b=await chromium.launch({args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']}); const ctx=await b.newContext({viewport:{width:900,height:560}}); await serve(ctx);
- const BK=process.env.BIKE||'gravel'; await ctx.addInitScript(([bk,o,f])=>{ window.__OUT=o; window.__FLT=f; try{ localStorage.setItem('hicoreRide.bike',JSON.stringify(bk)); }catch(e){} }, [BK,!!process.env.OUT,!!process.env.FLOAT]);
+ const BK=process.env.BIKE||'gravel'; await ctx.addInitScript(([bk,o,f,w])=>{ window.__OUT=o; window.__FLT=f; window.__WID=+(w||0); try{ localStorage.setItem('hicoreRide.bike',JSON.stringify(bk)); }catch(e){} }, [BK,!!process.env.OUT,!!process.env.FLOAT,process.env.WID]);
  const p=await ctx.newPage(); const errs=[]; p.on('pageerror',e=>errs.push('PE '+(e.stack||e.message).slice(0,400))); p.on('console',m=>{ if(m.type()==='warning'||m.type()==='error') console.log('C',m.text().slice(0,200)); });
  await p.goto('http://127.0.0.1:8765/index.html?gl=1'); await p.waitForFunction(()=>window.glbRiderReady,null,{timeout:800000});
  await p.evaluate(()=>{ selWorld='zittau'; $('bots').value='0'; ATMO.wx='sonne'; ATMO.sn='keine'; ATMO.tod='mittag'; ATMO.apply(); $('bSim').click(); });
@@ -10,7 +10,7 @@ const {chromium}=require('playwright'); const serve=require('./serve');
    document.querySelectorAll('body>div').forEach(e=>{if(!e.querySelector('canvas'))e.style.visibility='hidden'});
    const R=gnRG(), P=me.g.position, st={stairs:R.stat.stairs, adjS:0, adjW:0}; R.edges.forEach(E=>{ if (E.c!==15) return; if (R.adjS[E.a].includes(E.k)) st.adjS++; if (R.adjW[E.a].includes(E.k)) st.adjW++; });
    let best=null, bd=1e9; const [n0,n1]=nv;
-   R.edges.forEach(E=>{ if (E.c!==15 || !E.st || E.nv<n0 || E.nv>n1) return; const dyab=stairY(E.st,E.stS1)-stairY(E.st,E.stS0); const dir=(dyab>0)===(up>0)?0:1, na=dir?E.b:E.a, nb=dir?E.a:E.b;
+   R.edges.forEach(E=>{ if (E.c!==15 || !E.st || (window.__WID?E.wid!==window.__WID:(E.nv<n0 || E.nv>n1))) return; const dyab=stairY(E.st,E.stS1)-stairY(E.st,E.stS0); const dir=(dyab>0)===(up>0)?0:1, na=dir?E.b:E.a, nb=dir?E.a:E.b;
      const nbr=(n,ex)=>R.adjW[n].map(k=>R.edges[k]).filter(K=>K.k!==ex && K.c!==15 && K.len>25); const A=nbr(na,E.k), B=nbr(nb,E.k); if (!A.length || !B.length) return;
      const xz=E.xz; let d=Math.hypot(xz[0]-P.x,xz[1]-P.z); if (window.__FLT){ if (d>2500) return; const T=E.st; stairInit(T); const q=stairPt(T,T.up>0?T.s1:T.s0); d=-(T.yHi-wayLiftY0(q[0],q[1],terrainH(q[0],q[1]))); if (T.rHi) return; } if (d<bd){ bd=d; best={E,dir,na,nb,A:A[0],B:B[0]}; } });
    if (!best) return {err:'keine Treppe', st}; const {E,dir,na,nb,A,B}=best;

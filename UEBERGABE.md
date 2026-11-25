@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 24.11.2026. Letzte veröffentlichte Version: **0.19.1 Beta** (Luftbild-Bäume jetzt auch im tschechischen Teil, Treppen im Gelände, Schulter-Arm).
+Stand: 25.11.2026. Letzte veröffentlichte Version: **0.19.2 Beta** (Hotfix: Deko-Zaun vor Treppe Oybin Kammstraße weg, linker Arm beim Schultern angewinkelt).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| 0.18.1 | Rennrad: Abbiegehinweise nur noch in befestigte Straßen (siehe unten) |
 | 0.19.0 | Jonsdorf-Ansatz überall: echte Bäume/Sträucher/Waldmaske/Acker-Zustand aus Luftbild, Treppenkanten, Zäune nicht über Wege, Schulter-Arm (siehe unten) |
-| **0.19.1** | **Tschechien mit Luftbild (ČÚZK): Bäume/Sträucher/Wald/Äcker; Treppen folgen dem Gelände (nie im Boden, Böschung/Erdrampe); linker Arm beim Schultern hängt locker** (siehe unten) |
+| 0.19.1 | Tschechien mit Luftbild (ČÚZK): Bäume/Sträucher/Wald/Äcker; Treppen folgen dem Gelände (nie im Boden, Böschung/Erdrampe) (siehe unten) |
+| **0.19.2** | **Hotfix: Deko an der Runde nie auf Wegen/Treppen (Zaun Oybin Kammstraße), linker Arm beim Schultern angewinkelt wie im Cyclocross** (siehe unten) |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -119,11 +119,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Ablauf (`STAIR`, `stairSpans`, `stairStep` in der Hauptschleife nach `curveVmax`): Modus `stairMode`: MTB bergab `ride` (stehend, Kurbel waagrecht, Stöße), bis 3 Stufen `lift` (links neben dem Rad, linke Hand Lenker, rechte Oberrohr, Rad über die Stufen gehoben), sonst `shoulder` (Oberrohr auf der rechten Schulter, rechter Arm um das Steuerrohr an den Lenker, linker Arm schwingt). Zonen 2,2–3,2 m vor/nach den Stufen (Ab-/Aufsteigen, rechtes Bein hinten über den Sattel), davor Bremsen auf 1,7–2,8 m/s, zur Treppe hin in die Wegmitte (`STAIR.lc`). Tempo nach Leistung (bergauf 0,5–1,25 m/s, bergab 0,7–1,3, kurz 1,0–1,4), ohne Treten bleibt man stehen. Trainer bekommt 0 %. Füße treffen die Stufenmitten (`stairCarry`), Figur waagrecht. Pose: `carryBody`, `carryRig` in `poseGLB` (opt.carry), Greifhände über `R._ghF`. Aus: `window.NO_STAIRS`.
 - Test `tests/tstair.js` (`BIKE`, `PL`, `NV=min,max`, `UP=1|-1`; ohne `OUT` Logik: Tempo, Zeit, Fußfehler; mit `OUT`, `PTS=-1.6,mid,end`, `SIDE=1|-1|0` Bilder). Ergebnis: 500 Treppenstücke im Netz, keine für das Rennrad; 9 Stufen hoch in 11 s, Füße im Schnitt 5 cm über der Stufe, nie darunter.
 
-**Rennrad nur auf Straßen (0.18.1)**
-- `gnRG`: `okS` (Kanten für `adjS`, Rennrad) neu: Hauptstraßen alle; Nebenstraßen nur Asphalt/Pflaster, Zufahrten (c 27) nur im Ort (`gnInner` in der Kantenmitte); Radwege (13) nur mit angegebenem Asphalt/Pflaster/Beton/befestigt; Feld-/Waldwege (10) nur mit angegebenem Asphalt; geschätzte Beläge (`inf`, ways.bin Flag 32) nie; Treppen nie. Rausgefallen: ca. 43 km Betonplatten-Feldwege, 27 km „befestigt“ geschätzt, 66 km Zufahrten außerorts. Alter Stand: `window.OLD_ROADADJ`.
-- Test `tests/tadj.js` (km je Kantenart in `adjS`, `OLD=1`; schreibt zusätzlich Treppen mit Anbindung nach `SOUT`). Läuft in ca. 1 min, braucht keinen Fahrtstart.
-- Nicht geändert: Hochwald-Schotterstück (0.9.10, Teil einer Hauptstraßenkante), Nebenstraßen ohne Belagsangabe zählen weiter als Asphalt (side2.bin hat kein „geschätzt“-Flag, Generator nicht im Repo).
-- Gut erreichbare Treppen (Hicore genannt): Jonsdorf Auf der Heide 9 Stufen, Oybin Kammstraße ca. 10, Friedrich-Engels-Str. (S 133) 6 Felsstufen, Waltersdorf Hauptstraße 25, Kammstraße bei Hölle 3. Hochwald (80) und Lausche (58) sind Sackgassen ohne Hinweis.
+**Rennrad nur auf Straßen (0.18.1):** Details (`okS` in `gnRG`, `OLD_ROADADJ`, Test `tadj`) jetzt in `docs/ARCHIV.md`. Gut erreichbare Treppen: Jonsdorf Auf der Heide 9 Stufen (Weg-ID 41396618), Oybin Kammstraße (Weg-ID 1209305178, ohne step_count, im Spiel „10 Stufen“, bei x 98…109, z 1072), Friedrich-Engels-Str. (S 133) 6 Felsstufen, Waltersdorf Hauptstraße 25, Kammstraße bei Hölle 3.
 
 **Echte Bäume, Wald, Äcker überall (0.19.0)**
 - Hicore (24.11.): „Jonsdorf überall, jeder Baum, Strauch, Acker an seinem Platz“, Häuser bleiben. Wald tief drin darf ausgedünnt sein, an befahrbaren Wegen nicht.
@@ -138,8 +134,13 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Tschechischer Teil (Süd: Lausche, Krompach, Jiřetín; West: Varnsdorf-Rand) jetzt wie Sachsen: `dop_gebiet.py ergaenzen [sek] cz` holt Orthofoto ČÚZK (WMS `ags.cuzk.cz/arcgis1/services/ORTOFOTO`, © ČÚZK, offene Daten CC BY 4.0, nur RGB) für alle Kachelzellen ohne sächsisches Luftbild; Vegetation aus Grünanteil (ExG) statt NDVI, Schatten/dunkles Nadelholz zählt als Krone. Sachsen-Zellen bleiben unverändert (Original in Sandbox `dop/ks/`). Dann `packen` → PNG-Transfer → `dop_einfuegen.py`. Ergebnis gesamt 397.679 Bäume + 70.718 Sträucher (+127k/+21k), Kacheln 3,7 → 4,4 MB.
 - Polen (schmaler Streifen östlich der Neiße, ca. 0,6 km²): Geoportal-WMS (`mapy.geoportal.gov.pl …/ORTO/WMS`) liefert aus der Sandbox nur leere Bilder (4326 und 2180 getestet), bleibt ESA/OSM.
 - Treppen: siehe Höhe oben. Test `tests/tstairfit.js` (alle Treppen alt/neu: sink/float/flach). Ergebnis neu: von 483 Treppen 9 mehr als 10 cm unter Gelände (alt 186), Rest-Ausreißer bei sehr steilen langen Treppen (Stufen max. 24 cm). `tstair.js` neu: `SIDE=1,-1` (mehrere Seiten), `FLOAT=1` (Treppe mit größtem Überstand im Umkreis 2,5 km).
-- Treppe Oybin Kammstraße (Weg-ID 41396618, 9 Stufen, oben an der Straße): Zaun weg (seit 0.19.0), Stufen ca. 6,5 cm, weil das Gelände dort nur 0,64 m Höhenunterschied hat und das obere Ende auf Straßenhöhe liegen muss.
-- Schultern: linker Arm hängt fast gestreckt neben dem Oberschenkel und pendelt (vorher Hand wie in die Hüfte gestemmt). Alt: `window.OLD_CARRYARM2`.
+- Achtung: 0.19.0/0.19.1 nannten Weg-ID 41396618 „Oybin Kammstraße“, die liegt aber in **Jonsdorf** (x −2510, z −478). Die echte Oybiner Treppe ist 1209305178 (siehe 0.19.2).
+- Schultern 0.19.1 (Arm hängt gestreckt) war für Hicore „noch schlimmer“, ersetzt in 0.19.2. Alt: `window.OLD_CARRYARM3`.
+
+**Hotfix 0.19.2**
+- Zaun Oybin Kammstraße: kam nicht aus OSM (`gtFenceMesh`), sondern aus der Runden-Deko `placeInstanced(g,'zaun',…)` (Weidezaun-Modell, 7,5 m neben der Startrunde, zufällig). Neu `propOnWay(x,z,m)` (nur Zittau: Nebenstraße per `gnNear` oder `waysNear`, enthält Treppen): Zaunfeld wird an Mitte und beiden Enden geprüft, `roadside()` (Bäume, Schilder usw.) prüft die Mitte. 24 von 452 Zaunfeldern fallen weg (`window.__PW`). Tor statt Lücke verworfen: der Weidezaun gehört dort nicht hin. Alt: `window.OLD_PROPWAY`.
+- Schultern: linker Arm angewinkelt (Ellbogen ca. 90°, nach hinten-unten), Hand locker vor der Hüfte, schwingt mit dem Schritt (Referenz: Hicores Cyclocross-Fotos vom 24.11., `uploads/hearth/432deada…`).
+- Neue Tests: `tests/tprobe.js` (listet alle Meshes im Umkreis `R` um `X,Z`, Zaunfeld-Zähler, mit `OUT`+`CAMS="x,y,z,lx,ly,lz;…"` Bilder an genau der Stelle; ca. 8 min), `tests/tcarry.js` (Studio-Bilder der Schulter-Pose ohne Welt, `US` Schrittphase, `OLD=1`; ca. 3 min). `tstair.js` kann jetzt `WID=` (findet die Oybiner Treppe trotzdem nicht, weil unten kein Weg > 25 m anschließt).
 
 **Offen / unsicher**
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung, Ruckler beim ersten Auto/Zug/Regen, FPS-Anzeige mit Prozent (Details 0.13.0 in docs/ARCHIV.md).
@@ -163,7 +164,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 ## 6. Nächste Schritte
 
 1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
-1a. 0.19.1 am iPad prüfen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe auf flachem Gelände ok?), linker Arm beim Schultern.
+1a. 0.19.2 am iPad prüfen: Treppe Oybin Kammstraße frei, Arm beim Schultern. Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).
 2. Poly-Haven-Paket **Stufe 2** (freigegeben): white_plaster_02, beige_wall_001, weathered_brown_planks, old_stone_wall, clay_roof_tiles_02, roof_slates_03, sandstone_cracks oder mossy_sandstone, bark_brown_02 oder pine_bark. Über die Sandbox holen, umschaltbar, Vergleichsbilder.
 3. Grashalme nur ca. 20–30 m um den Fahrer.
 4. Leistung Teil 2 nur bei Bedarf: Modelle nach Bedarf laden, Wald-Instanzen bündeln (Rad-Verschmelzen ist seit 0.16.0 erledigt).

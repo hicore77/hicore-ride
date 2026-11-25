@@ -4932,7 +4932,7 @@ function carryRig(R,G,K,CY,hipY){ const B=R.B, V3=THREE.Vector3, w=_sst(0,1,CY.k
   if (CY.mode==='lift'){ H.Left={F:tf(gf), pole:new V3(0.6,-0.4,-0.5)};
     const t=TT.b.clone().sub(TT.a).normalize(), c=TT.a.clone().lerp(TT.b,0.42), Y=new V3(0.35,0.94,0), Z=new V3(-0.94,0.35,0); Y.addScaledVector(t,-Y.dot(t)).normalize(); Z.addScaledVector(t,-Z.dot(t)).addScaledVector(Y,-Z.dot(Y)).normalize();
     H.Right={F:tf({c, X:t.clone().negate(), Y, Z}), pole:new V3(-0.5,-0.6,-0.4)}; }
-  else { const gd=(K.gripf||GRIPF)[2]; H.Right={F:tf(mir(!window.OLD_CARRYARM&&gd?gd:gf)), pole:new V3(-0.3,-0.6,0.5)};   /* 0.19.0: rechte Hand am linken Unterlenker wie beim Cyclocross */ H.Left=window.OLD_CARRYARM?{h:new V3(CY.xr+0.24, hipY-0.03, CY.hz+0.13*Math.sin(Math.PI*CY.u)), f:new V3(0,-0.1,0.03), pole:new V3(0.6,-0.3,-0.6)}:(window.OLD_CARRYARM2?{h:G.worldToLocal(B.LeftArm.getWorldPosition(new V3())).add(new V3(0.03,-0.38,0.15+0.12*Math.sin(Math.PI*CY.u))), f:new V3(0,-0.12,0.03), pole:new V3(0.15,-0.7,-0.45)}:{h:G.worldToLocal(B.LeftArm.getWorldPosition(new V3())).add(new V3(0.06,-0.50,0.06+0.09*Math.sin(Math.PI*CY.u))), f:new V3(0.02,-0.12,0.02), pole:new V3(0.25,0.05,-1)});   /* 0.19.1 (Hicore: Hand wirkte wie in die Hüfte gestemmt): Arm hängt fast gestreckt neben dem Oberschenkel und pendelt leicht, Ellbogen zeigt nach hinten */   /* 0.19.0 (Hicore): linker Arm hängt locker, Ellbogen nach hinten-unten statt seitlich weg (wirkte ausgekugelt) */ }
+  else { const gd=(K.gripf||GRIPF)[2]; H.Right={F:tf(mir(!window.OLD_CARRYARM&&gd?gd:gf)), pole:new V3(-0.3,-0.6,0.5)};   /* 0.19.0: rechte Hand am linken Unterlenker wie beim Cyclocross */ H.Left=window.OLD_CARRYARM?{h:new V3(CY.xr+0.24, hipY-0.03, CY.hz+0.13*Math.sin(Math.PI*CY.u)), f:new V3(0,-0.1,0.03), pole:new V3(0.6,-0.3,-0.6)}:(window.OLD_CARRYARM2?{h:G.worldToLocal(B.LeftArm.getWorldPosition(new V3())).add(new V3(0.03,-0.38,0.15+0.12*Math.sin(Math.PI*CY.u))), f:new V3(0,-0.12,0.03), pole:new V3(0.15,-0.7,-0.45)}:(window.OLD_CARRYARM3?{h:G.worldToLocal(B.LeftArm.getWorldPosition(new V3())).add(new V3(0.06,-0.50,0.06+0.09*Math.sin(Math.PI*CY.u))), f:new V3(0.02,-0.12,0.02), pole:new V3(0.25,0.05,-1)}:{h:G.worldToLocal(B.LeftArm.getWorldPosition(new V3())).add(new V3(0.08, -0.34+0.02*Math.cos(Math.PI*CY.u), 0.20+0.07*Math.sin(Math.PI*CY.u))), f:new V3(0.0,-0.04,0.12), pole:new V3(0.35,-0.45,-0.8)}));   /* 0.19.2 (Hicore: hing noch schlimmer, Referenz Cyclocross): Ellbogen ca. 90° angewinkelt, Unterarm nach vorn, Hand locker vor der Hüfte, schwingt mit dem Schritt */   /* 0.19.1 (Hicore: Hand wirkte wie in die Hüfte gestemmt): Arm hängt fast gestreckt neben dem Oberschenkel und pendelt leicht, Ellbogen zeigt nach hinten */   /* 0.19.0 (Hicore): linker Arm hängt locker, Ellbogen nach hinten-unten statt seitlich weg (wirkte ausgekugelt) */ }
   return {w, H}; }
 // Pose pro Bild. G = Rider-Gruppe (lokale Koordinaten: +z vorn), crank = Kurbelwinkel
 function poseGLB(R, G, crank, effort, opt){
@@ -5576,10 +5576,13 @@ function propObject(name){ const lib=PROP_LIB[name]; if(!lib) return null; const
 
 const _pm=new THREE.Matrix4(), _pq=new THREE.Quaternion(), _ps=new THREE.Vector3(), _pp=new THREE.Vector3();
 // Position neben der Straße: Abstand d, Seite side (+1 rechts/-1 links), Versatz off (m), Blick zur Straße
+/* 0.19.2 (Hicore, Treppe Oybin Kammstraße): Deko entlang der Runde (Zaun, Bäume, Schilder) nicht auf echte Wege, Treppen oder Nebenstraßen setzen. Alt: window.OLD_PROPWAY */
+function propOnWay(x,z,m){ if (window.OLD_PROPWAY || !(WORLD&&WORLD.id==='zittau')) return false; try{ const g=gnNear(x,z,30); if (g.k>=0 && g.d<g.w/2+m) return true; return waysNear(x,z,m); }catch(e){ return false; } }
 function roadside(d, side, off, scale, faceRoad, yaw){
   const p=posAt(d), hd=headingAt(d); const x=p.x+Math.cos(hd)*off*side, z=p.z-Math.sin(hd)*off*side;
   const near=roadD(x,z); if (near<off*0.6) return null;   // zu nah an anderem Straßenabschnitt
   if (inPond(x,z,2)) return null;
+  if (propOnWay(x,z,0.8)) return null;   /* 0.19.2: nichts auf Wege, Treppen, Nebenstraßen */
   const h=off-(WORLD.roadW||7)/2<CORR.CW?profileH(d,side,off):terrainH(x,z); if (WORLD.water && h<minY-1.2) return null;
   const rot = faceRoad ? hd + (side>0 ? -Math.PI/2 : Math.PI/2) : (yaw!==undefined?yaw:rand()*Math.PI*2);
   _pq.setFromAxisAngle(UPV, rot); _ps.setScalar(scale||1); _pp.set(x,h,z);
@@ -5645,7 +5648,7 @@ function addProps(def){ window.HOUSE_PTS=[];
   { const mats=[], nF=cnt(plan.fence); for (let k=0;k<nF;k++){ const start=rand()*L, side=rand()<0.5?1:-1, len=60+rand()*120;
       pastures.push({d:start+len/2, side});
       for (let s=0; s<len; s+=3.05){ const d=start+s, p=posAt(d), hd=headingAt(d); const x=p.x+Math.cos(hd)*7.5*side, z=p.z-Math.sin(hd)*7.5*side;
-        if (roadD(x,z)<5) continue; _pq.setFromAxisAngle(UPV, hd+Math.PI/2); _pp.set(x,profileH(d,side,7.5),z); mats.push(new THREE.Matrix4().compose(_pp.clone(),_pq.clone(),new THREE.Vector3(1,1,1))); } }
+        if (roadD(x,z)<5) continue; { const tx=Math.sin(hd)*1.55, tz=Math.cos(hd)*1.55; const PW=window.__PW||(window.__PW={all:0,hit:0}); PW.all++; if (propOnWay(x,z,1.2)||propOnWay(x+tx,z+tz,1.2)||propOnWay(x-tx,z-tz,1.2)){ PW.hit++; continue; } }   /* 0.19.2: Zaunfeld (3 m) nicht quer über Weg/Treppe */ _pq.setFromAxisAngle(UPV, hd+Math.PI/2); _pp.set(x,profileH(d,side,7.5),z); mats.push(new THREE.Matrix4().compose(_pp.clone(),_pq.clone(),new THREE.Vector3(1,1,1))); } }
     placeInstanced(g,'zaun',mats); }
   // Tiere in Gruppen (animiert): Hasen hoppeln, Möwen kreisen, Kühe/Schafe grasen
   let pi=0;
@@ -7390,7 +7393,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.19.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{

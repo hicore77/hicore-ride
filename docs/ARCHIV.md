@@ -546,3 +546,13 @@ Die Sandbox ist über das Higgsfield-MCP-Werkzeug `sandbox_exec` erreichbar und 
 ## Aus UEBERGABE.md verschoben (Stand 0.19.1)
 
 **FIT-Export (0.18.0):** `geoOf` rechnet im Zittauer Gebirge mit derselben Umrechnung wie die OSM-Daten zurück (lat0/lon0 aus `ZGNET`, 111320 m/°), Höhe = y + 300 m (echte Höhe über NN). Strava zeigt die Fahrt auf den echten Straßen. Echte Orte (`WORLD.real`) wie bisher echt, Fantasiewelten weiter im „Hicore-Archipel“ (Südpazifik). Wetter-Position (`RWX.pos`) nutzt jetzt dieselbe Umrechnung.
+
+
+## Aus UEBERGABE.md verschoben (25.11.2026)
+
+**Rennrad nur auf Straßen (0.18.1)**
+- `gnRG`: `okS` (Kanten für `adjS`, Rennrad) neu: Hauptstraßen alle; Nebenstraßen nur Asphalt/Pflaster, Zufahrten (c 27) nur im Ort (`gnInner` in der Kantenmitte); Radwege (13) nur mit angegebenem Asphalt/Pflaster/Beton/befestigt; Feld-/Waldwege (10) nur mit angegebenem Asphalt; geschätzte Beläge (`inf`, ways.bin Flag 32) nie; Treppen nie. Rausgefallen: ca. 43 km Betonplatten-Feldwege, 27 km „befestigt“ geschätzt, 66 km Zufahrten außerorts. Alter Stand: `window.OLD_ROADADJ`.
+- Test `tests/tadj.js` (km je Kantenart in `adjS`, `OLD=1`; schreibt zusätzlich Treppen mit Anbindung nach `SOUT`). Läuft in ca. 1 min, braucht keinen Fahrtstart.
+- Nicht geändert: Hochwald-Schotterstück (0.9.10, Teil einer Hauptstraßenkante), Nebenstraßen ohne Belagsangabe zählen weiter als Asphalt (side2.bin hat kein „geschätzt“-Flag, Generator nicht im Repo).
+- Gut erreichbare Treppen (Hicore genannt): Jonsdorf Auf der Heide 9 Stufen, Oybin Kammstraße ca. 10, Friedrich-Engels-Str. (S 133) 6 Felsstufen, Waltersdorf Hauptstraße 25, Kammstraße bei Hölle 3. Hochwald (80) und Lausche (58) sind Sackgassen ohne Hinweis.
+
