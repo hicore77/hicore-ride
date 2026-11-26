@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.23.1 Beta** (schwebende Weg-/Treppenenden, Dachschnee mit Kante, Schneeknirschen, Speichern in Bluefy). Davor 0.23.0 (Handy als Fernbedienung), 0.22.0 (Tiere, Autos).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.23.2 Beta** (Autoräder im Radkasten, natürliches Einlenken). Davor 0.23.1 (schwebende Wegenden, Dachschnee, Speichern in Bluefy), 0.23.0 (Handy als Fernbedienung).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.23.1** | **Schwebende Weg-/Treppenenden behoben, Dachschnee mit Kante, Schneeknirschen, Speichern-Fenster für Bluefy + Datei ans Handy** |
+| **0.23.2** | **Autoräder sitzen im Radkasten (eingerückt, dunkles Radhaus), Einlenken nach Einspurmodell (Lenkung vor Drehung, Drehpunkt Hinterachse, Ackermann)** |
+| 0.23.1 | Schwebende Weg-/Treppenenden behoben, Dachschnee mit Kante, Schneeknirschen, Speichern-Fenster für Bluefy + Datei ans Handy |
 | 0.23.0 | Handy-Fernbedienung (Companion): Abbiegen, Wenden, Gesten, Pause/Kamera, Live-Werte, Kopplung per QR/Code |
-| 0.22.0 | Tiere laufen mit Skelett (Schritt/Trab/Galopp, Grasen), Autos lenken/wanken/blinken, runde Autoräder, Kachel-Fertigstellung auf 5 Bilder verteilt |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -136,6 +136,11 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 **Leistung 0.20.0–0.21.0** (Details 0.20.0–0.20.2 in `docs/ARCHIV.md`): Kachelwald gebündelt (`GT.w`, `OLD_GTW`), Baumschatten nur nah (`OLD_TREESH`), HUD sparsam (`OLD_HUD`), Leistungstest per Tipp auf FPS-Anzeige (`LTEST`), Messung `tests/tgpuperf.js`. iPad-Lesart: Chrome hängt an Pixeln, Bluefy an den Bäumen.
 - 0.20.3 (Hicore: 0.20.2 lief erst 60 FPS/90 %, dann alle ~30 s Ruckler und wieder „28 FPS · max 30“): `FPSCTL.win(fps, maxFrameMs)` ersetzt `DRES.tick`/FCAP-Zweig. Unter 55 FPS Auflösung −10 % bis 70 % (nach jedem Wechsel ein Fenster Pause), kein Gewinn bei 70 % (< 3 FPS ggü. 100 %) → zurück auf 100 % und 5 min Sperre; 50–55 ungebremst, < 50 → 30er-Grenze, Probe alle 3 min; hoch +5 % nach 4×≥59, fällt es binnen 12 s → 3 min keine Erhöhung; Fenster mit Bild > 250 ms (Nachladen) zählen nicht. Alt: `window.OLD_FPSCTL`.
+**Autoräder und Einlenken 0.23.2** (Hicore 26.11.: „Räder sehen aufgesetzt aus, Einlenken sieht komisch aus“)
+- Ursache Räder: Außenseite stand ca. 8 cm über dem Kotflügel (Lage aus den herausgeschnittenen Modellrädern), Radkasten zeigte Karosserie/Himmel und Reste des Modellreifens. Jetzt misst `split` je Achse die Kotflügelkante `A.ax` (98 % der Punkte im Ring 1,06–1,5 r über der Achse), schneidet das Modellrad ganz heraus (`A.xi`, unten bis 1,16 r) und rückt das Rad auf 3,5 cm innerhalb der Kante. `linerGeo`/`linerMat`: dunkles Radhaus (Bogen + Innenwand, alle 4 in 1 Zeichenaufruf). Traktor unverändert. Alt: `OLD_WHEELS`.
+- Ursache Einlenken: Lenkwinkel folgte der gemessenen Drehung über zwei Glättungen (ca. 0,7 s zu spät). Neu `steerStep2`: Hinterachse läuft ohne Schräglauf auf der Spur, Karosserie dreht um die Hinterachse (`c.zr`), Lenkwinkel = atan(Radstand·Krümmung) aus Straße (`headingAt` um die Vorderachse, im Kreisel-Gegenverkehr gemessen, `c.rbA`) plus Spurwechsel, max. 0,9 rad/s, Ackermann je Rad, Wanken aus v²·Krümmung. Alt: `OLD_CARSTEER`.
+- Prüfstand ohne Spiel (ca. 1 min statt 20): Thread-Scratchpad `car/` (gen.js zieht die TRAFFIC-Teile aus src.html, shot.js rendert Autos einzeln, steer.js protokolliert einen Spurwechsel). Bild vorschau/250_autoraeder.jpg. Nicht im Repo; bei Bedarf neu bauen.
+
 **Restpunkte 0.23.1** (Hicore 25.11.: schwimmendes Feldwegende, Schneekante auf Dächern, FIT-Download)
 - Prüfskript `tests/twend.js` (ca. 40 s): misst jede Wegecke (29.000 Stücke) gegen das gezeichnete Gelände (10-m-Raster), dazu Brückendecks und Treppen. Ergebnis vorher: 169 Treppen standen über 0,8 m (bis 6,4 m) in der Luft, der Weg am Treppenende schwebte mit (`stairBlend`); Wege auf Kuppen bis 1,4 m über dem sichtbaren Boden, in Mulden darunter; an Straßen angehobene Wegenden (`wayLiftY0`, meist 0,35–0,7 m) ohne Unterbau. Meldungen „einschnitt“ sind Fehlalarm (feines Einschnitt-Netz deckt das abgesenkte Raster).
 - Treppen (`stairInit`): OSM-incline gegen das Gelände (> 0,5 m andersrum) → Gelände gewinnt; steht die Treppe schon 30 cm über dem Boden, Podest statt Stufe, fällt das Gelände (Kuppe), geht sie wieder hinunter (Rückseite gezeichnet). Jetzt 0 Treppen über 0,8 m. Alt: `window.OLD_STAIRFLOAT`.
@@ -151,15 +156,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Handy: große Pfeile, Kreuzungsoptionen mit Ziel, Wenden/Pause/Kamera/Anzeige, 5 Gesten, Bildschirm bleibt an (Wake Lock). Kein Server nötig außer Supabase (Free-Kontingent: ca. 7.000 Nachrichten je Fahrstunde).
 - Test `tests/thandy.js` (Spiel + Handy-Seite im selben Browser, Supabase durch `tests/fake_supabase.js` über BroadcastChannel ersetzt, weil die Cloud Supabase nicht erreicht). Echte Verbindung nur bei Hicore prüfbar.
 
-**Tiere und Autos 0.22.0** (Hicore: Hirsch auf der Kammstraße hüpfte; Autos sollen lenken/blinken; Räder wirkten achteckig wie Papier; Ruckler beim Nachladen)
-- Blickrichtung korrigiert in `PROP_FIX` (`ry`, alt `ry0`): Reh lief rückwärts, Hirsch/Kuh seitwärts, Pferd/Huhn rückwärts, Ziege schräg.
-- Skelett automatisch (`ANIM_CFG`, `animRig`, `animObject`, `animUpdate`, Block `/*ANIM-START*/`): Beine aus Punkten unter dem Bauch (`bf` = Bauchhöhe/Höhe) per k-Mittel vorn/hinten, links/rechts; Knochen Wurzel, Rumpf, Kopf/Hals, je Bein oben/unten, Gewichte weich; `SkinnedMesh` teilt Geometrie und Material (1 Zeichenaufruf je Tier wie vorher). `propObject` liefert für Tiere in `ANIM_CFG` das Skelett-Objekt.
-- Gangarten (`ANIM_GAITS`, Beine LH, LV, RH, RV): Schritt lateral je 1/4, Trab diagonal, Transversalgalopp (Hirsch/Reh/Pferd), Sprunggalopp (Katze/Eichhörnchen), Hühner zweibeinig. Wechsel nach Froude-Zahl (Trab ab ~0,5, Galopp ab ~2,5), Schrittlänge 2,3·Beinlänge·Fr^0,3 (Alexander & Jayes), Kopfnicken im Schritt, Rumpfschwingen im Galopp, Grasen senkt den Kopf (`gr`).
-- Verhalten: `deerStep` (grast/schaut/geht, unter 75 m schaut es zum Fahrer, unter 40 m Flucht mit Schreck, Antraben, Galopp bis `vmax` 11–12 m/s, Drehrate begrenzt), `critterAnim` (Weide-/Hoftiere grasen, gehen ab und zu ein paar Meter, Hühner trippeln und picken; über 160 m Pose eingefroren). Eichhörnchen/Katze laufen statt zu hüpfen. Hase hoppelt weiter (ist richtig). Vögel unverändert.
-- Autos (`steerStep`, `blinkStep`, `turnAt`): Spurwechsel weich (`c.lv`, begrenzte Seitenbeschleunigung), Karosserie zeigt in die Bewegungsrichtung, Vorderräder lenken mit; Wanken ~3,7°/g, Nicken ~2,6°/g über gedämpfte Feder (1,4 Hz, ζ 0,4). Blinker (`c.bl`, 4 Lampen + Lichthof) 1,5 Hz: ~1 s vor dem Ausscheren (`c.pbT`), beim Wiedereinscheren, Anfahren vom Rand, Rechtsranfahren, vor Abbiegen an Kreuzungen (Kantenwechsel in `NET.cur.ents`, Knoten mit ≥3 Straßen, Richtungsänderung > 0,55 rad). Alt: `OLD_CARDYN`, `OLD_BLINK`.
-- Räder (`wheelGeo`, `wheelTex`, `wheelMat`, `axleX`): eigener runder Reifen (Drehkörper 32 Segmente) + Alufelge 5 Speichen (Traktor gelb 8), Achsen/Spur aus den alten Rad-Dreiecken; über 26 rad/s verwischte Felge gegen Stroboskop. Alt: `OLD_WHEELS`.
-- Nachladen: `gtFinishStep` verteilt das Fertigstellen einer Geländekachel auf 5 Bilder (Normalen, Schilder, Nebenstraßen, Wege+Treppen, Einhängen), `gtJobDrop`. Alt: `OLD_GTFS`.
-- Test `tests/tanim.js` (`TI=1,4` Autotypen, `KINDS=reh,hirsch`, `OUT`): Auto seitlich/vorn/hinten mit Blinker, Tier ruhig/Schritt/Flucht. Gangbilder ohne Spiel: Harness in der Thread-Sandbox (lädt `props/*.glb` + Block ANIM), Bild vorschau/220_tiere.jpg, 221_autos.jpg.
+**Tiere und Autos 0.22.0:** Details (`ANIM_CFG`, Gangarten, `deerStep`, `blinkStep`, `wheelGeo`, `gtFinishStep`, Test `tanim`) jetzt in `docs/ARCHIV.md`.
 
 - 0.21.0 Impostors (`IMP`, `impR` 60 m, `OLD_IMP`), Ruckler-Messung `tstutter2`, `upR`/`OLD_UPR`: Details in `docs/ARCHIV.md`. Poly Haven ist Standard.
 
@@ -176,6 +173,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.16.1 am iPad prüfen: Vorauswahl in Orten (Spitzkunnersdorf), ob dezente Abzweig-Hinweise reichen, Ruckler beim automatischen Neuberechnen, Optik der Einmündungen.
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
 - 0.15.0 am iPad prüfen: Fahrgefühl Gravel/MTB, Ladezeit (+0,7 s), Wurzeln/Brücken.
+- 0.23.2 am iPad prüfen: Räder im Radkasten, Einlenken beim Überholen und in Kurven, Kreisel-Gegenverkehr.
 - 0.23.1 am iPad prüfen: Speichern in Bluefy (Teilen-Knopf, sonst „An Handy senden“), Dachschnee bei „viel“, Knirschen, Treppen/Wegenden. KI-Gespräch mit Figuren auf dem iPad unzuverlässig.
 - Redmi Note 10 Pro stürzt ab (ruht). Häuserflackern auf „Hoch“ (Chrome iPad) unbestätigt.
 - `tjun` meldet 3 bekannte, unkritische Artefakte.

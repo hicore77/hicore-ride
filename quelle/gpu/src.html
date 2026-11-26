@@ -6558,10 +6558,14 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
       const med=a=>{ a.sort((p,q)=>p-q); return a[a.length>>1]; }; if (lo[0].length<6 || lo[1].length<6) return out;
       /* Index 0 = vordere Achse (+z), 1 = hintere; beim Polizeiauto ist vorn -z */
       const zs=[med(lo[0]), med(lo[1])], wr=T.rot?[T.wr[1],T.wr[0]]:T.wr, xin=hw-(T.slow?0.75:0.45);
-      const axles=zs.map((z,ai)=>({z, r:wr[ai], y:y0+wr[ai], parts:[]})), body=[];
+      const axles=zs.map((z,ai)=>({z, r:wr[ai], y:y0+wr[ai], parts:[], xi:xin})), body=[];
+      /* 0.23.2 (Hicore: Räder wirkten aufgesetzt): Außenkante des Kotflügels über jeder Achse messen (A.ax, Abstand zur Mitte). Das Rad wird danach
+         ganz herausgeschnitten (auch innere Reifen- und Felgenreste, die sonst neben dem neuen Rad hervorschauten) und in den Radkasten eingerückt. */
+      if (!window.OLD_WHEELS && !T.slow) axles.forEach(A=>{ const xs=[]; geos.forEach(({g})=>{ const P=g.attributes.position; for (let i=0;i<P.count;i++){ const y=P.getY(i), z=P.getZ(i), d=Math.hypot(y-A.y,z-A.z); if (y>A.y && d>A.r*1.06 && d<A.r*1.5 && Math.abs(z-A.z)<A.r*1.3) xs.push(Math.abs(P.getX(i)-xc)); } });
+        if (xs.length>20){ xs.sort((a,b)=>a-b); A.ax=xs[Math.floor(xs.length*0.98)]; A.xi=Math.min(xin, A.ax-0.5); } });
       const subset=(g,mask,cnt,dy,dz)=>{ const ng=new THREE.BufferGeometry(); for (const nm in g.attributes){ const A=g.attributes[nm], is=A.itemSize, src=A.array, dst=new src.constructor(cnt*3*is); let o=0; for (let t=0;t<mask.length;t++) if (mask[t]){ for (let q=0;q<3*is;q++) dst[o++]=src[t*3*is+q]; } const na=new THREE.BufferAttribute(dst,is,A.normalized); ng.setAttribute(nm,na); } if (dy||dz) ng.translate(0,-dy,-dz); ng.computeBoundingSphere(); return ng; };
       geos.forEach(({g,mat})=>{ const P=g.attributes.position, nt=P.count/3|0, own=new Int8Array(nt).fill(-1);
-        for (let t=0;t<nt;t++){ for (let ai=0;ai<2;ai++){ const A=axles[ai]; let ok=true; for (let q=0;q<3;q++){ const i=t*3+q, x=P.getX(i), y=P.getY(i), z=P.getZ(i); if (Math.abs(x-xc)<xin || Math.hypot(y-A.y,z-A.z)>A.r*1.03){ ok=false; break; } } if (ok){ own[t]=ai; break; } } }
+        for (let t=0;t<nt;t++){ for (let ai=0;ai<2;ai++){ const A=axles[ai]; let ok=true; for (let q=0;q<3;q++){ const i=t*3+q, x=P.getX(i), y=P.getY(i), z=P.getZ(i); const dr=Math.hypot(y-A.y,z-A.z); if (Math.abs(x-xc)<A.xi || (dr>A.r*1.03 && !(A.ax && y<A.y && dr<A.r*1.16 && Math.abs(x-xc)>A.ax-0.3))){ ok=false; break; } } if (ok){ own[t]=ai; break; } } }
         const mB=new Uint8Array(nt), m0=new Uint8Array(nt), m1=new Uint8Array(nt); let cB=0,c0=0,c1=0; for (let t=0;t<nt;t++){ if (own[t]===0){ m0[t]=1; c0++; } else if (own[t]===1){ m1[t]=1; c1++; } else { mB[t]=1; cB++; } }
         body.push({geo:subset(g,mB,cB), mat}); if (c0) axles[0].parts.push({geo:subset(g,m0,c0,axles[0].y,axles[0].z), mat}); if (c1) axles[1].parts.push({geo:subset(g,m1,c1,axles[1].y,axles[1].z), mat}); });
       out.body=body; out.hw=hw; out.xc=xc; out.axles=axles.filter(a=>a.parts.length); console.log('verkehr räder', T.m, JSON.stringify(axles.map(a=>[+a.z.toFixed(2),+a.y.toFixed(2),a.parts.length])), xc.toFixed(2), hw.toFixed(2), y0.toFixed(2)); out.n=out.axles.reduce((n,a)=>n+a.parts.reduce((k,p)=>k+p.geo.attributes.position.count/3,0),0);
@@ -6597,7 +6601,12 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
   /* 0.22.0 (Hicore: Autos sollen sich natürlicher bewegen): Karosserie zeigt beim Spurwechsel in die Bewegungsrichtung (Gierwinkel = atan(Seitentempo/Tempo)),
      Vorderräder lenken dabei mit; Wanken nach außen mit ca. 3,7° je g Querbeschleunigung, Nicken beim Bremsen/Anfahren ca. 2,6° je g, beides über eine
      gedämpfte Feder (ca. 1,4 Hz, Dämpfung 0,4 wie ein üblicher Pkw-Aufbau), deshalb weich mit leichtem Nachschwingen. Alt: window.OLD_CARDYN */
-  steerStep(c, dt, gr){ if (dt<=0) return; const o=c.o.position, pp=c.pp; c.pp={x:o.x,z:o.z}; const sp=pp?Math.hypot(o.x-pp.x,o.z-pp.z)/dt:0, dyn=!window.OLD_CARDYN;
+  /* 0.23.2 (Hicore: Einlenken sah komisch aus): vorher folgte der Lenkeinschlag der gemessenen Drehung der Karosserie über zwei Glättungen
+     (ca. 0,7 s zu spät: erst drehte das Auto, dann die Räder). Jetzt wie beim echten Auto (Einspurmodell): die Hinterachse läuft auf der Spur ohne
+     Schräglauf, die Karosserie dreht um die Hinterachse (Gierwinkel = atan(Seitentempo/Tempo)), der Lenkwinkel kommt direkt aus der Bahnkrümmung
+     (Straße vorausschauend + Spurwechsel): δ = atan(Radstand·Krümmung), Lenkgeschwindigkeit begrenzt, kurveninneres Rad stärker (Ackermann).
+     Wanken aus Querbeschleunigung v²·Krümmung statt aus der verzögerten Gierrate. Alt: window.OLD_CARSTEER */
+  steerStep(c, dt, gr){ if (dt<=0) return; if (!window.OLD_CARDYN && !window.OLD_CARSTEER) return this.steerStep2(c, dt, gr); const o=c.o.position, pp=c.pp; c.pp={x:o.x,z:o.z}; const sp=pp?Math.hypot(o.x-pp.x,o.z-pp.z)/dt:0, dyn=!window.OLD_CARDYN;
     if (dyn){ const yo=Math.atan2(c.lv||0, Math.max(c.v,2.5)); c.yo=(c.yo||0)+(yo-(c.yo||0))*Math.min(1,dt*6); } const H=c.hd+(dyn?c.yo:0);
     c.o.rotation.set(0,H,0); c.o.rotateX(-Math.atan(gr));
     let w=0; if (c.hd0!=null){ let dp=H-c.hd0; dp=Math.atan2(Math.sin(dp),Math.cos(dp)); w=dp/dt; } c.hd0=H; c.wf=(c.wf||0)+(w-(c.wf||0))*Math.min(1,dt*2.5);
@@ -6607,6 +6616,21 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
       const k=this.types[c.ti]&&this.types[c.ti].slow?0.6:1, tR=clamp(c.v*c.wf*0.0065*k,-0.06,0.06), tP=clamp(-c.al*0.0045*k,-0.035,0.035), om=8.8, ze=0.4;
       let rest=Math.min(dt,0.1); while (rest>1e-4){ const h=Math.min(rest,0.02); rest-=h; c.rlv=(c.rlv||0)+(om*om*(tR-(c.rl||0))-2*ze*om*(c.rlv||0))*h; c.rl=(c.rl||0)+c.rlv*h; c.ptv=(c.ptv||0)+(om*om*(tP-(c.pt||0))-2*ze*om*(c.ptv||0))*h; c.pt=(c.pt||0)+c.ptv*h; }
       c.o.rotateX(c.pt); c.o.rotateZ(c.rl); } },
+  steerStep2(c, dt, gr){ const v=Math.max(c.v||0,0), vv=Math.max(v,2.5), L=c.wb||2.6;
+    const yoT=Math.atan2(c.lv||0, vv), yo0=c.yo||0; c.yo=yo0+(yoT-yo0)*Math.min(1,dt*6); const dyo=(c.yo-yo0)/dt;
+    /* Krümmung der Straße in Fahrtrichtung, gemessen um die Wagenmitte bis etwas voraus (Vorderachse); im Kreisel (Gegenrichtung) aus der gemessenen Drehung */
+    let kr=0; if (c.rbA){ if (c.hdm!=null && v>0.3){ let dh=c.hd-c.hdm; dh=Math.atan2(Math.sin(dh),Math.cos(dh)); c.krm=(c.krm||0)+(dh/(v*dt)-(c.krm||0))*Math.min(1,v*dt/3); } kr=c.krm||0; }
+    else { try{ const m=c.d+c.cd*L*0.5; let dh=headingAt(m+c.cd*3)-headingAt(m-c.cd*3); dh=Math.atan2(Math.sin(dh),Math.cos(dh)); kr=dh/6; c.krm=kr; }catch(e){} }
+    c.hdm=c.hd; const k=clamp(kr+(v>0.3?dyo/vv:0), -0.35, 0.35);
+    const H=c.hd+c.yo; c.o.rotation.set(0,H,0); c.o.rotateX(-Math.atan(gr));
+    /* Drehpunkt Hinterachse: die Wagenmitte liegt um lr·sin(Gierwinkel) seitlich versetzt */
+    const lr=-(c.zr!=null?c.zr:-1.3), lat=lr*Math.sin(c.yo); c.o.position.x+=Math.cos(c.hd)*lat; c.o.position.z-=Math.sin(c.hd)*lat;
+    if (v>0.3){ const tgt=clamp(Math.atan(L*k),-0.6,0.6), d0=c.st||0, want=d0+(tgt-d0)*Math.min(1,dt*10); c.st=d0+clamp(want-d0,-0.9*dt,0.9*dt); }
+    if (c.wh){ const ts=Math.tan(c.st||0); c.wh.forEach(q=>{ if (!q.steer) return; const y=q.pv.position.x; q.pv.rotation.y=q.ry0+(Math.abs(ts)<1e-4?0:Math.atan(L*ts/(L-y*ts))); }); }
+    const al=c.vp!=null?(c.v-c.vp)/dt:0; c.vp=c.v; c.al=(c.al||0)+(clamp(al,-9,6)-(c.al||0))*Math.min(1,dt*8);
+    const kS=this.types[c.ti]&&this.types[c.ti].slow?0.6:1, tR=clamp(v*v*k*0.0065*kS,-0.06,0.06), tP=clamp(-c.al*0.0045*kS,-0.035,0.035), om=8.8, ze=0.4;
+    let rest=Math.min(dt,0.1); while (rest>1e-4){ const h=Math.min(rest,0.02); rest-=h; c.rlv=(c.rlv||0)+(om*om*(tR-(c.rl||0))-2*ze*om*(c.rlv||0))*h; c.rl=(c.rl||0)+c.rlv*h; c.ptv=(c.ptv||0)+(om*om*(tP-(c.pt||0))-2*ze*om*(c.ptv||0))*h; c.pt=(c.pt||0)+c.ptv*h; }
+    c.o.rotateX(c.pt); c.o.rotateZ(c.rl); },
   /* 0.22.0 (Hicore): Blinker beim Ausscheren/Wiedereinscheren, beim Anfahren vom Rand, beim Rechtsranfahren und vor dem Abbiegen an Kreuzungen.
      1,5 Hz (90 Takte/min wie vorgeschrieben), mindestens 3 Takte, nach dem Manöver noch kurz weiter. */
   turnAt(c){ const R=NET&&NET.cur, en=R&&R.ents, D=GN.rg; if (!en || en.length<2 || !D) return 0; let lo=0, hi=en.length-1; while (hi>lo){ const m=(lo+hi+1)>>1; if (en[m].r0<=c.d) lo=m; else hi=m-1; }
@@ -6640,6 +6664,15 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
     x.fillStyle='#202020'; x.fillRect(0,0,12,12);
     const t=new THREE.CanvasTexture(cv); t.anisotropy=4; if (THREE.SRGBColorSpace) t.colorSpace=THREE.SRGBColorSpace; return this._wt[k]=t; },
   axleX(A,SP){ if (A._xo!=null) return A._xo; let m=0; const xs=[]; A.parts.forEach(({geo})=>{ const p=geo.attributes.position; for (let i=0;i<p.count;i++) xs.push(Math.abs(p.getX(i)-SP.xc)); }); xs.sort((a,b)=>a-b); m=xs.length>20?xs[Math.floor(xs.length*0.97)]:SP.hw-0.06; return A._xo=Math.min(m, SP.hw-0.02); },
+  /* 0.23.2: dunkles Radhaus (Kunststoff-Innenschale) hinter jedem Rad: Bogen über dem Rad und Innenwand, damit zwischen Reifen und Kotflügel
+     ein dunkler Spalt zu sehen ist statt Karosserie oder Himmel. Alle vier in einer Geometrie (1 Zeichenaufruf je Auto). Alt: window.OLD_WHEELS */
+  linerGeo(T, SP){ if (T._lg!==undefined) return T._lg; T._lg=null; const pos=[], N=18, rot=T.rot||0, cs=Math.cos(rot), sn=Math.sin(rot);
+    SP.axles.forEach(A=>{ if (!A.ax) return; const tw=T.m==='veh_van'?0.23:0.21, xo=Math.min(this.axleX(A,SP)-tw/2-0.01, A.ax-0.035-tw/2), Rl=A.r+0.05, xa=A.ax-0.012, xb=xo-tw/2-0.05, a0=-0.12, a1=Math.PI+0.12;
+      [-1,1].forEach(sd=>{ const P=(x,a,r)=>{ const X=SP.xc+sd*x, y=A.y+Math.sin(a)*r, z=A.z+Math.cos(a)*r; return [z*sn+X*cs, y, z*cs-X*sn]; };
+        for (let i=0;i<N;i++){ const u=a0+(a1-a0)*i/N, v=a0+(a1-a0)*(i+1)/N, p00=P(xa,u,Rl), p01=P(xa,v,Rl), p10=P(xb,u,Rl), p11=P(xb,v,Rl), c0=P(xb,0,0);
+          pos.push(...p00,...p10,...p11, ...p00,...p11,...p01, ...c0,...p11,...p10); } }); });
+    if (!pos.length) return null; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.computeVertexNormals(); g.computeBoundingSphere(); return T._lg=g; },
+  linerMat(){ return this._lm||(this._lm=new THREE.MeshStandardMaterial({color:0x0d0d0e, roughness:1, metalness:0, side:THREE.DoubleSide})); },
   wheelMat(slow, blur){ const k=(slow?'t':'c')+(blur?'b':''); this._wm=this._wm||{}; if (this._wm[k]) return this._wm[k]; const m=new THREE.MeshStandardMaterial({map:this.wheelTex(slow,blur), roughness:0.55, metalness:0.25}); m.userData.snowCar=true; return this._wm[k]=m; },
   wheelGeo(R, W, slow){ const key=R.toFixed(3)+'|'+W.toFixed(3); this._wg=this._wg||new Map(); if (this._wg.has(key)) return this._wg.get(key);
     const rr=R*(slow?0.6:0.68), h=W/2, SEG=32, prof=[[rr,-h*0.92],[rr+0.01,-h],[R-0.05,-h*0.98],[R-0.02,-h*0.85],[R,-h*0.62],[R,h*0.62],[R-0.02,h*0.85],[R-0.05,h*0.98],[rr+0.01,h],[rr,h*0.92]].map(([a,b])=>new THREE.Vector2(a,b));
@@ -6678,10 +6711,12 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
     /* 0.10.4: Vorderräder einzeln, damit sie einlenken können (Achse 0 = vorn, beim gedrehten Modell Achse 1) */
     const rot=P.T.rot||0, cs=Math.cos(rot), sn=Math.sin(rot), fi=P.axles.length===2?(rot?1:0):-1; c.wh=[]; c.wb=P.axles.length===2?Math.abs(P.axles[0].z-P.axles[1].z):2.6;
     const SP=this.split(P.T), NW=!window.OLD_WHEELS && SP.hw>0.3;
-    if (NW) P.axles.forEach((A,ai)=>{ const front=ai===fi, tw=P.T.slow?(ai===(rot?0:1)?0.46:0.3):(P.T.m==='veh_van'?0.23:0.21), xo=this.axleX(A,SP)-tw/2-0.01;
+    if (NW) P.axles.forEach((A,ai)=>{ const front=ai===fi, tw=P.T.slow?(ai===(rot?0:1)?0.46:0.3):(P.T.m==='veh_van'?0.23:0.21), xo=A.ax?Math.min(this.axleX(A,SP)-tw/2-0.01, A.ax-0.035-tw/2):this.axleX(A,SP)-tw/2-0.01;
         [-1,1].forEach(sd=>{ const x=SP.xc+sd*xo, pv=new THREE.Group(); pv.position.set(A.z*sn+x*cs, A.y, A.z*cs-x*sn); pv.rotation.y=rot; pv.rotation.order='YXZ'; const m=new THREE.Mesh(this.wheelGeo(A.r,tw,!!P.T.slow), this.wheelMat(!!P.T.slow,0)); m.castShadow=true; pv.add(m); g.add(pv); c.wh.push({pv, m, r:A.r, a:Math.random()*6, s:rot?-1:1, steer:front, ry0:rot, slow:!!P.T.slow}); }); });
     else P.axles.forEach((A,ai)=>{ if (ai===fi){ const H=this.halves(A); if (H){ H.forEach(h=>{ const pv=new THREE.Group(); pv.position.set(A.z*sn+h.xw*cs, A.y, A.z*cs-h.xw*sn); pv.rotation.y=rot; pv.rotation.order='YXZ'; h.parts.forEach(({geo,mat})=>{ const m=new THREE.Mesh(geo,mat); m.castShadow=true; pv.add(m); }); g.add(pv); c.wh.push({pv, r:A.r, a:0, s:rot?-1:1, steer:true, ry0:rot}); }); return; } }
       const pv=new THREE.Group(); pv.position.set(A.z*sn, A.y, A.z*cs); pv.rotation.y=rot; pv.rotation.order='YXZ'; A.parts.forEach(({geo,mat})=>{ const m=new THREE.Mesh(geo,mat); m.castShadow=true; pv.add(m); }); g.add(pv); c.wh.push({pv, r:A.r, a:0, s:rot?-1:1}); });
+    if (NW){ const LG=this.linerGeo(P.T,SP); if (LG){ const m=new THREE.Mesh(LG, this.linerMat()); g.add(m); } }
+    c.zr=c.wh.length?Math.min(...c.wh.map(w=>w.pv.position.z)):-1.3;
     if (P.T.police){ const bm=new THREE.MeshBasicMaterial({color:0x2a6bff, transparent:true, opacity:0.95, blending:THREE.AdditiveBlending, depthWrite:false}), bg=new THREE.SphereGeometry(0.16,10,8); c.blue=[-0.32,0.32].map((x2,i)=>{ const m=new THREE.Mesh(bg,bm.clone()); m.position.set(x2,1.78,-0.25); m.visible=false; g.add(m); return m; }); }
     /* Hicore: Görlitzer Kennzeichen (GR oder ZI), vorn und hinten */
     try{ if (!c.plate){ const L2='ABCDEFGHJKLMNPRSTUVWXYZ', rl=()=>L2[Math.floor(Math.random()*L2.length)]; const used=new Set(this.act.map(o=>o.plate)); this.usedP=this.usedP||[]; let tries=0; do { c.plate=c.police? 'DD Q '+(1000+Math.floor(Math.random()*9000)) : (Math.random()<0.62?'GR':'ZI')+' '+rl()+(Math.random()<0.6?rl():'')+' '+(1+Math.floor(Math.random()*(Math.random()<0.5?99:9999))); } while ((used.has(c.plate) || this.usedP.includes(c.plate)) && ++tries<20); this.usedP.push(c.plate); if (this.usedP.length>60) this.usedP.shift(); }   /* Hicore: jedes Auto eigenes, wechselndes Kennzeichen; Polizei Sachsen DD-Q */
@@ -6822,7 +6857,7 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
       if (c.bl && !window.OLD_BLINK) this.blinkStep(c, dt, r);
       /* Position wie placeRider: rechts der eigenen Fahrtrichtung, Spur über lat */
       const P2=posAt(c.d), hd=headingAt(c.d), rev=c.cd<0, ln=rev?-c.lat:c.lat, gr=gradeAt(c.d)*(rev?-1:1);
-      c.o.position.set(P2.x+Math.cos(hd)*ln, P2.y+0.06, P2.z-Math.sin(hd)*ln); c.hd=hd+(rev?Math.PI:0); c.o.rotation.set(0,c.hd,0); c.o.rotateX(-Math.atan(gr)); if (rev && NET && NET.graph){ const RB=gnRBAt(P2.x,P2.z,0.4); if (RB) this.rbFix(c,RB,P2); } this.steerStep(c, dt, gr); if (c.wh) c.wh.forEach(w=>{ w.a+=w.s*c.v*dt/w.r; w.pv.rotation.x=w.a; if (w.m){ const bl=c.v/w.r>26; if (bl!==!!w.bl){ w.bl=bl; w.m.material=this.wheelMat(w.slow, bl); } } });
+      c.o.position.set(P2.x+Math.cos(hd)*ln, P2.y+0.06, P2.z-Math.sin(hd)*ln); c.hd=hd+(rev?Math.PI:0); c.o.rotation.set(0,c.hd,0); c.o.rotateX(-Math.atan(gr)); c.rbA=false; if (rev && NET && NET.graph){ const RB=gnRBAt(P2.x,P2.z,0.4); if (RB){ this.rbFix(c,RB,P2); c.rbA=true; } } this.steerStep(c, dt, gr); if (c.wh) c.wh.forEach(w=>{ w.a+=w.s*c.v*dt/w.r; w.pv.rotation.x=w.a; if (w.m){ const bl=c.v/w.r>26; if (bl!==!!w.bl){ w.bl=bl; w.m.material=this.wheelMat(w.slow, bl); } } });
       /* Fahrer weicht nach rechts, wenn ein Auto nah ist; überholt selbst langsame/parkende Fahrzeuge links */
       /* Hicore: überholt der Fahrer ein fahrendes Auto, hupt es manchmal (Land eher, Stadt selten) */
       if (same && c.mode!=='stop' && !c.police && c.v>2 && c.pr!=null && c.pr>0 && r<=0 && !(this.hornCd>0)){ const tw2=this.town(p.x,p.z); if (Math.random()<(tw2?0.12:0.45)){ this.hornCd=tw2?150:60; const k=T.slow||T.m==='veh_van'?0.8:1; setTimeout(()=>this.horn(k, Math.random()<0.5), 300+Math.random()*1200); } }
@@ -7903,7 +7938,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.23.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.23.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
