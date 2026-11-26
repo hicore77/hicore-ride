@@ -233,6 +233,15 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
     <div class="pane" id="tWorld">
       <p>Wähle deine Welt. Mit jedem gefahrenen Kilometer schaltest du neue Welten frei.</p>
       <div id="worlds"></div>
+      <details id="srcInfo" style="margin-top:10px;font-size:13px;opacity:.9"><summary>Datenquellen und Lizenzen</summary><div class="accTx" style="font-size:12px;line-height:1.45">
+        Karten: © OpenStreetMap-Mitwirkende (ODbL), Overture Maps.<br>
+        Höhen Dolomiten: TINITALY 1.1, Tarquini S. et al. (2023), INGV, doi 10.13127/tinitaly/1.1 (CC BY 4.0).<br>
+        Höhen Zittau und Fernbereich: Copernicus DEM GLO-30, © DLR e.V. 2010–2014 und © Airbus Defence and Space GmbH 2014–2018, bereitgestellt unter COPERNICUS durch die Europäische Union und ESA.<br>
+        Geländefarben Dolomiten: enthält veränderte Copernicus-Sentinel-Daten 2025.<br>
+        Landbedeckung: © ESA WorldCover project 2021 (CC BY 4.0).<br>
+        Bäume Zittau: Luftbild © GeoSN, dl-de/by-2-0; Orthofoto © ČÚZK (CC BY 4.0); Kronenhöhen Meta / WRI (CC BY 4.0).<br>
+        Texturen: Poly Haven (CC0). Geräusche: elevenlabs.io. Wetter: open-meteo.com (CC BY 4.0).<br>
+        Programm: three.js (MIT), Supabase (MIT).</div></details>
       <div class="mpbox"><h4>Tageszeit &amp; Wetter</h4>
         <div class="mpgrid"><select id="tod"><option value="morgen">🌅 Morgen</option><option value="mittag">☀️ Mittag</option><option value="nachm" selected>🌤️ Nachmittag</option><option value="abend">🌇 Abend</option><option value="nacht">🌙 Nacht</option><option value="echt">🌐 Echte Tageszeit</option></select>
         <select id="wx"><option value="sonne" selected>☀️ Sonnig</option><option value="wolken">☁️ Bewölkt</option><option value="regen">🌧️ Regen</option><option value="gewitter">⛈️ Gewitter</option><option value="nebel">🌫️ Nebel</option><option value="schnee">🌨️ Schneefall</option><option value="graupel">🧊 Graupel</option><option value="echt">🌐 Echtes Wetter</option></select></div>
@@ -4763,8 +4772,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   window.R187=true; })();
 </script>
 <script>window.PROP_GLB={};window.PROP_LIST=["amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "gruft", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "gruft": "3a94d372", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
-<script src="data/media.js?h=b625bc83"></script>
-<script>window.DL_FILE="data/dolomiten.js?h=871d1b4e";</script><script src="data/zittau.js?h=b0e274d9"></script>
+<script src="data/media.js?h=cc62c574"></script>
+<script>window.DL_FILE="data/dolomiten.js?h=2ce00d53";</script><script src="data/zittau.js?h=b0e274d9"></script>
 <script>
 "use strict";
 // ================= Helpers =================
@@ -5604,7 +5613,16 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
         const rk=clamp(max(rkC,rkS).add(H.vnz(Pw.xz.mul(0.07)).sub(0.5).mul(0.35)),0.0,1.0);
         const an=T.abs(nW), tw=an.div(an.x.add(an.y).add(an.z).add(0.001)), sc=float(0.11);
         const rT=texture(window.DLROCK, Pw.zy.mul(sc)).rgb.mul(tw.x).add(texture(window.DLROCK, Pw.xz.mul(sc)).rgb.mul(tw.y)).add(texture(window.DLROCK, Pw.xy.mul(sc)).rgb.mul(tw.z));
-        const rl=dot(rT,vec3(0.33,0.34,0.33)).sub(0.5).mul(1.7).add(0.5), rC=vc.mul(rl.mul(1.62)).mul(vec3(1.0,0.96,0.89)).mul(H.vnz(Pw.xz.mul(0.9)).mul(0.18).add(0.91)).mul(H.vnz(Pw.xz.mul(0.013)).mul(0.3).add(0.82));   /* Dolomit: etwas dunkler, warmgrau, mehr Kontrast, großflächige Helligkeitswechsel */
+        /* 0.25.6: zwei Poly-Haven-Texturen (Wand mit Schichtfugen seitlich, Fels von oben), nah (9 m) und fern (75 m) überlagert: scharfe Details aus der Nähe, Wandgliederung aus der Ferne, keine Kachelung */
+        let rlN=null; if (window.DLWAND && window.DLFELS && !window.OLD_ROCKTX){ const s2=float(0.0133), lw=vec3(0.33,0.34,0.33), W=window.DLWAND, F=window.DLFELS;
+          const nN=dot(texture(W,Pw.zy.mul(sc)).rgb,lw).mul(tw.x).add(dot(texture(F,Pw.xz.mul(sc)).rgb,lw).mul(tw.y)).add(dot(texture(W,Pw.xy.mul(sc)).rgb,lw).mul(tw.z)).div(0.4);
+          const sw2=an.x.div(an.x.add(an.z).add(0.001)), hiQ=gfxQ()>=1;   /* Stufe Mittel: ferne Lage nur seitlich (2 statt 3 Abfragen) */
+          const nF=hiQ?dot(texture(W,Pw.zy.mul(s2).add(vec2(0.37,0.11))).rgb,lw).mul(tw.x).add(dot(texture(F,Pw.xz.mul(s2)).rgb,lw).mul(tw.y)).add(dot(texture(W,Pw.xy.mul(s2).add(vec2(0.61,0.23))).rgb,lw).mul(tw.z)).div(0.4)
+            :dot(texture(W,Pw.zy.mul(s2).add(vec2(0.37,0.11))).rgb,lw).mul(sw2).add(dot(texture(W,Pw.xy.mul(s2).add(vec2(0.61,0.23))).rgb,lw).mul(float(1.0).sub(sw2))).div(0.4);
+          const fd=smoothstep(60.0,700.0,length(cameraPosition.sub(Pw)));   /* nah zählt die feine Lage, fern die grobe */
+          rlN=max(nN.sub(1.0).mul(mix(1.5,0.5,fd)).add(1.0),0.2).mul(max(nF.sub(1.0).mul(mix(0.25,1.9,fd)).add(1.0),0.25)).mul(0.5); }   /* nah fast nur die feine Lage: sonst zeichnet die 75-m-Lage breite Wellenbänder */
+        const vcr=window.OLD_ROCKTX?vc:mix(vc, vec3(0.615,0.6,0.565).mul(lum.mul(0.5).add(0.72)), rkS.mul(0.65));   /* 0.25.6: an Steilwänden weniger verzerrte Satellitenfarbe, mehr einheitlicher Dolomit */
+        const rl=rlN||dot(rT,vec3(0.33,0.34,0.33)).sub(0.5).mul(1.7).add(0.5), rC=vcr.mul(rl.mul(1.62)).mul(vec3(1.0,0.96,0.89)).mul(H.vnz(Pw.xz.mul(0.9)).mul(0.18).add(0.91)).mul(H.vnz(Pw.xz.mul(0.013)).mul(0.3).add(0.82));   /* Dolomit: etwas dunkler, warmgrau, mehr Kontrast, großflächige Helligkeitswechsel */
         const bnd=T.sin(Pw.y.mul(0.24).add(H.vnz(Pw.xz.mul(0.005)).mul(9.0))).mul(0.5).add(0.5).mul(smoothstep(0.35,0.7,H.vnz(Pw.xz.mul(0.008).add(vec2(9.1,2.3))))), stk=H.vnz(vec2(Pw.x.add(Pw.z).mul(0.5), Pw.y.mul(0.035))), wrm=smoothstep(0.58,0.85,H.vnz(Pw.xz.mul(0.0032).add(vec2(3.1,7.7))));
         const rC2=window.OLD_ROCKSH?rC:rC.mul(mix(vec3(1.0),vec3(1.07,0.9,0.7),wrm.mul(0.75))).mul(float(1.0).sub(smoothstep(0.25,0.9,bnd).mul(0.2))).mul(stk.mul(0.3).add(0.82));   /* 0.25.2: Schichtbänder, Regenstreifen, ockerfarbene Flecken */
         c=mix(c, rC2, rk); } }
@@ -6820,6 +6838,7 @@ const DLC=[0,0,0];
 function lcCol(c,k,x,z,t,def){ if (window.DLSAT && def && def.id==='dolo' && !window.NO_DLSAT){ const q=dlSat(x,z,DLC); if (q){ const g=k===1?1.0:1.12; let r=q[0]*g, gg=q[1]*g, b=q[2]*g; const l=r*0.3+gg*0.59+b*0.11, ch=Math.max(r,gg,b)-Math.min(r,gg,b);
       /* Fels-Kennung für den Shader über die Sättigung: Fels/Geröll/Schnee grau (Sättigung ~0), alles andere mind. 0,12 */
       const rock=k===6||k===8||k===9||(k===0 && !(window.LCD && x>LCD.x0 && z>LCD.z0 && x<LCD.x0+LCD.w*LCD.c && z<LCD.z0+LCD.h*LCD.c) && l>0.42 && ch<0.12)||(!window.OLD_DLROCKL && k!==1 && k!==4 && k!==5 && l>0.55);   /* 0.25.2: heller Dolomit ist im Satellitenbild beige (Sättigung bis 0,25), Helligkeit entscheidet */
+      if (!rock && !window.NO_LATSCHE && (k===7||k===10||k===0)){ const h=terrainH(x,z); if (h>640&&h<1200){ const pt=dlVN(x/70+11,z/70-7), a=k===7?0.7:pt>0.58?0.35+0.45*(pt-0.58)/0.42:0; if (a>0){ r=r+(0.17-r)*a; gg=gg+(0.25-gg)*a; b=b+(0.12-b)*a; } } }   /* 0.25.6 Latschenfelder: dunkelgrün auch aus der Ferne */
       if (rock){ const f=window.DLROCKF||0.74; r=l*f*1.015; gg=l*f; b=l*f*0.975; }   /* Satellit enthält schon Sonnenlicht, Fels sonst kreideweiß */ else if (ch<0.12){ const tg=k===4?[1.06,1.0,0.86]:k===1?[0.85,1.08,0.8]:[0.95,1.07,0.72]; r=l*tg[0]; gg=l*tg[1]; b=l*tg[2]; }
       const mx=Math.max(r,gg,b), kn=mx>0.8?(0.8+(mx-0.8)*0.35)/mx:1; c.setRGB(Math.min(1,r*kn),Math.min(1,gg*kn),Math.min(1,b*kn),window.OLD_DLLIN?undefined:THREE.SRGBColorSpace); return; } }   /* Satellitenwerte sind sRGB (vorher linear gelesen = viel zu hell) */ if (k===1) c.setHSL(0.24,0.42,0.16+0.03*t); else if (k===3){ const v=gnAcker(x,z); if (v<0.4) c.setHSL(0.24,0.42,0.34); else if (v<0.75) c.setHSL(0.13,0.42,0.42); else c.setHSL(0.08,0.32,0.30); } else if (k===4) c.setHSL(0.2,0.12,0.36); else if (k===5) c.setHSL(0.55,0.3,0.25); else c.setHSL(def.grass[0]-0.05*t, def.grass[1], 0.30+0.12*t); }
 /* 0.11.4 (Hicore): Zittauer Grünring und Parks nach OSM (leisure=park/garden/playground, landuse=grass/cemetery): dort Rasen statt Siedlungsfläche, Bäume nur aus OSM-Einzelbäumen */
@@ -6832,7 +6851,7 @@ window.DOPM_READY=window.ZGDOPM?new Promise(res=>{ const D=window.ZGDOPM, im=new
 function gnDopM(x,z){ const R=window.DOPMD; if (!R) return -1; const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c); if (gx<0||gz<0||gx>=R.w||gz>=R.h) return -1; return gz*R.w+gx; }
 /* Acker-Schlag: 0..1 wie früher der Zufallswert je Schlag (unter 0,4 grün, bis 0,75 Stoppel, darüber umgepflügt); mit Luftbild echter Zustand */
 /* 0.25.0: Weltdaten wechseln (Zittau ist im Seitenkopf geladen, Dolomiten kommen bei Bedarf aus data/dolomiten.js). Alle Zwischenspeicher, die an den Weltdaten hängen, werden geleert. */
-const DATA_KEYS=['ZGNET','ZGRES','ZGSIDE','ZGBLD','ZGKC','ZGLMB','ZGLC','ZGLCO','ZGPARK','ZGDOPM','ZGDOPW','ZGOW','ZGWAYS','ZGSTEPS','ZGTREES','ZGZT','ZSBD','ZGDB','NO_WAYNET','LCD','PARKD','DOPMD','DLSAT','DLMETA'];
+const DATA_KEYS=['ZGNET','ZGRES','ZGSIDE','ZGBLD','ZGKC','ZGLMB','ZGLC','ZGLCO','ZGPARK','ZGDOPM','ZGDOPW','ZGOW','ZGWAYS','ZGSTEPS','ZGTREES','ZGZT','ZSBD','ZGDB','NO_WAYNET','LCD','PARKD','DOPMD','DLSAT','DLMETA','DEM2'];
 const DATA={cur:'zittau', b:{}, ld:null};
 function dataImg(src){ return new Promise(res=>{ const im=new Image(); im.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(im,0,0); res({w:im.width,h:im.height,d:g.getImageData(0,0,im.width,im.height).data, im}); }catch(e){ console.warn('img',e); res(null); } }; im.onerror=()=>res(null); im.src=src; }); }
 function dataLoadDolo(){ if (DATA.ld) return DATA.ld; DATA.ld=new Promise((res,rej)=>{ if (window.DLDATA) return res(); const sc=document.createElement('script'); sc.src=window.DL_FILE||'data/dolomiten.js'; sc.onload=()=>res(); sc.onerror=e=>{ DATA.ld=null; rej(e); }; document.head.appendChild(sc); })
@@ -6840,8 +6859,10 @@ function dataLoadDolo(){ if (DATA.ld) return DATA.ld; DATA.ld=new Promise((res,r
     const lc=await dataImg('data:image/png;base64,'+D.ZGLC); if (lc){ const u=new Uint8Array(lc.w*lc.h); for (let i=0;i<u.length;i++) u[i]=lc.d[i*4]; D.LCD={x0:M.lc[0], z0:M.lc[1], c:M.lc[2], w:lc.w, h:lc.h, b:u}; }
     const sn=await dataImg(D.satN), sf=await dataImg(D.satF);
     D.DLSAT={n:sn&&{x0:M.satN[0], z0:M.satN[1], c:M.satN[2], w:sn.w, h:sn.h, d:sn.d, im:sn.im}, f:sf&&{x0:M.satF[0], z0:M.satF[1], c:M.satF[2], w:sf.w, h:sf.h, d:sf.d, im:sf.im}};
+    /* 0.25.6: feines Höhenmodell (TINITALY 10 m) für das Gebiet um die Runde: PNG, Rot/Grün = 16 Bit */
+    if (D.dem10 && M.dem2 && !window.NO_DEM10){ const di=await dataImg(D.dem10); if (di){ const u=new Uint16Array(di.w*di.h); for (let i=0;i<u.length;i++) u[i]=(di.d[i*4]<<8)|di.d[i*4+1]; D.DEM2={x0:M.dem2[0], z0:M.dem2[1], c:M.dem2[2], nx:di.w, nz:di.h, b:M.dem2[5], s:M.dem2[6], H:u}; } }
     D.DLMETA=M; D.NO_WAYNET=1; }); return DATA.ld; }
-function dataReset(){ GT.hm=undefined; GN.d=null; GN.dem=null; GN.rg=null; GN.res=null; GN.fo=null; GN.mainEnts=null; window.WAYS=undefined; window.STAIRS=undefined; SIDE_IDX=null; WAYS_H.clear(); STAIR_END=null; RAILSEG=null;
+function dataReset(){ GT.hm=undefined; GN.bed=undefined; GT.mh=undefined; GN.d=null; GN.dem=null; GN.rg=null; GN.res=null; GN.fo=null; GN.mainEnts=null; window.WAYS=undefined; window.STAIRS=undefined; SIDE_IDX=null; WAYS_H.clear(); STAIR_END=null; RAILSEG=null;
   ZSB.lines=null; ZSB.grid=null; GT.bi=undefined; GT.ot=undefined; GT.rk=undefined; GT.fn=undefined; KC.st.clear(); MM.key=null; MM.net=null; try{ BM.net=null; BM.cl=null; }catch(e){} }
 async function dataSwitch(def){ const want=def.data||'zittau'; if (!def.graph || want===DATA.cur) return;
   await Promise.all([window.LC_READY, window.PARK_READY, window.DOPM_READY].map(p=>p||Promise.resolve()));   /* Zittau-Raster erst fertig dekodieren, sonst überschreiben sie später die Dolomiten */
@@ -7076,14 +7097,22 @@ function gtKindH(k){ const fk=GT.fk; GT.kh=GT.kh||{}; if (GT.kh[k]) return GT.kh
 function bldNearP(o,x,z,m){ const dx=x-o.cx, dz=z-o.cz, R=(o.r||0)+m; if (dx*dx+dz*dz>R*R) return false; const P=o.P; let ins=false;
   for (let a=0,b=P.length-1;a<P.length;b=a++){ const ax=P[a][0], az=P[a][1], bx=P[b][0], bz=P[b][1]; if ((az>z)!==(bz>z) && x<(bx-ax)*(z-az)/(bz-az)+ax) ins=!ins;
     const ex=bx-ax, ez=bz-az, L=ex*ex+ez*ez||1, u=Math.max(0,Math.min(1,((x-ax)*ex+(z-az)*ez)/L)), qx=ax+ex*u-x, qz=az+ez*u-z; if (qx*qx+qz*qz<m*m) return true; } return ins; }
+/* 0.25.6: Bach-Nähe für Bäume (Raster 16 m aus den Bachpunkten) */
+function dlWet(x,z){ const W=window.DLWPTS; if (!W) return false; if (!GT.wet || GT.wetN!==W.length){ const M=new Map(); for (let i=0;i<W.length;i+=2){ const k=Math.floor(W[i]/16)+','+Math.floor(W[i+1]/16); let l=M.get(k); if (!l) M.set(k,l=[]); l.push(W[i],W[i+1]); } GT.wet=M; GT.wetN=W.length; }
+  const ci=Math.floor(x/16), cj=Math.floor(z/16); for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=GT.wet.get((ci+a)+','+(cj+b)); if (l) for (let i=0;i<l.length;i+=2){ const dx=l[i]-x, dz=l[i+1]-z; if (dx*dx+dz*dz<36) return true; } } return false; }
 function* gtForestGen(i,j){ if (!GN.fo && !window.LCD) return null; const S=GT.S, x0=i*S, z0=j*S, step=MINI?17:LITE?12:9.5, fk=gtForestKit(); let sd=((i*73856093)^(j*19349663))&0x7fffffff||1; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
   const KEEP=MINI?0.14:LITE?0.2:0.3; const pick=mx=>{ let r=rnd(), t=0; for (const e of mx) t+=e[1]; r*=t; for (const [k,w] of mx){ if (r<w) return k; r-=w; } return mx[0][0]; };
   const by={}, m=new THREE.Matrix4(), q=new THREE.Quaternion(), sc=new THREE.Vector3(), p=new THREE.Vector3(), e=new THREE.Euler(), col=new THREE.Color();
   /* 0.10.19: keine Bäume in oder direkt an Häusern (Satellitenpixel sind 10 m groß) */
   const BI=gtBldIndex(), BL=[]; if (BI) for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const l=BI.get((i+a)+','+(j+b)); if (l) l.forEach(o=>{ if (o.r==null){ let r=0; o.P.forEach(pp=>{ r=Math.max(r,Math.hypot(pp[0]-o.cx,pp[1]-o.cz)); }); o.r=r; } BL.push(o); }); }
   const nearB=(x,z)=>{ for (const o of BL){ const dx=x-o.cx, dz=z-o.cz, R=o.r+3.5; if (dx*dx+dz*dz<R*R) return true; } return false; };
+  /* 0.25.6 Dolomiten: Latschen (Legföhren) als dichte, flache, dunkle Büsche über der Baumgrenze (WorldCover Gebüsch, Alpweide, ca. 1.850–2.400 m); kein Baum im Bach. Aus: window.NO_LATSCHE */
+  const DLV=!!(GT.def && GT.def.id==='dolo'); const latsche=(x,z)=>{ if (window.NO_LATSCHE || MINI) return; const k=gnLC(x,z), h=terrainH(x,z); if (h<640||h>1200) return; const pt=dlVN(x/70+11,z/70-7), pr=k===7?0.9:(k===10||k===0)&&h>660&&pt>0.58?0.75*(pt-0.58)/0.42+0.25:0;   /* Latschenfelder fleckig */ if (!pr || rnd()>pr*(LITE?0.5:1)) return;
+    if (BL.length && nearB(x,z)) return; if (rkHit && rkHit(x,z)) return; const g=gnNear(x,z,30); if (g.k>=0 && g.d<g.w/2+3) return; if (waysNear(x,z,1.0)) return; const q2=dlSat(x,z,DLC2); if (q2 && (q2[0]*0.3+q2[1]*0.59+q2[2]*0.11)*1.12>0.55) return;
+    for (let n=0;n<2;n++){ const xx=x+(rnd()-0.5)*5, zz=z+(rnd()-0.5)*5, kt=rnd()<0.5?'bushA':'bushB'; if (!fk[kt]) return; const s0=0.9+rnd()*0.7; e.set((rnd()-0.5)*0.1,rnd()*6.28,(rnd()-0.5)*0.1); q.setFromEuler(e); sc.set(s0*2.3,s0*(0.55+rnd()*0.25),s0*2.3); p.set(xx,terrainH(xx,zz)-0.15,zz); m.compose(p,q,sc);
+      const f=0.42+rnd()*0.16; col.setRGB(f*0.78,f*1.0,f*0.7); (by[kt]=by[kt]||[]).push([m.clone(),col.clone()]); } };
   /* 0.17.0: Felsen (OSM) dieser Kachel; dort keine Bäume */ let RL=null; try{ RL=gtRockList(i,j,BL); }catch(e){ console.warn('felsen',e); } const rkHit=RL?gtRockHash(RL):null;
-  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (!gnForest(x,z)) continue; if (BL.length && nearB(x,z)) continue; if (rkHit && rkHit(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; { const zn=ZSB.near(x,z,10); if (zn.d<(zn.g==='s'?7:5)) continue; } if (ZSB.cuts){ const cd=ZSB.cutD(x,z); if (cd && cd.r<6) continue; } if (ZG_NOTREE.length && ZG_NOTREE.some(q=>{ const u=(x-q.x)/q.ax, v=(z-q.z)/q.az; return u*u+v*v<1; })) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; if (waysNear(x,z,2.2)) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30) && (window.NO_WAYWALD || !WAYS_ON || !waysNear(x,z,16));   /* 0.19.0 (Hicore): an befahrbaren Waldwegen volle Dichte, nur tief im Wald ausgedünnt */ if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
+  for (let gx=0; gx<S; gx+=step){ yield 0; for (let gz=0; gz<S; gz+=step){ if (gz>S/2 && gz-step<=S/2) yield 0; const x=x0+gx+rnd()*step*0.9, z=z0+gz+rnd()*step*0.9; if (DLV && dlWet(x,z)) continue; if (!gnForest(x,z)){ if (DLV) latsche(x,z); continue; } if (BL.length && nearB(x,z)) continue; if (rkHit && rkHit(x,z)) continue; if (GT.def&&GT.def.id==='zittau' && Math.hypot(x-HW.x,z-HW.z)<36) continue; { const zn=ZSB.near(x,z,10); if (zn.d<(zn.g==='s'?7:5)) continue; } if (ZSB.cuts){ const cd=ZSB.cutD(x,z); if (cd && cd.r<6) continue; } if (ZG_NOTREE.length && ZG_NOTREE.some(q=>{ const u=(x-q.x)/q.ax, v=(z-q.z)/q.az; return u*u+v*v<1; })) continue; const n=gnNear(x,z,40); if (n.d<n.w/2+5.5) continue; if (waysNear(x,z,2.2)) continue; const inner=n.d>34 && gnForest(x+30,z) && gnForest(x-30,z) && gnForest(x,z+30) && gnForest(x,z-30) && (window.NO_WAYWALD || !WAYS_ON || !waysNear(x,z,16));   /* 0.19.0 (Hicore): an befahrbaren Waldwegen volle Dichte, nur tief im Wald ausgedünnt */ if (inner && rnd()>KEEP) continue;   /* 0.7.2: wie in echt sieht man nur die ersten Reihen; im Waldinneren nur noch lockere Kronen */
     const h=terrainH(x,z); if (GT.def && GT.def.id==='dolo' && h>760 && rnd()<(h-760)/220) continue;   /* Baumgrenze ca. 1.950–2.200 m */
     const k=pick(h>440?GT.mixHi:h>380?(rnd()<0.5?GT.mixHi:GT.mixLo):GT.mixLo), s0=(inner?1.25:1.0)+rnd()*0.6; e.set((rnd()-0.5)*0.05,rnd()*6.28,(rnd()-0.5)*0.05); q.setFromEuler(e); sc.set(s0*(0.85+rnd()*0.3),s0*(0.85+rnd()*0.4),s0*(0.85+rnd()*0.3)); p.set(x,h-0.1,z); m.compose(p,q,sc);
     const f=0.72+rnd()*0.35; col.setRGB(f*(0.92+rnd()*0.12),f*(0.97+rnd()*0.06),f*(0.85+rnd()*0.15)); (by[k]=by[k]||[]).push([m.clone(),col.clone()]); } }
@@ -7289,9 +7318,11 @@ const HT={
   SIED:{w:4,g:0,H:[3.3,4.6],p:[0.95,1.1],rf:'r',tint:1}, NEU:{w:5,g:14,H:[5.4,6.0],p:[0.5,0.7],rf:'s'}, DOPPEL:{w:0,d:6,g:0,H:[5.4,6.2],p:[0.7,0.9],rf:'r',tint:1,dop:1}, VILLA:{w:7,g:4,H:[6.4,7.2],p:[0.75,0.95],rf:'s',hip:1},
   ALT:{w:16,b:17,g:0,H:[9.5,13.5],p:[0.6,0.85],rf:'rs',tint:3}, BLOCK:{w:19,g:0,H:[9,12.5],p:[0.45,0.6],rf:'r',hip:1,tint:1}, PLATTE:{w:18,H:[12,15.5],flat:1}, HALLE:{w:20,d:21,g:15,H:[5,7.5],p:[0.12,0.2],rf:'s',tint:4},
   SCHEUNE:{w:22,g:8,H:[4.6,5.6],p:[0.75,0.9],rf:'rs'}, SCHEUNE2:{w:23,g:8,H:[4.8,6.0],p:[0.75,0.9],rf:'r'}, STALL:{w:26,g:14,H:[3.4,4.2],p:[0.6,0.75],rf:'r'}, GARAGE:{w:24,H:[2.5,2.8],flat:1}, SCHUPPEN:{w:25,g:7,H:[2.3,2.8],p:[0.35,0.5],rf:'s'}, BLECH:{w:20,H:[2.6,3.4],flat:1,tint:4},
-  /* 0.25.2 Dolomiten (Alpen-Atlas): flache Dächer mit großem Überstand, Holzbalkone */ LAD:{w:8,g:1,H:[5.6,6.4],p:[0.42,0.56],rf:'m',alp:1,bal:1}, STADEL:{w:9,g:2,H:[3.6,5.2],p:[0.5,0.64],rf:'w',alp:1}, RIFUGIO:{w:10,g:3,H:[5.6,6.4],p:[0.4,0.52],rf:'m',alp:1,bal:1}, HOTELA:{w:11,g:4,H:[8.6,11.8],p:[0.36,0.48],rf:'m',alp:1,bal:2,tall:1,tint:6}, TABIA:{w:12,g:2,H:[5.4,6.8],p:[0.5,0.62],rf:'w',alp:1} };
+  /* 0.25.2 Dolomiten (Alpen-Atlas): flache Dächer mit großem Überstand, Holzbalkone */ LAD:{w:8,g:1,H:[5.6,6.4],p:[0.42,0.56],rf:'m',alp:1,bal:1}, STADEL:{w:9,g:2,H:[3.6,5.2],p:[0.5,0.64],rf:'w',alp:1}, RIFUGIO:{w:10,g:3,H:[5.6,6.4],p:[0.4,0.52],rf:'m',alp:1,bal:1}, HOTELA:{w:11,g:4,H:[8.6,11.8],p:[0.36,0.48],rf:'m',alp:1,bal:2,tall:1,tint:6}, TABIA:{w:12,g:2,H:[5.4,6.8],p:[0.5,0.62],rf:'w',alp:1},
+  /* 0.25.6 */ CORTINA:{w:13,g:5,H:[8.6,11.6],p:[0.44,0.6],rf:'m',alp:1,tall:1,tint:7}, CHALET:{w:14,g:6,H:[5.8,6.8],p:[0.4,0.52],rf:'w',alp:1,bal:1}, ALBERGO:{w:15,g:5,H:[9.8,13.8],p:[0.38,0.5],rf:'m',alp:1,bal:2,tall:1,tint:7}, CASA:{w:17,g:7,H:[5.6,6.6],p:[0.45,0.6],rf:'m',alp:1,tint:6} };
 const HT_TINT=[null, [[1,1,1],[1,0.95,0.80],[0.99,0.9,0.78],[0.93,0.95,0.97],[1,0.9,0.86],[0.95,0.97,0.88],[0.98,0.93,0.86]], [[1,1,1],[0.96,0.94,0.9],[0.92,0.9,0.86]],
-  [[1,1,1],[1,0.92,0.76],[0.96,0.88,0.84],[0.9,0.92,0.94],[0.98,0.86,0.72],[0.92,0.95,0.86]], [[1,1,1],[0.85,0.92,1],[1,0.97,0.86],[0.92,0.98,0.94]], [[1,1,1],[1,0.98,0.93],[1,0.96,0.86],[0.97,0.97,0.95]], [[1,1,1],[1,0.97,0.9],[1,0.93,0.82],[0.98,0.95,0.9],[1,0.9,0.8]]];
+  [[1,1,1],[1,0.92,0.76],[0.96,0.88,0.84],[0.9,0.92,0.94],[0.98,0.86,0.72],[0.92,0.95,0.86]], [[1,1,1],[0.85,0.92,1],[1,0.97,0.86],[0.92,0.98,0.94]], [[1,1,1],[1,0.98,0.93],[1,0.96,0.86],[0.97,0.97,0.95]], [[1,1,1],[1,0.97,0.9],[1,0.93,0.82],[0.98,0.95,0.9],[1,0.9,0.8]],
+  /* 7 Cortina: Pastellputz (Ocker, Lachs, Creme, Lindgrün, Weiß, Altrosa) */ [[1,1,1],[1,0.98,0.92],[0.98,0.86,0.6],[0.96,0.76,0.66],[0.99,0.9,0.72],[0.86,0.92,0.8],[0.95,0.8,0.78],[1,0.94,0.8]]];
 /* 0.9.4 Häuser am Start Jonsdorf -> Hain nach Mapillary-Fotos (Schlüssel = gerundeter Grundriss-Mittelpunkt)
    t Typ, c Wandfarbe, r Dachfarbe, rs Schieferdach */
 const HT_OVR={ '-2427,-415':{t:'JONS',c:[1,1,1],r:[0.86,0.42,0.3]}, '-2432,-389':{t:'U_fach',rs:1}, '-2429,-374':{t:'JONS',c:[1,1,1]}, '-2437,-379':{t:'EFH',c:[1,1,1]},
@@ -7307,6 +7338,8 @@ function htPick(b, area, asp, rnd, city, mtn){ const W=(o)=>{ let t=0; for (cons
     if (k===3) return W({SCHEUNE2:2,SCHEUNE:1,STALL:0.5}); if (k===2||area>380) return W({VILLA:1,EFH:0.6,BLOCK:0.4}); return W({JONS:2.2,EFH:1,EFH_L:0.6,VILLA:0.3,SCHEUNE2:area<90?0.6:0}); }
     /* 0.25.2: Alpenhäuser. 7 Hütte, 3 Stadel/Stall, 6 Rifugio/Gasthaus, 2 Hotel/Mehrfamilienhaus, sonst Wohnhaus (Cortina etwas städtischer) */
     if (k===7) return area<30?'STADEL':W({STADEL:2,TABIA:1}); if (k===3) return area<70?'STADEL':W({TABIA:2,STADEL:1}); if (k===6) return 'RIFUGIO'; if (k===1) return area<22?'STADEL':W({GARAGE:1,STADEL:1});
+    if (!window.OLD_ALPH2){ if (k===2||area>380) return city?W({HOTELA:1.2,ALBERGO:1.6,CORTINA:1.2}):W({HOTELA:1,ALBERGO:1,CHALET:0.5});
+      if (area<45) return W({STADEL:1,CASA:0.6,TABIA:0.6}); return city?W({CORTINA:area>150?1.8:0.5,CHALET:1.5,CASA:1.2,LAD:0.8,ALBERGO:area>230?0.8:0}):W({LAD:2,CHALET:1.1,CASA:1,TABIA:area<110?0.7:0.2,RIFUGIO:0.3}); }
     if (k===2||area>380) return city?W({HOTELA:2,VILLA:0.5,BLOCK:0.4}):'HOTELA'; return city?W({LAD:1.4,HOTELA:0.5,EFH:0.5,VILLA:0.4}):W({LAD:3,TABIA:area<110?0.8:0.2,RIFUGIO:0.3}); }
   /* 0.17.0: Gebäude in OSM-Industrieflächen (landuse=industrial/works): Hallen, Blechbauten */
   if (k===5) return area>300?(asp>1.2?'HALLE':W({HALLE:2,STALL:0.6})):area<60?W({BLECH:1,GARAGE:1}):W({HALLE:1,STALL:0.7,BLECH:0.4});
@@ -7420,6 +7453,9 @@ function* gtHousesGen(i,j){ const M=gtBldIndex(); if (!M) return null; const L=M
       const bc=new THREE.Color(0.36,0.24,0.15), bc2=new THREE.Color(0.28,0.19,0.12), lu=(u1-u0)*0.84, cu=(u0+u1)/2, fl=ty.bal===2?Math.max(1,Math.round(Hw/3)-1):1;
       for (let f=1; f<=fl; f++){ const yb=ty.bal===2?yb0+f*(Hw/(fl+1)):yb0+Hw*0.505; if (yb>E-1.2) break;
         for (const sg of [-1,1]){ const vw=sg<0?v0:v1, [cx,cz]=Wp(cu,vw+sg*0.6), [rx,rz]=Wp(cu,vw+sg*1.15);
+          if (!window.OLD_BALCHK){ /* 0.25.6: nur an annähernd rechteckigen Häusern (sonst schwebt der Balkon vor der Ecke) und nicht über Straßen */
+            if (area<(u1-u0)*(v1-v0)*0.86) break;
+            let bad=false; for (const e of [-0.5,0,0.5]){ const [qx,qz]=Wp(cu+e*lu,vw+sg*1.6); if (roadD(qx,qz)<3.6){ bad=true; break; } } if (bad) continue; }
           box('flat',cx,cz,lu,1.2,yb-0.16,yb,ax,az,bc2); box('flat',rx,rz,lu,0.07,yb,yb+1.0,ax,az,bc); const [hx,hz]=Wp(cu,vw+sg*1.1); box('flat',hx,hz,lu+0.05,0.12,yb+0.98,yb+1.06,ax,az,bc2);
           for (const e of [-1,1]){ const [sx,sz]=Wp(cu+e*lu/2,vw+sg*0.6); box('flat',sx,sz,0.07,1.2,yb,yb+1.0,ax,az,bc); } } } }
     if (!/SCHEUNE|STALL|SCHUPPEN|HALLE|GARAGE|BLECH|STADEL|TABIA/.test(tn) && rnd()<0.85){ const cu=um+(rnd()-0.5)*(u1-u0)*0.45, dv=(rnd()<0.5?-1:1)*hw*(0.15+rnd()*0.3), ry=Hr-Math.abs(dv)*pitch; const [cx,cz]=Wp(cu,vm+dv);
@@ -7680,8 +7716,12 @@ function gtStream(cam, budget){ if (!GT.on) return; const S=GT.S, R=GT.R, ci=Mat
   GT.tiles.forEach((t,k)=>{ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); if (Math.hypot(dx,dz)>rr(t.i,t.j)+S*0.8){ GT.grp.remove(t.m); t.m.geometry.dispose(); if (t.sg){ GT.grp.remove(t.sg); disposeSigns(t.sg); } if (t.sr){ GT.grp.remove(t.sr); t.sr.geometry.dispose(); } if (t.sp){ GT.grp.remove(t.sp); t.sp.geometry.dispose(); t.sp.children.forEach(c=>c.geometry&&c.geometry.dispose()); } gtFoDrop(t); if (GT.hj && GT.hj.t===t) GT.hj=null; if (t.hs){ GT.grp.remove(t.hs); t.hs.children.forEach(m=>m.geometry.dispose()); } GT.tiles.delete(k); changed=true; } });
   GT.tiles.forEach(t=>{ if (t.sp){ const dx=Math.max(0,Math.abs(cam.x-(t.i+0.5)*S)-S/2), dz=Math.max(0,Math.abs(cam.z-(t.j+0.5)*S)-S/2); t.sp.visible=Math.hypot(dx,dz)<(MINI?300:LITE?450:650); } });   /* 0.14.0: schmale Pfade nur in der Nähe */
   if (changed){ gtMask(); GT.flast=null; } if (budget>1){ while (gtHouseStep(cam)); while (gtForestRange(cam)); } else if (!GT.job){ if (!gtHouseStepPending(cam)) gtForestRange(cam, MINI?2:3); } gtForestLOD(cam); }
-function gdemH(x,z){ const d=GN.dem; if (!d) return 0; const gx=clamp((x-d.x0)/d.cell,0,d.nx-1.001), gz=clamp((z-d.z0)/d.cell,0,d.nz-1.001); const ix=gx|0, iz=gz|0, fx=gx-ix, fz=gz-iz, n=d.nx, H=d.H;
-  return (H[iz*n+ix]*(1-fx)+H[iz*n+ix+1]*fx)*(1-fz)+(H[(iz+1)*n+ix]*(1-fx)+H[(iz+1)*n+ix+1]*fx)*fz; }
+function gdemH(x,z){ const h=gdemH0(x,z); return GN.bed?dlBedH(x,z,h):h; }
+function gdemH0(x,z){ const d=GN.dem; if (!d) return 0; const gx=clamp((x-d.x0)/d.cell,0,d.nx-1.001), gz=clamp((z-d.z0)/d.cell,0,d.nz-1.001); const ix=gx|0, iz=gz|0, fx=gx-ix, fz=gz-iz, n=d.nx, H=d.H;
+  const h=(H[iz*n+ix]*(1-fx)+H[iz*n+ix+1]*fx)*(1-fz)+(H[(iz+1)*n+ix]*(1-fx)+H[(iz+1)*n+ix+1]*fx)*fz;
+  const F=window.DEM2; if (!F) return h; const ux=(x-F.x0)/F.c, uz=(z-F.z0)/F.c, e=Math.min(ux,uz,F.nx-1-ux,F.nz-1-uz); if (e<=0.01) return h;   /* 0.25.6: innen 10-m-Modell, 150 m Übergang */
+  const jx=Math.min(ux|0,F.nx-2), jz=Math.min(uz|0,F.nz-2), ax=ux-jx, az=uz-jz, o=jz*F.nx+jx, U=F.H, h2=((U[o]*(1-ax)+U[o+1]*ax)*(1-az)+(U[o+F.nx]*(1-ax)+U[o+F.nx+1]*ax)*az)*F.s+F.b-(GN.d&&GN.d.Y0||1200), w=Math.min(1,e*F.c/150);
+  return h+(h2-h)*w; }
 /* Weg (Liste gerichteter Kanten) -> Kurs mit N Punkten; ents merkt sich, wo welche Kante liegt (r0..r1) */
 function gRoute(path, key){ const D=gnRG(), dense=[], ents=[], FIXP=new Set(); let acc=0;
   path.forEach(({e,dir},pi)=>{ const E=D.edges[e], P=dir?E.P.slice().reverse():E.P;
@@ -8064,8 +8104,19 @@ function facadeTextures(){
       GB[1]=g=>{ larch(g,0,0,256,256); win2(g,108,120,40,54,'#f2efe6'); g.fillStyle='rgba(0,0,0,.3)'; g.fillRect(0,226,256,8); };
       GB[2]=g=>{ gap(g,0,0,256,256); };
       GB[3]=g=>{ larch(g,0,0,256,256,1); win2(g,108,124,40,52,'#f2efe6'); shut(g,108,124,40,52,'#a8322a'); };
-      GB[4]=g=>{ larch(g,0,0,256,256,1); win2(g,92,140,32,46,'#f2efe6'); win2(g,132,140,32,46,'#f2efe6'); }; }
-    const REP={16:1,18:1,19:1,11:alp?1:0}, SOFT={31:1,20:1,21:1,22:1,23:1,25:1,8:1,9:1,11:1,13:1,14:1};
+      GB[4]=g=>{ larch(g,0,0,256,256,1); win2(g,92,140,32,46,'#f2efe6'); win2(g,132,140,32,46,'#f2efe6'); };
+      if (!window.OLD_ALPH2){ /* 0.25.6: mehr Vielfalt wie vor Ort: Cortina-Stadthaus (Pastellputz, Steinrahmen, Läden), Chalet (Putz unten, dunkles Lärchenholz oben), großes Albergo mit Balkontüren, verputztes Wohnhaus mit Holzgiebel; Geranienkästen */
+        const ger=(g,x,y,w)=>{ g.fillStyle='#4a3524'; g.fillRect(x-4,y,w+8,7); for (let i=0;i<w/3;i++){ g.fillStyle=['#d32a2a','#e0454d','#c81f3a','#e86a8a','#3f7a34'][(Math.random()*5)|0]; g.beginPath(); g.arc(x-3+Math.random()*(w+6),y-1-Math.random()*5,2.2+Math.random()*1.6,0,7); g.fill(); } };
+        const frame=(g,x,y,w,h)=>{ g.fillStyle='#d9d4c8'; g.fillRect(x-7,y-8,w+14,h+15); g.fillStyle='rgba(0,0,0,.12)'; g.fillRect(x-7,y+h+4,w+14,3); };
+        const o8=W[8], o10=W[10]; W[8]=g=>{ o8(g); ger(g,52,118,38); ger(g,166,118,38); }; W[10]=g=>{ o10(g); ger(g,52,118,38); ger(g,166,118,38); };
+        W[13]=g=>{ putz(g,'#f6f2e8',384); for (const y of [0,192]){ [[46,y+52],[166,y+52]].forEach(([x,yy])=>{ frame(g,x,yy,44,76); win2(g,x,yy,44,76,'#f4f1e8'); shut(g,x,yy,44,76,y?'#3d5f44':'#5b4330'); }); g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(0,y+186,256,3); g.fillStyle='rgba(255,255,255,.25)'; g.fillRect(0,y+189,256,3); } };
+        W[14]=g=>{ larch(g,0,0,256,192,1); [[50,58],[166,58]].forEach(([x,y])=>{ win2(g,x,y,40,58,'#f2efe6'); shut(g,x,y,40,58,'#3a2a1c'); ger(g,x,y+60,40); }); balk(g,186); putz(g,'#f5f2ea',192); g.translate(0,192); putz(g,'#f5f2ea',192); [[50,50],[166,50]].forEach(([x,y])=>{ win2(g,x,y,40,58,'#f4f1e8'); shut(g,x,y,40,58,'#5b4330'); }); g.translate(0,-192); stone(g,0,348,256,36); };
+        W[15]=g=>{ putz(g,'#f5f0e4',384); for (const y of [0,192]){ [[40,y+40],[160,y+40]].forEach(([x,yy])=>{ frame(g,x,yy,52,112); win2(g,x,yy,52,112,'#f4f1e8'); shut(g,x,yy,52,112,'#6a4a30'); }); g.fillStyle='rgba(0,0,0,.1)'; g.fillRect(0,y+186,256,3); } };
+        W[17]=g=>{ putz(g,'#f6f3ea',384); [[52,54],[166,54],[166,246]].forEach(([x,y])=>{ win2(g,x,y,40,56,'#f4f1e8'); shut(g,x,y,40,56,'#5b4330'); }); ger(g,52,112,40); door(g,50,262,46,122,'#5a3a24'); stone(g,0,356,256,28); };
+        GB[5]=g=>{ putz(g,'#f6f2e8',256); larch(g,0,0,256,118,1); frame(g,106,150,44,60); win2(g,106,150,44,60,'#f4f1e8'); };
+        GB[6]=g=>{ larch(g,0,0,256,256,1); win2(g,100,128,56,74,'#f2efe6'); ger(g,96,206,64); g.fillStyle='rgba(0,0,0,.3)'; g.fillRect(0,232,256,8); };
+        GB[7]=g=>{ putz(g,'#f6f3ea',256); larch(g,0,0,256,150); win2(g,108,168,40,52,'#f4f1e8'); shut(g,108,168,40,52,'#5b4330'); }; } }
+    const REP={16:1,18:1,19:1,11:alp?1:0,13:alp&&!window.OLD_ALPH2?1:0,15:alp&&!window.OLD_ALPH2?1:0}, SOFT={31:1,20:1,21:1,22:1,23:1,25:1,8:1,9:1,11:1,13:1,14:1};
     W.forEach((fn,i)=>cell((i%8)*256,(i>>3)*384,256,384,g=>{ fn(g); weather(g,384,!!REP[i],!!SOFT[i]); })); GB.forEach((fn,i)=>cell((i%8)*256,1536+(i>>3)*256,256,256,g=>{ fn(g); weather(g,256,true,true); }));
     const t=new THREE.CanvasTexture(c); t.anisotropy=4; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; _facTex[AK]=t; return t; };
   _facTex={plaster, wood, umgebinde, barn, roof, slate, turk, ocker, turkG, fach, fachG, redu, reduG, villa, villaG, garage, p_fach, p_turkW, p_turkG, p_redu, atlasFn}; return _facTex;
@@ -8626,15 +8677,73 @@ function dlVN(x,z){ const ix=Math.floor(x), iz=Math.floor(z), fx=x-ix, fz=z-iz, 
   const a=h(ix,iz), b=h(ix+1,iz), c=h(ix,iz+1), d=h(ix+1,iz+1); return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v; }
 function dlRockD(x,z){ const q=dlSat(x,z,DLC2); if (!q) return 0; const l=(q[0]*0.3+q[1]*0.59+q[2]*0.11)*1.12, k=gnLC(x,z); let m=Math.max(k===6||k===9?1:0, clamp((l-0.5)/0.12,0,1)); if (k===1||k===4||k===5) m=0; if (m<=0) return 0;
   const g=gnNear(x,z,60); if (g.k>=0) m*=clamp((g.d-g.w/2-10)/25,0,1); if (m<=0) return 0;
+  if (GN.bed){ const q=dlBedQ(x,z); if (q) m*=clamp((q.e-5)/12,0,1); if (m<=0) return 0; }   /* 0.25.6: am Bach kein Felsrelief, sonst wird die Rinne zur Schlucht */
+  const BI=gtBldIndex(); if (BI){ const i0=Math.floor(x/GT.S), j0=Math.floor(z/GT.S); for (let a=-1;a<=1;a++) for (let c=-1;c<=1;c++){ const L=BI.get((i0+a)+','+(j0+c)); if (L) for (const o of L){ const d=Math.hypot(o.cx-x,o.cz-z); if (d<70) m*=clamp((d-30)/40,0,1); } } if (m<=0) return 0; }   /* Hütten auf Gipfeln/Pässen nicht anheben/absenken */
   const sx=terrainH(x+12,z)-terrainH(x-12,z), sz=terrainH(x,z+12)-terrainH(x,z-12), st=Math.min(1.3,Math.hypot(sx,sz)/24), A=(2+7*st)*m;
   let n=0, w=0.55; for (const L of [70,31,14]){ const r=1-Math.abs(2*dlVN(x/L+L,z/L-L)-1); n+=r*r*w; w*=0.55; }
   const band=Math.sin((terrainH(x,z))*0.55+dlVN(x/90,z/90)*5)*0.35*st;   /* Felsbänder (waagrechte Stufen) */
-  let av=0; for (let i=0;i<8;i++){ const a=i*0.785; av+=terrainH(x+Math.cos(a)*55,z+Math.sin(a)*55); } const h0=terrainH(x,z), sh=(h0-av/8)*1.1*m;   /* Kanten schärfen: Grate höher, Rinnen tiefer -> steilere Wände */
-  return (n-0.42)*A*2+band*A*0.5+sh; }
+  let av=0; for (let i=0;i<8;i++){ const a=i*0.785; av+=terrainH(x+Math.cos(a)*55,z+Math.sin(a)*55); } const h0=terrainH(x,z), DF=0, sh=(h0-av/8)*(DF?0.3:1.1)*m;   /* 0.25.6: mit dem 10-m-Modell sind Grate und Rinnen schon echt, nur noch leicht schärfen */   /* Kanten schärfen: Grate höher, Rinnen tiefer -> steilere Wände */
+  return ((n-0.42)*A*2+band*A*0.5)*(DF?0.55:1)+sh; }
 /* 0.25.3 Dolomiten: Bergbäche und Flüsse aus OSM (Boite, Cordevole, Codalonga …) als klares, türkises, fließendes Wasser über hellem Kiesbett, Seen als Flächen.
    Gelände wird nicht eingeschnitten: Bett und Wasser liegen knapp über dem Boden (Polygon-Versatz). Unter Straßen wird ausgespart (Brücke/Durchlass). Aus: window.NO_DLWATER */
 function dlStreams(){ return ((window.ZGNET&&ZGNET.streams)||[]).map(a=>{ const w=a[0], P=[]; for (let i=1;i+1<a.length;i+=2) P.push([a[i],a[i+1]]); const Q=[]; for (let i=0;i<P.length-1;i++){ const A=P[i], B=P[i+1], l=Math.hypot(B[0]-A[0],B[1]-A[1]), k=Math.max(1,Math.ceil(l/4)); for (let s=0;s<k;s++) Q.push([A[0]+(B[0]-A[0])*s/k, A[1]+(B[1]-A[1])*s/k]); } if (P.length) Q.push(P[P.length-1]); return {w,P:Q}; }).filter(o=>o.P.length>2); }
-function buildDoloWater(grp){ const SP=dlStreams(); const bed={v:[],uv:[],col:[],idx:[]}, wat={v:[],uv:[],idx:[]}, c=new THREE.Color(), pts=[];
+/* 0.25.6 Bachbett eingetieft: entlang jedes Bachs wird das Gelände auf ein stetig fallendes Sohlenprofil abgesenkt (Sohle hw+6 m breit, Böschung 9 m), darin Geröllbett, Ufersteine und fließendes Wasser
+   mit Schaum (an Stufen und am Rand) und Himmelsspiegelung bei flachem Blick. Aus: window.NO_DLBED (Eintiefung), window.OLD_DLWATER (altes flaches Band) */
+const DLBQ={e:0,t:0,hw:0};
+function dlBedIndex(){ if (GN.bed!==undefined) return GN.bed; GN.bed=null; if (!(WORLD&&WORLD.id==='dolo') || window.NO_DLBED || window.OLD_DLWATER) return null;
+  if (!GN.dem){ GN.bed=undefined; return null; } const SP=dlStreams(); if (!SP.length) return null; const pts=[], M=new Map(), C=24;
+  SP.forEach(({w,P})=>{ const n=P.length, gy=P.map(([x,z])=>gdemH0(x,z)); let sm=gy.slice(); for (let it=0;it<3;it++){ const b=sm.slice(); for (let i=1;i<n-1;i++) sm[i]=(b[i-1]+b[i]+b[i+1])/3; }
+    const pr=sm.slice(); if (sm[0]>=sm[n-1]){ for (let i=1;i<n;i++) pr[i]=Math.max(Math.min(pr[i],pr[i-1]), sm[i]-1.2); } else { for (let i=n-2;i>=0;i--) pr[i]=Math.max(Math.min(pr[i],pr[i+1]), sm[i]-1.2); }
+    const D=Math.min(1.5,0.7+0.1*w), hw=w/2, R=hw+6+9+4;   /* höchstens ca. 2,7 m tief, meist 1 m: flache Rinne statt Schlucht */
+    for (let i=0;i<n;i++){ const k=pts.length/5, x=P[i][0], z=P[i][1]; pts.push(x,z,pr[i]-D,hw,i<n-1?1:0); if (i>=n-1) continue;
+      for (let a=Math.floor((x-R)/C); a<=Math.floor((x+R)/C); a++) for (let b=Math.floor((z-R)/C); b<=Math.floor((z+R)/C); b++){ const key=a*100003+b; let l=M.get(key); if (!l) M.set(key,l=[]); l.push(k); } } });
+  GN.bed={p:new Float32Array(pts), M, C}; return GN.bed; }
+function dlBedQ(x,z){ const B=GN.bed; if (!B) return null; const l=B.M.get(Math.floor(x/B.C)*100003+Math.floor(z/B.C)); if (!l) return null; const p=B.p; let be=1e9, bt=0, bh=0;
+  for (let q=0;q<l.length;q++){ const o=l[q]*5, ax=p[o], az=p[o+1], dx=p[o+5]-ax, dz=p[o+6]-az, L=dx*dx+dz*dz||1; let u=((x-ax)*dx+(z-az)*dz)/L; u=u<0?0:u>1?1:u; const ex=x-ax-dx*u, ez=z-az-dz*u, hw=p[o+3], e=Math.sqrt(ex*ex+ez*ez)-hw; if (e<be){ be=e; bt=p[o+2]+(p[o+7]-p[o+2])*u; bh=hw; } }
+  DLBQ.e=be; DLBQ.t=bt; DLBQ.hw=bh; return DLBQ; }
+function dlBedH(x,z,h){ const q=dlBedQ(x,z); if (!q) return h; const e=q.e-6; if (e>=9 || q.t>=h) return h; const u=e/9, f=e<=0?1:1-u*u*(3-2*u); return h+(q.t-h)*f; }
+/* Höhe der gezeichneten Geländekachel (10-m-Raster, Dreiecke wie PlaneGeometry: Diagonale von (x0,z1) nach (x1,z0)); Knoten wie in gtStep */
+function gtMeshH(x,z){ const c=GT.S/GT.NS, M=GT.mh||(GT.mh=new Map()), i=Math.floor(x/c), j=Math.floor(z/c), fx=x/c-i, fz=z/c-j, rd=GT.def&&GT.def.id==='dolo'&&!window.NO_ROCKD;
+  const N=(a,b)=>{ const k=a*100003+b; let h=M.get(k); if (h===undefined){ const X=a*c, Z=b*c; h=terrainH(X,Z); if (rd) h+=dlRockD(X,Z); M.set(k,h); } return h; };
+  if (fx+fz<=1){ const A=N(i,j); return A+(N(i+1,j)-A)*fx+(N(i,j+1)-A)*fz; } const Cc=N(i+1,j+1); return Cc+(N(i,j+1)-Cc)*(1-fx)+(N(i+1,j)-Cc)*(1-fz); }
+function dlWaterMat(){ const T=TSL, H=gpuHelpers(), m=new THREE.MeshLambertNodeMaterial({transparent:true, side:THREE.DoubleSide, depthWrite:false}); m.polygonOffset=true; m.polygonOffsetFactor=-4; m.polygonOffsetUnits=-4;
+  const uv=T.uv(), u=uv.x, v=uv.y, t=WIND.t, sl=T.attribute('sl','float'), sp=sl.mul(1.6).add(1.0);
+  /* lebendige Strömung: drei Lagen mit verschiedenem Tempo, dazu langsam wandernde Wirbel (wp), die das Muster seitlich und längs verschieben, und Stellen, an denen das Wasser mal schneller, mal ruhiger läuft (gu) */
+  const Pw=T.positionWorld.xz, wp=H.vnz(T.vec2(u.mul(1.3).add(t.mul(0.07)), v.mul(0.22).sub(t.mul(0.16)))).sub(0.5), gu=H.vnz(Pw.mul(0.06).add(T.vec2(t.mul(0.045),t.mul(-0.03)))), ud=u.add(wp.mul(0.9)), vd=v.add(wp.mul(2.4));
+  const n1=H.vnz(T.vec2(ud.mul(2.2), vd.mul(0.9).sub(t.mul(1.1).mul(sp)))), n2=H.vnz(T.vec2(ud.mul(5.5).add(3.7), vd.mul(2.6).sub(t.mul(2.3).mul(sp)).add(gu.mul(1.5)))), n3=H.vnz(T.vec2(ud.mul(11.0).add(1.3), vd.mul(6.0).sub(t.mul(3.4).mul(sp)).sub(gu.mul(2.5))));
+  const edge=T.abs(u), fo=n1.mul(0.5).add(n2.mul(0.32)).add(n3.mul(0.18)).add(edge.mul(edge).mul(0.22)).add(sl.mul(0.3)).add(gu.sub(0.5).mul(0.28)), foam=T.smoothstep(0.68,0.88,fo);
+  const V=T.normalize(T.cameraPosition.sub(T.positionWorld)), fr=T.pow(T.float(1.0).sub(T.clamp(V.y,0.0,1.0)),3.0), deep=T.vec3(0.10,0.42,0.42), shal=T.vec3(0.42,0.80,0.74), sky=T.vec3(0.5,0.68,0.86);
+  const body=T.mix(deep,shal,T.clamp(n2.mul(0.7).add(edge.mul(0.5)),0.0,1.0)).mul(n3.mul(0.25).add(0.88)), col=T.mix(T.mix(body,sky,fr.mul(0.45)), T.vec3(0.95,0.98,1.0), foam.mul(0.8));
+  m.colorNode=T.vec4(col, T.clamp(T.mix(T.float(0.58),T.float(0.96),T.max(foam,fr.mul(0.8))).mul(T.float(1.0).sub(T.smoothstep(0.84,1.0,edge))),0.0,1.0)); m.userData.noSnow=true; return m; }
+function buildDoloWater2(grp){ const SP=dlStreams(), B=dlBedIndex(); const bed={v:[],uv:[],col:[],idx:[]}, wat={v:[],uv:[],sl:[],idx:[]}, c=new THREE.Color(), pts=[], ST=[]; let sd=4711; const rnd=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  const near=(x,z)=>{ const g=gnNear(x,z,MINI?160:420); return g.k>=0; };
+  SP.forEach(({w,P})=>{ const n=P.length, hw=w/2, ww=hw+0.5, bw=hw+1.3; let acc=0, run=[], nr=false;
+    const wy=P.map(([x,z])=>{ const q=dlBedQ(x,z); return q&&q.e<0.5?q.t+0.5:terrainH(x,z)+0.3; });
+    const flush=()=>{ if (run.length<2){ run=[]; return; } const b0=bed.v.length/3, a0=wat.v.length/3;
+      run.forEach((r,ri)=>{ const wb=bw*(0.8+0.4*dlVN(r.x/9,r.z/9));
+        [-wb,-hw*0.9,0,hw*0.9,wb].forEach((o,k)=>{ const x=r.x+r.nx*o, z=r.z+r.nz*o, h=gtMeshH(x,z)+0.07; bed.v.push(x,h,z); bed.uv.push(x*0.22,z*0.22); const sh=(k===0||k===4?0.78:k===2?0.9:1.0)*(0.9+0.2*dlVN(x/3,z/3)); c.setRGB(0.92*sh,0.9*sh,0.84*sh); bed.col.push(c.r,c.g,c.b); });
+        const a=run[Math.max(0,ri-1)], b=run[Math.min(run.length-1,ri+1)], dl=Math.max(1,Math.hypot(b.x-a.x,b.z-a.z)), sl=clamp(Math.abs(a.wy-b.wy)/dl*4,0,1);
+        [-ww,0,ww].forEach((o,k)=>{ const x=r.x+r.nx*o, z=r.z+r.nz*o; wat.v.push(x,Math.max(r.wy,gtMeshH(x,z)+0.16),z); wat.uv.push(k-1,r.acc/3.2); wat.sl.push(sl); }); });
+      for (let i=0;i<run.length-1;i++){ const A=b0+i*5, Bb=b0+(i+1)*5; for (let k=0;k<4;k++) bed.idx.push(A+k,A+k+1,Bb+k, A+k+1,Bb+k+1,Bb+k); const W0=a0+i*3, W1=a0+(i+1)*3; for (let k=0;k<2;k++) wat.idx.push(W0+k,W0+k+1,W1+k, W0+k+1,W1+k+1,W1+k); } run=[]; };
+    for (let i=0;i<n;i++){ const pp=P[i], qq=P[Math.min(i+1,n-1)], oo=P[Math.max(i-1,0)], dx=qq[0]-oo[0], dz=qq[1]-oo[1], l=Math.hypot(dx,dz)||1; if (i) acc+=Math.hypot(pp[0]-P[i-1][0],pp[1]-P[i-1][1]);
+      const g=gnNear(pp[0],pp[1],30); if (g.k>=0 && g.d<g.w/2+bw+0.5){ flush(); continue; }
+      const nx=-dz/l, nz=dx/l; run.push({x:pp[0], z:pp[1], nx, nz, wy:wy[i], acc}); if (i%2===0) pts.push(pp[0],pp[1]);
+      if (i%8===0) nr=near(pp[0],pp[1]);
+      if (nr && !MINI && ST.length<(LITE?900:2600)*8){ const k=rnd()<0.75?1:2; for (let q=0;q<k;q++){ if (rnd()>0.55) continue; const inW=rnd()<0.28, o=(rnd()<0.5?-1:1)*(inW?rnd()*hw*0.75:hw+0.2+rnd()*2.0), x=pp[0]+nx*o+(rnd()-0.5)*3, z=pp[1]+nz*o+(rnd()-0.5)*3, sc=inW?0.3+rnd()*0.4:0.4+rnd()*rnd()*1.3; ST.push(x,gtMeshH(x,z),z,sc,rnd()*6.28,0.55+rnd()*0.4,0.75+rnd()*0.5,0.86+rnd()*0.2); } } }
+    flush(); });
+  const mkG=(o,cols)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(o.v,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(o.uv,2)); if (cols) g.setAttribute('color',new THREE.Float32BufferAttribute(o.col,3)); if (o.sl) g.setAttribute('sl',new THREE.Float32BufferAttribute(o.sl,1)); g.setIndex(o.idx); g.computeVertexNormals(); g.computeBoundingSphere(); return g; };
+  if (bed.idx.length){ let st=null; try{ st=photoTex('bachbett',MINI?256:512)||photoTex('geroell',512); if (st){ st.wrapS=st.wrapT=THREE.RepeatWrapping; st.anisotropy=4; } }catch(e){}
+    const bm=new THREE.MeshLambertMaterial({vertexColors:true, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2, map:st||null, color:0xffffff}); bm.color.setRGB(1.5,1.5,1.5); const m=new THREE.Mesh(mkG(bed,true),bm); m.receiveShadow=true; m.name='bachbett'; grp.add(m); }
+  if (wat.idx.length){ let wm=null; try{ wm=dlWaterMat(); }catch(e){ console.warn('wassermat',e); } if (!wm){ wm=flowWaterMaterial(); wm.color.set(0x52bdb6); wm.opacity=0.7; } const m=new THREE.Mesh(mkG(wat,false),wm); m.renderOrder=2; m.name='bergbach'; grp.add(m); }
+  if (ST.length){ const g0=new THREE.DodecahedronGeometry(1,0), pa=g0.attributes.position; for (let i=0;i<pa.count;i++){ const x=pa.getX(i), y=pa.getY(i), z=pa.getZ(i), f=0.82+0.36*dlVN(x*1.7+3,z*1.7+y*2.1); pa.setXYZ(i,x*f,y*f*0.72,z*f); } g0.computeVertexNormals();
+    const sm=new THREE.MeshLambertMaterial({color:0xffffff, flatShading:true}); sm.userData.noSnow=true; const N=ST.length/8, im=mkIM(g0,sm,N), m4=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), v=new THREE.Vector3(), sv=new THREE.Vector3();
+    for (let i=0;i<N;i++){ const o=i*8, sc=ST[o+3]; e.set((ST[o+5]-0.75)*0.8,ST[o+4],(ST[o+6]-1)*0.6); q.setFromEuler(e); m4.compose(v.set(ST[o],ST[o+1]+sc*0.12,ST[o+2]),q,sv.set(sc*ST[o+6],sc*ST[o+5],sc)); im.setMatrixAt(i,m4); const l=ST[o+7]; c.setRGB(0.74*l,0.73*l,0.69*l); im.setColorAt(i,c); }
+    im.instanceMatrix.needsUpdate=true; if (im.instanceColor) im.instanceColor.needsUpdate=true; im.castShadow=false; im.receiveShadow=true; im.name='ufersteine'; grp.add(im); }
+  const lm=new THREE.MeshPhongMaterial({color:0x2f8c90, specular:0xd8eef6, shininess:120, normalMap:waterNormalTexture(), normalScale:new THREE.Vector2(0.25,0.25), transparent:true, opacity:0.86, polygonOffset:true, polygonOffsetFactor:-3}); lm.userData.noSnow=true;
+  ((window.ZGNET&&ZGNET.lakes)||[]).forEach(a=>{ const P=[]; for (let i=0;i+1<a.length;i+=2) P.push([a[i],a[i+1]]); if (P.length<3) return; let y=1e9; P.forEach(([x,z])=>{ y=Math.min(y,terrainH(x,z)); }); let tr=null; try{ tr=THREE.ShapeUtils.triangulateShape(P.map(p=>new THREE.Vector2(p[0],p[1])),[]); }catch(e){} if (!tr||!tr.length) return;
+    const v=[]; tr.forEach(t=>t.forEach(k=>v.push(P[k][0],y+0.25,P[k][1]))); const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); const uv=[]; for (let i=0;i<v.length;i+=3) uv.push(v[i]/8,v[i+2]/8); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.computeVertexNormals(); g.computeBoundingSphere(); const m=new THREE.Mesh(g,lm); m.name='see'; grp.add(m); P.forEach(([x,z],i)=>{ if (i%3===0) pts.push(x,z); }); });
+  window.DLWPTS=pts; }
+function buildDoloWater(grp){ if (!window.OLD_DLWATER) return buildDoloWater2(grp); const SP=dlStreams(); const bed={v:[],uv:[],col:[],idx:[]}, wat={v:[],uv:[],idx:[]}, c=new THREE.Color(), pts=[];
   SP.forEach(({w,P})=>{ const n=P.length, gy=P.map(([x,z])=>terrainH(x,z)); let wy=gy.slice(); for (let it=0;it<4;it++){ const b=wy.slice(); for (let i=1;i<n-1;i++) wy[i]=(b[i-1]+b[i]+b[i+1])/3; }
     let acc=0, run=[]; const hw=w/2, bw=hw+1.0+Math.min(4,w*0.5);
     const flush=()=>{ if (run.length<2){ run=[]; return; } const b0=bed.v.length/3, a0=wat.v.length/3;
@@ -8643,7 +8752,7 @@ function buildDoloWater(grp){ const SP=dlStreams(); const bed={v:[],uv:[],col:[]
       for (let i=0;i<run.length-1;i++){ const A=b0+i*4, B=b0+(i+1)*4; for (let k=0;k<3;k++) bed.idx.push(A+k,A+k+1,B+k, A+k+1,B+k+1,B+k); const W0=a0+i*2, W1=a0+(i+1)*2; wat.idx.push(W0,W0+1,W1, W0+1,W1+1,W1); } run=[]; };   /* Dreiecke nach oben gerichtet */
     for (let i=0;i<n;i++){ const pp=P[i], qq=P[Math.min(i+1,n-1)], oo=P[Math.max(i-1,0)], dx=qq[0]-oo[0], dz=qq[1]-oo[1], l=Math.hypot(dx,dz)||1; if (i) acc+=Math.hypot(pp[0]-P[i-1][0],pp[1]-P[i-1][1]);
       const g=gnNear(pp[0],pp[1],30); if (g.k>=0 && g.d<g.w/2+bw+0.5){ flush(); continue; }
-      run.push({x:pp[0], z:pp[1], nx:-dz/l, nz:dx/l, wy:wy[i], acc}); if (i%3===0) pts.push(pp[0],pp[1]); }
+      run.push({x:pp[0], z:pp[1], nx:-dz/l, nz:dx/l, wy:wy[i], acc}); if (i%2===0) pts.push(pp[0],pp[1]); }
     flush(); });
   const mkG=(o,cols)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(o.v,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(o.uv,2)); if (cols) g.setAttribute('color',new THREE.Float32BufferAttribute(o.col,3)); g.setIndex(o.idx); g.computeVertexNormals(); g.computeBoundingSphere(); return g; };
   if (bed.idx.length){ let st=null; try{ st=photoTex('geroell',512); if (st){ st.wrapS=st.wrapT=THREE.RepeatWrapping; } }catch(e){}
@@ -8688,10 +8797,18 @@ function buildDoloPano(grp){ const G=GN.dem, S=window.DLSAT; if (!G) return; con
     if (x0>-inner && x1<inner && z0>-inner && z1<inner) continue; idx.push(a,c,b, b,c,d); }
   const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3)); geo.setAttribute('uv',new THREE.BufferAttribute(uv,2)); geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
   let map=null; if (F && F.im){ map=new THREE.Texture(F.im); map.colorSpace=THREE.SRGBColorSpace; map.anisotropy=8; map.generateMipmaps=true; map.minFilter=THREE.LinearMipmapLinearFilter; map.needsUpdate=true; }
-  const mat=new THREE.MeshLambertMaterial({map, color:map?0xffffff:0x8a8f86}); mat.userData.noSnow=true;
+  let mat=new THREE.MeshLambertMaterial({map, color:map?0xffffff:0x8a8f86}); mat.userData.noSnow=true;
+  if (map && window.DLWAND && !window.OLD_PANOTX && !MINI){ try{ /* 0.25.6: Fernberge mit Wandgliederung: Felstextur groß (350 m und 1,4 km) seitlich projiziert, nur an steilen Flanken, Satellitenfarbe dort entsättigt (grau-weißer Dolomit statt bunter Flecken) */
+    const T=TSL, m2=new THREE.MeshLambertNodeMaterial(), Pw=T.positionWorld, nW=T.normalize(T.normalWorld), an=T.abs(nW), sw=an.x.div(an.x.add(an.z).add(0.001)), lw=T.vec3(0.33,0.34,0.33), W=window.DLWAND;
+    const d1=T.dot(T.texture(W,Pw.zy.mul(1/350)).rgb,lw).mul(sw).add(T.dot(T.texture(W,Pw.xy.mul(1/350)).rgb,lw).mul(T.float(1.0).sub(sw))).div(0.4);
+    const d2=T.dot(T.texture(W,Pw.zy.mul(1/1400).add(T.vec2(0.3,0.7))).rgb,lw).mul(sw).add(T.dot(T.texture(W,Pw.xy.mul(1/1400).add(T.vec2(0.8,0.2))).rgb,lw).mul(T.float(1.0).sub(sw))).div(0.4);
+    const st=T.smoothstep(0.22,0.5,T.float(1.0).sub(nW.y)), sat=T.texture(map,T.uv()).rgb, l=T.dot(sat,T.vec3(0.3,0.59,0.11)), hi=T.smoothstep(700.0,1100.0,Pw.y);
+    const grey=T.mix(sat, T.vec3(l).mul(T.vec3(1.04,1.0,0.94)), st.mul(hi).mul(0.8)), det=T.max(d1.sub(1.0).mul(1.6).add(1.0),0.3).mul(T.max(d2.sub(1.0).mul(1.4).add(1.0),0.4));
+    m2.colorNode=T.vec4(grey.mul(T.mix(T.float(1.0),det,st)),1.0); m2.userData.noSnow=true; mat=m2; }catch(e){ console.warn('panotex',e); } }
   const m=new THREE.Mesh(geo,mat); m.name='panorama'; m.receiveShadow=false; m.castShadow=false; m.frustumCulled=false; grp.add(m); window.DLPANO=m; return m; }
 function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){} STG('Weltaufbau '+def.id+(window._bw?' (2.)':'')); window._bw=1; BUILT_R=GFX_BUILD_R; window._alleys=[]; window._alleyN=0;
-  WORLD=def; rnd=12345;
+  WORLD=def; rnd=12345; GN.bed=undefined; GT.mh=undefined; if (def.id==='dolo') try{ gnData(); if (GN.dem) dlBedIndex(); else console.warn('bachbett: Höhenmodell fehlt'); }catch(e){ console.warn('bachbett',e); GN.bed=null; }
+  if (def.id==='dolo' && !window.DLWAND){ try{ [['DLWAND','dolowand'],['DLFELS','dolofels']].forEach(([n,k])=>{ const t=photoTex(k,MINI?512:1024); if (t){ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=MINI?2:8; t.needsUpdate=true; window[n]=t; } }); }catch(e){ console.warn('fels2',e); } }
   if (def.id==='dolo' && !window.DLROCK){ try{ const t=photoTex('dolomit',512)||photoTex('fels',512); if (t){ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; t.needsUpdate=true; window.DLROCK=t; } }catch(e){ console.warn('fels',e); } }
   if (worldGroup){ scene.remove(worldGroup); disposeGroup(worldGroup); }
   pbrReset();
@@ -8700,7 +8817,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   scene.background=new THREE.Color(def.sky); scene.fog.color.set(def.fog).convertSRGBToLinear(); scene.fog.near=(def.real||def.graph)?200:120; scene.fog.far=(def.real||def.graph)?2600:1500; if (LITE){ scene.fog.near=MINI?50:80; scene.fog.far=MINI?(def.real?600:450):(def.real?1100:700); }
   /* 0.11.7 Fernsicht: im Zittauer Gebirge weiter sehen (Dunst erst ab 6–7 km dicht), Kamera reicht entsprechend weiter */
   camera.far=3000; camera.near=0.3; if (def.graph && !MINI && !window.NO_FV){ if (LITE){ scene.fog.near=150; scene.fog.far=2700; } else { scene.fog.near=350; scene.fog.far=6800; camera.far=7200; } }
-  /* 0.25.0 Dolomiten: klare Bergluft, Panorama bis über 20 km */ if (def.id==='dolo'){ scene.fog.near=MINI?600:LITE?2500:4000; scene.fog.far=MINI?9000:LITE?32000:62000; camera.far=MINI?9500:LITE?34000:60000; camera.near=0.5; } camera.updateProjectionMatrix();
+  /* 0.25.0 Dolomiten: klare Bergluft, Panorama bis über 20 km */ if (def.id==='dolo'){ scene.fog.near=MINI?600:LITE?2500:4000; scene.fog.far=MINI?9000:LITE?32000:62000; if (!window.OLD_DLSKY && !MINI){ /* 0.25.6: Luftperspektive, ferne Berge werden blasser und bläulicher */ scene.fog.near=LITE?1200:1500; scene.fog.far=LITE?30000:52000; scene.fog.color.set(0xb4cbe6).convertSRGBToLinear(); } camera.far=MINI?9500:LITE?34000:60000; camera.near=0.5; } camera.updateProjectionMatrix();
   G = def.id==='dolo' ? (MINI?240:LITE?360:480) : def.graph ? 320 : 200;   /* 0.25.2 Dolomiten: Grobgelände ca. 29 m statt 43 m */ GT.on=false; if (nearD.length!==(G+1)*(G+1)){ nearD=new Float32Array((G+1)*(G+1)); nearY=new Float32Array((G+1)*(G+1)); }
   EXT = def.graph ? 2*Math.max(...gnData().reg.map(Math.abs), def.id==='zittau'&&window.ZGKC?14300:0)+1200 : def.R*2.9+700; CELL=EXT/G; OFF=-EXT/2;
   initRoadNet(def); planCross(def);
@@ -8745,7 +8862,17 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
     if (def.graph){ /* Grobgelände als untere Hülle: nie über dem echten Gelände oder einer Straße, sonst ragt es zwischen den Kacheln hervor */
       const W=G+1, cs=EXT/G, h0=new Float32Array(pos.count); for (let i=0;i<pos.count;i++) h0[i]=pos.getY(i);
       gnData().edges.forEach(E=>E.P.forEach(q=>{ const c0=Math.round((q.x+EXT/2)/cs), r0=Math.round((q.z+EXT/2)/cs); for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const c=c0+a, r=r0+b; if (c<0||r<0||c>=W||r>=W) continue; const k=r*W+c; h0[k]=Math.min(h0[k], q.y-2.5); } }));
-      for (let r=0;r<W;r++) for (let c=0;c<W;c++){ let m=h0[r*W+c]; for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const rr=r+a, cc=c+b; if (rr<0||cc<0||rr>=W||cc>=W) continue; m=Math.min(m,h0[rr*W+cc]); } pos.setY(r*W+c, m-1.0); } }
+      if (def.id==='dolo' && !window.OLD_HULL){ /* 0.25.6: enge Hülle. Vorher wurde jeder Punkt auf das Minimum seiner 8 Nachbarn gesenkt: das hat Gipfel und Türme um 30–60 m abgetragen (runde, niedrige Berge, schwebende Gipfelhütten).
+           Jetzt wird nur dort gesenkt, wo das feine Gelände zwischen zwei Punkten wirklich tiefer liegt (Mulden), und nur im Kachelbereich um die Straßen (2,6 km); weiter weg bleibt die echte Höhe. */
+        const near=new Uint8Array(pos.count), Rm=Math.ceil(2600/cs); let acc=1e9, lx=0, lz=0; gnData().edges.forEach(E=>E.P.forEach(q=>{ acc+=Math.hypot(q.x-lx,q.z-lz); lx=q.x; lz=q.z; if (acc<250) return; acc=0; const c0=Math.round((q.x+EXT/2)/cs), r0=Math.round((q.z+EXT/2)/cs);
+          for (let r=Math.max(0,r0-Rm); r<=Math.min(W-1,r0+Rm); r++){ const dr=r-r0, sp=Math.floor(Math.sqrt(Rm*Rm-dr*dr)); for (let c=Math.max(0,c0-sp); c<=Math.min(W-1,c0+sp); c++) near[r*W+c]=1; } }));
+        const low=Float32Array.from(h0), rD2=!window.NO_ROCKD, fine=(x,z)=>terrainH(x,z)-1.5+(rD2?dlRockD(x,z):0);
+        /* je Zelle 4x4 Proben des feinen Geländes (ca. 7 m Abstand, findet auch schmale Bachrinnen): wo es unter der Ebene der vier Eckpunkte liegt, alle vier Ecken um den größten Überstand senken */
+        const NSB=4; for (let r=0;r<W-1;r++) for (let c=0;c<W-1;c++){ const k=r*W+c; if (!near[k]) continue; const kb=k+W, x=pos.getX(k), z=pos.getZ(k), A=h0[k], B=h0[kb], C=h0[kb+1], Dd=h0[k+1]; let ex=0;
+          for (let i=0;i<NSB;i++) for (let j=0;j<NSB;j++){ const fx=(i+0.5)/NSB, fz=(j+0.5)/NSB, ip=fx+fz<=1?A+(Dd-A)*fx+(B-A)*fz:C+(B-C)*(1-fx)+(Dd-C)*(1-fz), e=ip-fine(x+fx*cs,z+fz*cs); if (e>ex) ex=e; }
+          if (ex>0){ const d=ex*1.15+0.2; low[k]=Math.min(low[k],A-d); low[kb]=Math.min(low[kb],B-d); low[kb+1]=Math.min(low[kb+1],C-d); low[k+1]=Math.min(low[k+1],Dd-d); } }
+        for (let k=0;k<pos.count;k++) pos.setY(k, near[k]?low[k]-1.0:h0[k]+1.5); }
+      else for (let r=0;r<W;r++) for (let c=0;c<W;c++){ let m=h0[r*W+c]; for (let a=-1;a<=1;a++) for (let b=-1;b<=1;b++){ const rr=r+a, cc=c+b; if (rr<0||cc<0||rr>=W||cc>=W) continue; m=Math.min(m,h0[rr*W+cc]); } pos.setY(r*W+c, m-1.0); } }
     geo.setAttribute('color', new THREE.Float32BufferAttribute(col,3)); geo.setAttribute('luk', new THREE.Float32BufferAttribute(luk,1)); geo.computeVertexNormals();
     TERR=new Float32Array(pos.count); for (let i=0;i<pos.count;i++) TERR[i]=pos.getY(i);
     const gt=grassDetailTexture(); const gr7=photo('rasen')?3.5:7; gt.repeat.set(EXT/gr7, EXT/gr7); TERR_MAP=gt;
@@ -8873,13 +9000,14 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
     const puffs=[puffTexture(),puffTexture(),puffTexture(),puffTexture()];
     cloudLayer=new THREE.Group(); const hz=new THREE.Color(def.fog);
     const CU={}; ['L','R','F','B'].forEach(l=>{ CU[l]=[0,1,2].map(k=>cumulusTexture(k+1+l.charCodeAt(0),l)); }); const sa=Math.atan2(SUN_DIR.z,SUN_DIR.x);
-    for (let c=0;c<(LITE?18:64);c++){ const a=rand()*Math.PI*2, rr=600+rand()*1900, cx=Math.cos(a)*rr, cz=Math.sin(a)*rr, cy=330+rand()*240, big=150+rand()*170;
-      const far=clamp((rr-600)/1900,0,1); const op=0.97-far*0.45; const col=new THREE.Color(0xffffff).lerp(hz,far*0.5);
+    const DLS=def.id==='dolo'&&!window.OLD_DLSKY;   /* 0.25.6 Dolomiten: Wolken weit weg und hoch über den Gipfeln (vorher hingen sie als Watte vor den Hängen), kein Dunstring in 2,6 km */
+    for (let c=0;c<(DLS?(LITE?9:22):LITE?18:64);c++){ const a=rand()*Math.PI*2, rr=DLS?7000+rand()*15000:600+rand()*1900, cx=Math.cos(a)*rr, cz=Math.sin(a)*rr, cy=DLS?2500+rand()*900:330+rand()*240, big=DLS?1300+rand()*1700:150+rand()*170;
+      const far=DLS?clamp((rr-7000)/15000,0,1):clamp((rr-600)/1900,0,1); const op=0.97-far*0.45; const col=new THREE.Color(0xffffff).lerp(hz,far*0.5);
       let d=a-sa; d=Math.atan2(Math.sin(d),Math.cos(d)); const lt=Math.abs(d)<0.6?'B':Math.abs(d)>2.4?'F':(Math.sin(sa-a)>0?'R':'L');
       for (let j=0;j<2;j++){ const sm=new THREE.SpriteMaterial({map:CU[lt][(c+j)%3], color:col, transparent:true, opacity:op*(j?0.85:1), depthWrite:false, fog:false});
         const sp=new THREE.Sprite(sm); const w=big*(j?0.65:1)*(0.85+rand()*0.3); sp.scale.set(w*1.5, w*1.12, 1); sp.position.set(cx+(j?(rand()-0.5)*big*1.1:0), cy+(j?-big*0.08:0), cz+(j?(rand()-0.5)*big*0.5:0)); cloudLayer.add(sp); } }
     // Dunstschleier am Horizont
-    { const hc=document.createElement('canvas'); hc.width=4; hc.height=128; const hg=hc.getContext('2d'); const gr=hg.createLinearGradient(0,0,0,128); const fc='#'+hz.getHexString();
+    if (!DLS){ const hc=document.createElement('canvas'); hc.width=4; hc.height=128; const hg=hc.getContext('2d'); const gr=hg.createLinearGradient(0,0,0,128); const fc='#'+hz.getHexString();
       gr.addColorStop(0,'rgba(255,255,255,0)'); gr.addColorStop(0.55,fc+'88'); gr.addColorStop(0.8,fc+'ee'); gr.addColorStop(1,fc+'00'); hg.fillStyle=gr; hg.fillRect(0,0,4,128);
       const haze=new THREE.Mesh(new THREE.CylinderGeometry(2600,2600,500,48,1,true), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(hc), transparent:true, side:THREE.BackSide, depthWrite:false, fog:false}));
       haze.position.y=120; cloudLayer.add(haze); }
@@ -12592,7 +12720,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.6 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
   WORLDS.forEach(def=>{ if (!wVis(def)) return;
@@ -13133,6 +13261,7 @@ function wayFeelFx(dt){ if (!scene || !camera || !me || !me.g || !(dt>0)) return
     else if (q[k+1]>-1e3){ for (let j=0;j<12;j++) q[k+j]=0; q[k+1]=q[k+4]=q[k+7]=q[k+10]=-1e4; } }
   F.ms.geometry.attributes.position.needsUpdate=true; F.ms.geometry.attributes.color.needsUpdate=true; F.ms.visible=alive; }
 // Grafikstufen: Auflösung, Schatten, Sichtweite detaillierter Bäume
+function gfxQ(){ try{ return +($('gfx').value)||0.7; }catch(e){ return 0.7; } }
 function applyGfx(q){ LITE=q<0.4; const dpr=Math.min(devicePixelRatio,2); renderer.setPixelRatio(LITE?(MINI?Math.min(0.7,dpr*0.35):Math.min(0.9,dpr*0.45)):dpr*Math.min(1,q)); renderer.shadowMap.enabled=q>0.5; if (window.RIDER_BLOBS) RIDER_BLOBS.forEach(b=>b.visible=!renderer.shadowMap.enabled);
   const sm=q>1.1?4096:q>0.9?2048:1024; if (sun.shadow.mapSize.x!==sm){ sun.shadow.mapSize.set(sm,sm); if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map=null; } }
   const ext=q>1.1?70:q>0.9?55:40; window.TREE_SHR=ext+40; sc.left=-ext; sc.right=ext; sc.top=ext; sc.bottom=-ext; sc.updateProjectionMatrix();
