@@ -10244,7 +10244,7 @@ async function connectTrainer(){
       log('Trainersuche '+tag+': '+msg); $('trS').textContent=(e&&e.name==='NotFoundError'?'nichts gewählt':'Fehler: '+msg)+' ('+tag+') – noch einmal „Suchen“ tippen für '+(stage===0?'Stufe 2':stage===1?'Stufe 3 (alle Geräte)':'Stufe 1'); return; }
     clearTimeout(wd); trainer.searchStage=stage;   // erfolgreiche Stufe merken
     $('trS').textContent='verbinde mit '+(dev.name||'Gerät')+' …';
-    dev.addEventListener('gattserverdisconnected', ()=>{ $('trS').textContent='Verbindung getrennt'; $('trS').classList.remove('ok'); trainer.cp=null; trainer.eli=null; trainer.type=null; toast('Trainer getrennt'); });
+    dev.addEventListener('gattserverdisconnected', ()=>{ $('trS').textContent='Verbindung getrennt'; $('trS').classList.remove('ok'); trainer.cp=null; trainer.eli=null; trainer.eliCadT=0; trainer.type=null; toast('Trainer getrennt'); });
     const srv = await dev.gatt.connect();
     trainer.dev=dev;
     let ftms=null, cps=null;
@@ -10269,7 +10269,10 @@ async function connectTrainer(){
       await m.startNotifications();
       trainer.type='CPS';
       // 0.25.3: Elite Drivo 1 (ohne FTMS) – Steigung über Elite-Kanal 0010: [0x01, Steigung*10+10] (0,1 %/Stufe, aus Zwift-Mitschnitt), alle 2 s. Aus: window.NO_ELITESLOPE
-      trainer.eli=null; if (!window.NO_ELITESLOPE){ try { trainer.eli=await (await srv.getPrimaryService(ELITE)).getCharacteristic('347b0010-7635-408b-8918-8ff3949ce592'); trainer.lastGradeSent=null; trainer.lastSentAt=0; } catch(e){ trainer.eli=null; } }
+      trainer.eli=null; if (!window.NO_ELITESLOPE){ try { const es=await srv.getPrimaryService(ELITE); trainer.eli=await es.getCharacteristic('347b0010-7635-408b-8918-8ff3949ce592'); trainer.lastGradeSent=null; trainer.lastSentAt=0;
+        // 0.25.5: im Steuermodus fehlen die Kurbeldaten im Leistungsdienst – Kadenz steht in Elite 0015 (3 Pakete/s, Byte 3 = U/min). Alt: window.OLD_ELICAD
+        if (!window.OLD_ELICAD) try { const k=await es.getCharacteristic('347b0015-7635-408b-8918-8ff3949ce592'); k.addEventListener('characteristicvaluechanged', e=>{ const v=e.target.value; if (v.byteLength>=4 && v.getUint8(0)>=1 && v.getUint8(0)<=3){ S.cadence=clamp(v.getUint8(3),0,200); trainer.eliCadT=performance.now(); } }); await k.startNotifications(); } catch(e){ log('Elite-Kadenz: '+errText(e)); }
+      } catch(e){ trainer.eli=null; } }
       if (trainer.eli){ $('trS').textContent=(dev.name||'Trainer')+' · Elite · Watt + Steigung'; $('trS').classList.add('ok'); log('Elite-Trainer verbunden: Watt und Kadenz über den Leistungsdienst, Steigung über Elites eigenen Kanal (kein ERG).'); }
       else $('trS').textContent=(dev.name||'Trainer')+' · nur Watt/Kadenz (kein FTMS)'; $('trS').classList.add('ok');
       if (!trainer.eli) log('Kein FTMS gefunden. Watt und Kadenz kommen über den Leistungsdienst, der Widerstand wird aber nicht automatisch gesteuert. Tipp: Firmware mit der Elite-App „Upgrado“ (oder My E-Training) aktualisieren, dann erneut verbinden.');
@@ -10322,6 +10325,7 @@ function parseCyclingPower(dv){
   let o=0; const f=dv.getUint16(o,true); o+=2;
   pushPower(Math.max(0, dv.getInt16(o,true))); o+=2;
   if (f&1) o+=1; if (f&4) o+=2; if (f&16) o+=6;
+  if (trainer.eliCadT && !window.OLD_ELICAD){ if (performance.now()-trainer.eliCadT>2500) S.cadence=0; lastData=performance.now(); return; }   /* Elite: Kadenz kommt aus 0015 */
   if (f&32){ const revs=dv.getUint16(o,true), t=dv.getUint16(o+2,true); o+=4;
     const lc=trainer.lastCrank;
     if (lc){ const dr=(revs-lc.revs+65536)%65536, dtt=((t-lc.t+65536)%65536)/1024; if (dtt>0 && dr>0){ S.cadence = clamp(dr/dtt*60,0,200); lc.stale=0; } else if(++lc.stale>3) S.cadence=0; }
@@ -12588,7 +12592,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
   WORLDS.forEach(def=>{ if (!wVis(def)) return;
