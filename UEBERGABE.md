@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.3 Beta** (Registrieren/Anmelden mit E-Mail + Passwort als Hauptweg). Davor 0.24.2 (Bluefy-Login per QR übers Handy), 0.24.1 (HUD oben, Puls am Handy).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.4 Beta** (Zäune nicht mehr über Straßen/Wege/Gleise, kein Gras auf Pflaster, Handy-Layout fest, Trikots ohne Schrift). Davor 0.24.3 (E-Mail + Passwort), 0.24.2 (Bluefy-Login per QR).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.24.3** | **E-Mail + Passwort mit „Neu registrieren“ als Hauptweg (kein Code nötig, Supabase „Confirm email“ aus), Code-Login nur noch aufklappbar (braucht eigenen SMTP)** |
+| **0.24.4** | **Zäune nie über Straßen, Wege, Gleise; kein Gras auf Pflaster-/Splittstreifen; Handy-Kreuzungsfeld feste Höhe; Sprint-/Bergtrikot ohne Schrift** |
+| 0.24.3 | E-Mail + Passwort mit „Neu registrieren“ als Hauptweg (kein Code nötig, Supabase „Confirm email“ aus), Code-Login nur noch aufklappbar (braucht eigenen SMTP) |
 | 0.24.2 | Bluefy-Anmeldung: E-Mail-Code wieder vorn mit Erklärung, Google in Bluefy über Handy/Chrome (Seite handy/login.html, Übergabe per Code/QR, Kanal hl:CODE), Anmeldung von Spiel zu Spiel übertragen, Prüfung ob Google eingeschaltet |
-| 0.24.1 | HUD oben Mitte gestapelt ohne Überlappung, Bergwertung einzeilig, FPS oben links, Kreuzung erst ab 110 m; Puls am Handy auch im Testmodus |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -135,11 +135,12 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 **Schultern 0.19.3–0.19.8, Gabeln 0.19.5:** Details (`carryGripPar`, `carryBody`, `carryRig`, `taperLeg`, `forkStep`, Tests `tcarry`/`tdismount`/`tbike`, Schalter `OLD_CARRY*`, `OLD_DISMOUNT`, `OLD_GRAVELFORK`, `NO_FORKMOVE`) jetzt in `docs/ARCHIV.md`.
 
 **Leistung 0.20.0–0.21.0** (Details 0.20.0–0.20.2 in `docs/ARCHIV.md`): Kachelwald gebündelt (`GT.w`, `OLD_GTW`), Baumschatten nur nah (`OLD_TREESH`), HUD sparsam (`OLD_HUD`), Leistungstest per Tipp auf FPS-Anzeige (`LTEST`), Messung `tests/tgpuperf.js`. iPad-Lesart: Chrome hängt an Pixeln, Bluefy an den Bäumen.
-- 0.20.3 (Hicore: 0.20.2 lief erst 60 FPS/90 %, dann alle ~30 s Ruckler und wieder „28 FPS · max 30“): `FPSCTL.win(fps, maxFrameMs)` ersetzt `DRES.tick`/FCAP-Zweig. Unter 55 FPS Auflösung −10 % bis 70 % (nach jedem Wechsel ein Fenster Pause), kein Gewinn bei 70 % (< 3 FPS ggü. 100 %) → zurück auf 100 % und 5 min Sperre; 50–55 ungebremst, < 50 → 30er-Grenze, Probe alle 3 min; hoch +5 % nach 4×≥59, fällt es binnen 12 s → 3 min keine Erhöhung; Fenster mit Bild > 250 ms (Nachladen) zählen nicht. Alt: `window.OLD_FPSCTL`.
-**HUD und Puls 0.24.1** (Hicore 26.11.: Puls fehlt am Handy, HUD oben überladen, Screenshot Bluefy)
-- Puls: Ursache war `h:S.hr&&!S.sim?…:0` in `CMP.frame`. Hicore fährt mit Stages ohne Trainer, also immer Testmodus (`S.sim`), dann wurde nie Puls gesendet, auch mit TICKR. Neu `realHr()` (bei `let hrDev`): Pulsgurt verbunden oder Puls vom Trainer; im Testmodus ohne Gurt ist `S.hr` geschätzt → 0. Gilt auch für die Live-Anzeige im Menü (`lvH`). `thandy` prüft beides (Wartezeiten jetzt per waitForFunction, dadurch auch „Watt kommen an“ grün; weiter rot und vermutlich Testproblem: „Vorwahl gespeichert“, „Datei am Handy bestätigt 1/5“).
-- HUD: `hudStack()` (vor `toast`, 10x/s im HUD-Takt) setzt `top` von `#segbox`, `#junc`, `#toast` der Reihe nach unter die Kacheln (`.hud`), je 6 px Abstand. FPS-Anzeige oben links (vorher Mitte über den Kacheln). Bergwertung eine Zeile (`.segbox.cmp .sr`: Name, Rest-m, Zeit, Best, Marke „Test“), Testmodus-Hinweis nur noch einmal je Fahrt als Meldung (`SEG.testNote`). Hauptkreuzungen erst ab max(110 m, 9 s) sichtbar (Wahl per Taste/Handy weiter ab 160 m), neben Bergwertung kleinere Knöpfe (`#junc.jseg`). Alt: `window.OLD_HUDSTACK` (Stapeln, Kreuzungsabstand, jseg).
-- Test `tests/thud.js` (ca. 20 min, `ROOT=` für alten Stand, `TAG`): Bergwertung + Kreuzung + Meldung + FPS gleichzeitig, misst Überlappungen, Bilder iPad 1180×820 und Handy 390×844. Bilder vorschau/261, 262.
+**0.24.4 Zäune, Gras, Handy, Trikots** (Hicore 26.11.: Dekozäune quer über Straßen und Bahn, Grasbüschel auf Kopfsteinpflaster, Handy-Layout springt, Trikot-Schrift zu groß)
+- Zäune: `fenceHit(ax,az,bx,bz,m)` (bei `propOnWay`) prüft ein Zaunstück alle 0,5 m gegen Straßen (`gnNear`, Rand + m), Wege/Treppen (`waysNear`) und Gleise (`railNear`, eigenes 20-m-Raster aus `ZSB.lines`, Schmalspur 1,6 m, Normalspur 2,1 m halbe Bettbreite). Gilt für OSM-Zäune (`gtFenceMesh`, m 1,0), Deko-Zaun entlang der Runde (`addProps`, m 2,6 = auch nicht auf dem Pflasterstreifen), Weidezaun (m 2,6), Jägerzaun/Hecke (m 1,0 + nicht auf Pflaster, `buildFencesHedges`) und Vorgartenzäune (`gardenFences`). Vorher wurden Gleise nirgends, Wege bei Weide-/Jägerzaun gar nicht geprüft. Alt: `window.OLD_FENCECHK`.
+- Gras: `gnPave(x,z,m)` (nach `gnNear`, das jetzt auch `px/pz` liefert) = liegt der Punkt auf dem Pflaster-/Splittstreifen im Ort (gleiche Breiten wie `orBuilder`). Feines Gras/Büschel (`gfCell`) und Rand-Büschel/Blumen (`buildVerge`, dort auch nicht mehr auf Wegen) lassen diese Stellen aus. Alt: `window.OLD_GRASSPAVE`.
+- Handy (`quelle/handy/index.html`): Kreuzungsfeld hat feste Höhe (Text 2 Zeilen, Knopfreihe 52 px, Knöpfe einzeilig), Pfeile rutschen nicht mehr.
+- Trikots: Schriftzüge aus `jer/tex_sprint.jpg` und `jer/tex_berg.jpg` entfernt (`werkzeuge/trikot_ohne_text.py`, Inpainting direkt in der UV-Textur; Originale in der Git-Historie). Vorschaubilder `thumb_*` unverändert.
+- Test `tests/tfence.js` (ca. 20 min, `PRE='window.OLD_FENCECHK=1;window.OLD_GRASSPAVE=1;'` = alter Stand): zählt Zaunstücke, die Straße/Weg/Gleis berühren, und Feingras auf Pflaster. Ergebnis Start Zittau: alt 54 Zaunstücke über Wege/Gleise (Weide, Jäger, Hecke), neu 0; Ortskern Zittau Feingras auf Pflaster alt 3.653, neu 0. `terr2` none.
 
 **0.24.3 Passwort als Hauptweg** (Hicore 26.11.: Screenshot, Mail-Vorlagen im Free-Plan nur mit eigenem SMTP änderbar → kein Code möglich): `ACC.register` (`signUp`; mit Session = sofort angemeldet, `identities:[]` = Adresse vergeben, sonst Hinweis auf Bestätigungs-Link), Felder E-Mail + Passwort vorn, Code-Login in `<details>`. Einrichtung: „Confirm email“ aus, optional Hostinger-SMTP (`docs/KONTO_EINRICHTEN.md` Schritt 3/4). Test `tacc` (26 Prüfungen inkl. Registrieren).
 
@@ -179,6 +180,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.16.1 am iPad prüfen: Vorauswahl in Orten (Spitzkunnersdorf), ob dezente Abzweig-Hinweise reichen, Ruckler beim automatischen Neuberechnen, Optik der Einmündungen.
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
 - 0.15.0 am iPad prüfen: Fahrgefühl Gravel/MTB, Ladezeit (+0,7 s), Wurzeln/Brücken.
+- 0.24.4 am iPad prüfen: Zäune quer über Straßen/Bahn weg? Fehlen jetzt sichtbar Zäune? Gras auf Pflaster weg, Handy-Pfeile bleiben stehen, Trikots.
 - 0.24.3 prüfen: „Confirm email“ aus, in Bluefy registrieren/anmelden mit Passwort; Übergabe per QR vom Handy (0.24.2), Google in Chrome.
 - 0.24.0 einrichten und prüfen: Dashboard-Schritte aus `docs/KONTO_EINRICHTEN.md`, dann Anmelden per Code in Bluefy, Google in Chrome und Bluefy (Google sperrt evtl. eingebettete Browser), Fahrt speichern, FIT aus dem Konto laden.
 - 0.23.2 am iPad prüfen: Räder im Radkasten, Einlenken beim Überholen und in Kurven, Kreisel-Gegenverkehr.

@@ -4763,7 +4763,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   window.R187=true; })();
 </script>
 <script>window.PROP_GLB={};window.PROP_LIST=["amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "gruft", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "gruft": "3a94d372", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
-<script src="data/media.js?h=a64ace9f"></script>
+<script src="data/media.js?h=7aabf7b3"></script>
 <script src="data/zittau.js?h=b0e274d9"></script>
 <script>
 "use strict";
@@ -5748,7 +5748,7 @@ function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) retu
   for (let k=0;k<GF.per;k++){ const x=(i+r())*GF.cs, z=(j+r())*GF.cs; let h; if (XH){ const xc=xrNear(x,z,8); if (xc.d<((xc.k>=0&&XR[xc.k].w)||XW)/2+0.4) continue; } const cn=courseNear(x,z,16);
     if (cn.i>=0 && cn.d<CORR.CW+0.5){ const d=cum[cn.i]+cn.t*(cum[cn.i+1]-cum[cn.i]), Wd=roadWAt(d); if (cn.d<Wd/2+swAt(d)-0.05) continue; const a=pts[cn.i], b=pts[(cn.i+1)%N], side=((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x))<0?1:-1; h=profileH(d,side,cn.d); }
     else h=terrainMeshH(x,z);
-    if (h<GF.waterY+1.3 || inPond(x,z,1.5)) continue; const G9=GF.def.graph&&window.LCD, gn9=G9?gnNear(x,z,30):null, lu=G9?{t:gnLC(x,z)===3?2:0,edge:99}:LU?landUse(x,z):{t:0,edge:99}; const inF=lu.edge>2; if (gn9 && gn9.k>=0 && gn9.d<(gn9.w||6)/2+0.4) continue;   /* 0.11.1: kein Gras auf Querstraßen (bisher nur zur eigenen Strecke geprüft) */ const wy9=G9&&!window.NO_GFWAY&&WAYS_ON; if (wy9 && waysNear(x,z,0.3)) continue;   /* 0.17.3 (Hicore): auch nichts auf Feld-/Waldwegen */ if (inF && (lu.t===5 || (lu.t===6 && r()<0.6))) continue; const nearR=G9?(gn9.d<(gn9.w||6)/2+14 || (wy9 && waysNear(x,z,4))):(cn.i>=0 && cn.d<16), crop=inF && lu.t>=2 && lu.t<=4 && !nearR;
+    if (h<GF.waterY+1.3 || inPond(x,z,1.5)) continue; const G9=GF.def.graph&&window.LCD, gn9=G9?gnNear(x,z,30):null, lu=G9?{t:gnLC(x,z)===3?2:0,edge:99}:LU?landUse(x,z):{t:0,edge:99}; const inF=lu.edge>2; if (gn9 && gn9.k>=0 && gn9.d<(gn9.w||6)/2+0.4) continue; if (gn9 && gnPave(x,z,0.15,gn9)) continue;   /* 0.11.1: kein Gras auf Querstraßen (bisher nur zur eigenen Strecke geprüft) */ const wy9=G9&&!window.NO_GFWAY&&WAYS_ON; if (wy9 && waysNear(x,z,0.3)) continue;   /* 0.17.3 (Hicore): auch nichts auf Feld-/Waldwegen */ if (inF && (lu.t===5 || (lu.t===6 && r()<0.6))) continue; const nearR=G9?(gn9.d<(gn9.w||6)/2+14 || (wy9 && waysNear(x,z,4))):(cn.i>=0 && cn.d<16), crop=inF && lu.t>=2 && lu.t<=4 && !nearR;
     /* 0.17.3 (Hicore): Acker wie die Bodenfarbe je Schlag (lcCol): umgepflügt = kahl, Stoppel = kurz und strohfarben, Wintersaat = kurz und grün; kein hoher grüner Teppich mehr */
     let fv=-1; if (G9 && lu.t===2){ fv=gnAcker(x,z); if (fv>=0.75 || (fv>=0.4 ? r()<0.45 : r()<0.3)) continue; }   /* 0.9.9: im Straßennetz Abstand zu ALLEN Straßen (nicht nur zur Hauptrunde) und Felder nach Satellit statt Flurplan */   /* 0.9.7: am Straßenrand kein hohes Feld/Büschel (Hicore) */
     q.setFromAxisAngle(UPV,r()*6.28); const fine=!!GF.def.graph, tuft=fine&&!crop&&cl0&&(!nearR||hc<0.12)&&Math.hypot(x-cl0[0],z-cl0[1])<(nearR?0.4:0.55)&&r()<(nearR?0.35:0.6), sc=crop?0.9+r()*0.4:fine?(tuft?1.1+r()*0.4:0.85+r()*0.25):0.7+r()*0.8; s.set(sc,sc*(crop?(fv>=0?(fv>=0.4?0.4+r()*0.2:0.35+r()*0.2):lu.t===3?3.2:lu.t===4?3.6:1.8)+r()*0.5:fine?(tuft?1.3+r()*0.6:0.23+r()*0.11):0.7+r()*0.8),sc);   /* 0.9.2: Wiese 5-8 cm, ab und zu ein höherer Büschel */ p.set(x,h-0.02,z); m.compose(p,q,s); M.set(m.elements,n*16);
@@ -5852,7 +5852,7 @@ function buildVerge(def, grp, W){
   for (let d=0; d<L; d+=(0.5/dryness+rand()*0.4)/dens){ const side=rand()<0.5?1:-1, r=rand(); let o; const Sd=swAt(d);
     if (r<0.45) o=Sd-0.15+rand()*0.6; else if (r<0.75) o=Sd+0.4+rand()*2.6; else o=Sd+2.6+rand()*7;
     const Wd=roadWAt(d), off=Wd/2+o, pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
-    if (juncAt(d)>0.3) continue; if (CHASH){ const cc=courseNear(x,z,16); if (cc.d<(ROADW[cc.i]||Wd)/2+(SHW?SHW[cc.i]:S)-0.2) continue; } if (def.real && nearSideRoad(x,z,0.3)) continue; const h=profileH(d,side,off);
+    if (juncAt(d)>0.3) continue; if (CHASH){ const cc=courseNear(x,z,16); if (cc.d<(ROADW[cc.i]||Wd)/2+(SHW?SHW[cc.i]:S)-0.2) continue; } if (def.real && nearSideRoad(x,z,0.3)) continue; if (def.graph && (gnPave(x,z,0.3) || (WAYS_ON && waysNear(x,z,0.3)))) continue; const h=profileH(d,side,off);
     q.setFromAxisAngle(UPV,rand()*6.28); const edge=o<Sd+0.9, sc=(edge?0.8:0.6)+rand()*0.9; s.set(sc*1.15,sc*(edge?0.95+rand()*0.7:0.6+rand()*0.6),sc*1.15); p.set(x,h-0.03,z); m.compose(p,q,s);
     (rand()<(def.graph?0.72:def.real?0.16:0.3)?flw:tufts).push(m.clone()); }
   for (let d=0; d<L; d+=1.2+rand()*2){ if (juncAt(d)>0.3) continue; const Sd=swAt(d); if (Sd<0.6) continue; const side=rand()<0.5?1:-1, off=roadWAt(d)/2+0.2+rand()*(Sd-0.3), pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
@@ -6181,7 +6181,7 @@ function buildFencesHedges(def, grp, W){
   // Weidezaun: Holzpfähle + 3 Drähte
   const nW=Math.max(1,Math.round(km*(def.real?1.2:1.6)));
   for (let k=0;k<nW;k++){ const d0=rand()*L, side=rand()<0.5?1:-1, len=50+rand()*180, off=W/2+10.5+rand()*2; let prev=null;
-    for (let sd=0; sd<len; sd+=3+rand()*0.4){ const a=at(d0+sd,side,off); if(!a){ prev=null; continue; }
+    for (let sd=0; sd<len; sd+=3+rand()*0.4){ const a=at(d0+sd,side,off); if(!a || fenceHit(a[0],a[2],a[0],a[2],2.6)){ prev=null; continue; } if (prev && fenceHit(prev[0],prev[2],a[0],a[2],2.0)) prev=null; if (prev) fenceLog('weide',prev[0],prev[2],a[0],a[2]);
       q.setFromEuler(new THREE.Euler((rand()-0.5)*0.08,rand()*3,(rand()-0.5)*0.08)); s.set(1,0.9+rand()*0.2,1); p.set(a[0],a[1]-0.05,a[2]); m.compose(p,q,s); posts.push(m.clone());
       if (prev){ const dx=a[0]-prev[0], dz=a[2]-prev[2], dy=a[1]-prev[1], l=Math.hypot(dx,dz); [0.45,0.8,1.12].forEach(hh=>{ q.setFromUnitVectors(new THREE.Vector3(1,0,0), new THREE.Vector3(dx,dy,dz).normalize()); s.set(l,1,1); p.set((a[0]+prev[0])/2,(a[1]+prev[1])/2+hh-0.05,(a[2]+prev[2])/2); m.compose(p,q,s); wires.push(m.clone()); }); }
       prev=a; } }
@@ -6190,7 +6190,7 @@ function buildFencesHedges(def, grp, W){
   const villD=(window._vill||[]); const nJ=Math.max(1,Math.round(km*(def.real?6:1.2)));
   for (let k=0;k<nJ;k++){ let d0=rand()*L; if (!def.real && villD.length) d0=villD[k%villD.length]+(rand()-0.3)*140; const side=rand()<0.5?1:-1, len=12+rand()*30, off=W/2+CORR.SW+0.7;
     const a0=at(d0,side,off); if (!a0) continue; if (def.real && !nearHouse(a0[0],a0[2])) continue; const hedge=rand()<0.4;
-    for (let sd=0; sd<len; sd+=hedge?1.4:2.0){ const a=at(d0+sd,side,off); if(!a) break; const b=at(d0+sd+(hedge?1.4:2.0),side,off); if(!b) break;
+    for (let sd=0; sd<len; sd+=hedge?1.4:2.0){ const a=at(d0+sd,side,off); if(!a) break; const b=at(d0+sd+(hedge?1.4:2.0),side,off); if(!b) break; if (fenceHit(a[0],a[2],b[0],b[2],1.0) || gnPave(a[0],a[2],0.3) || gnPave(b[0],b[2],0.3)) break; fenceLog(hedge?'hecke':'jaeger',a[0],a[2],b[0],b[2]);
       const dx=b[0]-a[0], dz=b[2]-a[2], l=Math.hypot(dx,dz); q.setFromAxisAngle(UPV,Math.atan2(dx,dz)); p.set((a[0]+b[0])/2,(a[1]+b[1])/2-0.03,(a[2]+b[2])/2);
       if (hedge){ s.set(0.9+rand()*0.3,0.85+rand()*0.35,l/1.4*1.05); m.compose(p,q,s); hedges.push(m.clone()); } else { s.set(1,1,l/2); m.compose(p,q,s); jaeger.push(m.clone()); } } }
   const mk=(geo,mat,arr,vary)=>{ if(!arr.length) return; const im=mkIM(geo,mat,arr.length); const c=new THREE.Color(); arr.forEach((mm,i)=>{ im.setMatrixAt(i,mm); if(vary){ const f=0.82+rand()*0.3; c.setRGB(f,f*(0.95+rand()*0.1),f*(0.9+rand()*0.15)); im.setColorAt(i,c); } }); im.castShadow=true; grp.add(im); };
@@ -6792,8 +6792,10 @@ function gRBArcs(dense, ents){ const RB=gnRB(); if (!RB.length || dense.length<3
 function gnNear(x,z,R){ const d=GN.d, best={d:1e9,y:0,w:6.5,k:-1,i:0}; if (!d||!d.sh) return best; R=R||40; const C=40, r=Math.ceil(R/C), cx=Math.floor(x/C), cz=Math.floor(z/C);
   for (let a=-r;a<=r;a++) for (let b=-r;b<=r;b++){ const l=d.sh.get(hashKey(cx+a,cz+b)); if(!l) continue;
     for (let n=0;n<l.length;n+=2){ const E=d.edges[l[n]], i=l[n+1], p=E.P[i], q=E.P[i+1], dx=q.x-p.x, dz=q.z-p.z, ll=dx*dx+dz*dz||1, t=clamp(((x-p.x)*dx+(z-p.z)*dz)/ll,0,1), dd=Math.hypot(x-p.x-dx*t,z-p.z-dz*t);
-      if (dd<best.d){ best.d=dd; best.y=p.y+(q.y-p.y)*t; best.w=E.w; best.k=E.k; best.i=i; } } }
+      if (dd<best.d){ best.d=dd; best.y=p.y+(q.y-p.y)*t; best.w=E.w; best.k=E.k; best.i=i; best.px=p.x+dx*t; best.pz=p.z+dz*t; } } }
   return best; }
+/* 0.24.4 (Hicore: Grasbüschel nur, wo wirklich Gras ist): liegt (x,z) auf dem Pflaster-/Splittstreifen neben einer Straße im Ort? (gleiche Breiten wie orBuilder) Alt: window.OLD_GRASSPAVE */
+function gnPave(x,z,m,g){ if (window.OLD_GRASSPAVE || !(WORLD&&WORLD.graph)) return false; g=g||gnNear(x,z,30); if (g.k<0 || g.px===undefined) return false; m=m||0; const hw=g.w/2; if (g.d>hw+2.2+m) return false; let kd=0; try{ kd=orKind(g.px,g.pz); }catch(e){} if (!kd) return false; const wd=kd===1?(g.px>2600&&g.px<6600&&g.pz>-7200&&g.pz<-3300?2.2:1.7):1.3; return g.d<hw+wd+m; }
 /* innerorts? (Ortsfläche im Umkreis von ca. 40 m) */
 /* Landbedeckung ESA WorldCover 2021 (Sentinel-Satellit, 10 m, CC BY 4.0): 1 Baum, 2 Wiese, 3 Acker, 4 Siedlung, 5 Wasser */
 window.LC_READY=window.ZGLC?new Promise(res=>{ const im=new Image(); im.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; const g=c.getContext('2d'); g.drawImage(im,0,0); const d=g.getImageData(0,0,c.width,c.height).data, n=c.width*c.height, u=new Uint8Array(n), R0=[0,20,120,230,200,40];
@@ -7226,7 +7228,7 @@ function gtFenceMesh(i,j,grp,bs){ const L=GT.fn&&GT.fn.get(i+','+j); if (!L || !
     for (let s=0;s<4;s++){ const k0=s, k1=(s+1)%4; arr.push(...P(k0,0),...P(k1,0),...P(k1,1), ...P(k0,0),...P(k1,1),...P(k0,1)); } arr.push(...P(0,1),...P(1,1),...P(2,1), ...P(0,1),...P(2,1),...P(3,1)); };
   const quad=(arr,ax,az,bx,bz,y0,y1)=>{ const ha=terrainH(ax,az), hb=terrainH(bx,bz); arr.push(ax,ha+y0,az, bx,hb+y0,bz, bx,hb+y1,bz, ax,ha+y0,az, bx,hb+y1,bz, ax,ha+y1,az); };
   for (const {ty,P} of L){ for (let k=0;k+3<P.length;k+=2){ const ax=P[k], az=P[k+1], bx=P[k+2], bz=P[k+3], sl=Math.hypot(bx-ax,bz-az); if (sl<0.3) continue; const n=Math.max(1,Math.round(sl/(ty===0?2.6:2.2)));
-      for (let s=0;s<n;s++){ const x0=ax+(bx-ax)*s/n, z0=az+(bz-az)*s/n, x1=ax+(bx-ax)*(s+1)/n, z1=az+(bz-az)*(s+1)/n, mx=(x0+x1)/2, mz=(z0+z1)/2; { let hit=false; for (let q=0;q<=4 && !hit;q++){ const px=x0+(x1-x0)*q/4, pz=z0+(z1-z0)*q/4, g=gnNear(px,pz,30); if ((g.k>=0 && g.d<g.w/2+1.2) || waysNear(px,pz,0.9)) hit=true; } if (hit) continue; }   /* 0.19.0 (Hicore, Treppe Oybin): Zaunfeld an 5 Punkten prüfen, kein Zaun quer über Weg/Treppe */
+      for (let s=0;s<n;s++){ const x0=ax+(bx-ax)*s/n, z0=az+(bz-az)*s/n, x1=ax+(bx-ax)*(s+1)/n, z1=az+(bz-az)*(s+1)/n, mx=(x0+x1)/2, mz=(z0+z1)/2; { let hit=false; for (let q=0;q<=4 && !hit;q++){ const px=x0+(x1-x0)*q/4, pz=z0+(z1-z0)*q/4, g=gnNear(px,pz,30); if ((g.k>=0 && g.d<g.w/2+1.2) || waysNear(px,pz,0.9)) hit=true; } if (hit || fenceHit(x0,z0,x1,z1,1.0)) continue; } fenceLog('osm'+ty,x0,z0,x1,z1);   /* 0.19.0 (Hicore, Treppe Oybin): Zaunfeld an 5 Punkten prüfen, kein Zaun quer über Weg/Treppe */
         if (ty===0){ box(V.post,x0,z0,x0+0.06*(x1-x0)/sl*n,z0+0.06*(z1-z0)/sl*n,-0.2,2.05,0.06); quad(V.mesh,x0,z0,x1,z1,0.05,2.0); }
         else if (ty===1){ box(V.wood,x0,z0,x0+0.1*(x1-x0)/sl*n,z0+0.1*(z1-z0)/sl*n,-0.2,1.1,0.1); box(V.wood,x0,z0,x1,z1,0.42,0.5,0.04); box(V.wood,x0,z0,x1,z1,0.85,0.93,0.04); }
         else box(V.wall,x0,z0,x1,z1,-0.4,ty===2?1.4:1.0,ty===2?0.35:0.45); } } }
@@ -10355,6 +10357,13 @@ function propObject(name){ if (ANIM_CFG[name] && !window.OLD_ANIM){ const a=anim
 const _pm=new THREE.Matrix4(), _pq=new THREE.Quaternion(), _ps=new THREE.Vector3(), _pp=new THREE.Vector3();
 // Position neben der Straße: Abstand d, Seite side (+1 rechts/-1 links), Versatz off (m), Blick zur Straße
 /* 0.19.2 (Hicore, Treppe Oybin Kammstraße): Deko entlang der Runde (Zaun, Bäume, Schilder) nicht auf echte Wege, Treppen oder Nebenstraßen setzen. Alt: window.OLD_PROPWAY */
+/* 0.24.4 (Hicore: Dekozäune quer über Straßen und die Bahn): jedes Zaunstück alle 0,5 m gegen Straßen (inkl. Pflasterstreifen über m), Wege/Treppen und Gleise prüfen. Alt: window.OLD_FENCECHK */
+let RAILSEG=null;
+function railNear(x,z,m){ if (!(WORLD&&WORLD.id==='zittau')) return false; if (!RAILSEG){ try{ if (!ZSB.init()) return false; }catch(e){ return false; } const H=new Map(); ZSB.lines.forEach(l=>{ const hw=l.g==='s'?2.1:1.6; for (let i=0;i+1<l.P.length;i++){ const a=l.P[i], b=l.P[i+1], x0=Math.floor((Math.min(a.x,b.x)-8)/20), x1=Math.floor((Math.max(a.x,b.x)+8)/20), z0=Math.floor((Math.min(a.z,b.z)-8)/20), z1=Math.floor((Math.max(a.z,b.z)+8)/20); for (let gx=x0;gx<=x1;gx++) for (let gz=z0;gz<=z1;gz++){ const k=gx+','+gz; let L=H.get(k); if (!L) H.set(k,L=[]); L.push(a.x,a.z,b.x,b.z,hw); } } }); RAILSEG=H; }
+  const L=RAILSEG.get(Math.floor(x/20)+','+Math.floor(z/20)); if (!L) return false; for (let i=0;i<L.length;i+=5){ const ax=L[i], az=L[i+1], dx=L[i+2]-ax, dz=L[i+3]-az, ll=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/ll)); if (Math.hypot(x-ax-dx*t,z-az-dz*t)<L[i+4]+m) return true; } return false; }
+function fenceHit(ax,az,bx,bz,m){ if (window.OLD_FENCECHK || !(WORLD&&WORLD.graph)) return false; const l=Math.hypot(bx-ax,bz-az), n=Math.max(1,Math.ceil(l/0.5));
+  try{ for (let q=0;q<=n;q++){ const x=ax+(bx-ax)*q/n, z=az+(bz-az)*q/n, g=gnNear(x,z,30); if (g.k>=0 && g.d<g.w/2+m) return true; if (waysNear(x,z,Math.min(m,1.2)) || railNear(x,z,Math.min(m,1.5))) return true; } }catch(e){} return false; }
+function fenceLog(t,ax,az,bx,bz){ if (window.FENCE_LOG) window.FENCE_LOG.push([t,ax,az,bx,bz]); }
 function propOnWay(x,z,m){ if (window.OLD_PROPWAY || !(WORLD&&WORLD.id==='zittau')) return false; try{ const g=gnNear(x,z,30); if (g.k>=0 && g.d<g.w/2+m) return true; return waysNear(x,z,m); }catch(e){ return false; } }
 function roadside(d, side, off, scale, faceRoad, yaw){
   const p=posAt(d), hd=headingAt(d); const x=p.x+Math.cos(hd)*off*side, z=p.z-Math.sin(hd)*off*side;
@@ -10397,7 +10406,7 @@ function gardenFences(hm, grp, def){ const pk=[], rl=[], m=new THREE.Matrix4(), 
   hm.forEach((hmx,hi)=>{ const e=hmx.elements, fl=Math.hypot(e[8],e[10])||1, fx=e[8]/fl, fz=e[10]/fl, sx=fz, sz=-fx, hx=e[12], hz=e[14];
     const seg=(ax,az,bx,bz,gate)=>{ const len=Math.hypot(bx-ax,bz-az), n=Math.floor(len/0.16), yaw=Math.atan2(bx-ax,bz-az); let lastOk=false, run=null;
       const flush=()=>{ if (run && run.n>1){ const mx=(run.x0+run.x1)/2, mz=(run.z0+run.z1)/2, l=Math.hypot(run.x1-run.x0,run.z1-run.z0); q.setFromAxisAngle(UPV,yaw); [0.28,0.72].forEach(y=>{ s.set(0.035,0.06,l); p.set(mx,(run.h0+run.h1)/2+y,mz); m.compose(p,q,s); rl.push(m.clone()); }); } run=null; };
-      for (let i=0;i<=n;i++){ const t=i/n, x=ax+(bx-ax)*t, z=az+(bz-az)*t; if (gate && Math.abs(t-0.5)<0.05){ flush(); continue; } if (roadD(x,z)<lim || inPond(x,z,1)){ flush(); continue; }
+      for (let i=0;i<=n;i++){ const t=i/n, x=ax+(bx-ax)*t, z=az+(bz-az)*t; if (gate && Math.abs(t-0.5)<0.05){ flush(); continue; } if (roadD(x,z)<lim || inPond(x,z,1) || fenceHit(x,z,x,z,2.6)){ flush(); continue; } if (run) fenceLog('garten',run.x1,run.z1,x,z);
         const h=gh(x,z); q.setFromAxisAngle(UPV,yaw); s.set(1,0.92+((i&1)?0.08:0),1); p.set(x,h-0.05,z); m.compose(p,q,s); pk.push(m.clone());
         if (!run) run={x0:x,z0:z,h0:h,n:0}; run.x1=x; run.z1=z; run.h1=h; run.n++; }
       flush(); };
@@ -10426,7 +10435,7 @@ function addProps(def){ window.HOUSE_PTS=[];
   { const mats=[], nF=cnt(plan.fence); for (let k=0;k<nF;k++){ const start=rand()*L, side=rand()<0.5?1:-1, len=60+rand()*120;
       pastures.push({d:start+len/2, side});
       for (let s=0; s<len; s+=3.05){ const d=start+s, p=posAt(d), hd=headingAt(d); const x=p.x+Math.cos(hd)*7.5*side, z=p.z-Math.sin(hd)*7.5*side;
-        if (roadD(x,z)<5) continue; { const tx=Math.sin(hd)*1.55, tz=Math.cos(hd)*1.55; const PW=window.__PW||(window.__PW={all:0,hit:0}); PW.all++; if (propOnWay(x,z,1.2)||propOnWay(x+tx,z+tz,1.2)||propOnWay(x-tx,z-tz,1.2)){ PW.hit++; continue; } }   /* 0.19.2: Zaunfeld (3 m) nicht quer über Weg/Treppe */ _pq.setFromAxisAngle(UPV, hd+Math.PI/2); _pp.set(x,profileH(d,side,7.5),z); mats.push(new THREE.Matrix4().compose(_pp.clone(),_pq.clone(),new THREE.Vector3(1,1,1))); } }
+        if (roadD(x,z)<5) continue; { const tx=Math.sin(hd)*1.55, tz=Math.cos(hd)*1.55; const PW=window.__PW||(window.__PW={all:0,hit:0}); PW.all++; if (propOnWay(x,z,1.2)||propOnWay(x+tx,z+tz,1.2)||propOnWay(x-tx,z-tz,1.2)||fenceHit(x-tx,z-tz,x+tx,z+tz,2.6)){ PW.hit++; continue; } fenceLog('zaun',x-tx,z-tz,x+tx,z+tz); }   /* 0.19.2: Zaunfeld (3 m) nicht quer über Weg/Treppe */ _pq.setFromAxisAngle(UPV, hd+Math.PI/2); _pp.set(x,profileH(d,side,7.5),z); mats.push(new THREE.Matrix4().compose(_pp.clone(),_pq.clone(),new THREE.Vector3(1,1,1))); } }
     placeInstanced(g,'zaun',mats); }
   // Tiere in Gruppen (animiert): Hasen hoppeln, Möwen kreisen, Kühe/Schafe grasen
   let pi=0;
@@ -12412,7 +12421,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
