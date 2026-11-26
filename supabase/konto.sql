@@ -70,6 +70,12 @@ create policy "bestzeit lesen" on public.segment_bests for select to authenticat
 create policy "bestzeit anlegen" on public.segment_bests for insert to authenticated with check ((select auth.uid()) = user_id);
 create policy "bestzeit aendern" on public.segment_bests for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
+-- Rechte für angemeldete Nutzer (neuere Supabase-Projekte geben neue Tabellen nicht mehr automatisch frei: sonst "permission denied for table ...")
+grant usage on schema public to authenticated;
+grant select, insert, update on public.profiles to authenticated;
+grant select, insert, update, delete on public.rides to authenticated;
+grant select, insert, update on public.segment_bests to authenticated;
+
 -- Speicher für FIT-Dateien: privat, Pfad <Konto-ID>/<Fahrt-ID>.fit
 insert into storage.buckets (id, name, public, file_size_limit)
 values ('fit', 'fit', false, 10485760)
