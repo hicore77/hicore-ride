@@ -72,6 +72,13 @@ os.makedirs(D+'gpu/data',exist_ok=True)
 def wfile(name, js):
     open(D+'gpu/data/'+name,'w').write(js); return name+'?h='+hashlib.md5(js.encode()).hexdigest()[:8]
 zs=wfile('zittau.js', sj)
+# 0.25.0: Dolomiten-Welt als eigene Datei, wird erst bei Wahl der Welt geladen (werkzeuge/dolo_bau.py erzeugt quelle/dolo/)
+dlj=''
+if os.path.exists(D+'dolo/net.json'):
+    dm=json.load(open(D+'dolo/meta.json'))
+    dd='window.DLDATA={ZGNET:'+open(D+'dolo/net.json').read()+',ZGRES:'+open(D+'dolo/res.json').read()+',ZGSIDE:"'+base64.b64encode(open(D+'dolo/side.bin','rb').read()).decode()+'",ZGBLD:"'+open(D+'dolo/bld.b64').read().strip()+'",ZGLC:"'+base64.b64encode(open(D+'dolo/lc.png','rb').read()).decode()+'",ZGLCO:['+str(dm['lc'][0])+','+str(dm['lc'][1])+'],meta:'+json.dumps(dm,ensure_ascii=False)+',satN:'+json.dumps(imgf(D+'dolo/sat_near.jpg','dolo_sat_near.jpg'))+',satF:'+json.dumps(imgf(D+'dolo/sat_far.jpg','dolo_sat_far.jpg'))+'};'
+    dlj='<script>window.DL_FILE="data/'+wfile('dolomiten.js', dd)+'";</script>'
+t=t.replace('<script>/*SPK*/</script>',dlj+'<script>/*SPK*/</script>',1)
 t=t.replace('<script>/*SPK*/</script>','<script src="data/'+zs+'"></script>',1)
 supa=open(D+'sbtest/package/dist/umd/supabase.js').read().replace('</script','<\\/script')
 full=t.replace('<script>/*SUPA*/</script>','<script>'+supa+'</script>',1).replace('<script>/*THREE*/</script>','<script>'+three+'</script>',1).replace('<script>/*GLTF*/</script>','<script>'+gltf+'</script>',1).replace('<script>/*PROPS*/</script>','<script>'+pj+'</script>',1).replace('<script>/*RIDER*/</script>','<script src="data/'+wfile('media.js',rj)+'"></script>',1)

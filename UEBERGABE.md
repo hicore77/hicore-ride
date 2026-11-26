@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.5 Beta** (Abbiege-Fehler Sonneninsel behoben, Hügelland/Alpenpass ausgeblendet). Davor 0.24.4 (Zäune, Gras auf Pflaster), 0.24.3 (E-Mail + Passwort).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.25.0 Beta** (neue Welt Dolomiten). Davor 0.24.5 (Abbiege-Fehler Sonneninsel), 0.24.4 (Zäune, Gras auf Pflaster).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.24.5** | **Abbiege-Fehler in Rundkurs-Welten behoben (nach Zittau-Fahrt), Hügelland und Alpenpass ausgeblendet** |
+| **0.25.0** | **Neue Welt Dolomiten (Cortina–Passo Giau–Caprile–Passo Falzarego, 66 km): echtes Gelände, Satellitenbild, Fernpanorama, Felsen, Wald bis zur Baumgrenze; nur Hauptstraßen befahrbar** |
+| 0.24.5 | Abbiege-Fehler in Rundkurs-Welten behoben (nach Zittau-Fahrt), Hügelland und Alpenpass ausgeblendet |
 | 0.24.4 | Zäune nie über Straßen, Wege, Gleise; kein Gras auf Pflaster-/Splittstreifen; Handy-Kreuzungsfeld feste Höhe; Sprint-/Bergtrikot ohne Schrift |
-| 0.24.3 | E-Mail + Passwort mit „Neu registrieren“ als Hauptweg (kein Code nötig, Supabase „Confirm email“ aus), Code-Login nur noch aufklappbar (braucht eigenen SMTP) |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -135,6 +135,13 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 **Schultern 0.19.3–0.19.8, Gabeln 0.19.5:** Details (`carryGripPar`, `carryBody`, `carryRig`, `taperLeg`, `forkStep`, Tests `tcarry`/`tdismount`/`tbike`, Schalter `OLD_CARRY*`, `OLD_DISMOUNT`, `OLD_GRAVELFORK`, `NO_FORKMOVE`) jetzt in `docs/ARCHIV.md`.
 
 **Leistung 0.20.0–0.21.0** (Details 0.20.0–0.20.2 in `docs/ARCHIV.md`): Kachelwald gebündelt (`GT.w`, `OLD_GTW`), Baumschatten nur nah (`OLD_TREESH`), HUD sparsam (`OLD_HUD`), Leistungstest per Tipp auf FPS-Anzeige (`LTEST`), Messung `tests/tgpuperf.js`. iPad-Lesart: Chrome hängt an Pixeln, Bluefy an den Bäumen.
+**0.25.0 Dolomiten** (Hicore 26.11.: „wie Zittauer Gebirge, mit allen Daten“, nur Hauptstraßen befahrbar, Nebenstraßen sichtbar, Panorama „atemberaubend“; Wunschliste in Projekt-Memory `dolomiten-welt`)
+- Daten: `werkzeuge/dolo_bau.py` baut `quelle/dolo/` (ca. 9 s) aus Rohdaten unter `/home/user/dolo` (nicht im Repo): Copernicus GLO-30 (S3, Kacheln N46 E011/E012), ESA WorldCover 2021 (S3, Dateiname mit kleinem „v200“), Sentinel-2 L2A Kachel **32TQS** Szene S2C_32TQS_20250919_0 (33TUM deckt das Gebiet nicht), OSM über Sandbox/Overpass (`osmc.json`, als PNG-Chunks geholt). Projektion LAT0 46.49, LON0 12.06, Welt-y = Höhe − 1200 m.
+- Inhalt: DEM 25 m (x −21000…21000, z −16000…14000, Waldkorrektur −11 m), 4 Kanten per Dijkstra auf primary/secondary/tertiary (SR48 Cortina–Pocol, SP638 Giau, SP638 Giau–Selva–Caprile, SR48 Falzarego), Steigung geglättet max. 15,5 %; Runde = Pocol-Schleife, Start Cortina über `zgApplyStart`. Nebenstraßen/Wege im ZGSIDE-Format (nur sichtbar, `NO_WAYNET`). Gebäude, Ortsschilder, Bergwertungen (Giau von Pocol/Selva, Falzarego von Andraz/Pocol, Pocol), 233 Gipfel in `pois`. Landbedeckung 10 m (`lc.png`, Klassen 6 Fels, 8 Schnee, 9 Geröll, 10 Alpweide), Satellitenbild nah 10 m / fern 25 m mit Schatten-/Blaustich-Korrektur.
+- Spiel: `build_gpu.py` schreibt `gpu/data/dolomiten.js` (`window.DLDATA`, ca. 7 MB, wird erst bei Weltwahl geladen). `dataSwitch(def)` tauscht die `window.ZG*`-Bündel ohne Neuladen (Bluetooth bleibt), `dataReset` leert alle Weltzwischenspeicher. `lcCol` nimmt die Satellitenfarbe (Fels grau = Kennung für den Shader), Gelände-Shader mischt Dolomit-Textur (`texjpg/dolomit.jpg`, Poly Haven marble_cliff_05) nach Farbe und Hangneigung. `buildDoloPano`: Ring aus dem ganzen DEM mit `sat_far` bis ca. 20 km, Nebel 4–62 km. Wald Fichte/Kiefer, Baumgrenze ab ca. 1.960 m. Italienische blaue Wegweiser.
+- Test `tests/tdolo.js` (`W=dolo|zittau`, `OUT`, `D` Fahrerbilder in m, `V` freie Kamera `[x,z,h,lx,lz,name]`, `NF`); ein Bild mit Panorama dauert in der Cloud ca. 5–7 min.
+- Farben: Satellitenwerte sind sRGB, `lcCol` setzt sie mit `THREE.SRGBColorSpace` (vorher linear gelesen = viel zu hell, alt `window.OLD_DLLIN`), Fels zusätzlich ×0,6 (`window.DLROCKF`), weil das Bild schon Sonnenlicht enthält.
+- Grenzen: Gelände-Farbe = Eckpunktfarbe, fern also unscharf; Häuser vorerst Zittauer Typen; Gipfel noch ohne Beschriftung.
 **0.24.5 Abbiege-Fehler, Welten ausgeblendet** (Hicore 26.11.: Fehler „bt.innerHTML … null“ auf der Sonneninsel vor einem Abzweig; Hügelland/Alpenpass nicht löschen, nur unsichtbar)
 - Ursache: Zittau (`gJunUI`) und Rundkurs-Welten (`junUI`) teilen sich `#junc`. `junUI(null)` (auch aus `gNetStep`) setzt `dataset.g=''`, ohne den Inhalt zurückzubauen; nach einer Zittau-Fahrt in derselben Seite fand `junUI` dann keinen `[data-v=turn]`-Knopf. Jetzt baut `junUI` neu, wenn der Knopf fehlt. Elbsandstein hat keine Abzweige (`NET` null), dort tritt der Fehler nicht auf.
 - Welten: `hidden:true` an `huegel`/`pass`, `wVis(w)` (nach `WORLDS`) filtert Weltauswahl, gespeicherte/Konto-Welt, Fortsetzen, Freischalt-Meldungen. Zum Testen `window.SHOW_ALL_WORLDS=1`.
@@ -147,18 +154,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Trikots: Schriftzüge aus `jer/tex_sprint.jpg` und `jer/tex_berg.jpg` entfernt (`werkzeuge/trikot_ohne_text.py`, Inpainting direkt in der UV-Textur; Originale in der Git-Historie). Vorschaubilder `thumb_*` unverändert.
 - Test `tests/tfence.js` (ca. 20 min, `PRE='window.OLD_FENCECHK=1;window.OLD_GRASSPAVE=1;'` = alter Stand): zählt Zaunstücke, die Straße/Weg/Gleis berühren, und Feingras auf Pflaster. Ergebnis Start Zittau: alt 54 Zaunstücke über Wege/Gleise (Weide, Jäger, Hecke), neu 0; Ortskern Zittau Feingras auf Pflaster alt 3.653, neu 0. `terr2` none.
 
-**0.24.3 Passwort als Hauptweg** (Hicore 26.11.: Screenshot, Mail-Vorlagen im Free-Plan nur mit eigenem SMTP änderbar → kein Code möglich): `ACC.register` (`signUp`; mit Session = sofort angemeldet, `identities:[]` = Adresse vergeben, sonst Hinweis auf Bestätigungs-Link), Felder E-Mail + Passwort vorn, Code-Login in `<details>`. Einrichtung: „Confirm email“ aus, optional Hostinger-SMTP (`docs/KONTO_EINRICHTEN.md` Schritt 3/4). Test `tacc` (26 Prüfungen inkl. Registrieren).
 
 **Bluefy-Anmeldung 0.24.2:** Details (`ACC.blu`, `ACC.handStart`, Kanal `hl:CODE`, `ACC.give`, Test `thlogin`) jetzt in `docs/ARCHIV.md`.
 
-**Konten 0.24.0** (Hicore 26.11.: „Accounts wäre nicht schlecht“)
-- Supabase Auth im selben Projekt wie Multiplayer (`ACC` in `src.html` direkt vor `$('bTr').onclick`). Eigener Client mit `persistSession`, `flowType:'pkce'`, `storageKey:'hicoreRide.auth'`; Multiplayer/Handy-Clients bleiben ohne Sitzung. Rückkehr-Adresse = `location.origin+pathname` (nichts fest verdrahtet, eigene Domain nur in Supabase eintragen).
-- Anmelden über 👤 oben rechts im Menü (`#accModal`): E-Mail-Code (`signInWithOtp` + `verifyOtp type:'email'`, Hauptweg für Bluefy, weil Links aus der Mail-App in Safari landen), Passwort (nach erster Anmeldung im Konto festlegen), Google (`signInWithOAuth`; setzt vorher `bootN`/`stage` zurück, sonst startet das iPad nach der Rückkehr im MINI-Modus). Fehlertexte deutsch (`ACC.em`). Link im falschen Browser → Hinweis, Code einzugeben.
-- Daten (SQL `supabase/konto.sql`, RLS je Konto): `profiles` (Name, Gewicht, FTP, Puls max., `settings` jsonb, `total_km`), `segment_bests` (beste Zeit gewinnt, `ACC.bestPush` bei neuer Bestzeit, Abgleich in `syncBests`), `rides` + Bucket `fit` (`<uid>/<id>.fit`, nur Fahrten mit echtem Trainer ab 1 min, `ACC.saveRide` in `endRide`, Warteschlange `hicoreRide.accQ` bei fehlendem Netz/Login, max. 10), `delete_my_account()`.
-- Einstellungen: `ACC.KEYS` (Gewicht, Schwierigkeit, Bots, Trikot, Watt-Glättung/-Korrektur, Rad, Tageszeit, Wetter, Schnee, Ton, Bloom, Name, Anzeige, Welt, FTP, Puls max.). Nicht synchron: Grafikstufe, Gemini-Schlüssel, Handy-Code. `store.set` ist umhüllt (`ACC.touch` setzt `hicoreRide.accLocalT`), neuere Seite gewinnt (`settings._t`), Hochladen 3 s nach Änderung. `totalKm` = Maximum.
-- Konto-Fenster: Profil, Meine Fahrten (FIT herunterladen über `saveFile`, löschen mit zweitem Tipp), Bestzeiten-Zahl, Passwort, Abgleichen, Abmelden, Konto löschen (zweiter Tipp). Aus: `window.NO_ACC`.
-- Einrichtung im Supabase-Dashboard: `docs/KONTO_EINRICHTEN.md` (SQL, Redirect-URLs, `{{ .Token }}` in Mail-Vorlagen, eigener SMTP für Freunde, Google-Client). Supabase-Standardversand schickt nur an Team-Mitglieder.
-- Test `tests/tacc.js` (ca. 1 min, kein Spielstart nötig): `fake_auth.js` (im Browser, über `window.HC_SB`) + `fake_auth_srv.js` (Node, RLS-Nachbau), zwei Kontexte = zwei Geräte. 23 Prüfungen: Code-Login, Profil/Einstellungen hoch und runter, Bestzeiten in beide Richtungen, Fahrt + FIT, Passwort, Sitzung nach Neuladen, Google-Meldung, Konto löschen. Echte Supabase nur bei Hicore prüfbar.
 
 **0.23.1 Restpunkte, 0.23.2 Autoräder:** Details (`twend`, `OLD_STAIRFLOAT`, Dachschnee `SNOWCAP`, `saveSheet`, `steerStep2`, `OLD_WHEELS`, `OLD_CARSTEER`) jetzt in `docs/ARCHIV.md`.
 
@@ -169,6 +167,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.21.0 Impostors (`IMP`, `impR` 60 m, `OLD_IMP`), Ruckler-Messung `tstutter2`, `upR`/`OLD_UPR`: Details in `docs/ARCHIV.md`. Poly Haven ist Standard.
 
 **Offen / unsicher**
+- 0.25.0 am iPad prüfen: Ladezeit Dolomiten, FPS mit Panorama (LITE/MINI kleiner), Felsfarbe, Steigungen Giau/Falzarego.
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung, Ruckler beim ersten Auto/Zug/Regen, FPS-Anzeige mit Prozent (Details 0.13.0 in docs/ARCHIV.md).
 - 0.16.0 am iPad prüfen: Optik Gravel/MTB, Sitzhaltung, ob Farben direkt nach dem Radwechsel stimmen; Lenkerbreite/Flare/Hoods-Winkel ggf. in `GRAVEL_BAR` nachjustieren.
 - 0.14.0 am iPad prüfen: Wege-Optik (Helligkeit, Grasnarbe, Waldboden), FPS mit den zusätzlichen Wegen.
@@ -190,6 +189,8 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - `tjun` meldet 3 bekannte, unkritische Artefakte.
 
 ## 6. Nächste Schritte
+
+0. Dolomiten 0.25.x (Reihenfolge mit Hicore abgesprochen): alpine Häuser (Rifugi aus OSM, Heustadel, ladinische Holzhäuser), Wegkreuze/Kapellen; Lärche/Zirbe/Latschen, Alpenblumen; Bäche Boite/Cordevole/Codalonga türkis mit Rauschen; Kühe mit Glocken, Gämsen/Steinböcke, Murmeltiere, versteckter Yeti; Gipfelnamen.
 
 1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
 1a. 0.19.8 am iPad prüfen: Absteigen/Aufsteigen über den Sattel natürlich? Schultern Gravel (0.19.7) hat Hicore bestätigt. Gabeln 0.19.5 (Gravel starr, MTB federt genug/zu viel?), Treppe Oybin Kammstraße frei (0.19.2). Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).
