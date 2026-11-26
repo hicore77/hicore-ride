@@ -10,7 +10,7 @@ const {chromium}=require('playwright'); const serve=require('./serve'); const fs
  // lokale Einstellungen vor dem Anmelden
  await A.evaluate(()=>{ $('mass').value=75; $('mass').dispatchEvent(new Event('change')); $('tod').value='abend'; $('tod').dispatchEvent(new Event('change')); store.set('mpName','Hicore'); store.set('seg_zittau',{testberg:{t:301.5,at:Date.now()}}); });
  await A.click('#accBtn'); if (OUT) await A.screenshot({path:OUT+'/konto_login.png'});
- await A.fill('#accMail','heiko@example.org'); await A.click('#accSend'); await A.waitForTimeout(300);
+ await A.fill('#accMail','heiko@example.org'); await A.evaluate(()=>{ document.querySelector('#accSend').closest('details').open=true; }); await A.click('#accSend'); await A.waitForTimeout(300);
  ok('Codefeld erscheint', await A.evaluate(()=>$('accCodeBox').style.display==='block'));
  await A.fill('#accCode','111111'); await A.click('#accVerify'); await A.waitForTimeout(300);
  ok('Falscher Code wird gemeldet', /falsch/.test(await A.evaluate(()=>$('accStat').textContent)), await A.evaluate(()=>$('accStat').textContent));
@@ -33,7 +33,7 @@ const {chromium}=require('playwright'); const serve=require('./serve'); const fs
  await A.evaluate(()=>{ S.sim=true; ACC.saveRide(); }); ok('Testfahrt ohne Trainer nicht gespeichert', SRV.db.rides.length===1, await A.evaluate(()=>$('sumAcc').textContent));
  // Gerät B: frisch, anmelden → Einstellungen kommen an
  const B=await dev('B'); ok('B vorher Gewicht Standard', await B.evaluate(()=>$('mass').value), await B.evaluate(()=>$('mass').value));
- await B.evaluate(()=>{ ACC.show(); $('accMail').value='heiko@example.org'; }); await B.click('#accSend'); await B.fill('#accCode','123456'); await B.click('#accVerify');
+ await B.evaluate(()=>{ ACC.show(); $('accMail').value='heiko@example.org'; document.querySelector('#accSend').closest('details').open=true; }); await B.click('#accSend'); await B.fill('#accCode','123456'); await B.click('#accVerify');
  await B.waitForFunction(()=>ACC.user && !ACC.syncing && /Abgeglichen/.test($('accStat').textContent),null,{timeout:20000}).catch(()=>{});
  const bs=await B.evaluate(()=>({mass:$('mass').value, tod:$('tod').value, todA:ATMO.tod, name:store.get('mpName',''), best:(store.get('seg_zittau',{}).testberg||{}).t, btn:$('accBtn').textContent, rides:document.querySelectorAll('#accRides .accR button[data-a=fit]').length}));
  ok('B übernimmt Gewicht, Tageszeit, Name, Bestzeit, Fahrt', bs.mass==='75' && bs.tod==='abend' && bs.todA==='abend' && bs.name==='Hicore' && bs.best===301.5 && bs.rides===1, bs);
@@ -53,7 +53,14 @@ const {chromium}=require('playwright'); const serve=require('./serve'); const fs
  // Google ohne Einrichtung → verständliche Meldung
  await B.evaluate(()=>ACC.logout()); await B.evaluate(()=>ACC.google()); await B.waitForTimeout(300); ok('Google ohne Einrichtung: Meldung', /noch nicht eingerichtet/.test(await B.evaluate(()=>$('accStat').textContent)), await B.evaluate(()=>$('accStat').textContent));
  ok('Absturz-Erkennung zurückgesetzt vor Google', await B.evaluate(()=>localStorage.getItem('hicoreRide.bootN')==='0'));
+ // Registrieren mit Passwort (Gerät C), dann gleiche Adresse nochmal
+ const C=await dev('C'); await C.evaluate(()=>{ ACC.show(); $('accMail').value='freund@example.org'; $('accPw').value='rad12345'; }); await C.click('#accReg'); await C.waitForFunction(()=>!!ACC.user,null,{timeout:10000}).catch(()=>{});
+ ok('Registrieren mit Passwort meldet sofort an', await C.evaluate(()=>ACC.user&&ACC.user.email), await C.evaluate(()=>$('accStat').textContent));
+ await C.evaluate(()=>ACC.logout()); await C.evaluate(()=>{ $('accMail').value='freund@example.org'; $('accPw').value='rad12345'; }); await C.click('#accReg'); await C.waitForTimeout(400);
+ ok('Doppelte Registrierung: Hinweis', /schon ein Konto/.test(await C.evaluate(()=>$('accStat').textContent)), await C.evaluate(()=>$('accStat').textContent));
+ await C.click('#accPwGo'); await C.waitForFunction(()=>!!ACC.user,null,{timeout:10000}).catch(()=>{}); ok('Anmelden mit Passwort (Knopf)', await C.evaluate(()=>!!ACC.user));
+ if (OUT){ await C.evaluate(()=>ACC.logout()); await C.waitForTimeout(200); await C.evaluate(()=>ACC.show()); await C.screenshot({path:OUT+'/konto_pw.png'}); }
  // Konto löschen in A
  await A.evaluate(()=>ACC.delAcc()); await A.evaluate(()=>ACC.delAcc()); await A.waitForTimeout(600);
- ok('Konto gelöscht (Daten und Dateien weg)', !Object.keys(SRV.users).length && !SRV.db.rides.length && !SRV.db.profiles.length && !Object.keys(SRV.files).length && !(await A.evaluate(()=>!!ACC.user)), {u:Object.keys(SRV.users).length, f:Object.keys(SRV.files).length});
+ ok('Konto gelöscht (Daten und Dateien weg)', !SRV.users['heiko@example.org'] && !SRV.db.rides.length && SRV.db.profiles.length===1 && !Object.keys(SRV.files).length && !(await A.evaluate(()=>!!ACC.user)), {u:Object.keys(SRV.users).length, f:Object.keys(SRV.files).length});
  console.log(res.join('\n')); console.log('Seitenfehler:', errs.length?errs.join('\n'):'none'); await b.close(); })().catch(e=>{ console.error(e); process.exit(1); });

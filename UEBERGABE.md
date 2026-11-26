@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.2 Beta** (Anmeldung in Bluefy: E-Mail-Code vorn, Google über Handy/Chrome mit Übergabe per Code/QR). Davor 0.24.1 (HUD oben, Puls am Handy), 0.24.0 (Konten).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.3 Beta** (Registrieren/Anmelden mit E-Mail + Passwort als Hauptweg). Davor 0.24.2 (Bluefy-Login per QR übers Handy), 0.24.1 (HUD oben, Puls am Handy).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.24.2** | **Bluefy-Anmeldung: E-Mail-Code wieder vorn mit Erklärung, Google in Bluefy über Handy/Chrome (Seite handy/login.html, Übergabe per Code/QR, Kanal hl:CODE), Anmeldung von Spiel zu Spiel übertragen, Prüfung ob Google eingeschaltet** |
+| **0.24.3** | **E-Mail + Passwort mit „Neu registrieren“ als Hauptweg (kein Code nötig, Supabase „Confirm email“ aus), Code-Login nur noch aufklappbar (braucht eigenen SMTP)** |
+| 0.24.2 | Bluefy-Anmeldung: E-Mail-Code wieder vorn mit Erklärung, Google in Bluefy über Handy/Chrome (Seite handy/login.html, Übergabe per Code/QR, Kanal hl:CODE), Anmeldung von Spiel zu Spiel übertragen, Prüfung ob Google eingeschaltet |
 | 0.24.1 | HUD oben Mitte gestapelt ohne Überlappung, Bergwertung einzeilig, FPS oben links, Kreuzung erst ab 110 m; Puls am Handy auch im Testmodus |
-| 0.24.0 | Konten (Supabase Auth): E-Mail-Code, Passwort, Google; Profil, Einstellungen, Bestzeiten, Fahrten mit FIT im Konto |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -141,8 +141,10 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - HUD: `hudStack()` (vor `toast`, 10x/s im HUD-Takt) setzt `top` von `#segbox`, `#junc`, `#toast` der Reihe nach unter die Kacheln (`.hud`), je 6 px Abstand. FPS-Anzeige oben links (vorher Mitte über den Kacheln). Bergwertung eine Zeile (`.segbox.cmp .sr`: Name, Rest-m, Zeit, Best, Marke „Test“), Testmodus-Hinweis nur noch einmal je Fahrt als Meldung (`SEG.testNote`). Hauptkreuzungen erst ab max(110 m, 9 s) sichtbar (Wahl per Taste/Handy weiter ab 160 m), neben Bergwertung kleinere Knöpfe (`#junc.jseg`). Alt: `window.OLD_HUDSTACK` (Stapeln, Kreuzungsabstand, jseg).
 - Test `tests/thud.js` (ca. 20 min, `ROOT=` für alten Stand, `TAG`): Bergwertung + Kreuzung + Meldung + FPS gleichzeitig, misst Überlappungen, Bilder iPad 1180×820 und Handy 390×844. Bilder vorschau/261, 262.
 
+**0.24.3 Passwort als Hauptweg** (Hicore 26.11.: Screenshot, Mail-Vorlagen im Free-Plan nur mit eigenem SMTP änderbar → kein Code möglich): `ACC.register` (`signUp`; mit Session = sofort angemeldet, `identities:[]` = Adresse vergeben, sonst Hinweis auf Bestätigungs-Link), Felder E-Mail + Passwort vorn, Code-Login in `<details>`. Einrichtung: „Confirm email“ aus, optional Hostinger-SMTP (`docs/KONTO_EINRICHTEN.md` Schritt 3/4). Test `tacc` (26 Prüfungen inkl. Registrieren).
+
 **Bluefy-Anmeldung 0.24.2** (Hicore 26.11.: Google geht in Bluefy nicht, E-Mail brachte nur „Confirm“-Link, keinen Code)
-- Ursache E-Mail: Supabase-Vorlagen enthalten ab Werk keinen Code; `{{ .Token }}` muss in „Magic Link“ und „Confirm signup“ stehen (siehe `docs/KONTO_EINRICHTEN.md`). Nach Bestätigung kommt beim nächsten Code die Magic-Link-Vorlage. E-Mail-Feld steht wieder vorn, Codefeld erklärt das.
+- Ursache E-Mail: Supabase-Vorlagen enthalten ab Werk keinen Code, und im Free-Plan sind sie nur mit eigenem SMTP änderbar (deshalb 0.24.3).
 - Google in Bluefy wird gesperrt (eingebetteter Browser). `ACC.blu()` = iOS + `navigator.bluetooth`; dort öffnet der Google-Knopf die Übergabe (`ACC.handStart`): Code + QR auf `handy/login.html?c=CODE`. Die Seite (Handy oder Chrome) meldet mit Google an und sendet die Sitzung über Realtime-Kanal `hl:CODE` (`hlSend`, Wiederholung alle 2,5 s bis `ok`); Spiel macht `setSession`. Der Sender vergisst die Sitzung danach lokal (gleicher Erneuerungsschlüssel auf zwei Geräten → Supabase meldet beide ab). Code gilt 10 min.
 - Angemeldetes Spiel kann unter „Anderes Gerät anmelden“ selbst übertragen (`ACC.give`, meldet sich dabei ab). Vor Google-Weiterleitung `GET /auth/v1/settings` (`googleOn`), damit keine rohe JSON-Fehlerseite kommt.
 - Test `tests/thlogin.js` (Spiel ↔ login.html und Spiel → Spiel, `fake_auth.js` mit Fake-Kanal/`FAKE_OAUTH`), `tacc` weiter grün.
@@ -177,7 +179,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.16.1 am iPad prüfen: Vorauswahl in Orten (Spitzkunnersdorf), ob dezente Abzweig-Hinweise reichen, Ruckler beim automatischen Neuberechnen, Optik der Einmündungen.
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
 - 0.15.0 am iPad prüfen: Fahrgefühl Gravel/MTB, Ladezeit (+0,7 s), Wurzeln/Brücken.
-- 0.24.2 prüfen: E-Mail-Code in Bluefy (nach Vorlagen-Ergänzung), Übergabe per QR vom Handy, Google in Chrome.
+- 0.24.3 prüfen: „Confirm email“ aus, in Bluefy registrieren/anmelden mit Passwort; Übergabe per QR vom Handy (0.24.2), Google in Chrome.
 - 0.24.0 einrichten und prüfen: Dashboard-Schritte aus `docs/KONTO_EINRICHTEN.md`, dann Anmelden per Code in Bluefy, Google in Chrome und Bluefy (Google sperrt evtl. eingebettete Browser), Fahrt speichern, FIT aus dem Konto laden.
 - 0.23.2 am iPad prüfen: Räder im Radkasten, Einlenken beim Überholen und in Kurven, Kreisel-Gegenverkehr.
 - 0.23.1 am iPad prüfen: Speichern in Bluefy (Teilen-Knopf, sonst „An Handy senden“), Dachschnee bei „viel“, Knirschen, Treppen/Wegenden. KI-Gespräch mit Figuren auf dem iPad unzuverlässig.

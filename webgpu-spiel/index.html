@@ -196,11 +196,13 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
 <div id="accModal"><div class="accIn"><div class="accTop"><h3>👤 Konto</h3><button id="accX" title="Schließen">✕</button></div>
 <div id="accOut"><div class="accTx">Mit Konto sind Profil, Einstellungen, Bestzeiten und Fahrten (mit FIT-Datei) auf jedem Gerät da. Spielen geht auch ohne.</div>
 <button id="accG" class="accGo"><b>G</b> Mit Google anmelden</button>
-<div class="accOr">oder mit E-Mail (neue und bestehende Konten)</div>
+<div class="accOr">oder mit E-Mail und Passwort</div>
 <input id="accMail" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="E-Mail-Adresse">
-<div class="mpbtn"><button id="accSend" class="pri">Code per E-Mail senden</button></div>
-<div id="accCodeBox" style="display:none"><div class="accTx">Die E-Mail enthält eine Zahl (6 Ziffern). Hier eingeben. Steht nur ein Link drin, fehlt in Supabase die Code-Zeile in der Vorlage. Dann den Link nicht in einem anderen Browser öffnen, sondern Vorlage ergänzen und neuen Code anfordern.</div><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code aus der E-Mail"><div class="mpbtn"><button id="accVerify" class="pri">Anmelden</button></div></div>
-<details class="accPw"><summary>Mit Passwort anmelden</summary><input id="accPw" type="password" autocomplete="current-password" placeholder="Passwort"><div class="mpbtn"><button id="accPwGo">Anmelden</button></div><div class="accTx">Ein Passwort legst du nach der ersten Anmeldung per Code im Konto fest.</div></details>
+<input id="accPw" type="password" autocomplete="current-password" placeholder="Passwort (mind. 6 Zeichen)">
+<div class="mpbtn"><button id="accPwGo" class="pri">Anmelden</button><button id="accReg">Neu registrieren</button></div>
+<details class="accPw"><summary>Code per E-Mail (nur mit eigenem Mailserver in Supabase)</summary>
+<div class="mpbtn"><button id="accSend">Code per E-Mail senden</button></div>
+<div id="accCodeBox" style="display:none"><div class="accTx">Die E-Mail enthält eine Zahl (6 Ziffern). Hier eingeben.</div><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code aus der E-Mail"><div class="mpbtn"><button id="accVerify" class="pri">Anmelden</button></div></div></details>
 <button id="accHand" class="accAlt">📱 Mit Handy oder Chrome anmelden (Google)</button>
 <div id="accHandBox" style="display:none"><div class="accTx" id="accHandTx">Mit dem Handy den QR-Code scannen oder den Link in Chrome öffnen, dort mit Google anmelden. Dieses Gerät ist danach automatisch angemeldet.</div>
 <canvas id="accQr" width="180" height="180"></canvas><div id="accHandCode">–</div><div class="accTx accLink" id="accHandLink"></div>
@@ -12410,7 +12412,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -12446,7 +12448,8 @@ const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:
     if (/provider is not enabled|Unsupported provider/i.test(m)) return 'Google-Anmeldung ist in Supabase noch nicht eingerichtet.';
     if (/not authorized|not allowed for this|Email address .* is invalid/i.test(m)) return 'An diese Adresse darf Supabase noch nicht senden (eigener Mailversand in Supabase nötig).';
     if (/Signups not allowed/i.test(m)) return 'Neue Konten sind in Supabase gesperrt.';
-    if (/Email not confirmed/i.test(m)) return 'E-Mail noch nicht bestätigt. Melde dich per Code an.';
+    if (/Email not confirmed/i.test(m)) return 'E-Mail noch nicht bestätigt: Link in der Bestätigungs-Mail antippen, dann erneut anmelden.';
+    if (/already registered|already been registered/i.test(m)) return 'Zu dieser E-Mail gibt es schon ein Konto. Bitte anmelden.';
     if (/code verifier|code challenge|both auth code and code verifier/i.test(m)) return 'Der Link wurde in einem anderen Browser geöffnet. Bitte den Code aus der E-Mail hier eingeben.';
     if (/does not exist|schema cache|Could not find the|relation|Bucket not found/i.test(m)) return 'Datenbank ist noch nicht eingerichtet (SQL aus supabase/konto.sql fehlt).';
     if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return 'Keine Verbindung zum Server.';
@@ -12501,15 +12504,15 @@ const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:
     let err=''; try{ const sp=new URLSearchParams(location.search), hp=new URLSearchParams(location.hash.slice(1)); err=sp.get('error_description')||hp.get('error_description')||''; }catch(e){}
     this.SB=SB; try{ this.mk(); }catch(e){ this.st('Konto nicht verfügbar: '+this.em(e),'err'); return; }
     let hadCode=false; try{ hadCode=new URLSearchParams(location.search).has('code'); }catch(e){}
-    if (hadCode && !err) this.sb.auth.getSession().then(({data})=>{ if (!(data&&data.session)){ const m='Anmelde-Link ungültig oder in einem anderen Browser geöffnet. Bitte im Konto den Code aus der E-Mail eingeben.'; toast(m); this.st(m,'err'); } this.cleanUrl(); }).catch(()=>this.cleanUrl());
+    if (hadCode && !err) this.sb.auth.getSession().then(({data})=>{ if (!(data&&data.session)){ const m='Link aus der E-Mail angetippt: War es die Bestätigungs-Mail, ist die E-Mail jetzt bestätigt. Melde dich im Spiel (z. B. in Bluefy) mit E-Mail und Passwort an.'; toast(m); this.st(m,'err'); } this.cleanUrl(); }).catch(()=>this.cleanUrl());
     if (err){ setTimeout(()=>{ toast('Anmeldung: '+this.em(err)); this.st(this.em(err),'err'); this.cleanUrl(); },800); }
     /* Änderungen an Einstellungen merken und (angemeldet) kurz danach hochladen */
     const _set=store.set; store.set=(k,v)=>{ _set(k,v); try{ ACC.touch(k); }catch(e){} };
     try{ $('bike').addEventListener('change',()=>this.touch('bike')); }catch(e){}
     $('accG').onclick=()=>this.google(); $('accHand').onclick=()=>this.handStart(); $('accHandNew').onclick=()=>this.handStart(); $('accGiveGo').onclick=()=>this.give();
     $('accHandCopy').onclick=()=>{ const u=this.handUrl(); try{ navigator.clipboard.writeText(u).then(()=>toast('Link kopiert. In Chrome einfügen.'),()=>toast(u)); }catch(e){ toast(u); } };
-    if (this.blu()) $('accG').innerHTML='<b>G</b> Mit Google anmelden (über Handy oder Chrome)'; $('accSend').onclick=()=>this.sendCode(); $('accVerify').onclick=()=>this.verify(); $('accPwGo').onclick=()=>this.pwLogin();
-    $('accCode').onkeydown=e=>{ if (e.key==='Enter') this.verify(); }; $('accMail').onkeydown=e=>{ if (e.key==='Enter') this.sendCode(); };
+    if (this.blu()) $('accG').innerHTML='<b>G</b> Mit Google anmelden (über Handy oder Chrome)'; $('accSend').onclick=()=>this.sendCode(); $('accVerify').onclick=()=>this.verify(); $('accPwGo').onclick=()=>this.pwLogin(); $('accReg').onclick=()=>this.register(); $('accPw').onkeydown=e=>{ if (e.key==='Enter') this.pwLogin(); };
+    $('accCode').onkeydown=e=>{ if (e.key==='Enter') this.verify(); }; $('accMail').onkeydown=e=>{ if (e.key==='Enter') try{ $('accPw').focus(); }catch(_){} };
     $('accOutB').onclick=()=>this.logout(); $('accSync').onclick=()=>this.sync(true); $('accPwSet').onclick=()=>this.setPw(); $('accDel').onclick=()=>this.delAcc();
     $('accName').onchange=()=>{ const v=$('accName').value.trim().slice(0,16); store.set('mpName',v); try{ $('mpName').value=v; }catch(e){} this.ui(); };
     $('accMass').onchange=()=>{ const v=clamp(+$('accMass').value||88,40,160); $('mass').value=v; $('mass').dispatchEvent(new Event('change')); $('accMass').value=v; };
@@ -12539,6 +12542,14 @@ const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:
     catch(e){ this.st(this.em(e),'err'); } },
   async pwLogin(){ const m=this.mail(), p=$('accPw').value||''; if (!m||!p){ this.st('E-Mail und Passwort eingeben.','err'); return; } store.set('accMail',m);
     this.st('Melde an …'); try{ const {error}=await this.sb.auth.signInWithPassword({email:m, password:p}); if (error) throw error; $('accPw').value=''; }catch(e){ this.st(this.em(e),'err'); } },
+  /* 0.24.3 Registrieren mit Passwort (Hauptweg in Bluefy, kein Code nötig). Ist in Supabase „Confirm email“ aus, ist man sofort angemeldet; sonst kommt ein Bestätigungs-Link (darf in Safari aufgehen), danach hier mit Passwort anmelden. */
+  async register(){ const m=this.mail(), p=$('accPw').value||''; if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){ this.st('Bitte eine gültige E-Mail-Adresse eingeben.','err'); return; }
+    if (p.length<6){ this.st('Passwort zu kurz (mind. 6 Zeichen).','err'); return; } store.set('accMail',m); this.st('Lege Konto an …');
+    try{ const {data,error}=await this.sb.auth.signUp({email:m, password:p, options:{emailRedirectTo:this.redir()}}); if (error) throw error;
+      if (data && data.session){ $('accPw').value=''; return; }
+      if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length===0){ this.st('Zu dieser E-Mail gibt es schon ein Konto. Mit Passwort anmelden. Ohne Passwort: einmal über Google (📱 unten) anmelden und im Konto ein Passwort festlegen.','err'); return; }
+      this.st('Konto angelegt. Supabase hat eine Bestätigungs-Mail geschickt: Link antippen (darf sich in Safari öffnen), danach hier mit E-Mail und Passwort anmelden.','on'); }
+    catch(e){ this.st(this.em(e),'err'); } },
   async google(){ if (this.blu()){ this.handStart('Google lässt in Bluefy keine Anmeldung zu.'); return; }
     this.st('Prüfe Google-Anmeldung …'); const on=await this.googleOn(); if (on===false){ this.st('Google-Anmeldung ist in Supabase noch nicht eingeschaltet (Authentication › Sign In / Providers › Google).','err'); return; }
     this.st('Weiter zu Google …');

@@ -13,17 +13,26 @@ Authentication › URL Configuration:
 - Redirect URLs › Add URL: `https://hicore77.github.io/hicore-ride/**`
 - Später bei eigener Domain zusätzlich z. B. `https://hicore-ride.de/**` eintragen. Im Spiel ist nichts fest verdrahtet (es nimmt immer die aktuelle Seite).
 
-## 3. Code in die E-Mail (Pflicht für Bluefy)
-Authentication › Emails › Templates, bei **Magic Link** und bei **Confirm signup** jeweils eine Zeile ergänzen und speichern:
-```html
-<p>Dein Code für Hicore Ride: <b>{{ .Token }}</b></p>
-```
-Grund: Ein Link aus der Mail-App öffnet sich in Safari, nicht in Bluefy. Den Code tippt man direkt im Spiel ein. Ohne diese Zeile kommt nur ein Link und kein Code (so passiert am 26.11.). Neue Konten bekommen zuerst „Confirm signup“, danach immer „Magic Link“.
+## 3. Anmelden mit Passwort ohne Mail (Pflicht im Free-Plan, 30 Sekunden)
+Authentication › Sign In / Providers › **Email** › Schalter **Confirm email** aus › Save.
+Danach legt „Neu registrieren“ im Spiel (E-Mail + Passwort) das Konto sofort an, ganz ohne Mail. Das ist der Hauptweg in Bluefy.
+Nachteil: Die E-Mail-Adresse wird nicht geprüft (Tippfehler fallen nicht auf, „Passwort vergessen“ gibt es ohne Mailserver nicht). Für dich und Freunde reicht das.
+Wichtig: Die Mail-Vorlagen lassen sich im Free-Plan **nur mit eigenem Mailserver** ändern (Hinweis „Set up custom SMTP to edit templates“). Ohne Schritt 4 enthalten Mails nur einen Link und keinen Code.
+Bestehendes Konto ohne Passwort: einmal mit Google anmelden (in Bluefy über den QR-Code am Handy) und im Konto „Passwort festlegen“. Oder unter Authentication › Users den Eintrag löschen und im Spiel neu registrieren (es sind noch keine Daten daran).
 
-## 4. E-Mail-Versand für Freunde (optional)
-Der eingebaute Versand von Supabase schickt nur an Adressen von Mitgliedern deines Supabase-Teams und nur wenige Mails pro Stunde. Für dich selbst reicht das.
-Für Freunde: Authentication › Emails › SMTP Settings › eigenen Server eintragen, z. B. ein Hostinger-Postfach: Host `smtp.hostinger.com`, Port `465`, Benutzer = Postfach-Adresse, Passwort des Postfachs, Absender = dieselbe Adresse.
-Alternative ohne Mail: Freunde melden sich mit Google an.
+## 4. Eigener Mailserver über Hostinger (optional: Code per Mail, Bestätigungs-Mails, Freunde)
+1. Bei Hostinger ein Postfach anlegen, z. B. `ride@deinedomain.de` (hPanel › E-Mails), Passwort merken.
+2. Supabase › Authentication › Emails › **Set up SMTP** (bzw. SMTP Settings) › Enable custom SMTP:
+   - Sender email: `ride@deinedomain.de`, Sender name: `Hicore Ride`
+   - Host: `smtp.hostinger.com`, Port: `465`
+   - Username: `ride@deinedomain.de` (die volle Adresse), Password: Postfach-Passwort
+   - Save.
+3. Jetzt sind die Vorlagen bearbeitbar. Bei **Magic link or OTP** und **Confirm signup** im Body ergänzen und speichern:
+   ```html
+   <p>Dein Code für Hicore Ride: <b>{{ .Token }}</b></p>
+   ```
+4. Authentication › Rate Limits: „Emails sent per hour“ z. B. auf 30 stellen (ohne eigenen Server ist das fest sehr niedrig).
+5. Wer will, kann „Confirm email“ (Schritt 3) dann wieder einschalten.
 
 ## 5. Google-Anmeldung (optional, ca. 10 Minuten)
 1. https://console.cloud.google.com › neues Projekt „Hicore Ride“.

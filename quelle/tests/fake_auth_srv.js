@@ -4,6 +4,7 @@ module.exports=function(){ const S={users:{}, pw:{}, db:{profiles:[],rides:[],se
   S.handle=j=>{ const o=JSON.parse(j); S.log.push(o.op+(o.q?':'+o.q.t+':'+o.q.act:'')); const uid=o.uid;
     if (o.op==='otp') return {ok:1};
     if (o.op==='verify'){ if (o.token!=='123456') return {error:'Token has expired or is invalid'}; let u=S.users[o.email]; if (!u) u=S.users[o.email]={id:'u-'+Object.keys(S.users).length+'-'+Math.random().toString(16).slice(2,10), email:o.email, app_metadata:{provider:'email'}}; return {user:u}; }
+    if (o.op==='signup'){ if (S.users[o.email]) return {exists:1}; const u=S.users[o.email]={id:'u-s'+Math.random().toString(16).slice(2,10), email:o.email, app_metadata:{provider:'email'}}; S.pw[u.id]=o.password; return {user:u}; }
     if (o.op==='pw'){ const u=S.users[o.email]; if (!u || S.pw[u.id]!==o.password) return {error:'Invalid login credentials'}; return {user:u}; }
     if (o.op==='ses'){ const id=String(o.r||'').replace(/^ref:/,''); const u=Object.values(S.users).find(x=>x.id===id); return u?{user:u}:{error:'Invalid Refresh Token'}; }
     if (!uid) return {error:'not authenticated'};

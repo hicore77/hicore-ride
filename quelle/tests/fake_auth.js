@@ -12,6 +12,7 @@ window.HC_SB={ createClient(url,key,opt){ const SK=(opt&&opt.auth&&opt.auth.stor
       async verifyOtp({email,token}){ const r=await srv({op:'verify',email,token}); if (r.error) return {data:{},error:E(r)}; setSes(r.user); emit('SIGNED_IN'); return {data:{user:r.user},error:null}; },
       async signInWithPassword({email,password}){ const r=await srv({op:'pw',email,password}); if (r.error) return {data:{},error:E(r)}; setSes(r.user); emit('SIGNED_IN'); return {data:{user:r.user},error:null}; },
       async signInWithOAuth(){ if (!window.FAKE_OAUTH) return {data:{},error:{message:'Unsupported provider: provider is not enabled'}}; const r=await srv({op:'verify',email:window.FAKE_OAUTH,token:'123456'}); setSes(Object.assign({},r.user,{app_metadata:{provider:'google'}})); emit('SIGNED_IN'); return {data:{},error:null}; },
+      async signUp({email,password}){ const r=await srv({op:'signup',email,password}); if (r.error) return {data:{},error:E(r)}; if (r.exists) return {data:{user:{id:'x',identities:[]},session:null},error:null}; setSes(r.user); emit('SIGNED_IN'); return {data:{user:r.user,session:ses},error:null}; },
       async getSession(){ return {data:{session:ses},error:null}; },
       async setSession({refresh_token}){ const r=await srv({op:'ses',r:refresh_token}); if (r.error) return {data:{},error:E(r)}; setSes(r.user); emit('SIGNED_IN'); return {data:{session:ses},error:null}; },
       stopAutoRefresh(){}, startAutoRefresh(){},

@@ -41,7 +41,7 @@ async function transfer(ses){ if (busy) return; busy=true; if (code.length!==6){
   st('Übertrage Anmeldung ans Spiel …'); try{ sb.auth.stopAutoRefresh(); }catch(e){}
   const r=await hlSend(rt, code, ses);
   if (r===true){ try{ Object.keys(localStorage).filter(k=>k.indexOf(SK)===0||k==='hicoreLogin.code').forEach(k=>localStorage.removeItem(k)); }catch(e){}
-    document.querySelector('.box').innerHTML='<div class="big">✅</div><h1 style="text-align:center">Fertig</h1><p style="text-align:center">Das Spiel ist angemeldet als '+String(ses.user&&ses.user.email||'').replace(/</g,'')+'. Du kannst zurück zum Spiel wechseln und diese Seite schließen.</p>'; }
+    document.querySelector('.box').innerHTML='<div class="big">✅</div><h1 style="text-align:center">Fertig</h1><p style="text-align:center">Das Spiel ist angemeldet als '+String(ses.user&&ses.user.email||'').replace(/</g,'')+'. Du kannst zurück zum Spiel wechseln und diese Seite schließen.</p>'; return; }
   else { try{ sb.auth.startAutoRefresh(); }catch(e){} st(r===false?'Keine Antwort vom Spiel. Ist dort der Code noch offen? Code prüfen und erneut tippen.':r,'err'); $('g').textContent='Erneut übertragen'; }
   busy=false; }
 async function googleOn(){ try{ const r=await fetch(URL_SB+'/auth/v1/settings',{headers:{apikey:KEY}}); if (!r.ok) return null; const j=await r.json(); return !!(j&&j.external&&j.external.google); }catch(e){ return null; } }
