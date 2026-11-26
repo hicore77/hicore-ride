@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.25.0 Beta** (neue Welt Dolomiten). Davor 0.24.5 (Abbiege-Fehler Sonneninsel), 0.24.4 (Zäune, Gras auf Pflaster).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.25.1 Beta** (Elite Drivo in Bluefy verbindbar). Davor 0.25.0 (neue Welt Dolomiten), 0.24.5 (Abbiege-Fehler Sonneninsel).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -14,7 +14,7 @@ Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, As
 - Hauptwelt **Zittauer Gebirge**: echtes OSM-Straßennetz (ca. 180 km), echte Höhen, Kreuzungen, Kreisel, Verkehr, Bahn, Wahrzeichen, Wetter. Weitere Welten: Sonneninsel, Elbsandstein. Hügelland und Alpenpass sind seit 0.24.5 ausgeblendet (Hicore 26.11.), Code bleibt.
 - Zielgruppe: Hicore selbst und Freunde (Multiplayer über Supabase Realtime). Später eventuell öffentlich, Abo-Idee nicht entschieden.
 - Bleibt im Browser (Entscheidung 19.11.). Keine Markenlogos, keine Google-/Esri-Bilder, kein Nachbau fremder Spiele.
-- Hauptgerät: **iPad Air M1**, Bluetooth nur in der App **Bluefy**. Watt/Kadenz über Stages-Powermeter, Puls über Wahoo TICKR X. Elite Drivo hat kein FTMS, Widerstandssteuerung ungelöst.
+- Hauptgerät: **iPad Air M1**, Bluetooth nur in der App **Bluefy**. Watt/Kadenz über Stages-Powermeter, Puls über Wahoo TICKR X. Elite Drivo (Name „DR“, Firmware 026) hat kein FTMS, liefert aber echte Watt/Kadenz über Cycling Power (seit 0.25.1 in Bluefy verbindbar); Widerstandssteuerung ungelöst.
 
 ## 2. Links
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.25.0** | **Neue Welt Dolomiten (Cortina–Passo Giau–Caprile–Passo Falzarego, 66 km): echtes Gelände, Satellitenbild, Fernpanorama, Felsen, Wald bis zur Baumgrenze; nur Hauptstraßen befahrbar** |
+| **0.25.1** | **Elite Drivo in Bluefy verbindbar (Suche ohne Dienst-Nummern), echte Watt/Kadenz über Cycling Power; Testseite `webgpu-spiel/bt-test.html`** |
+| 0.25.0 | Neue Welt Dolomiten (Cortina–Passo Giau–Caprile–Passo Falzarego, 66 km): echtes Gelände, Satellitenbild, Fernpanorama, Felsen, Wald bis zur Baumgrenze; nur Hauptstraßen befahrbar |
 | 0.24.5 | Abbiege-Fehler in Rundkurs-Welten behoben (nach Zittau-Fahrt), Hügelland und Alpenpass ausgeblendet |
-| 0.24.4 | Zäune nie über Straßen, Wege, Gleise; kein Gras auf Pflaster-/Splittstreifen; Handy-Kreuzungsfeld feste Höhe; Sprint-/Bergtrikot ohne Schrift |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -135,6 +135,11 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 **Schultern 0.19.3–0.19.8, Gabeln 0.19.5:** Details (`carryGripPar`, `carryBody`, `carryRig`, `taperLeg`, `forkStep`, Tests `tcarry`/`tdismount`/`tbike`, Schalter `OLD_CARRY*`, `OLD_DISMOUNT`, `OLD_GRAVELFORK`, `NO_FORKMOVE`) jetzt in `docs/ARCHIV.md`.
 
 **Leistung 0.20.0–0.21.0** (Details 0.20.0–0.20.2 in `docs/ARCHIV.md`): Kachelwald gebündelt (`GT.w`, `OLD_GTW`), Baumschatten nur nah (`OLD_TREESH`), HUD sparsam (`OLD_HUD`), Leistungstest per Tipp auf FPS-Anzeige (`LTEST`), Messung `tests/tgpuperf.js`. iPad-Lesart: Chrome hängt an Pixeln, Bluefy an den Bäumen.
+**0.25.1 Drivo in Bluefy** (Hicore 26.11.: Drivo erscheint in der Trainersuche nie, Zwift am Apple TV kann ihn)
+- Ursache: Bluefy 3.9.3 lehnt `requestDevice` mit **optionalServices als Zahlen** sofort ab (Fehler ohne Text, nur `2`, Liste öffnet sich nicht). Ohne optionalServices oder mit Text-Namen (`'cycling_power'` usw.) geht es; Bluefy gibt nach dem Verbinden ohnehin alle Dienste frei (auch den Elite-Dienst). In `connectTrainer` jetzt Text-Namen (`OPT`), alt: `window.OLD_BTOPT`. Gilt für jedes Gerät, nicht nur den Drivo.
+- Drivo 1 (nRF Connect + `bt-test.html`): wirbt nur CSC 0x1816 + Elite `347b0001-…`, hat verbunden aber auch **Cycling Power 0x1818** (Feature `0d 02 01 00`, Control Point 2A66), Device Info (Elite, HW 001, FW 026), Legacy DFU. Spiel nimmt den CPS-Zweig → echte Watt/Kadenz. Elite-Merkmale: 0010 w, 0011 n (sendet `00` je Sekunde), 0012 w, 0013 r (Nullen), 0014 n, 0015 n (3 Pakete/s: `01|02|03`, u16 Zähler, dann 8×u16, vermutlich Kraftverlauf je Kurbelumdrehung), 0016 w, 0017 n. Widerstand vermutlich über 0010/0012/0016, Befehle unbekannt (nicht öffentlich).
+- Testseite `webgpu-spiel/bt-test.html`: 10 Suchvarianten, Dienste, Geräteinfo, Watt/Kadenz live, Elite-Rohdaten, „Log kopieren“. Nützlich für jedes neue Gerät.
+
 **0.25.0 Dolomiten** (Hicore 26.11.: „wie Zittauer Gebirge, mit allen Daten“, nur Hauptstraßen befahrbar, Nebenstraßen sichtbar, Panorama „atemberaubend“; Wunschliste in Projekt-Memory `dolomiten-welt`)
 - Daten: `werkzeuge/dolo_bau.py` baut `quelle/dolo/` (ca. 9 s) aus Rohdaten unter `/home/user/dolo` (nicht im Repo): Copernicus GLO-30 (S3, Kacheln N46 E011/E012), ESA WorldCover 2021 (S3, Dateiname mit kleinem „v200“), Sentinel-2 L2A Kachel **32TQS** Szene S2C_32TQS_20250919_0 (33TUM deckt das Gebiet nicht), OSM über Sandbox/Overpass (`osmc.json`, als PNG-Chunks geholt). Projektion LAT0 46.49, LON0 12.06, Welt-y = Höhe − 1200 m.
 - Inhalt: DEM 25 m (x −21000…21000, z −16000…14000, Waldkorrektur −11 m), 4 Kanten per Dijkstra auf primary/secondary/tertiary (SR48 Cortina–Pocol, SP638 Giau, SP638 Giau–Selva–Caprile, SR48 Falzarego), Steigung geglättet max. 15,5 %; Runde = Pocol-Schleife, Start Cortina über `zgApplyStart`. Nebenstraßen/Wege im ZGSIDE-Format (nur sichtbar, `NO_WAYNET`). Gebäude, Ortsschilder, Bergwertungen (Giau von Pocol/Selva, Falzarego von Andraz/Pocol, Pocol), 233 Gipfel in `pois`. Landbedeckung 10 m (`lc.png`, Klassen 6 Fels, 8 Schnee, 9 Geröll, 10 Alpweide), Satellitenbild nah 10 m / fern 25 m mit Schatten-/Blaustich-Korrektur.
@@ -167,6 +172,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.21.0 Impostors (`IMP`, `impR` 60 m, `OLD_IMP`), Ruckler-Messung `tstutter2`, `upR`/`OLD_UPR`: Details in `docs/ARCHIV.md`. Poly Haven ist Standard.
 
 **Offen / unsicher**
+- 0.25.1 am iPad prüfen: Trainersuche findet „DR“ (Stufe 1 Name), Watt/Kadenz im Spiel plausibel gegenüber Stages? Puls- und Stages-Suche weiter ok?
 - 0.25.0 am iPad prüfen: Ladezeit Dolomiten, FPS mit Panorama (LITE/MINI kleiner), Felsfarbe, Steigungen Giau/Falzarego.
 - 0.13.0 am iPad prüfen: Ladezeit-Meldung, Ruckler beim ersten Auto/Zug/Regen, FPS-Anzeige mit Prozent (Details 0.13.0 in docs/ARCHIV.md).
 - 0.16.0 am iPad prüfen: Optik Gravel/MTB, Sitzhaltung, ob Farben direkt nach dem Radwechsel stimmen; Lenkerbreite/Flare/Hoods-Winkel ggf. in `GRAVEL_BAR` nachjustieren.
