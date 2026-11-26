@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bluetooth-Test</title>
+<style>
+body{font:16px system-ui,sans-serif;margin:0;padding:16px;background:#111;color:#eee}
+h1{font-size:20px;margin:0 0 8px}
+p{margin:6px 0;color:#bbb;font-size:14px}
+.b{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+button{font:15px system-ui;padding:12px 14px;border:0;border-radius:10px;background:#2a7de1;color:#fff}
+button.g{background:#444}
+#live{font:22px monospace;margin:10px 0;padding:10px;background:#1d1d1d;border-radius:10px;white-space:pre-wrap}
+#raw{font:13px monospace;white-space:pre-wrap;word-break:break-all;background:#1d1d1d;padding:10px;border-radius:10px;margin:8px 0}
+#log{font:12px monospace;white-space:pre-wrap;word-break:break-all;background:#000;padding:10px;border-radius:10px;max-height:45vh;overflow:auto}
+</style></head><body>
+<h1>Bluetooth-Test (Drivo)</h1>
+<p>Nacheinander die Knöpfe probieren. Nach jedem Versuch steht unten, was passiert ist. Am Ende „Log kopieren“ tippen und mir schicken (oder Screenshot).</p>
+<div class="b">
+<button onclick="go('A')">1 · Name „DR“</button>
+<button onclick="go('B')">2 · Dienst Tempo/Kadenz</button>
+<button onclick="go('C')">3 · Alle Geräte</button>
+<button onclick="go('D')">4 · Name „DR“ einfach</button>
+</div>
+<div class="b"><button class="g" onclick="copyLog()">Log kopieren</button><button class="g" onclick="disc()">Trennen</button></div>
+<div id="live">noch nicht verbunden</div>
+<div id="raw"></div>
+<div id="log"></div>
+<script>
+const CPS=0x1818, CSC=0x1816, DIS=0x180a, FTMS=0x1826, ELITE='347b0001-7635-408b-8918-8ff3949ce592';
+const OPT=[CPS,CSC,DIS,FTMS,ELITE];
+let dev=null, raw={}, t0=performance.now(), nRaw=0;
+const L=document.getElementById('log');
+function log(s){ const t=((performance.now()-t0)/1000).toFixed(1); L.textContent+=t+'s  '+s+'\n'; L.scrollTop=1e9; }
+function hex(dv){ return [...new Uint8Array(dv.buffer,dv.byteOffset,dv.byteLength)].map(b=>b.toString(16).padStart(2,'0')).join(' '); }
+function err(e){ return e ? (e.name||'')+': '+(e.message||String(e)) : 'unbekannt'; }
+function showRaw(){ document.getElementById('raw').textContent=Object.entries(raw).map(([k,v])=>k+': '+v).join('\n'); }
+log('Browser: '+navigator.userAgent);
+log('navigator.bluetooth: '+(navigator.bluetooth?'ja':'NEIN'));
+function opts(k){
+  if (k==='A') return {filters:[{namePrefix:'DR'}], optionalServices:OPT};
+  if (k==='B') return {filters:[{services:[CSC]}], optionalServices:OPT};
+  if (k==='C') return {acceptAllDevices:true, optionalServices:OPT};
+  return {filters:[{namePrefix:'DR'}], optionalServices:[CPS,CSC]};
+}
+async function go(k){
+  if (!navigator.bluetooth){ log('Kein Web Bluetooth in diesem Browser.'); return; }
+  const o=opts(k); log('— Versuch '+k+': '+JSON.stringify(o));
+  let d;
+  try { d=await navigator.bluetooth.requestDevice(o); }
+  catch(e){ log('requestDevice Fehler → '+err(e)); return; }
+  log('gewählt: "'+(d.name||'(ohne Namen)')+'" id='+d.id);
+  dev=d; d.addEventListener('gattserverdisconnected',()=>log('Verbindung getrennt'));
+  let srv; try { srv=await d.gatt.connect(); log('verbunden'); } catch(e){ log('connect Fehler → '+err(e)); return; }
+  let list=[]; try { list=await srv.getPrimaryServices(); log('Dienste: '+list.map(s=>s.uuid).join(', ')); } catch(e){ log('getPrimaryServices Fehler → '+err(e)); }
+  // Geräteinfo
+  try { const s=await srv.getPrimaryService(DIS);
+    for (const [c,n] of [[0x2a29,'Hersteller'],[0x2a24,'Modell'],[0x2a27,'Hardware'],[0x2a26,'Firmware'],[0x2a28,'Software']]){
+      try { const v=await (await s.getCharacteristic(c)).readValue(); log(n+': '+new TextDecoder().decode(v)); } catch(e){} }
+  } catch(e){ log('Geräteinfo: '+err(e)); }
+  // Leistung (Cycling Power)
+  try { const s=await srv.getPrimaryService(CPS);
+    try { const f=await (await s.getCharacteristic(0x2a65)).readValue(); log('CPS Feature: '+hex(f)); } catch(e){}
+    const m=await s.getCharacteristic(0x2a63); m.addEventListener('characteristicvaluechanged',e=>cps(e.target.value)); await m.startNotifications(); log('Leistung (CPS) abonniert');
+  } catch(e){ log('CPS: '+err(e)); }
+  // Tempo/Kadenz
+  try { const s=await srv.getPrimaryService(CSC); const m=await s.getCharacteristic(0x2a5b);
+    m.addEventListener('characteristicvaluechanged',e=>{ raw['CSC 2a5b']=hex(e.target.value); showRaw(); }); await m.startNotifications(); log('Tempo/Kadenz (CSC) abonniert');
+  } catch(e){ log('CSC: '+err(e)); }
+  // Elite-Dienst
+  try { const s=await srv.getPrimaryService(ELITE); const chs=await s.getCharacteristics();
+    for (const ch of chs){ const id=ch.uuid.slice(4,8), p=ch.properties;
+      log('Elite '+id+': '+['read','write','writeWithoutResponse','notify','indicate'].filter(x=>p[x]).join(','));
+      if (p.read){ try { const v=await ch.readValue(); raw['Elite '+id+' (gelesen)']=hex(v); log('Elite '+id+' gelesen: '+hex(v)); } catch(e){ log('Elite '+id+' lesen: '+err(e)); } }
+      if (p.notify||p.indicate){ ch.addEventListener('characteristicvaluechanged',e=>{ const h=hex(e.target.value); raw['Elite '+id]=h; showRaw(); if (nRaw++<60) log('Elite '+id+' → '+h); });
+        try { await ch.startNotifications(); } catch(e){ log('Elite '+id+' abonnieren: '+err(e)); } }
+    }
+  } catch(e){ log('Elite-Dienst: '+err(e)); }
+  showRaw(); log('Fertig. Jetzt treten, dann Log kopieren.');
+}
+let lc=null;
+function cps(dv){ let o=0; const f=dv.getUint16(o,true); o+=2; const w=dv.getInt16(o,true); o+=2; let cad='–';
+  if (f&1) o+=1; if (f&4) o+=2; if (f&16) o+=6;
+  if (f&32){ const r=dv.getUint16(o,true), t=dv.getUint16(o+2,true); if (lc){ const dr=(r-lc.r+65536)%65536, dt=((t-lc.t+65536)%65536)/1024; if (dt>0&&dr>0) cad=Math.round(dr/dt*60); } lc={r,t}; }
+  document.getElementById('live').textContent='Watt: '+w+'   Kadenz: '+cad;
+  raw['CPS 2a63']=hex(dv); showRaw(); }
+function disc(){ try { dev&&dev.gatt.disconnect(); } catch(e){} }
+function copyLog(){ const s=L.textContent+'\n'+document.getElementById('raw').textContent;
+  (navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(()=>log('kopiert'),()=>{ const r=document.createRange(); r.selectNodeContents(L); getSelection().removeAllRanges(); getSelection().addRange(r); log('Kopieren nicht möglich, Text ist markiert'); }); }
+</script>
+</body></html>
