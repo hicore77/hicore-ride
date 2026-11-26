@@ -20,6 +20,16 @@ canvas#world{display:block;width:100vw;height:100vh;touch-action:none}
 .tile.hr .v{color:var(--hr)}
 body.hHud .hud,body.hSide .side,body.hProf .prof,body.hBoard .board,body.hCtrl .ctrl,body.hPure #fps{display:none!important}
 #bPhone{position:fixed;right:212px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bPhone:hover{opacity:1}#bPhone.on{border-color:#3fb950;opacity:1}
+#accBtn{padding:6px 12px;font-size:13px;border-radius:10px;margin-left:auto}#accBtn.on{border-color:#3fb950}
+#accModal{position:fixed;inset:0;z-index:61;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}
+#accModal .accIn{background:#0d1117;border:1px solid var(--line);border-radius:16px;padding:14px 16px;max-width:420px;width:calc(100% - 32px);max-height:calc(100% - 32px);overflow:auto;color:#fff;box-sizing:border-box}
+#accModal .accTop{display:flex;justify-content:space-between;align-items:center}#accModal h3{margin:0;font-size:17px}#accModal h4{margin:12px 0 6px;font-size:13px}#accX{padding:4px 10px;background:none}
+#accModal input{width:100%;box-sizing:border-box;margin-top:8px;background:#161b22;color:#f0f3f6;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:9px 10px;font:inherit;font-size:15px}#accModal input:focus{outline:none;border-color:var(--acc)}#accModal .accTx{font-size:12px;opacity:.85;margin:8px 0 4px;line-height:1.4}
+#accModal .accGo{width:100%;margin-top:10px;background:#fff;color:#1f1f1f;font-weight:600}#accModal .accGo b{color:#4285f4;margin-right:6px}
+#accModal .accOr{text-align:center;font-size:12px;opacity:.6;margin:12px 0 0}#accModal details{margin-top:10px;font-size:13px}#accModal summary{cursor:pointer;opacity:.85}
+#accModal .accGrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}#accModal .accGrid label{font-size:12px;color:var(--mut)}#accModal .accGrid input{margin-top:3px}
+#accModal .accRides{font-size:12px;max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:8px}#accModal .accR{display:flex;gap:6px;align-items:center;padding:6px 8px;border-top:1px solid var(--line)}#accModal .accR:first-child{border-top:0}
+#accModal .accR div{flex:1;min-width:0}#accModal .accR small{display:block;opacity:.7}#accModal .accR button{padding:4px 8px;font-size:12px}#accModal .accDel{background:none;border-color:#6e2b2b;color:#ff7b72;font-size:12px}
 #cmpModal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55)}#cmpModal .cmpIn{background:#0d1117;border:1px solid var(--line);border-radius:16px;padding:16px 18px;max-width:340px;width:calc(100% - 32px);text-align:center;color:#fff}#cmpModal h3{margin:0 0 10px;font-size:17px}#cmpQr{width:220px;height:220px;border-radius:8px;background:#fff;image-rendering:pixelated}#cmpModal .cmpTx{font-size:12px;opacity:.85;margin:8px 0 4px;line-height:1.4}#cmpModal a{color:#7cc4ff;word-break:break-all}#cmpCode{font:700 30px/1.2 ui-monospace,Menlo,monospace;letter-spacing:5px;margin:4px 0 6px;color:#ffe08a}#cmpModal .mpbtn{justify-content:center;margin-top:10px}
 #bGest{position:fixed;right:122px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75}#bGest:hover{opacity:1}#gestMenu{position:fixed;right:12px;top:50px;z-index:8;display:none;flex-direction:column;gap:4px;padding:8px;border-radius:12px;background:rgba(13,17,23,.88);border:1px solid var(--line);min-width:210px}#gestMenu button{text-align:left;padding:7px 10px;border-radius:8px;border:0;background:rgba(255,255,255,.07);color:#fff;font-size:14px}#gestMenu button:hover{background:rgba(255,255,255,.18)}#gestMenu small{opacity:.6;font-size:11px;margin:4px 2px 0}#sayBub{position:fixed;left:50%;top:30%;transform:translateX(-50%);z-index:9;display:none;background:#fff;color:#111;font:700 20px/1.3 system-ui,sans-serif;padding:10px 18px;border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
 #bKeys{position:fixed;right:264px;top:12px;z-index:7;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(13,17,23,.55);color:#fff;font-size:13px;opacity:.75;display:none}#bKeys:hover{opacity:1}body.kbd #bKeys{display:block}#keysBox{position:fixed;right:12px;top:50px;z-index:8;display:none;padding:12px 16px;border-radius:12px;background:rgba(13,17,23,.9);border:1px solid var(--line);color:#fff;font:14px/1.5 system-ui,sans-serif;min-width:260px}#keysBox b{display:inline-block;min-width:74px;padding:0 6px;margin:2px 8px 2px 0;border-radius:6px;background:rgba(255,255,255,.14);text-align:center;font-weight:700}#keysBox h4{margin:2px 0 6px;font-size:14px;opacity:.8}
@@ -179,12 +189,30 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
 <div id="cmpCode">–</div>
 <div class="mpstat" id="cmpStat2"></div>
 <div class="mpbtn"><button id="cmpClose">Fertig</button><button id="cmpNew">Neuer Code</button><button id="cmpOff">Trennen</button></div></div></div>
+<div id="accModal"><div class="accIn"><div class="accTop"><h3>👤 Konto</h3><button id="accX" title="Schließen">✕</button></div>
+<div id="accOut"><div class="accTx">Mit Konto sind Profil, Einstellungen, Bestzeiten und Fahrten (mit FIT-Datei) auf jedem Gerät da. Spielen geht auch ohne.</div>
+<button id="accG" class="accGo"><b>G</b> Mit Google anmelden</button>
+<div class="accOr">oder mit E-Mail</div>
+<input id="accMail" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="E-Mail-Adresse">
+<div class="mpbtn"><button id="accSend" class="pri">Code per E-Mail senden</button></div>
+<div id="accCodeBox" style="display:none"><div class="accTx">Code aus der E-Mail eingeben (der Link in der E-Mail geht auch, wenn er sich in diesem Browser öffnet):</div><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code"><div class="mpbtn"><button id="accVerify" class="pri">Anmelden</button></div></div>
+<details class="accPw"><summary>Mit Passwort anmelden</summary><input id="accPw" type="password" autocomplete="current-password" placeholder="Passwort"><div class="mpbtn"><button id="accPwGo">Anmelden</button></div><div class="accTx">Ein Passwort legst du nach der ersten Anmeldung per Code oder Google im Konto fest.</div></details>
+</div>
+<div id="accIn" style="display:none"><div class="accTx" id="accWho"></div>
+<h4>Profil</h4><div class="accGrid"><label>Name<input id="accName" maxlength="16" autocomplete="nickname"></label><label>Gewicht Fahrer + Rad (kg)<input id="accMass" type="number" min="40" max="160"></label><label>FTP (Watt)<input id="accFtp" type="number" min="50" max="600" placeholder="–"></label><label>Puls max.<input id="accHr" type="number" min="100" max="230" placeholder="–"></label></div>
+<h4>Meine Fahrten</h4><div id="accRides" class="accRides">–</div>
+<div class="accTx" id="accBest"></div>
+<details class="accPw"><summary>Passwort festlegen</summary><input id="accNewPw" type="password" autocomplete="new-password" placeholder="Neues Passwort (mind. 6 Zeichen)"><div class="mpbtn"><button id="accPwSet">Speichern</button></div></details>
+<div class="mpbtn"><button id="accSync">Jetzt abgleichen</button><button id="accOutB">Abmelden</button></div>
+<div class="mpbtn"><button id="accDel" class="accDel">Konto löschen</button></div>
+</div>
+<div class="mpstat" id="accStat"></div></div></div>
 <div id="gestMenu"><small>Gesten</small><button data-g="wave">👋 Hand heben, grüßen <i style="opacity:.5">(1)</i></button><button data-g="thumb">👍 Daumen hoch <i style="opacity:.5">(2)</i></button><button data-g="vorbei">🫲 Ellbogen-Wink: fahr vorbei <i style="opacity:.5">(3)</i></button><button data-g="drink">🥤 Trinken <i style="opacity:.5">(4)</i></button><button data-g="stretch">🙆 Strecken (im Stand) <i style="opacity:.5">(5)</i></button></div>
 <button id="bHud" title="Anzeige umschalten (H): alles · nur oben · nur Fahrer">👁 Anzeige</button>
 
 <div class="overlay" id="menu">
   <div class="card">
-    <div class="mhead"><h1>Hicore Ride</h1><div class="prog" id="prog"></div></div>
+    <div class="mhead"><h1>Hicore Ride</h1><div class="prog" id="prog"></div><button id="accBtn" title="Konto: Profil, Einstellungen, Bestzeiten und Fahrten auf allen Geräten">👤 Anmelden</button></div>
     <div class="tabs">
       <button class="tab act" data-t="tWorld">1 · Welt</button>
       <button class="tab" data-t="tDev">2 · Geräte</button>
@@ -277,7 +305,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
   <div class="card">
     <h1>Fahrt beendet</h1>
     <div class="sumgrid" id="sumgrid"></div>
-    <p id="sumUnlock"></p>
+    <p id="sumUnlock"></p><p class="mpstat" id="sumAcc"></p>
     <div class="export"><b>Für Strava &amp; Co.</b><span>FIT-Datei mit Watt, Puls, Trittfrequenz und GPS-Strecke (Zittauer Gebirge und echte Orte: echte Koordinaten und Höhen, Fantasiewelten im Hicore-Archipel, Südpazifik). Strava erkennt sie als virtuelle Radfahrt. Hochladen: strava.com → „+“ → Aktivität hochladen → Datei.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="bFit">FIT-Datei speichern</button><button id="bImg">Fahrtbild speichern</button></div><span>Das Fahrtbild kannst du in Strava als Foto an die Aktivität hängen.</span><img id="sumImg" alt="Fahrtbild" style="width:100%;border-radius:8px;margin-top:4px"></div>
     <div class="row2"><button class="pri" id="bBack">Zum Hauptmenü</button></div>
   </div>
@@ -5542,7 +5570,7 @@ const SEG={ list:[], act:[], prev:null, show:null, showT:0,
     this.ui(dt); },
   finish(a, t){ const sg=a.sg, B=this.bests(), old=B[sg.id]&&B[sg.id].t;
     if (!a.ok){ this.flash(sg, t, '<span class="sm">Testmodus ohne Trainer: Zeit zählt nicht</span>'); return; }
-    let msg; if (!old || t<old){ B[sg.id]={t, at:Date.now()}; store.set(this.key(),B); msg='<span class="gd">Neue Bestzeit!'+(old?' (−'+(old-t).toFixed(1).replace('.',',')+' s)':'')+'</span>'; toast(sg.ico+' '+sg.name+': neue Bestzeit '+this.fmt(t)); try{ MP.trackBests(); }catch(e){} }
+    let msg; if (!old || t<old){ B[sg.id]={t, at:Date.now()}; store.set(this.key(),B); try{ ACC.bestPush(WORLD.id, sg.id, t); }catch(e){} msg='<span class="gd">Neue Bestzeit!'+(old?' (−'+(old-t).toFixed(1).replace('.',',')+' s)':'')+'</span>'; toast(sg.ico+' '+sg.name+': neue Bestzeit '+this.fmt(t)); try{ MP.trackBests(); }catch(e){} }
     else msg='<span class="bd">+'+(t-old).toFixed(1).replace('.',',')+' s zur Bestzeit '+this.fmt(old)+'</span>';
     this.flash(sg, t, msg+this.roomHtml(sg)); },
   flash(sg, t, html){ this.show={html:'<div>'+sg.ico+' '+sg.name+'</div><div class="st">'+this.fmt(t)+'</div><div>'+html+'</div>'}; this.showT=7; },
@@ -7938,7 +7966,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.23.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -7954,6 +7982,178 @@ function renderWorlds(){
 }
 renderWorlds();
 
+/* 0.24.0 Konten (Supabase Auth, dasselbe Projekt wie Multiplayer): Anmelden per E-Mail-Code (geht auch in Bluefy, weil kein Link in einem anderen Browser nötig ist), Passwort oder Google.
+   Gespeichert: Profil + Einstellungen (Tabelle profiles, neuere Seite gewinnt), Bestzeiten (segment_bests, beste Zeit gewinnt), Fahrten mit echtem Trainer (rides + FIT-Datei im Bucket fit).
+   Ohne Anmeldung läuft alles wie bisher über localStorage. Rückkehr-Adresse = aktuelle Seite (keine feste Domain). SQL: supabase/konto.sql. Aus: window.NO_ACC */
+const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:0, rides:[], nBest:0, delArm:0,
+  KEYS:['mass','diff','bots','jersey','pwSmooth','pwFac','bike','tod','wx','snow','snowRd','sndOn','sndSur','bloom','mpName','hudMode','world','unlockAll','fpsShow','ftp','hrmax'],
+  st(m,c){ const e=$('accStat'); if (e){ e.textContent=m||''; e.className='mpstat'+(c?' '+c:''); } },
+  em(e){ const m=String(e&&(e.message||e.error_description||e.msg)||e||''); 
+    if (/rate limit|too many|security purposes/i.test(m)) return 'Zu viele Versuche oder E-Mails. Bitte ein paar Minuten warten.';
+    if (/Invalid login credentials/i.test(m)) return 'E-Mail oder Passwort falsch.';
+    if (/expired|invalid.*(otp|token)|token.*(invalid|expired)/i.test(m)) return 'Code falsch oder abgelaufen. Neuen Code anfordern.';
+    if (/provider is not enabled|Unsupported provider/i.test(m)) return 'Google-Anmeldung ist in Supabase noch nicht eingerichtet.';
+    if (/not authorized|not allowed for this|Email address .* is invalid/i.test(m)) return 'An diese Adresse darf Supabase noch nicht senden (eigener Mailversand in Supabase nötig).';
+    if (/Signups not allowed/i.test(m)) return 'Neue Konten sind in Supabase gesperrt.';
+    if (/Email not confirmed/i.test(m)) return 'E-Mail noch nicht bestätigt. Melde dich per Code an.';
+    if (/code verifier|code challenge|both auth code and code verifier/i.test(m)) return 'Der Link wurde in einem anderen Browser geöffnet. Bitte den Code aus der E-Mail hier eingeben.';
+    if (/does not exist|schema cache|Could not find the|relation|Bucket not found/i.test(m)) return 'Datenbank ist noch nicht eingerichtet (SQL aus supabase/konto.sql fehlt).';
+    if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return 'Keine Verbindung zum Server.';
+    if (/Password should be/i.test(m)) return 'Passwort zu kurz (mind. 6 Zeichen).';
+    return m||'unbekannter Fehler'; },
+  redir(){ return location.origin+location.pathname; },
+  cleanUrl(){ try{ const u=new URL(location.href); let ch=false; ['code','error','error_code','error_description','type'].forEach(k=>{ if (u.searchParams.has(k)){ u.searchParams.delete(k); ch=true; } });
+    if (/access_token|error_description/.test(u.hash)){ u.hash=''; ch=true; } if (ch) history.replaceState(null,'',u.pathname+(u.search||'')+(u.hash||'')); }catch(e){} },
+  mail(){ return ($('accMail').value||'').trim().toLowerCase(); },
+  init(){
+    $('accBtn').onclick=()=>this.show(); $('accX').onclick=()=>this.hide(); $('accModal').onclick=e=>{ if (e.target.id==='accModal') this.hide(); };
+    if (window.NO_ACC){ $('accBtn').style.display='none'; return; }
+    const SB=window.HC_SB||window.supabase; if (!SB || !SB.createClient){ this.st('Baustein fehlt (Supabase).','err'); return; }
+    let err=''; try{ const sp=new URLSearchParams(location.search), hp=new URLSearchParams(location.hash.slice(1)); err=sp.get('error_description')||hp.get('error_description')||''; }catch(e){}
+    try{ this.sb=SB.createClient(MP.URL,MP.KEY,{auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:'hicoreRide.auth'}}); }catch(e){ this.st('Konto nicht verfügbar: '+this.em(e),'err'); return; }
+    this.sb.auth.onAuthStateChange((ev,ses)=>{ setTimeout(()=>this.onAuth(ev,ses),0); });
+    let hadCode=false; try{ hadCode=new URLSearchParams(location.search).has('code'); }catch(e){}
+    if (hadCode && !err) this.sb.auth.getSession().then(({data})=>{ if (!(data&&data.session)){ const m='Anmelde-Link ungültig oder in einem anderen Browser geöffnet. Bitte im Konto den Code aus der E-Mail eingeben.'; toast(m); this.st(m,'err'); } this.cleanUrl(); }).catch(()=>this.cleanUrl());
+    if (err){ setTimeout(()=>{ toast('Anmeldung: '+this.em(err)); this.st(this.em(err),'err'); this.cleanUrl(); },800); }
+    /* Änderungen an Einstellungen merken und (angemeldet) kurz danach hochladen */
+    const _set=store.set; store.set=(k,v)=>{ _set(k,v); try{ ACC.touch(k); }catch(e){} };
+    try{ $('bike').addEventListener('change',()=>this.touch('bike')); }catch(e){}
+    $('accG').onclick=()=>this.google(); $('accSend').onclick=()=>this.sendCode(); $('accVerify').onclick=()=>this.verify(); $('accPwGo').onclick=()=>this.pwLogin();
+    $('accCode').onkeydown=e=>{ if (e.key==='Enter') this.verify(); }; $('accMail').onkeydown=e=>{ if (e.key==='Enter') this.sendCode(); };
+    $('accOutB').onclick=()=>this.logout(); $('accSync').onclick=()=>this.sync(true); $('accPwSet').onclick=()=>this.setPw(); $('accDel').onclick=()=>this.delAcc();
+    $('accName').onchange=()=>{ const v=$('accName').value.trim().slice(0,16); store.set('mpName',v); try{ $('mpName').value=v; }catch(e){} this.ui(); };
+    $('accMass').onchange=()=>{ const v=clamp(+$('accMass').value||88,40,160); $('mass').value=v; $('mass').dispatchEvent(new Event('change')); $('accMass').value=v; };
+    $('accFtp').onchange=()=>{ const v=Math.round(+$('accFtp').value||0); store.set('ftp',v>=50&&v<=600?v:0); };
+    $('accHr').onchange=()=>{ const v=Math.round(+$('accHr').value||0); store.set('hrmax',v>=100&&v<=230?v:0); };
+    $('accMail').value=store.get('accMail','');
+    this.ui(); },
+  show(){ this.ui(); $('accModal').style.display='flex'; if (this.user){ this.loadRides(); } else setTimeout(()=>{ try{ if (!$('accMail').value) $('accMail').focus(); }catch(e){} },50); },
+  hide(){ $('accModal').style.display='none'; },
+  name(){ const n=store.get('mpName',''); return n || (this.user&&this.user.email ? this.user.email.split('@')[0] : ''); },
+  ui(){ const u=this.user; $('accOut').style.display=u?'none':'block'; $('accIn').style.display=u?'block':'none';
+    $('accBtn').textContent=u?'👤 '+(this.name()||'Konto'):'👤 Anmelden'; $('accBtn').classList.toggle('on',!!u);
+    if (u){ const via=(u.app_metadata&&u.app_metadata.provider)==='google'?'Google':'E-Mail'; $('accWho').textContent='Angemeldet als '+(u.email||'?')+' ('+via+')';
+      if (document.activeElement!==$('accName')) $('accName').value=store.get('mpName','');
+      if (document.activeElement!==$('accMass')) $('accMass').value=$('mass').value;
+      const f=+store.get('ftp',0)||0, h=+store.get('hrmax',0)||0; if (document.activeElement!==$('accFtp')) $('accFtp').value=f||''; if (document.activeElement!==$('accHr')) $('accHr').value=h||'';
+      $('accBest').textContent=this.nBest?('Bestzeiten im Konto (Bergwertungen und Sprints): '+this.nBest):''; } },
+  /* ---- Anmelden ---- */
+  async sendCode(){ const m=this.mail(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){ this.st('Bitte eine gültige E-Mail-Adresse eingeben.','err'); return; }
+    store.set('accMail',m); this.st('Sende Code …'); $('accSend').disabled=true;
+    try{ const {error}=await this.sb.auth.signInWithOtp({email:m, options:{emailRedirectTo:this.redir(), shouldCreateUser:true}}); if (error) throw error;
+      $('accCodeBox').style.display='block'; this.st('Code ist unterwegs an '+m+'. Auch im Spam-Ordner nachsehen.','on'); setTimeout(()=>{ try{ $('accCode').focus(); }catch(e){} },50); }
+    catch(e){ this.st(this.em(e),'err'); }
+    setTimeout(()=>{ $('accSend').disabled=false; },4000); },
+  async verify(){ const m=this.mail(), c=($('accCode').value||'').replace(/\D/g,''); if (c.length<6){ this.st('Der Code hat 6 oder mehr Ziffern.','err'); return; }
+    this.st('Prüfe Code …'); try{ const {error}=await this.sb.auth.verifyOtp({email:m, token:c, type:'email'}); if (error) throw error; $('accCode').value=''; $('accCodeBox').style.display='none'; }
+    catch(e){ this.st(this.em(e),'err'); } },
+  async pwLogin(){ const m=this.mail(), p=$('accPw').value||''; if (!m||!p){ this.st('E-Mail und Passwort eingeben.','err'); return; } store.set('accMail',m);
+    this.st('Melde an …'); try{ const {error}=await this.sb.auth.signInWithPassword({email:m, password:p}); if (error) throw error; $('accPw').value=''; }catch(e){ this.st(this.em(e),'err'); } },
+  async google(){ this.st('Weiter zu Google …');
+    /* Seite wird verlassen: Absturz-Erkennung beim Start (bootN/stage) nicht auslösen, sonst startet das iPad danach im Minimal-Modus */
+    try{ localStorage.setItem('hicoreRide.bootN','0'); localStorage.setItem('hicoreRide.stage','ok'); }catch(e){}
+    try{ const {error}=await this.sb.auth.signInWithOAuth({provider:'google', options:{redirectTo:this.redir()}}); if (error) throw error; }catch(e){ this.st(this.em(e),'err'); } },
+  async logout(){ try{ clearTimeout(this.pushT); if (this.user) await this.pushProf().catch(()=>{}); await this.sb.auth.signOut({scope:'local'}); }catch(e){ console.warn('ACC',e); }
+    this.user=null; this.prof=null; this.rides=[]; this.nBest=0; this.ui(); this.st('Abgemeldet. Deine Einstellungen bleiben auf diesem Gerät.'); },
+  async setPw(){ const p=$('accNewPw').value||''; if (p.length<6){ this.st('Passwort zu kurz (mind. 6 Zeichen).','err'); return; }
+    try{ const {error}=await this.sb.auth.updateUser({password:p}); if (error) throw error; $('accNewPw').value=''; this.st('Passwort gespeichert. Du kannst dich jetzt auch mit Passwort anmelden.','on'); }catch(e){ this.st(this.em(e),'err'); } },
+  async delAcc(){ if (!this.user) return; const b=$('accDel');
+    if (Date.now()-this.delArm>6000){ this.delArm=Date.now(); b.textContent='Wirklich alles löschen? Nochmal tippen'; setTimeout(()=>{ b.textContent='Konto löschen'; },6000); return; }
+    this.st('Lösche Konto …'); try{ const uid=this.user.id; const {data:fl}=await this.sb.storage.from('fit').list(uid,{limit:1000});
+      if (fl && fl.length){ const {error:e1}=await this.sb.storage.from('fit').remove(fl.map(f=>uid+'/'+f.name)); if (e1) throw e1; }
+      const {error}=await this.sb.rpc('delete_my_account'); if (error) throw error; await this.sb.auth.signOut({scope:'local'}).catch(()=>{});
+      this.user=null; this.prof=null; this.rides=[]; this.ui(); this.st('Konto gelöscht. Die Einstellungen auf diesem Gerät bleiben.','on'); }
+    catch(e){ this.st(this.em(e),'err'); } b.textContent='Konto löschen'; this.delArm=0; },
+  onAuth(ev,ses){ const u=ses&&ses.user||null, was=this.user&&this.user.id; this.user=u;
+    if (u && was!==u.id){ this.cleanUrl(); this.ui(); if (ev==='SIGNED_IN'){ toast('Angemeldet: '+(u.email||'')); } this.sync(); }
+    else if (!u && was){ this.prof=null; this.rides=[]; this.nBest=0; this.ui(); }
+    else this.ui(); },
+  /* ---- Einstellungen ---- */
+  touch(k){ if (this.applying) return; if (k==='totalKm'){ if (this.user) this.schedule(); return; } if (!this.KEYS.includes(k)) return;
+    try{ localStorage.setItem('hicoreRide.accLocalT', String(Date.now())); }catch(e){} if (this.user) this.schedule(); if (k==='mpName') this.ui(); },
+  schedule(){ clearTimeout(this.pushT); this.pushT=setTimeout(()=>{ this.pushProf().then(()=>this.st('Gespeichert '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}),'on')).catch(e=>this.st('Speichern fehlgeschlagen: '+this.em(e),'err')); },3000); },
+  locT(){ try{ return +(localStorage.getItem('hicoreRide.accLocalT')||0)||0; }catch(e){ return 0; } },
+  collect(){ const o={}; this.KEYS.forEach(k=>{ const v=store.get(k,null); if (v!==null && v!==undefined) o[k]=v; }); o._t=this.locT()||Date.now(); return o; },
+  async pushProf(){ if (!this.user) return; const s=this.collect(), num=(v,a,b)=>{ v=+v; return v>=a&&v<=b?v:null; };
+    const row={ id:this.user.id, name:(store.get('mpName','')||'').slice(0,32)||null, mass:num($('mass').value,40,160), ftp:num(store.get('ftp',0),50,600), hr_max:num(store.get('hrmax',0),100,230),
+      settings:s, total_km:Math.max(+totalKm||0, this.prof&&+this.prof.total_km||0), updated_at:new Date().toISOString() };
+    const {error}=await this.sb.from('profiles').upsert(row,{onConflict:'id'}); if (error) throw error; this.prof=row; },
+  apply(p){ const s=p.settings||{}; this.applying=true;
+    try{ Object.keys(s).forEach(k=>{ if (!this.KEYS.includes(k)) return; const v=s[k]; store.set(k,v); const el=$(k);
+        if (!el || k==='world' || k==='hudMode') return;
+        if (el.type==='checkbox') el.checked=!!v; else if (el.tagName==='SELECT'){ if (![...el.options].some(o=>o.value===String(v))) return; el.value=String(v); } else el.value=v;
+        try{ el.dispatchEvent(new Event('change')); }catch(e){} });
+      if (s.world && WORLDS.find(w=>w.id===s.world)) selWorld=s.world;
+      if (s.hudMode!=null){ hudMode=(+s.hudMode||0)%3; try{ applyHud(); }catch(e){} }
+      try{ renderWorlds(); }catch(e){} }
+    finally{ this.applying=false; }
+    try{ localStorage.setItem('hicoreRide.accLocalT', String(s._t||Date.now())); }catch(e){} },
+  async sync(manual){ if (!this.user || this.syncing) return; this.syncing=true; this.st('Gleiche ab …');
+    try{ const uid=this.user.id; const {data:p,error}=await this.sb.from('profiles').select('*').eq('id',uid).maybeSingle(); if (error) throw error;
+      if (!p) await this.pushProf();
+      else { this.prof=p; const rt=+(p.settings&&p.settings._t)||0, lt=this.locT();
+        if (rt>lt) this.apply(p);
+        if ((+p.total_km||0)>totalKm+0.01){ totalKm=+p.total_km; this.applying=true; store.set('totalKm',totalKm); this.applying=false; try{ renderWorlds(); }catch(e){} }
+        if (lt>rt || totalKm>(+p.total_km||0)+0.01) await this.pushProf(); }
+      await this.syncBests(); await this.flushQ(); this.ui();
+      this.st('Abgeglichen '+new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}),'on');
+      if ($('accModal').style.display==='flex') this.loadRides(); }
+    catch(e){ this.st('Abgleich fehlgeschlagen: '+this.em(e),'err'); console.warn('ACC sync',e); }
+    this.syncing=false; },
+  /* ---- Bestzeiten: je Segment gewinnt die schnellere Zeit ---- */
+  async syncBests(){ const uid=this.user.id; const {data,error}=await this.sb.from('segment_bests').select('world,seg,t,at'); if (error) throw error;
+    const R={}; (data||[]).forEach(r=>{ R[r.world+'|'+r.seg]=r; }); const up=[]; let n=0;
+    WORLDS.forEach(w=>{ const B=store.get('seg_'+w.id,{})||{}; let ch=false;
+      Object.keys(B).forEach(sg=>{ const r=R[w.id+'|'+sg], t=+B[sg].t; if (t>0 && (!r || t<+r.t-0.005)) up.push({user_id:uid, world:w.id, seg:sg, t:+t.toFixed(2), at:new Date(B[sg].at||Date.now()).toISOString()}); });
+      (data||[]).forEach(r=>{ if (r.world!==w.id) return; const l=B[r.seg]; if (!l || +r.t<+l.t-0.005){ B[r.seg]={t:+r.t, at:Date.parse(r.at)||Date.now()}; ch=true; } });
+      if (ch) store.set('seg_'+w.id,B); n+=Object.keys(B).length; });
+    if (up.length){ const {error:e2}=await this.sb.from('segment_bests').upsert(up,{onConflict:'user_id,world,seg'}); if (e2) throw e2; }
+    this.nBest=n; },
+  bestPush(world,seg,t){ if (!this.user || !this.sb) return; this.sb.from('segment_bests').upsert({user_id:this.user.id, world, seg, t:+(+t).toFixed(2), at:new Date().toISOString()},{onConflict:'user_id,world,seg'}).then(({error})=>{ if (error) console.warn('ACC best',error); }); this.nBest++; },
+  /* ---- Fahrten: Kennzahlen + FIT-Datei; ohne Netz/Anmeldung in einer Warteschlange ---- */
+  uuid(){ try{ if (crypto.randomUUID) return crypto.randomUUID(); }catch(e){} const b=crypto.getRandomValues(new Uint8Array(16)); b[6]=b[6]&15|64; b[8]=b[8]&63|128; const h=[...b].map(x=>x.toString(16).padStart(2,'0')).join(''); return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20); },
+  b64(u8){ let s=''; for (let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000)); return btoa(s); },
+  unb64(s){ const b=atob(s), u=new Uint8Array(b.length); for (let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; },
+  Q(){ try{ return JSON.parse(localStorage.getItem('hicoreRide.accQ')||'[]')||[]; }catch(e){ return []; } },
+  setQ(q){ for (let n=q.length; n>=0; n--){ try{ localStorage.setItem('hicoreRide.accQ', JSON.stringify(q.slice(q.length-n))); return; }catch(e){} } },
+  sum(m){ const e=$('sumAcc'); if (e) e.innerHTML=m||''; },
+  rideItem(){ let hs=0,hn=0,hm=0,ps=0,pm=0,cs=0,cn=0; track.forEach(s=>{ if (s.hr){ hs+=s.hr; hn++; hm=Math.max(hm,s.hr); } ps+=s.pw; pm=Math.max(pm,s.pw); if (s.cad>0){ cs+=s.cad; cn++; } });
+    const bytes=buildFit(), km=(S.odo||S.dist)/1000;
+    return { row:{ id:this.uuid(), started_at:new Date(track[0].t).toISOString(), world:(WORLD&&WORLD.id)||builtWorld||selWorld, world_name:(WORLD&&WORLD.name)||'', bike:BIKE,
+      km:+km.toFixed(3), dur_s:Math.round(S.time), elev_m:Math.round(S.climb||0), avg_w:S.time>0?Math.round(S.energy/S.time):Math.round(ps/track.length), max_w:Math.round(pm), kj:Math.round((S.energy||0)/1000),
+      avg_hr:hn?Math.round(hs/hn):null, max_hr:hm||null, avg_cad:cn?Math.round(cs/cn):null }, fit:this.b64(bytes) }; },
+  saveRide(){ if (window.NO_ACC || !this.sb){ this.sum(''); return; }
+    try{ if (S.sim){ this.sum('Fahrten ohne Trainer werden nicht im Konto gespeichert.'); return; }
+      if (track.length<60){ this.sum('Fahrt zu kurz für das Konto (mindestens 1 Minute).'); return; }
+      const it=this.rideItem(); const q=this.Q(); q.push(it); while (q.length>10) q.shift(); this.setQ(q);
+      if (!this.user){ this.sum('☁️ <a href="#" id="sumAccL">Anmelden</a>, dann wird diese Fahrt im Konto gespeichert.'); const l=$('sumAccL'); if (l) l.onclick=e=>{ e.preventDefault(); this.show(); }; return; }
+      this.sum('☁️ Speichere Fahrt im Konto …'); this.flushQ().then(n=>{ this.sum(n>0?'☁️ Fahrt im Konto gespeichert.':'☁️ Noch nicht gespeichert, wird beim nächsten Start nachgeholt.'); }); }
+    catch(e){ console.warn('ACC ride',e); this.sum(''); } },
+  async upRide(it){ const uid=this.user.id, path=uid+'/'+it.row.id+'.fit';
+    const {error:e1}=await this.sb.storage.from('fit').upload(path, new Blob([this.unb64(it.fit)],{type:'application/octet-stream'}), {contentType:'application/octet-stream', upsert:false});
+    if (e1 && !/exist|duplicate|409/i.test(String(e1.message||e1.statusCode||e1))) throw e1;
+    const {error:e2}=await this.sb.from('rides').upsert(Object.assign({user_id:uid, fit_path:path}, it.row),{onConflict:'id', ignoreDuplicates:true}); if (e2) throw e2; },
+  async flushQ(){ if (!this.user || this.flushing) return 0; this.flushing=true; let n=0;
+    try{ let q=this.Q(); for (const it of q.slice()){ try{ await this.upRide(it); n++; q=this.Q().filter(x=>x.row.id!==it.row.id); this.setQ(q); }catch(e){ console.warn('ACC upload',e); this.st('Fahrt hochladen fehlgeschlagen: '+this.em(e),'err'); break; } } }
+    finally{ this.flushing=false; } if (n) this.loadRides(); return n; },
+  async loadRides(){ if (!this.user) return; const el=$('accRides');
+    try{ const {data,error}=await this.sb.from('rides').select('*').order('started_at',{ascending:false}).limit(50); if (error) throw error; this.rides=data||[]; this.drawRides(); }
+    catch(e){ el.textContent=this.em(e); } },
+  drawRides(){ const el=$('accRides'), q=this.Q(); if (!el) return;
+    if (!this.rides.length && !q.length){ el.innerHTML='<div class="accR"><div>Noch keine Fahrten. Fahrten mit Trainer werden nach „Beenden“ hier gespeichert.</div></div>'; return; }
+    const fmtD=s=>{ const d=new Date(s); return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}); };
+    const row=(r,pend)=>`<div class="accR" data-id="${r.id}"><div><b>${fmtD(r.started_at)}</b> · ${(+r.km||0).toFixed(1).replace('.',',')} km · ${fmtTime(r.dur_s||0)}<small>${(r.world_name||r.world||'').replace(/</g,'')} · Ø ${r.avg_w||0} W${r.avg_hr?' · Ø '+r.avg_hr+' bpm':''} · ${r.elev_m||0} hm${pend?' · wartet auf Upload':''}</small></div>${pend?'':'<button data-a="fit">FIT</button><button data-a="del">🗑</button>'}</div>`;
+    el.innerHTML=q.map(it=>row(it.row,true)).join('')+this.rides.map(r=>row(r,false)).join('');
+    el.querySelectorAll('button[data-a]').forEach(b=>b.onclick=()=>{ const id=b.parentNode.dataset.id, r=this.rides.find(x=>x.id===id); if (!r) return; if (b.dataset.a==='fit') this.dlFit(r); else this.delRide(r,b); }); },
+  async dlFit(r){ this.st('Lade FIT-Datei …'); try{ const {data,error}=await this.sb.storage.from('fit').download(r.fit_path||(this.user.id+'/'+r.id+'.fit')); if (error) throw error;
+      const d=new Date(r.started_at), name=`Hicore-Ride_${(r.world_name||r.world||'').replace(/\s+/g,'-')}_${d.toISOString().slice(0,16).replace(/[:T]/g,'-')}.fit`;
+      this.st(''); const res=await saveFile(new Blob([data],{type:'application/octet-stream'}), name, 'application/octet-stream'); if (res==='dl') toast('Datei gespeichert: '+name); }
+    catch(e){ this.st(this.em(e),'err'); } },
+  async delRide(r,b){ if (b.dataset.arm!=='1'){ b.dataset.arm='1'; b.textContent='Löschen?'; setTimeout(()=>{ b.dataset.arm=''; b.textContent='🗑'; },5000); return; }
+    try{ await this.sb.storage.from('fit').remove([r.fit_path||(this.user.id+'/'+r.id+'.fit')]); const {error}=await this.sb.from('rides').delete().eq('id',r.id); if (error) throw error;
+      this.rides=this.rides.filter(x=>x.id!==r.id); this.drawRides(); this.st('Fahrt gelöscht.','on'); }catch(e){ this.st(this.em(e),'err'); } }
+};
+try{ ACC.init(); }catch(e){ console.warn('ACC init',e); }
 $('bTr').onclick=connectTrainer; $('bHr').onclick=connectHR;
 $('bSim').onclick=()=>{ S.sim=true; start(); };
 $('bGo').onclick=()=>{ if(!trainer.type){ S.sim=true; toast('Kein Trainer verbunden, Simulationsmodus aktiv'); } else S.sim=false; start(); };
@@ -8025,7 +8225,7 @@ function endRide(){
   const newly=WORLDS.filter(w=>w.unlockKm>before && w.unlockKm<=totalKm);
   const next=WORLDS.find(w=>w.unlockKm>totalKm);
   $('sumUnlock').textContent = newly.length ? '🎉 Neu freigeschaltet: '+newly.map(w=>w.name).join(', ')+'!' : next ? `Noch ${(next.unlockKm-totalKm).toFixed(1)} km bis „${next.name}“.` : 'Alle Welten sind freigeschaltet.';
-  $('summary').style.display='flex';
+  $('summary').style.display='flex'; try{ ACC.saveRide(); }catch(e){ console.warn('ACC',e); }
   makeShareImage(c=>{ $('sumImg').src=c.toDataURL('image/jpeg',0.8); });
   if (trainer.type==='FTMS' && trainer.cp){ S.erg=false; $('bErg').classList.remove('on'); $('ergbox').style.display='none'; cpWrite([0x11,0,0,0,0,40,51]); }
   try { wakeLock && wakeLock.release(); } catch(e){}

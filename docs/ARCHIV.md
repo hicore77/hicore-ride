@@ -630,3 +630,13 @@ Die Sandbox ist über das Higgsfield-MCP-Werkzeug `sandbox_exec` erreichbar und 
 - Nachladen: `gtFinishStep` verteilt das Fertigstellen einer Geländekachel auf 5 Bilder (Normalen, Schilder, Nebenstraßen, Wege+Treppen, Einhängen), `gtJobDrop`. Alt: `OLD_GTFS`.
 - Test `tests/tanim.js` (`TI=1,4` Autotypen, `KINDS=reh,hirsch`, `OUT`): Auto seitlich/vorn/hinten mit Blinker, Tier ruhig/Schritt/Flucht. Gangbilder ohne Spiel: Harness in der Thread-Sandbox (lädt `props/*.glb` + Block ANIM), Bild vorschau/220_tiere.jpg, 221_autos.jpg.
 
+
+
+## 0.23.0 Handy-Fernbedienung (aus UEBERGABE verschoben am 26.11.2026)
+
+**Handy-Fernbedienung 0.23.0** (Hicore 25.11.: „wie bei Zwift eine Companion-App“)
+- Seite `quelle/handy/index.html` (Quelle) → `build_gpu.py` kopiert nach `gpu/handy/` mit `qrcode.js` (qrcode-generator 2.0.4, MIT) und `supabase.js`. Online: https://hicore77.github.io/hicore-ride/webgpu-spiel/handy/ (ohne App Store, im Handy-Browser).
+- Kopplung: Spiel erzeugt einen 6-stelligen Code (`store cmpCode`, bleibt gleich, „Neuer Code“ im Fenster), Kanal `hc:CODE` über dasselbe Supabase-Projekt, getrennt vom Multiplayer-Raum. Öffnen über 📱 oben rechts im Spiel oder Menü › 1 · Welt › unter Gruppenfahrt „Handy koppeln“ (QR-Code + Link). Einmal gekoppelt verbindet sich das Spiel beim Start selbst (`cmpOn`), das Handy merkt sich den Code.
+- Spiel (`CMP` in `src.html` nach `MP`, `CMP.frame` in der Hauptschleife): Presence `r:'game'`/`r:'phone'`, sendet Live-Werte 2×/s nur bei verbundenem Handy (`s`: Watt, Kadenz, Puls, km/h, Steigung, Strecke, Zeit, Höhenmeter, Pause, Kreuzung mit Optionen), empfängt `k` (L/R/S Abbiegen, J Option direkt, U Wenden, P Pause, C Kamera, H Anzeige, G Geste) und antwortet `ack` mit Meldung. L/R wählt den nächstliegenden Abzweig der Seite (nochmal tippen = nächster, z. B. scharf links), ohne Kreuzung gilt der Pfeil 60 s als Vorwahl für die nächste. Aus: `window.NO_CMP`.
+- Handy: große Pfeile, Kreuzungsoptionen mit Ziel, Wenden/Pause/Kamera/Anzeige, 5 Gesten, Bildschirm bleibt an (Wake Lock). Kein Server nötig außer Supabase (Free-Kontingent: ca. 7.000 Nachrichten je Fahrstunde).
+- Test `tests/thandy.js` (Spiel + Handy-Seite im selben Browser, Supabase durch `tests/fake_supabase.js` über BroadcastChannel ersetzt, weil die Cloud Supabase nicht erreicht). Echte Verbindung nur bei Hicore prüfbar.

@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.23.2 Beta** (Autoräder im Radkasten, natürliches Einlenken). Davor 0.23.1 (schwebende Wegenden, Dachschnee, Speichern in Bluefy), 0.23.0 (Handy als Fernbedienung).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.0 Beta** (Konten: Anmelden, Profil, Fahrten und Bestzeiten auf allen Geräten). Davor 0.23.2 (Autoräder, Einlenken), 0.23.1 (schwebende Wegenden, Dachschnee, Speichern in Bluefy).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.23.2** | **Autoräder sitzen im Radkasten (eingerückt, dunkles Radhaus), Einlenken nach Einspurmodell (Lenkung vor Drehung, Drehpunkt Hinterachse, Ackermann)** |
+| **0.24.0** | **Konten (Supabase Auth): E-Mail-Code, Passwort, Google; Profil, Einstellungen, Bestzeiten, Fahrten mit FIT im Konto** |
+| 0.23.2 | Autoräder sitzen im Radkasten (eingerückt, dunkles Radhaus), Einlenken nach Einspurmodell |
 | 0.23.1 | Schwebende Weg-/Treppenenden behoben, Dachschnee mit Kante, Schneeknirschen, Speichern-Fenster für Bluefy + Datei ans Handy |
-| 0.23.0 | Handy-Fernbedienung (Companion): Abbiegen, Wenden, Gesten, Pause/Kamera, Live-Werte, Kopplung per QR/Code |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -136,6 +136,15 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 **Leistung 0.20.0–0.21.0** (Details 0.20.0–0.20.2 in `docs/ARCHIV.md`): Kachelwald gebündelt (`GT.w`, `OLD_GTW`), Baumschatten nur nah (`OLD_TREESH`), HUD sparsam (`OLD_HUD`), Leistungstest per Tipp auf FPS-Anzeige (`LTEST`), Messung `tests/tgpuperf.js`. iPad-Lesart: Chrome hängt an Pixeln, Bluefy an den Bäumen.
 - 0.20.3 (Hicore: 0.20.2 lief erst 60 FPS/90 %, dann alle ~30 s Ruckler und wieder „28 FPS · max 30“): `FPSCTL.win(fps, maxFrameMs)` ersetzt `DRES.tick`/FCAP-Zweig. Unter 55 FPS Auflösung −10 % bis 70 % (nach jedem Wechsel ein Fenster Pause), kein Gewinn bei 70 % (< 3 FPS ggü. 100 %) → zurück auf 100 % und 5 min Sperre; 50–55 ungebremst, < 50 → 30er-Grenze, Probe alle 3 min; hoch +5 % nach 4×≥59, fällt es binnen 12 s → 3 min keine Erhöhung; Fenster mit Bild > 250 ms (Nachladen) zählen nicht. Alt: `window.OLD_FPSCTL`.
+**Konten 0.24.0** (Hicore 26.11.: „Accounts wäre nicht schlecht“)
+- Supabase Auth im selben Projekt wie Multiplayer (`ACC` in `src.html` direkt vor `$('bTr').onclick`). Eigener Client mit `persistSession`, `flowType:'pkce'`, `storageKey:'hicoreRide.auth'`; Multiplayer/Handy-Clients bleiben ohne Sitzung. Rückkehr-Adresse = `location.origin+pathname` (nichts fest verdrahtet, eigene Domain nur in Supabase eintragen).
+- Anmelden über 👤 oben rechts im Menü (`#accModal`): E-Mail-Code (`signInWithOtp` + `verifyOtp type:'email'`, Hauptweg für Bluefy, weil Links aus der Mail-App in Safari landen), Passwort (nach erster Anmeldung im Konto festlegen), Google (`signInWithOAuth`; setzt vorher `bootN`/`stage` zurück, sonst startet das iPad nach der Rückkehr im MINI-Modus). Fehlertexte deutsch (`ACC.em`). Link im falschen Browser → Hinweis, Code einzugeben.
+- Daten (SQL `supabase/konto.sql`, RLS je Konto): `profiles` (Name, Gewicht, FTP, Puls max., `settings` jsonb, `total_km`), `segment_bests` (beste Zeit gewinnt, `ACC.bestPush` bei neuer Bestzeit, Abgleich in `syncBests`), `rides` + Bucket `fit` (`<uid>/<id>.fit`, nur Fahrten mit echtem Trainer ab 1 min, `ACC.saveRide` in `endRide`, Warteschlange `hicoreRide.accQ` bei fehlendem Netz/Login, max. 10), `delete_my_account()`.
+- Einstellungen: `ACC.KEYS` (Gewicht, Schwierigkeit, Bots, Trikot, Watt-Glättung/-Korrektur, Rad, Tageszeit, Wetter, Schnee, Ton, Bloom, Name, Anzeige, Welt, FTP, Puls max.). Nicht synchron: Grafikstufe, Gemini-Schlüssel, Handy-Code. `store.set` ist umhüllt (`ACC.touch` setzt `hicoreRide.accLocalT`), neuere Seite gewinnt (`settings._t`), Hochladen 3 s nach Änderung. `totalKm` = Maximum.
+- Konto-Fenster: Profil, Meine Fahrten (FIT herunterladen über `saveFile`, löschen mit zweitem Tipp), Bestzeiten-Zahl, Passwort, Abgleichen, Abmelden, Konto löschen (zweiter Tipp). Aus: `window.NO_ACC`.
+- Einrichtung im Supabase-Dashboard: `docs/KONTO_EINRICHTEN.md` (SQL, Redirect-URLs, `{{ .Token }}` in Mail-Vorlagen, eigener SMTP für Freunde, Google-Client). Supabase-Standardversand schickt nur an Team-Mitglieder.
+- Test `tests/tacc.js` (ca. 1 min, kein Spielstart nötig): `fake_auth.js` (im Browser, über `window.HC_SB`) + `fake_auth_srv.js` (Node, RLS-Nachbau), zwei Kontexte = zwei Geräte. 23 Prüfungen: Code-Login, Profil/Einstellungen hoch und runter, Bestzeiten in beide Richtungen, Fahrt + FIT, Passwort, Sitzung nach Neuladen, Google-Meldung, Konto löschen. Echte Supabase nur bei Hicore prüfbar.
+
 **Autoräder und Einlenken 0.23.2** (Hicore 26.11.: „Räder sehen aufgesetzt aus, Einlenken sieht komisch aus“)
 - Ursache Räder: Außenseite stand ca. 8 cm über dem Kotflügel (Lage aus den herausgeschnittenen Modellrädern), Radkasten zeigte Karosserie/Himmel und Reste des Modellreifens. Jetzt misst `split` je Achse die Kotflügelkante `A.ax` (98 % der Punkte im Ring 1,06–1,5 r über der Achse), schneidet das Modellrad ganz heraus (`A.xi`, unten bis 1,16 r) und rückt das Rad auf 3,5 cm innerhalb der Kante. `linerGeo`/`linerMat`: dunkles Radhaus (Bogen + Innenwand, alle 4 in 1 Zeichenaufruf). Traktor unverändert. Alt: `OLD_WHEELS`.
 - Ursache Einlenken: Lenkwinkel folgte der gemessenen Drehung über zwei Glättungen (ca. 0,7 s zu spät). Neu `steerStep2`: Hinterachse läuft ohne Schräglauf auf der Spur, Karosserie dreht um die Hinterachse (`c.zr`), Lenkwinkel = atan(Radstand·Krümmung) aus Straße (`headingAt` um die Vorderachse, im Kreisel-Gegenverkehr gemessen, `c.rbA`) plus Spurwechsel, max. 0,9 rad/s, Ackermann je Rad, Wanken aus v²·Krümmung. Alt: `OLD_CARSTEER`.
@@ -149,12 +158,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Schneeknirschen (`AMB.snowBuf` erzeugt die Schleife, `snowUnder`): auf Wegen/Nebenstraßen nach Schneelage, Hauptstraße nur festgefahren (geräumt wenig Matsch), Abrollrauschen dann leiser. Regler „Fahrgeräusch“. Aus: `NO_SNOWSND`.
 - Speichern (`saveFile`, `saveSheet`): auf iPad/iPhone immer eigenes Fenster; Teilen erst beim Tipp dort (Geste ging beim Bild vorher verloren), probiert mehrere Dateitypen, zeigt Fehlername; „An gekoppeltes Handy senden“ (`CMP.sendFile`, Kanal-Ereignis `f` in 40.000-Zeichen-Stücken, Bestätigung `fa`; Handy-Seite zeigt Teilen/Herunterladen), „Bild kopieren“, Download-Link. Alt: `OLD_SAVE`. Test `thandy` prüft Übertragung (150 KB) und Fenster.
 
-**Handy-Fernbedienung 0.23.0** (Hicore 25.11.: „wie bei Zwift eine Companion-App“)
-- Seite `quelle/handy/index.html` (Quelle) → `build_gpu.py` kopiert nach `gpu/handy/` mit `qrcode.js` (qrcode-generator 2.0.4, MIT) und `supabase.js`. Online: https://hicore77.github.io/hicore-ride/webgpu-spiel/handy/ (ohne App Store, im Handy-Browser).
-- Kopplung: Spiel erzeugt einen 6-stelligen Code (`store cmpCode`, bleibt gleich, „Neuer Code“ im Fenster), Kanal `hc:CODE` über dasselbe Supabase-Projekt, getrennt vom Multiplayer-Raum. Öffnen über 📱 oben rechts im Spiel oder Menü › 1 · Welt › unter Gruppenfahrt „Handy koppeln“ (QR-Code + Link). Einmal gekoppelt verbindet sich das Spiel beim Start selbst (`cmpOn`), das Handy merkt sich den Code.
-- Spiel (`CMP` in `src.html` nach `MP`, `CMP.frame` in der Hauptschleife): Presence `r:'game'`/`r:'phone'`, sendet Live-Werte 2×/s nur bei verbundenem Handy (`s`: Watt, Kadenz, Puls, km/h, Steigung, Strecke, Zeit, Höhenmeter, Pause, Kreuzung mit Optionen), empfängt `k` (L/R/S Abbiegen, J Option direkt, U Wenden, P Pause, C Kamera, H Anzeige, G Geste) und antwortet `ack` mit Meldung. L/R wählt den nächstliegenden Abzweig der Seite (nochmal tippen = nächster, z. B. scharf links), ohne Kreuzung gilt der Pfeil 60 s als Vorwahl für die nächste. Aus: `window.NO_CMP`.
-- Handy: große Pfeile, Kreuzungsoptionen mit Ziel, Wenden/Pause/Kamera/Anzeige, 5 Gesten, Bildschirm bleibt an (Wake Lock). Kein Server nötig außer Supabase (Free-Kontingent: ca. 7.000 Nachrichten je Fahrstunde).
-- Test `tests/thandy.js` (Spiel + Handy-Seite im selben Browser, Supabase durch `tests/fake_supabase.js` über BroadcastChannel ersetzt, weil die Cloud Supabase nicht erreicht). Echte Verbindung nur bei Hicore prüfbar.
+**Handy-Fernbedienung 0.23.0:** Details (Seite `quelle/handy/`, Kanal `hc:CODE`, `CMP`, `NO_CMP`, Test `thandy` mit `fake_supabase.js`) jetzt in `docs/ARCHIV.md`. Online: https://hicore77.github.io/hicore-ride/webgpu-spiel/handy/
 
 **Tiere und Autos 0.22.0:** Details (`ANIM_CFG`, Gangarten, `deerStep`, `blinkStep`, `wheelGeo`, `gtFinishStep`, Test `tanim`) jetzt in `docs/ARCHIV.md`.
 
@@ -173,6 +177,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.16.1 am iPad prüfen: Vorauswahl in Orten (Spitzkunnersdorf), ob dezente Abzweig-Hinweise reichen, Ruckler beim automatischen Neuberechnen, Optik der Einmündungen.
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
 - 0.15.0 am iPad prüfen: Fahrgefühl Gravel/MTB, Ladezeit (+0,7 s), Wurzeln/Brücken.
+- 0.24.0 einrichten und prüfen: Dashboard-Schritte aus `docs/KONTO_EINRICHTEN.md`, dann Anmelden per Code in Bluefy, Google in Chrome und Bluefy (Google sperrt evtl. eingebettete Browser), Fahrt speichern, FIT aus dem Konto laden.
 - 0.23.2 am iPad prüfen: Räder im Radkasten, Einlenken beim Überholen und in Kurven, Kreisel-Gegenverkehr.
 - 0.23.1 am iPad prüfen: Speichern in Bluefy (Teilen-Knopf, sonst „An Handy senden“), Dachschnee bei „viel“, Knirschen, Treppen/Wegenden. KI-Gespräch mit Figuren auf dem iPad unzuverlässig.
 - Redmi Note 10 Pro stürzt ab (ruht). Häuserflackern auf „Hoch“ (Chrome iPad) unbestätigt.
@@ -191,4 +196,4 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 4. Leistung Teil 3 nur bei Bedarf: Modelle nach Bedarf laden (Rad-Verschmelzen seit 0.16.0, Wald-Bündeln seit 0.20.0 erledigt).
 5. Später: dezente Farbauswahl je Rad (über `BIKE_COLS`), Laufmodus (RSC/FTMS) auf demselben Netz.
 6. Treppen: erledigt in 0.18.0. Mögliche Verfeinerung: echte Zwischenpodeste, Treppen-Zählung aus Luftbild, Mitspieler tragen sichtbar.
-7. Accounts (Supabase Auth mit Google), Easter Eggs, später Abo.
+7. Konten erledigt (0.24.0). Mögliche Folgen: Bestenliste je Bergwertung unter Freunden (Leserecht `segment_bests` für angemeldete), FTP für Trainingszonen/W/kg nutzen, Easter Eggs, später Abo.
