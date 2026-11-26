@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.4 Beta** (Zäune nicht mehr über Straßen/Wege/Gleise, kein Gras auf Pflaster, Handy-Layout fest, Trikots ohne Schrift). Davor 0.24.3 (E-Mail + Passwort), 0.24.2 (Bluefy-Login per QR).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.5 Beta** (Abbiege-Fehler Sonneninsel behoben, Hügelland/Alpenpass ausgeblendet). Davor 0.24.4 (Zäune, Gras auf Pflaster), 0.24.3 (E-Mail + Passwort).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -11,7 +11,7 @@ Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, As
 ## 1. Worum es geht
 
 - Zwift-ähnliches Indoor-Radspiel im Browser. Three.js r187 mit WebGPU (Rückfall WebGL 2), eine große HTML-Datei plus Datenpakete, Bluetooth über Web Bluetooth.
-- Hauptwelt **Zittauer Gebirge**: echtes OSM-Straßennetz (ca. 180 km), echte Höhen, Kreuzungen, Kreisel, Verkehr, Bahn, Wahrzeichen, Wetter. Weitere Welten: Sonneninsel, Elbsandstein, Hügelland, Alpenpass.
+- Hauptwelt **Zittauer Gebirge**: echtes OSM-Straßennetz (ca. 180 km), echte Höhen, Kreuzungen, Kreisel, Verkehr, Bahn, Wahrzeichen, Wetter. Weitere Welten: Sonneninsel, Elbsandstein. Hügelland und Alpenpass sind seit 0.24.5 ausgeblendet (Hicore 26.11.), Code bleibt.
 - Zielgruppe: Hicore selbst und Freunde (Multiplayer über Supabase Realtime). Später eventuell öffentlich, Abo-Idee nicht entschieden.
 - Bleibt im Browser (Entscheidung 19.11.). Keine Markenlogos, keine Google-/Esri-Bilder, kein Nachbau fremder Spiele.
 - Hauptgerät: **iPad Air M1**, Bluetooth nur in der App **Bluefy**. Watt/Kadenz über Stages-Powermeter, Puls über Wahoo TICKR X. Elite Drivo hat kein FTMS, Widerstandssteuerung ungelöst.
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.24.4** | **Zäune nie über Straßen, Wege, Gleise; kein Gras auf Pflaster-/Splittstreifen; Handy-Kreuzungsfeld feste Höhe; Sprint-/Bergtrikot ohne Schrift** |
+| **0.24.5** | **Abbiege-Fehler in Rundkurs-Welten behoben (nach Zittau-Fahrt), Hügelland und Alpenpass ausgeblendet** |
+| 0.24.4 | Zäune nie über Straßen, Wege, Gleise; kein Gras auf Pflaster-/Splittstreifen; Handy-Kreuzungsfeld feste Höhe; Sprint-/Bergtrikot ohne Schrift |
 | 0.24.3 | E-Mail + Passwort mit „Neu registrieren“ als Hauptweg (kein Code nötig, Supabase „Confirm email“ aus), Code-Login nur noch aufklappbar (braucht eigenen SMTP) |
-| 0.24.2 | Bluefy-Anmeldung: E-Mail-Code wieder vorn mit Erklärung, Google in Bluefy über Handy/Chrome (Seite handy/login.html, Übergabe per Code/QR, Kanal hl:CODE), Anmeldung von Spiel zu Spiel übertragen, Prüfung ob Google eingeschaltet |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -135,6 +135,11 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 **Schultern 0.19.3–0.19.8, Gabeln 0.19.5:** Details (`carryGripPar`, `carryBody`, `carryRig`, `taperLeg`, `forkStep`, Tests `tcarry`/`tdismount`/`tbike`, Schalter `OLD_CARRY*`, `OLD_DISMOUNT`, `OLD_GRAVELFORK`, `NO_FORKMOVE`) jetzt in `docs/ARCHIV.md`.
 
 **Leistung 0.20.0–0.21.0** (Details 0.20.0–0.20.2 in `docs/ARCHIV.md`): Kachelwald gebündelt (`GT.w`, `OLD_GTW`), Baumschatten nur nah (`OLD_TREESH`), HUD sparsam (`OLD_HUD`), Leistungstest per Tipp auf FPS-Anzeige (`LTEST`), Messung `tests/tgpuperf.js`. iPad-Lesart: Chrome hängt an Pixeln, Bluefy an den Bäumen.
+**0.24.5 Abbiege-Fehler, Welten ausgeblendet** (Hicore 26.11.: Fehler „bt.innerHTML … null“ auf der Sonneninsel vor einem Abzweig; Hügelland/Alpenpass nicht löschen, nur unsichtbar)
+- Ursache: Zittau (`gJunUI`) und Rundkurs-Welten (`junUI`) teilen sich `#junc`. `junUI(null)` (auch aus `gNetStep`) setzt `dataset.g=''`, ohne den Inhalt zurückzubauen; nach einer Zittau-Fahrt in derselben Seite fand `junUI` dann keinen `[data-v=turn]`-Knopf. Jetzt baut `junUI` neu, wenn der Knopf fehlt. Elbsandstein hat keine Abzweige (`NET` null), dort tritt der Fehler nicht auf.
+- Welten: `hidden:true` an `huegel`/`pass`, `wVis(w)` (nach `WORLDS`) filtert Weltauswahl, gespeicherte/Konto-Welt, Fortsetzen, Freischalt-Meldungen. Zum Testen `window.SHOW_ALL_WORLDS=1`.
+- Test `tests/tworlds.js` (`W=insel,elbe`, ca. 10 min je Welt): ganze Runde mit `netStep`, frisch und mit Zittau-Kreuzungsfeld; listet Weltkarten. Alt (ROOT=webgpu-spiel): Fehler wie bei Hicore, neu 65× Abzweig angezeigt, kein Fehler. `terr2` none.
+
 **0.24.4 Zäune, Gras, Handy, Trikots** (Hicore 26.11.: Dekozäune quer über Straßen und Bahn, Grasbüschel auf Kopfsteinpflaster, Handy-Layout springt, Trikot-Schrift zu groß)
 - Zäune: `fenceHit(ax,az,bx,bz,m)` (bei `propOnWay`) prüft ein Zaunstück alle 0,5 m gegen Straßen (`gnNear`, Rand + m), Wege/Treppen (`waysNear`) und Gleise (`railNear`, eigenes 20-m-Raster aus `ZSB.lines`, Schmalspur 1,6 m, Normalspur 2,1 m halbe Bettbreite). Gilt für OSM-Zäune (`gtFenceMesh`, m 1,0), Deko-Zaun entlang der Runde (`addProps`, m 2,6 = auch nicht auf dem Pflasterstreifen), Weidezaun (m 2,6), Jägerzaun/Hecke (m 1,0 + nicht auf Pflaster, `buildFencesHedges`) und Vorgartenzäune (`gardenFences`). Vorher wurden Gleise nirgends, Wege bei Weide-/Jägerzaun gar nicht geprüft. Alt: `window.OLD_FENCECHK`.
 - Gras: `gnPave(x,z,m)` (nach `gnNear`, das jetzt auch `px/pz` liefert) = liegt der Punkt auf dem Pflaster-/Splittstreifen im Ort (gleiche Breiten wie `orBuilder`). Feines Gras/Büschel (`gfCell`) und Rand-Büschel/Blumen (`buildVerge`, dort auch nicht mehr auf Wegen) lassen diese Stellen aus. Alt: `window.OLD_GRASSPAVE`.
@@ -144,11 +149,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 **0.24.3 Passwort als Hauptweg** (Hicore 26.11.: Screenshot, Mail-Vorlagen im Free-Plan nur mit eigenem SMTP änderbar → kein Code möglich): `ACC.register` (`signUp`; mit Session = sofort angemeldet, `identities:[]` = Adresse vergeben, sonst Hinweis auf Bestätigungs-Link), Felder E-Mail + Passwort vorn, Code-Login in `<details>`. Einrichtung: „Confirm email“ aus, optional Hostinger-SMTP (`docs/KONTO_EINRICHTEN.md` Schritt 3/4). Test `tacc` (26 Prüfungen inkl. Registrieren).
 
-**Bluefy-Anmeldung 0.24.2** (Hicore 26.11.: Google geht in Bluefy nicht, E-Mail brachte nur „Confirm“-Link, keinen Code)
-- Ursache E-Mail: Supabase-Vorlagen enthalten ab Werk keinen Code, und im Free-Plan sind sie nur mit eigenem SMTP änderbar (deshalb 0.24.3).
-- Google in Bluefy wird gesperrt (eingebetteter Browser). `ACC.blu()` = iOS + `navigator.bluetooth`; dort öffnet der Google-Knopf die Übergabe (`ACC.handStart`): Code + QR auf `handy/login.html?c=CODE`. Die Seite (Handy oder Chrome) meldet mit Google an und sendet die Sitzung über Realtime-Kanal `hl:CODE` (`hlSend`, Wiederholung alle 2,5 s bis `ok`); Spiel macht `setSession`. Der Sender vergisst die Sitzung danach lokal (gleicher Erneuerungsschlüssel auf zwei Geräten → Supabase meldet beide ab). Code gilt 10 min.
-- Angemeldetes Spiel kann unter „Anderes Gerät anmelden“ selbst übertragen (`ACC.give`, meldet sich dabei ab). Vor Google-Weiterleitung `GET /auth/v1/settings` (`googleOn`), damit keine rohe JSON-Fehlerseite kommt.
-- Test `tests/thlogin.js` (Spiel ↔ login.html und Spiel → Spiel, `fake_auth.js` mit Fake-Kanal/`FAKE_OAUTH`), `tacc` weiter grün.
+**Bluefy-Anmeldung 0.24.2:** Details (`ACC.blu`, `ACC.handStart`, Kanal `hl:CODE`, `ACC.give`, Test `thlogin`) jetzt in `docs/ARCHIV.md`.
 
 **Konten 0.24.0** (Hicore 26.11.: „Accounts wäre nicht schlecht“)
 - Supabase Auth im selben Projekt wie Multiplayer (`ACC` in `src.html` direkt vor `$('bTr').onclick`). Eigener Client mit `persistSession`, `flowType:'pkce'`, `storageKey:'hicoreRide.auth'`; Multiplayer/Handy-Clients bleiben ohne Sitzung. Rückkehr-Adresse = `location.origin+pathname` (nichts fest verdrahtet, eigene Domain nur in Supabase eintragen).
@@ -180,6 +181,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.16.1 am iPad prüfen: Vorauswahl in Orten (Spitzkunnersdorf), ob dezente Abzweig-Hinweise reichen, Ruckler beim automatischen Neuberechnen, Optik der Einmündungen.
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
 - 0.15.0 am iPad prüfen: Fahrgefühl Gravel/MTB, Ladezeit (+0,7 s), Wurzeln/Brücken.
+- 0.24.5 am iPad prüfen: Sonneninsel Querwege links/rechts wählbar, nur noch 3 Welten in der Auswahl.
 - 0.24.4 am iPad prüfen: Zäune quer über Straßen/Bahn weg? Fehlen jetzt sichtbar Zäune? Gras auf Pflaster weg, Handy-Pfeile bleiben stehen, Trikots.
 - Konten bestätigt (Hicore 26.11., 19:47, Bluefy): Passwort-Login, Profil, Fahrt mit FIT und Bestzeit im Konto. Noch nicht real getestet: QR-Übergabe vom Handy, FIT-Download aus dem Konto in Bluefy.
 - 0.23.2 am iPad prüfen: Räder im Radkasten, Einlenken beim Überholen und in Kurven, Kreisel-Gegenverkehr.

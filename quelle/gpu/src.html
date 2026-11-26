@@ -373,16 +373,18 @@ const WORLDS = [
     desc:'Sächsische Schweiz: an der Elbe entlang, dann durch Kiefernwald hinauf zu Felsnadeln und Tafelbergen. Runde ca. 10 km.',
     R:1560, shape:[0.16,0.13,120,90], elev:t=> 118*Math.pow((1-Math.cos(t-1.2))/2,1.5)+3*Math.sin(4*t+0.5)+1.5*Math.sin(9*t),
     terrain:'sandstone', sky:0x9cc6e8, fog:0xc9d6df, grass:[0.25,0.40], trees:'sandstone', water:true },
-  { id:'huegel', name:'Hügelland', unlockKm:15,
+  { id:'huegel', name:'Hügelland', unlockKm:15, hidden:true,
     desc:'Wellige Runde durch Wälder und Wiesen mit kurzen, knackigen Anstiegen.',
     R:1250, shape:[0.22,0.18,140,90], elev:t=> 26*Math.sin(t)+17*Math.sin(3*t+1.2)+7*Math.sin(7*t+0.4)+4*Math.sin(11*t),
     terrain:'hills', sky:0x9fd3ff, fog:0xbfe0ff, grass:[0.27,0.45], trees:'mixed', water:true },
-  { id:'pass', name:'Alpenpass', unlockKm:50,
+  { id:'pass', name:'Alpenpass', unlockKm:50, hidden:true,
     desc:'Lange Runde mit einem echten Pass: über 150 Höhenmeter am Stück.',
     R:1600, shape:[0.12,0.25,120,160], elev:t=> 75*Math.sin(t-0.6)+12*Math.sin(3*t)+5*Math.sin(8*t+1),
     terrain:'mountains', sky:0xa8c8e8, fog:0xd4e2f0, grass:[0.22,0.3], trees:'conifer', water:false },
 ];
 
+/* 0.24.5: hidden = in der Auswahl ausgeblendet (Code bleibt), zum Testen window.SHOW_ALL_WORLDS=1 */
+const wVis=w=>!!w && (!w.hidden || !!window.SHOW_ALL_WORLDS);
 // Kurs-Daten (werden pro Welt neu gesetzt)
 const N = 3000;
 let pts=[], cum=new Float64Array(N+1), L=1, minY=0, maxY=1, WORLD=WORLDS[0];
@@ -1965,8 +1967,8 @@ function junPick(v){ if (!NET || !NET.pend || NET.graph) return; NET.pick=v; con
 function junUI(j, ah){ let el=$('junc'); if (!el){ el=document.createElement('div'); el.id='junc'; document.body.appendChild(el);
     el.innerHTML='<div class="jt"></div><div class="jb"><button data-v="turn"></button><button data-v="gerade">⬆ Geradeaus<small>Küstenrunde</small></button></div>';
     el.querySelectorAll('button').forEach(b=>b.onclick=()=>junPick(b.dataset.v)); }
-  if (!j){ el.style.display='none'; el.dataset.g=''; return; } if (el.dataset.g){ el.dataset.g=''; el.innerHTML='<div class="jt"></div><div class="jb"><button data-v="turn"></button><button data-v="gerade">⬆ Geradeaus<small>Küstenrunde</small></button></div>'; el.querySelectorAll('button').forEach(b=>b.onclick=()=>junPick(b.dataset.v)); } el.style.display='block';
-  const bt=el.querySelector('[data-v=turn]'), left=j.turn==='links'; bt.innerHTML=(left?'⬅ Links':'Rechts ➡')+'<small>'+j.name+' · '+(j.len/1000).toFixed(1).replace('.',',')+' km</small>';
+  if (!j){ el.style.display='none'; el.dataset.g=''; return; } if (el.dataset.g || !el.querySelector('[data-v=turn]')){ /* 0.24.5: nach Zittau (gJunUI) fehlte sonst der Abbiege-Knopf */ el.dataset.g=''; el.innerHTML='<div class="jt"></div><div class="jb"><button data-v="turn"></button><button data-v="gerade">⬆ Geradeaus<small>Küstenrunde</small></button></div>'; el.querySelectorAll('button').forEach(b=>b.onclick=()=>junPick(b.dataset.v)); } el.style.display='block';
+  const bt=el.querySelector('[data-v=turn]'), left=j.turn==='links'; if (!bt) return; bt.innerHTML=(left?'⬅ Links':'Rechts ➡')+'<small>'+j.name+' · '+(j.len/1000).toFixed(1).replace('.',',')+' km</small>';
   el.querySelector('.jb').style.flexDirection=left?'row':'row-reverse';
   if (ah!=null) el.querySelector('.jt').textContent='Kreuzung in '+Math.max(0,Math.round(ah))+' m';
   el.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.v===NET.pick)); }
@@ -7698,7 +7700,7 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
 const store = { get(k,d){ try{ const v=localStorage.getItem('hicoreRide.'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
                 set(k,v){ try{ localStorage.setItem('hicoreRide.'+k, JSON.stringify(v)); }catch(e){} } };
 let totalKm = store.get('totalKm', 0);
-let selWorld = store.get('world', 'insel'); if (!WORLDS.find(w=>w.id===selWorld)) selWorld='zittau';
+let selWorld = store.get('world', 'insel'); if (!wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='zittau';
 let builtWorld = null;
 
 // ---------- Anzeige ausblenden (0.4.8): einzelne Teile per Einstellung, schnell per H / 👁: 0 alles, 1 nur oben, 2 nur Fahrer ----------
@@ -7995,10 +7997,10 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.5 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
-  if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
-  WORLDS.forEach(def=>{
+  if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
+  WORLDS.forEach(def=>{ if (!wVis(def)) return;
     const st=worldStats(def), un=isUnlocked(def);
     const el=document.createElement('div'); el.className='wcard'+(def.id===selWorld?' sel':'')+(un?'':' lock');
     const cv=document.createElement('canvas'); worldThumb(cv,def);
@@ -8169,7 +8171,7 @@ const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:
         if (!el || k==='world' || k==='hudMode') return;
         if (el.type==='checkbox') el.checked=!!v; else if (el.tagName==='SELECT'){ if (![...el.options].some(o=>o.value===String(v))) return; el.value=String(v); } else el.value=v;
         try{ el.dispatchEvent(new Event('change')); }catch(e){} });
-      if (s.world && WORLDS.find(w=>w.id===s.world)) selWorld=s.world;
+      if (s.world && wVis(WORLDS.find(w=>w.id===s.world))) selWorld=s.world;
       if (s.hudMode!=null){ hudMode=(+s.hudMode||0)%3; try{ applyHud(); }catch(e){} }
       try{ renderWorlds(); }catch(e){} }
     finally{ this.applying=false; }
@@ -8244,7 +8246,7 @@ $('bTr').onclick=connectTrainer; $('bHr').onclick=connectHR;
 $('bSim').onclick=()=>{ S.sim=true; start(); };
 $('bGo').onclick=()=>{ if(!trainer.type){ S.sim=true; toast('Kein Trainer verbunden, Simulationsmodus aktiv'); } else S.sim=false; start(); };
 /* abgebrochene Fahrt (Absturz, Neuladen) fortsetzen */
-try{ const r=JSON.parse(localStorage.getItem('hicoreRide.resume')||'null'); if (r && r.S && Date.now()-r.at<6*3600e3 && WORLDS.find(w=>w.id===r.w) && (r.S.odo||r.S.dist)>200){ const b=document.createElement('button'); b.id='bResume'; b.className='pri'; b.style.marginTop='8px'; b.textContent='Letzte Fahrt fortsetzen ('+((r.S.odo||r.S.dist)/1000).toFixed(1)+' km, '+WORLDS.find(w=>w.id===r.w).name+')';
+try{ const r=JSON.parse(localStorage.getItem('hicoreRide.resume')||'null'); if (r && r.S && Date.now()-r.at<6*3600e3 && wVis(WORLDS.find(w=>w.id===r.w)) && (r.S.odo||r.S.dist)>200){ const b=document.createElement('button'); b.id='bResume'; b.className='pri'; b.style.marginTop='8px'; b.textContent='Letzte Fahrt fortsetzen ('+((r.S.odo||r.S.dist)/1000).toFixed(1)+' km, '+WORLDS.find(w=>w.id===r.w).name+')';
   b.onclick=()=>{ selWorld=r.w; store.set('world',selWorld); window.__resume=r; b.remove(); $('bGo').onclick(); }; $('bGo').insertAdjacentElement('afterend',b); } }catch(e){}
 $('bMenu').onclick=()=>{ S.paused=true; $('bPause').classList.add('on'); $('menu').style.display='flex'; $('bGo').textContent='Weiterfahren'; renderWorlds(); };
 $('bPause').onclick=togglePause;
@@ -8308,8 +8310,8 @@ function endRide(){
   const avg=S.time>0?Math.round(S.energy/S.time):0;
   const cells=[[km.toFixed(2),'km'],[fmtTime(S.time),'Zeit'],[S.time>0?(km/(S.time/3600)).toFixed(1):'0','Ø km/h'],[avg,'Ø Watt'],[Math.round(S.energy/1000),'kJ'],[Math.round(S.climb),'Höhenmeter']];
   $('sumgrid').innerHTML=cells.map(([v,l])=>`<div><b>${v}</b><span>${l}</span></div>`).join('');
-  const newly=WORLDS.filter(w=>w.unlockKm>before && w.unlockKm<=totalKm);
-  const next=WORLDS.find(w=>w.unlockKm>totalKm);
+  const newly=WORLDS.filter(w=>wVis(w) && w.unlockKm>before && w.unlockKm<=totalKm);
+  const next=WORLDS.find(w=>wVis(w) && w.unlockKm>totalKm);
   $('sumUnlock').textContent = newly.length ? '🎉 Neu freigeschaltet: '+newly.map(w=>w.name).join(', ')+'!' : next ? `Noch ${(next.unlockKm-totalKm).toFixed(1)} km bis „${next.name}“.` : 'Alle Welten sind freigeschaltet.';
   $('summary').style.display='flex'; try{ ACC.saveRide(); }catch(e){ console.warn('ACC',e); }
   makeShareImage(c=>{ $('sumImg').src=c.toDataURL('image/jpeg',0.8); });

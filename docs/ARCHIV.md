@@ -669,3 +669,12 @@ Die Sandbox ist über das Higgsfield-MCP-Werkzeug `sandbox_exec` erreichbar und 
 - Test `tests/thud.js` (ca. 20 min, `ROOT=` für alten Stand, `TAG`): Bergwertung + Kreuzung + Meldung + FPS gleichzeitig, misst Überlappungen, Bilder iPad 1180×820 und Handy 390×844. Bilder vorschau/261, 262.
 
 - 0.20.3 (Hicore: 0.20.2 lief erst 60 FPS/90 %, dann alle ~30 s Ruckler und wieder „28 FPS · max 30“): `FPSCTL.win(fps, maxFrameMs)` ersetzt `DRES.tick`/FCAP-Zweig. Unter 55 FPS Auflösung −10 % bis 70 % (nach jedem Wechsel ein Fenster Pause), kein Gewinn bei 70 % (< 3 FPS ggü. 100 %) → zurück auf 100 % und 5 min Sperre; 50–55 ungebremst, < 50 → 30er-Grenze, Probe alle 3 min; hoch +5 % nach 4×≥59, fällt es binnen 12 s → 3 min keine Erhöhung; Fenster mit Bild > 250 ms (Nachladen) zählen nicht. Alt: `window.OLD_FPSCTL`.
+
+
+## 0.24.2 Bluefy-Anmeldung (aus UEBERGABE verschoben)
+
+**Bluefy-Anmeldung 0.24.2** (Hicore 26.11.: Google geht in Bluefy nicht, E-Mail brachte nur „Confirm“-Link, keinen Code)
+- Ursache E-Mail: Supabase-Vorlagen enthalten ab Werk keinen Code, und im Free-Plan sind sie nur mit eigenem SMTP änderbar (deshalb 0.24.3).
+- Google in Bluefy wird gesperrt (eingebetteter Browser). `ACC.blu()` = iOS + `navigator.bluetooth`; dort öffnet der Google-Knopf die Übergabe (`ACC.handStart`): Code + QR auf `handy/login.html?c=CODE`. Die Seite (Handy oder Chrome) meldet mit Google an und sendet die Sitzung über Realtime-Kanal `hl:CODE` (`hlSend`, Wiederholung alle 2,5 s bis `ok`); Spiel macht `setSession`. Der Sender vergisst die Sitzung danach lokal (gleicher Erneuerungsschlüssel auf zwei Geräten → Supabase meldet beide ab). Code gilt 10 min.
+- Angemeldetes Spiel kann unter „Anderes Gerät anmelden“ selbst übertragen (`ACC.give`, meldet sich dabei ab). Vor Google-Weiterleitung `GET /auth/v1/settings` (`googleOn`), damit keine rohe JSON-Fehlerseite kommt.
+- Test `tests/thlogin.js` (Spiel ↔ login.html und Spiel → Spiel, `fake_auth.js` mit Fake-Kanal/`FAKE_OAUTH`), `tacc` weiter grün.
