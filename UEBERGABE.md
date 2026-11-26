@@ -181,8 +181,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
 - 0.15.0 am iPad prüfen: Fahrgefühl Gravel/MTB, Ladezeit (+0,7 s), Wurzeln/Brücken.
 - 0.24.4 am iPad prüfen: Zäune quer über Straßen/Bahn weg? Fehlen jetzt sichtbar Zäune? Gras auf Pflaster weg, Handy-Pfeile bleiben stehen, Trikots.
-- 0.24.3 prüfen: „Confirm email“ aus, in Bluefy registrieren/anmelden mit Passwort; Übergabe per QR vom Handy (0.24.2), Google in Chrome.
-- 0.24.0 einrichten und prüfen: Dashboard-Schritte aus `docs/KONTO_EINRICHTEN.md`, dann Anmelden per Code in Bluefy, Google in Chrome und Bluefy (Google sperrt evtl. eingebettete Browser), Fahrt speichern, FIT aus dem Konto laden.
+- Konten bestätigt (Hicore 26.11., 19:47, Bluefy): Passwort-Login, Profil, Fahrt mit FIT und Bestzeit im Konto. Noch nicht real getestet: QR-Übergabe vom Handy, FIT-Download aus dem Konto in Bluefy.
 - 0.23.2 am iPad prüfen: Räder im Radkasten, Einlenken beim Überholen und in Kurven, Kreisel-Gegenverkehr.
 - 0.23.1 am iPad prüfen: Speichern in Bluefy (Teilen-Knopf, sonst „An Handy senden“), Dachschnee bei „viel“, Knirschen, Treppen/Wegenden. KI-Gespräch mit Figuren auf dem iPad unzuverlässig.
 - Redmi Note 10 Pro stürzt ab (ruht). Häuserflackern auf „Hoch“ (Chrome iPad) unbestätigt.
