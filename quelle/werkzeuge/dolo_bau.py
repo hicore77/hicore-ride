@@ -76,10 +76,20 @@ for oy in (-0.3, 0.0, 0.3):
 tf /= 9; tf = ndimage.gaussian_filter(tf, 1.5)
 H = H - 11.0 * tf
 H = ndimage.gaussian_filter(H, 0.6)
+# 0.25.6: TINITALY 1.1 (INGV, 10 m, CC BY 4.0, Geländemodell ohne Bewuchs) ersetzt Copernicus: außen auf 25 m, innen (±7,6 km) mit 10 m.
+# tin_outer.npy / tin_inner.npy entstehen in der Sandbox (werkzeuge/tinitaly_crop.py) aus den Kacheln w51570, w51575, w51070, w51075.
+H2 = None; I0, IC, IN = -7600.0, 10.0, 1521
+if os.path.exists(os.path.join(SRC, 'tin_outer.npy')) and not os.environ.get('NO_TIN'):
+    H = np.load(os.path.join(SRC, 'tin_outer.npy')).astype(np.float32); H2 = np.load(os.path.join(SRC, 'tin_inner.npy')).astype(np.float32)
+    print('TINITALY', H.shape, H.max(), H2.shape, H2.max())
 def demxz(x, z):
     sc = np.ndim(x) == 0; x = np.atleast_1d(np.asarray(x, np.float64)); z = np.atleast_1d(np.asarray(z, np.float64))
     fx = (x - GX0) / GC; fz = (z - GZ0) / GC
     r = ndimage.map_coordinates(H, [fz.ravel(), fx.ravel()], order=1, mode='nearest').reshape(x.shape)
+    if H2 is not None:
+        r2 = ndimage.map_coordinates(H2, [((z - I0) / IC).ravel(), ((x - I0) / IC).ravel()], order=1, mode='nearest').reshape(x.shape)
+        e = np.minimum(np.minimum(x - I0, I0 + (IN - 1) * IC - x), np.minimum(z - I0, I0 + (IN - 1) * IC - z)); w = np.clip(e / 150.0, 0, 1)
+        r = r * (1 - w) + r2 * w
     return float(r[0]) if sc else r
 
 # ---------------- OSM ----------------
@@ -248,6 +258,9 @@ for o in NODES:
 q = np.round((H - Y0) * 10).astype(np.int64); d = np.diff(np.concatenate([np.zeros((GNZ, 1), np.int64), q], axis=1), axis=1)
 assert np.abs(d).max() < 32767
 net['dem'] = {'x0': GX0, 'z0': GZ0, 'cell': GC, 'nx': GNX, 'nz': GNZ, 'd': base64.b64encode(d.astype('<i2').tobytes()).decode()}
+if H2 is not None:   # Innenraster als PNG: Rot = hohes, Grün = niedriges Byte von (Höhe - 900) * 4
+    q2 = np.clip(np.round((H2 - 900.0) * 4), 0, 65535).astype(np.uint16); rgb = np.zeros(q2.shape + (3,), np.uint8); rgb[..., 0] = q2 >> 8; rgb[..., 1] = q2 & 255
+    Image.fromarray(rgb, 'RGB').save(os.path.join(OUT, 'dem10.png'), optimize=True); print('dem10.png', os.path.getsize(os.path.join(OUT, 'dem10.png')) // 1024, 'KB')
 json.dump(net, open(os.path.join(OUT, 'net.json'), 'w'), separators=(',', ':'), ensure_ascii=False)
 print('net.json', os.path.getsize(os.path.join(OUT, 'net.json')) // 1024, 'KB')
 
@@ -468,5 +481,6 @@ far_img, _, _ = sat_grid(GX0, GZ0, 25.0, GNX - 1, GNZ - 1, 1)
 Image.fromarray(far_img).save(os.path.join(OUT, 'sat_far.jpg'), quality=82)
 print('sat', os.path.getsize(os.path.join(OUT, 'sat_near.jpg')) // 1024, os.path.getsize(os.path.join(OUT, 'sat_far.jpg')) // 1024, 'KB')
 meta = {'lc': [LC0x, LC0z, LCc, LCw, LCh], 'satN': [LC0x, LC0z, LCc, LCw, LCh], 'satF': [GX0, GZ0, 25.0, GNX - 1, GNZ - 1], 'peaks': peaks}
+if H2 is not None: meta['dem2'] = [I0, I0, IC, IN, IN, 900.0, 0.25]
 json.dump(meta, open(os.path.join(OUT, 'meta.json'), 'w'), ensure_ascii=False)
 print('fertig')

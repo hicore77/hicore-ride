@@ -76,7 +76,7 @@ zs=wfile('zittau.js', sj)
 dlj=''
 if os.path.exists(D+'dolo/net.json'):
     dm=json.load(open(D+'dolo/meta.json'))
-    dd='window.DLDATA={ZGNET:'+open(D+'dolo/net.json').read()+',ZGRES:'+open(D+'dolo/res.json').read()+',ZGSIDE:"'+base64.b64encode(open(D+'dolo/side.bin','rb').read()).decode()+'",ZGBLD:"'+open(D+'dolo/bld.b64').read().strip()+'",ZGLC:"'+base64.b64encode(open(D+'dolo/lc.png','rb').read()).decode()+'",ZGLCO:['+str(dm['lc'][0])+','+str(dm['lc'][1])+'],meta:'+json.dumps(dm,ensure_ascii=False)+',satN:'+json.dumps(imgf(D+'dolo/sat_near.jpg','dolo_sat_near.jpg'))+',satF:'+json.dumps(imgf(D+'dolo/sat_far.jpg','dolo_sat_far.jpg'))+'};'
+    dd='window.DLDATA={ZGNET:'+open(D+'dolo/net.json').read()+',ZGRES:'+open(D+'dolo/res.json').read()+',ZGSIDE:"'+base64.b64encode(open(D+'dolo/side.bin','rb').read()).decode()+'",ZGBLD:"'+open(D+'dolo/bld.b64').read().strip()+'",ZGLC:"'+base64.b64encode(open(D+'dolo/lc.png','rb').read()).decode()+'",ZGLCO:['+str(dm['lc'][0])+','+str(dm['lc'][1])+'],meta:'+json.dumps(dm,ensure_ascii=False)+',satN:'+json.dumps(imgf(D+'dolo/sat_near.jpg','dolo_sat_near.jpg'))+',satF:'+json.dumps(imgf(D+'dolo/sat_far.jpg','dolo_sat_far.jpg'))+(',dem10:'+json.dumps(imgf(D+'dolo/dem10.png','dolo_dem10.png')) if os.path.exists(D+'dolo/dem10.png') else '')+'};'
     dlj='<script>window.DL_FILE="data/'+wfile('dolomiten.js', dd)+'";</script>'
 t=t.replace('<script>/*SPK*/</script>',dlj+'<script>/*SPK*/</script>',1)
 t=t.replace('<script>/*SPK*/</script>','<script src="data/'+zs+'"></script>',1)
