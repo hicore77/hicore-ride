@@ -214,6 +214,26 @@ for o in O:
     if not ty: continue
     x, z = xy(o[2], o[3])
     if -14000 < x < 14000 and -12000 < z < 12000: crs.append([ty, round(x, 1), round(z, 1), 1 if t.get('summit:cross') == 'yes' or t.get('natural') == 'peak' else 0])
+# 0.25.4: Bäche/Flüsse (Linien, Breite) und Seen (Flächen) für Wasser im Spiel
+def simp(P, tol=3.0):
+    if len(P) < 3: return P
+    out = [P[0]]
+    for q in P[1:-1]:
+        if math.dist(q, out[-1]) >= tol: out.append(q)
+    out.append(P[-1]); return out
+stl = []; lak = []
+for o in W.values():
+    t = o[2]; ww = t.get('waterway'); P = [xy(*q) for q in o[3]]
+    if not P: continue
+    if not any(-11500 < x < 11500 and -10500 < z < 10500 for x, z in P): continue
+    if ww in ('stream', 'river', 'canal') and t.get('tunnel') not in ('culvert', 'yes') and len(P) > 1:
+        wd = 7.0 if ww == 'river' else 2.6
+        try: wd = min(14.0, max(1.2, float(str(t.get('width')).split()[0]))) if t.get('width') else wd
+        except Exception: pass
+        Q = simp(P); stl.append([round(wd, 1)] + [round(v, 1) for q in Q for v in q])
+    elif (t.get('natural') == 'water' or t.get('landuse') == 'reservoir') and len(P) > 3 and t.get('water') not in ('river', 'stream'):
+        Q = simp(P, 2.0); lak.append([round(v, 1) for q in Q for v in q])
+net['streams'] = stl; net['lakes'] = lak; print('Bäche', len(stl), 'Seen', len(lak))
 net['crosses'] = crs; print('Kreuze/Bildstöcke', len(crs))
 peaks = []
 for o in NODES:

@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.25.3 Beta** (Elite Drivo: Steigung steuert den Widerstand). Davor 0.25.2 (Dolomiten-Häuser), 0.25.1 (Drivo in Bluefy verbindbar).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.25.4 Beta** (Dolomiten: Bergbäche und Seen). Davor 0.25.2 (Dolomiten-Häuser), 0.25.1 (Drivo in Bluefy verbindbar).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.25.2** | **Dolomiten: Alpenhäuser statt Umgebinde, Wegkreuze/Bildstöcke, Fels mit Relief und Schichtbändern** |
-| 0.25.1 | Elite Drivo in Bluefy verbindbar (Suche ohne Dienst-Nummern), echte Watt/Kadenz über Cycling Power; Testseite `webgpu-spiel/bt-test.html` |
-| 0.25.0 | Neue Welt Dolomiten (Cortina–Passo Giau–Caprile–Passo Falzarego, 66 km): echtes Gelände, Satellitenbild, Fernpanorama, Felsen, Wald bis zur Baumgrenze; nur Hauptstraßen befahrbar |
+| **0.25.4** | **Dolomiten: Bergbäche und Seen aus OSM, türkis, fließend, mit Rauschen** |
+| 0.25.3 | Drivo: Widerstandssteuerung (siehe Commit 1c46787) |
+| 0.25.2 | Dolomiten: Alpenhäuser statt Umgebinde, Wegkreuze/Bildstöcke, Fels mit Relief und Schichtbändern |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -139,6 +139,8 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Ursache: Bluefy 3.9.3 lehnt `requestDevice` mit **optionalServices als Zahlen** sofort ab (Fehler ohne Text, nur `2`, Liste öffnet sich nicht). Ohne optionalServices oder mit Text-Namen (`'cycling_power'` usw.) geht es; Bluefy gibt nach dem Verbinden ohnehin alle Dienste frei (auch den Elite-Dienst). In `connectTrainer` jetzt Text-Namen (`OPT`), alt: `window.OLD_BTOPT`. Gilt für jedes Gerät, nicht nur den Drivo.
 - Drivo 1 (nRF Connect + `bt-test.html`): wirbt nur CSC 0x1816 + Elite `347b0001-…`, hat verbunden aber auch **Cycling Power 0x1818** (Feature `0d 02 01 00`, Control Point 2A66), Device Info (Elite, HW 001, FW 026), Legacy DFU. Spiel nimmt den CPS-Zweig → echte Watt/Kadenz. Elite-Merkmale: 0010 w, 0011 n (sendet `00` je Sekunde), 0012 w, 0013 r (Nullen), 0014 n, 0015 n (3 Pakete/s: `01|02|03`, u16 Zähler, dann 8×u16, vermutlich Kraftverlauf je Kurbelumdrehung), 0016 w, 0017 n. **Widerstand (0.25.3):** Zwift-Mitschnitt (Android-HCI-Snoop am Redmi, Fehlerbericht per `*#*#284#*#*`, Auswertung `btsnoop_hci.log` mit eigenem Parser) zeigt nur einen Befehl: Write-Request `[0x01, X]` auf `347b0010`, alle ~2 s, keine Elite-Notifications nötig. X = Steigung in 0,1 % + 10 (10 = flach, 0 = −1 %, 120 ≈ 11 % „fast nicht tretbar“, per W-Knöpfen in bt-test.html bestätigt). Im Spiel `eliteSlope()` aus `sendGrade` (CPS-Zweig mit `trainer.eli`), Steigung × `S.diff`, begrenzt −1 … +15 %, sofort bei ≥0,3 % Änderung, sonst alle 2 s. Aus: `window.NO_ELITESLOPE`. Chrome braucht ELITE in optionalServices (wird außer in Bluefy mitgegeben).
 - Testseite `webgpu-spiel/bt-test.html`: 10 Suchvarianten, Dienste, Geräteinfo, Watt/Kadenz live, Elite-Rohdaten, „Log kopieren“. Nützlich für jedes neue Gerät.
+
+**0.25.4 Bergbäche und Seen**: `dolo_bau.py` exportiert `ZGNET.streams` ([Breite, x0,z0,…], stream 2,6 m, river 7 m, OSM-width) und `ZGNET.lakes`. `buildDoloWater`: Kiesbett (`geroell`-Textur) + türkises Fließwasser (`flowWaterMaterial`, schneller) knapp über dem Gelände, unter Straßen ausgespart; Seen auf tiefster Uferhöhe. Bachrauschen über `window.DLWPTS` (Ton `prep`). Aus: `window.NO_DLWATER`. Test: `WAT=1 node tdolo.js`. Offen: Bäume halten noch keinen Abstand zum Bach.
 
 **0.25.2 Alpenhäuser, Wegkreuze, Fels** (Hicore 26.11. zu 0.25.0: „Berge verwaschen, nicht das typische Grau-Weiß, überall Umgebindehäuser“; FPS super)
 - Häuser: Alpen-Atlas (`atlasFn` mit `alp`, Zellen 8–12 und 31, Giebel 1–4 ersetzt, eigener Cache `atlasA`, `GT.hm` wird in `dataReset` geleert). Typen `LAD`, `STADEL`, `TABIA`, `RIFUGIO`, `HOTELA` (`HT`, `alp`: Traufe 0,95 m, Giebel 0,7 m; `bal`: Holzbalkone an den Traufseiten, Hotel je Geschoss; Dach `rf` m = Blech grau/rot/grün, w = Lärchenschindeln). `htPick` Dolomiten neu, `dolo_bau.py` trennt Stadel/Ställe (k 3) von Hütten (k 7). Alt: `window.OLD_ALPH`.

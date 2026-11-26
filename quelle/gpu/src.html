@@ -4205,6 +4205,30 @@ function dlRockD(x,z){ const q=dlSat(x,z,DLC2); if (!q) return 0; const l=(q[0]*
   const band=Math.sin((terrainH(x,z))*0.55+dlVN(x/90,z/90)*5)*0.35*st;   /* Felsbänder (waagrechte Stufen) */
   let av=0; for (let i=0;i<8;i++){ const a=i*0.785; av+=terrainH(x+Math.cos(a)*55,z+Math.sin(a)*55); } const h0=terrainH(x,z), sh=(h0-av/8)*1.1*m;   /* Kanten schärfen: Grate höher, Rinnen tiefer -> steilere Wände */
   return (n-0.42)*A*2+band*A*0.5+sh; }
+/* 0.25.3 Dolomiten: Bergbäche und Flüsse aus OSM (Boite, Cordevole, Codalonga …) als klares, türkises, fließendes Wasser über hellem Kiesbett, Seen als Flächen.
+   Gelände wird nicht eingeschnitten: Bett und Wasser liegen knapp über dem Boden (Polygon-Versatz). Unter Straßen wird ausgespart (Brücke/Durchlass). Aus: window.NO_DLWATER */
+function dlStreams(){ return ((window.ZGNET&&ZGNET.streams)||[]).map(a=>{ const w=a[0], P=[]; for (let i=1;i+1<a.length;i+=2) P.push([a[i],a[i+1]]); const Q=[]; for (let i=0;i<P.length-1;i++){ const A=P[i], B=P[i+1], l=Math.hypot(B[0]-A[0],B[1]-A[1]), k=Math.max(1,Math.ceil(l/4)); for (let s=0;s<k;s++) Q.push([A[0]+(B[0]-A[0])*s/k, A[1]+(B[1]-A[1])*s/k]); } if (P.length) Q.push(P[P.length-1]); return {w,P:Q}; }).filter(o=>o.P.length>2); }
+function buildDoloWater(grp){ const SP=dlStreams(); const bed={v:[],uv:[],col:[],idx:[]}, wat={v:[],uv:[],idx:[]}, c=new THREE.Color(), pts=[];
+  SP.forEach(({w,P})=>{ const n=P.length, gy=P.map(([x,z])=>terrainH(x,z)); let wy=gy.slice(); for (let it=0;it<4;it++){ const b=wy.slice(); for (let i=1;i<n-1;i++) wy[i]=(b[i-1]+b[i]+b[i+1])/3; }
+    let acc=0, run=[]; const hw=w/2, bw=hw+1.0+Math.min(4,w*0.5);
+    const flush=()=>{ if (run.length<2){ run=[]; return; } const b0=bed.v.length/3, a0=wat.v.length/3;
+      run.forEach(r=>{ [[-bw,0.0],[-hw,0.12],[hw,0.12],[bw,0.0]].forEach(([o,dy],k)=>{ const x=r.x+r.nx*o, z=r.z+r.nz*o, h=Math.max(terrainH(x,z),r.wy)+0.12+dy; bed.v.push(x,h,z); bed.uv.push((x-OFF)/EXT,1-(z-OFF)/EXT); const sh=k===0||k===3?0.86:1.0; c.setRGB(0.86*sh,0.84*sh,0.78*sh); bed.col.push(c.r,c.g,c.b); });
+        [-hw,hw].forEach((o,k)=>{ const x=r.x+r.nx*o, z=r.z+r.nz*o; wat.v.push(x,Math.max(terrainH(x,z),r.wy)+0.32,z); wat.uv.push(k*w/3,r.acc/3.5); }); });
+      for (let i=0;i<run.length-1;i++){ const A=b0+i*4, B=b0+(i+1)*4; for (let k=0;k<3;k++) bed.idx.push(A+k,A+k+1,B+k, A+k+1,B+k+1,B+k); const W0=a0+i*2, W1=a0+(i+1)*2; wat.idx.push(W0,W0+1,W1, W0+1,W1+1,W1); } run=[]; };   /* Dreiecke nach oben gerichtet */
+    for (let i=0;i<n;i++){ const pp=P[i], qq=P[Math.min(i+1,n-1)], oo=P[Math.max(i-1,0)], dx=qq[0]-oo[0], dz=qq[1]-oo[1], l=Math.hypot(dx,dz)||1; if (i) acc+=Math.hypot(pp[0]-P[i-1][0],pp[1]-P[i-1][1]);
+      const g=gnNear(pp[0],pp[1],30); if (g.k>=0 && g.d<g.w/2+bw+0.5){ flush(); continue; }
+      run.push({x:pp[0], z:pp[1], nx:-dz/l, nz:dx/l, wy:wy[i], acc}); if (i%3===0) pts.push(pp[0],pp[1]); }
+    flush(); });
+  const mkG=(o,cols)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(o.v,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(o.uv,2)); if (cols) g.setAttribute('color',new THREE.Float32BufferAttribute(o.col,3)); g.setIndex(o.idx); g.computeVertexNormals(); g.computeBoundingSphere(); return g; };
+  if (bed.idx.length){ let st=null; try{ st=photoTex('geroell',512); if (st){ st.wrapS=st.wrapT=THREE.RepeatWrapping; } }catch(e){}
+    const bm=new THREE.MeshLambertMaterial({vertexColors:true, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2}); if (st){ const g2=mkG(bed,true); const uv=g2.attributes.uv, p=g2.attributes.position; for (let i=0;i<uv.count;i++) uv.setXY(i,p.getX(i)*0.25,p.getZ(i)*0.25); bm.map=st; const m=new THREE.Mesh(g2,bm); m.receiveShadow=true; m.name='bachbett'; grp.add(m); } else grp.add(new THREE.Mesh(mkG(bed,true),bm)); }
+  const wm=flowWaterMaterial(); wm.color.set(0x52bdb6); wm.opacity=0.7; wm.polygonOffsetFactor=-4; wm.polygonOffsetUnits=-4; wm.userData.noSnow=true; const nt=wm.normalMap; animated.push(dt=>{ nt.offset.y-=dt*0.9; });
+  if (wat.idx.length){ const m=new THREE.Mesh(mkG(wat,false),wm); m.renderOrder=2; m.name='bergbach'; grp.add(m); }
+  /* Seen: Fläche auf tiefster Uferhöhe */
+  const lm=new THREE.MeshPhongMaterial({color:0x2f8c90, specular:0xd8eef6, shininess:120, normalMap:wm.normalMap, normalScale:new THREE.Vector2(0.25,0.25), transparent:true, opacity:0.86, polygonOffset:true, polygonOffsetFactor:-3}); lm.userData.noSnow=true;
+  ((window.ZGNET&&ZGNET.lakes)||[]).forEach(a=>{ const P=[]; for (let i=0;i+1<a.length;i+=2) P.push([a[i],a[i+1]]); if (P.length<3) return; let y=1e9; P.forEach(([x,z])=>{ y=Math.min(y,terrainH(x,z)); }); let tr=null; try{ tr=THREE.ShapeUtils.triangulateShape(P.map(p=>new THREE.Vector2(p[0],p[1])),[]); }catch(e){} if (!tr||!tr.length) return;
+    const v=[]; tr.forEach(t=>t.forEach(k=>v.push(P[k][0],y+0.25,P[k][1]))); const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); const uv=[]; for (let i=0;i<v.length;i+=3) uv.push(v[i]/8,v[i+2]/8); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.computeVertexNormals(); g.computeBoundingSphere(); const m=new THREE.Mesh(g,lm); m.name='see'; grp.add(m); P.forEach(([x,z],i)=>{ if (i%3===0) pts.push(x,z); }); });
+  window.DLWPTS=pts; }
 function buildDoloShrines(grp){ const P=[], N=[], Cc=[], m4=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), v=new THREE.Vector3(), sc=new THREE.Vector3(1,1,1), c=new THREE.Color();
   const add=(geo,x,y,z,rx,ry,rz,col,bx,by,bz,rot)=>{ const g=geo.index?geo.toNonIndexed():geo; e.set(rx,ry,rz); q.setFromEuler(e); m4.compose(v.set(x,y,z),q,sc); g.applyMatrix4(m4);
     m4.makeRotationY(rot); m4.setPosition(bx,by,bz); g.applyMatrix4(m4); const pa=g.attributes.position, na=g.attributes.normal; c.set(col);
@@ -4303,6 +4327,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
     const m = new THREE.Mesh(geo, terrainHoleMaterial(tmat, def.roadW||7, def.graph?{S:1024, keep:true}:null)); m.material.userData.worldAO=true; m.material.userData.pbr={n:1.2, r:0.95, e:0.7}; m.receiveShadow = true; worldGroup.add(m); if (def.graph) gtInit(def, m, gt);
     if (def.id==='dolo') try{ buildDoloPano(worldGroup); }catch(e){ console.warn('panorama',e); }
     if (def.id==='dolo' && !window.NO_SHRINES) try{ buildDoloShrines(worldGroup); }catch(e){ console.warn('wegkreuze',e); }
+    if (def.id==='dolo' && !window.NO_DLWATER) try{ buildDoloWater(worldGroup); }catch(e){ console.warn('bergbach',e); }
     if (def.real){ const fill=new THREE.Mesh(geo, new THREE.MeshLambertMaterial({vertexColors:true, map:gt})); fill.position.y=-0.3; fill.receiveShadow=true; worldGroup.add(fill); }   // Unterboden: füllt Lücken in engen Kurven
     if (def.water){ let ep=null; for (let d=0; d<L && !ep; d+=60) for (let o=40; o<500 && !ep; o+=20) for (const sd of [1,-1]){ const pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*o*sd, z=pp.z-Math.sin(hd)*o*sd; if (terrainH(x,z)<waterY-0.6){ ep=new THREE.Vector3(x,waterY+2.5,z); break; } }
       const w = new THREE.Mesh(new THREE.PlaneGeometry(12000,12000), waterMaterial(def.terrain==='sandstone'?0x1f5a86:0x0f3550, def.terrain==='sandstone'?260:600, ep));
@@ -7729,6 +7754,7 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
   prep(world){ this.pw=world+'|'+builtWorld; this.wpts=[]; this.spts=[]; this.houses=[]; const def=WORLDS.find(w=>w.id===world)||{};
     let hs=1; const hr=()=>((hs=(hs*16807)%2147483647)/2147483647); const addH=(x,z)=>{ const r=hr(); this.houses.push({x,z,dog:r<0.28,ppl:hr()<0.4,hen:r>0.78,horse:hr()<0.1,goat:hr()<0.1,kids:hr()<0.18,cd:5+hr()*20}); };
     if (!def.real && window.HOUSE_PTS) HOUSE_PTS.forEach(([x,z])=>addH(x,z));
+    if (world==='dolo' && window.DLWPTS){ const w=window.DLWPTS; for (let i=0;i<w.length;i++) this.spts.push(w[i]); }
     if (def.real){ try{ const D=realData(); if (D){ (D.water||[]).forEach(poly=>poly.forEach(([x,z],i)=>{ if (i%2===0) this.wpts.push(x,z); })); streamPaths().forEach(P=>P.forEach(([x,z],i)=>{ if (i%2===0) this.spts.push(x,z); })); (D.b||[]).forEach(bd=>{ if (bd.p&&bd.p.length>2){ let x=0,z=0; bd.p.forEach(q=>{x+=q[0];z+=q[1];}); addH(x/bd.p.length,z/bd.p.length); } }); } }catch(e){} } },
   scan(world, P){ const E=this.env||(this.env={trees:0, sea:1e9, church:1e9, cows:1e9}); E.t=(E.t||0)-0.1; if (E.t>0) return E; E.t=1;
     let n=0; try{ if (TREE_LOD) for (const ty of TREE_LOD.types){ const p=ty.pos, m=ty.st.c; for (let i=0;i<m;i++){ const dx=p[i*2]-P.x, dz=p[i*2+1]-P.z; if (dx*dx+dz*dz<3600) n++; } } }catch(e){} E.trees=n; let hd=1e9; for (const h of this.houses||[]){ const d=Math.hypot(h.x-P.x,h.z-P.z); if (d<hd) hd=d; } if (hd<45) E.trees=Math.max(E.trees,8);
@@ -8136,7 +8162,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.3 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.4 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
   WORLDS.forEach(def=>{ if (!wVis(def)) return;
