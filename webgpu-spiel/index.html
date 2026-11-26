@@ -27,6 +27,7 @@ body.hHud .hud,body.hSide .side,body.hProf .prof,body.hBoard .board,body.hCtrl .
 #accModal .accTop{display:flex;justify-content:space-between;align-items:center}#accModal h3{margin:0;font-size:17px}#accModal h4{margin:12px 0 6px;font-size:13px}#accX{padding:4px 10px;background:none}
 #accModal input{width:100%;box-sizing:border-box;margin-top:8px;background:#161b22;color:#f0f3f6;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:9px 10px;font:inherit;font-size:15px}#accModal input:focus{outline:none;border-color:var(--acc)}#accModal .accTx{font-size:12px;opacity:.85;margin:8px 0 4px;line-height:1.4}
 #accModal .accGo{width:100%;margin-top:10px;background:#fff;color:#1f1f1f;font-weight:600}#accModal .accGo b{color:#4285f4;margin-right:6px}
+#accModal .accAlt{width:100%;margin-top:8px}#accQr{display:block;margin:8px auto 0;border-radius:8px;background:#fff}#accHandCode{text-align:center;font-size:30px;font-weight:700;letter-spacing:6px;margin:6px 0 0;font-variant-numeric:tabular-nums}#accModal .accLink{text-align:center;word-break:break-all;color:#7cc4ff}
 #accModal .accOr{text-align:center;font-size:12px;opacity:.6;margin:12px 0 0}#accModal details{margin-top:10px;font-size:13px}#accModal summary{cursor:pointer;opacity:.85}
 #accModal .accGrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}#accModal .accGrid label{font-size:12px;color:var(--mut)}#accModal .accGrid input{margin-top:3px}
 #accModal .accRides{font-size:12px;max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:8px}#accModal .accR{display:flex;gap:6px;align-items:center;padding:6px 8px;border-top:1px solid var(--line)}#accModal .accR:first-child{border-top:0}
@@ -195,16 +196,21 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
 <div id="accModal"><div class="accIn"><div class="accTop"><h3>👤 Konto</h3><button id="accX" title="Schließen">✕</button></div>
 <div id="accOut"><div class="accTx">Mit Konto sind Profil, Einstellungen, Bestzeiten und Fahrten (mit FIT-Datei) auf jedem Gerät da. Spielen geht auch ohne.</div>
 <button id="accG" class="accGo"><b>G</b> Mit Google anmelden</button>
-<div class="accOr">oder mit E-Mail</div>
+<div class="accOr">oder mit E-Mail (neue und bestehende Konten)</div>
 <input id="accMail" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="E-Mail-Adresse">
 <div class="mpbtn"><button id="accSend" class="pri">Code per E-Mail senden</button></div>
-<div id="accCodeBox" style="display:none"><div class="accTx">Code aus der E-Mail eingeben (der Link in der E-Mail geht auch, wenn er sich in diesem Browser öffnet):</div><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code"><div class="mpbtn"><button id="accVerify" class="pri">Anmelden</button></div></div>
-<details class="accPw"><summary>Mit Passwort anmelden</summary><input id="accPw" type="password" autocomplete="current-password" placeholder="Passwort"><div class="mpbtn"><button id="accPwGo">Anmelden</button></div><div class="accTx">Ein Passwort legst du nach der ersten Anmeldung per Code oder Google im Konto fest.</div></details>
+<div id="accCodeBox" style="display:none"><div class="accTx">Die E-Mail enthält eine Zahl (6 Ziffern). Hier eingeben. Steht nur ein Link drin, fehlt in Supabase die Code-Zeile in der Vorlage. Dann den Link nicht in einem anderen Browser öffnen, sondern Vorlage ergänzen und neuen Code anfordern.</div><input id="accCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Code aus der E-Mail"><div class="mpbtn"><button id="accVerify" class="pri">Anmelden</button></div></div>
+<details class="accPw"><summary>Mit Passwort anmelden</summary><input id="accPw" type="password" autocomplete="current-password" placeholder="Passwort"><div class="mpbtn"><button id="accPwGo">Anmelden</button></div><div class="accTx">Ein Passwort legst du nach der ersten Anmeldung per Code im Konto fest.</div></details>
+<button id="accHand" class="accAlt">📱 Mit Handy oder Chrome anmelden (Google)</button>
+<div id="accHandBox" style="display:none"><div class="accTx" id="accHandTx">Mit dem Handy den QR-Code scannen oder den Link in Chrome öffnen, dort mit Google anmelden. Dieses Gerät ist danach automatisch angemeldet.</div>
+<canvas id="accQr" width="180" height="180"></canvas><div id="accHandCode">–</div><div class="accTx accLink" id="accHandLink"></div>
+<div class="mpbtn"><button id="accHandCopy">Link kopieren</button><button id="accHandNew">Neuer Code</button></div></div>
 </div>
 <div id="accIn" style="display:none"><div class="accTx" id="accWho"></div>
 <h4>Profil</h4><div class="accGrid"><label>Name<input id="accName" maxlength="16" autocomplete="nickname"></label><label>Gewicht Fahrer + Rad (kg)<input id="accMass" type="number" min="40" max="160"></label><label>FTP (Watt)<input id="accFtp" type="number" min="50" max="600" placeholder="–"></label><label>Puls max.<input id="accHr" type="number" min="100" max="230" placeholder="–"></label></div>
 <h4>Meine Fahrten</h4><div id="accRides" class="accRides">–</div>
 <div class="accTx" id="accBest"></div>
+<details class="accPw" id="accGiveD"><summary>Anderes Gerät anmelden (z. B. Bluefy)</summary><div class="accTx">Im anderen Gerät unter 👤 auf „Mit Handy oder Chrome anmelden“ tippen und den angezeigten Code hier eingeben. Dieses Gerät wird dabei abgemeldet (die Anmeldung zieht um).</div><input id="accGive" maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="Code vom anderen Gerät"><div class="mpbtn"><button id="accGiveGo" class="pri">Anmeldung übertragen</button></div></details>
 <details class="accPw"><summary>Passwort festlegen</summary><input id="accNewPw" type="password" autocomplete="new-password" placeholder="Neues Passwort (mind. 6 Zeichen)"><div class="mpbtn"><button id="accPwSet">Speichern</button></div></details>
 <div class="mpbtn"><button id="accSync">Jetzt abgleichen</button><button id="accOutB">Abmelden</button></div>
 <div class="mpbtn"><button id="accDel" class="accDel">Konto löschen</button></div>
@@ -12404,7 +12410,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.2 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -12423,6 +12429,13 @@ renderWorlds();
 /* 0.24.0 Konten (Supabase Auth, dasselbe Projekt wie Multiplayer): Anmelden per E-Mail-Code (geht auch in Bluefy, weil kein Link in einem anderen Browser nötig ist), Passwort oder Google.
    Gespeichert: Profil + Einstellungen (Tabelle profiles, neuere Seite gewinnt), Bestzeiten (segment_bests, beste Zeit gewinnt), Fahrten mit echtem Trainer (rides + FIT-Datei im Bucket fit).
    Ohne Anmeldung läuft alles wie bisher über localStorage. Rückkehr-Adresse = aktuelle Seite (keine feste Domain). SQL: supabase/konto.sql. Aus: window.NO_ACC */
+/* 0.24.2 Sitzung übertragen (auch in handy/login.html): sendet bis zur Bestätigung alle 2,5 s, gibt true, false (keine Antwort) oder einen Fehlertext zurück */
+function hlSend(sb, code, ses){ return new Promise(res=>{ let done=false, iv=0, to=0; const ch=sb.channel('hl:'+code,{config:{broadcast:{self:false,ack:false}}});
+  const fin=v=>{ if (done) return; done=true; clearInterval(iv); clearTimeout(to); try{ sb.removeChannel(ch); }catch(e){} res(v); };
+  ch.on('broadcast',{event:'ok'},()=>fin(true)).on('broadcast',{event:'err'},({payload})=>fin((payload&&payload.m)||'Fehler am anderen Gerät.'));
+  to=setTimeout(()=>fin(false),25000);
+  ch.subscribe(st=>{ if (st==='SUBSCRIBED'){ const snd=()=>{ try{ ch.send({type:'broadcast',event:'s',payload:{a:ses.access_token, r:ses.refresh_token}}); }catch(e){} }; snd(); iv=setInterval(snd,2500); }
+    else if (st==='CHANNEL_ERROR'||st==='TIMED_OUT') fin('Keine Verbindung zum Server.'); }); }); }
 const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:0, rides:[], nBest:0, delArm:0,
   KEYS:['mass','diff','bots','jersey','pwSmooth','pwFac','bike','tod','wx','snow','snowRd','sndOn','sndSur','bloom','mpName','hudMode','world','unlockAll','fpsShow','ftp','hrmax'],
   st(m,c){ const e=$('accStat'); if (e){ e.textContent=m||''; e.className='mpstat'+(c?' '+c:''); } },
@@ -12443,20 +12456,59 @@ const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:
   cleanUrl(){ try{ const u=new URL(location.href); let ch=false; ['code','error','error_code','error_description','type'].forEach(k=>{ if (u.searchParams.has(k)){ u.searchParams.delete(k); ch=true; } });
     if (/access_token|error_description/.test(u.hash)){ u.hash=''; ch=true; } if (ch) history.replaceState(null,'',u.pathname+(u.search||'')+(u.hash||'')); }catch(e){} },
   mail(){ return ($('accMail').value||'').trim().toLowerCase(); },
+  mk(){ this.sb=this.SB.createClient(MP.URL,MP.KEY,{auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:'hicoreRide.auth'}});
+    this.sb.auth.onAuthStateChange((ev,ses)=>{ setTimeout(()=>this.onAuth(ev,ses),0); }); },
+  /* 0.24.2: Google sperrt Bluefy (eingebetteter Browser). Bluefy erkennt man an Web Bluetooth auf iOS. */
+  blu(){ try{ return IS_IOS && !!navigator.bluetooth; }catch(e){ return false; } },
+  async googleOn(){ try{ const r=await fetch(MP.URL+'/auth/v1/settings',{headers:{apikey:MP.KEY}}); if (!r.ok) return null; const j=await r.json(); return !!(j&&j.external&&j.external.google); }catch(e){ return null; } },
+  /* 0.24.2 Anmeldung übertragen (Kanal hl:CODE über Realtime): Empfänger = Gerät ohne Google (Bluefy) zeigt Code/QR, Sender = Handy-Seite handy/login.html oder ein angemeldetes Spiel.
+     Die Sitzung zieht um: der Sender vergisst sie danach lokal, sonst würden beide denselben Erneuerungsschlüssel nutzen und Supabase meldet beide ab. */
+  AB:'ABCDEFGHJKMNPQRSTUVWXYZ23456789',
+  rt(){ if (!this.rtc) this.rtc=this.SB.createClient(MP.URL,MP.KEY,{auth:{persistSession:false, autoRefreshToken:false, detectSessionInUrl:false, storageKey:'hicoreRide.rt'}, realtime:{params:{eventsPerSecond:5}}}); return this.rtc; },
+  handUrl(){ try{ return new URL('handy/login.html?c='+this.hc, location.href).href; }catch(e){ return 'handy/login.html?c='+this.hc; } },
+  handQr(){ const draw=()=>{ try{ const q=qrcode(0,'M'); q.addData(this.handUrl()); q.make(); const n=q.getModuleCount(), cv=$('accQr'), sz=Math.floor(180/(n+8)), w=sz*(n+8); cv.width=cv.height=w; const g=cv.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,w,w); g.fillStyle='#000';
+      for (let r=0;r<n;r++) for (let c=0;c<n;c++) if (q.isDark(r,c)) g.fillRect((c+4)*sz,(r+4)*sz,sz,sz); }catch(e){ console.warn('QR',e); } };
+    if (window.qrcode) draw(); else { const sc=document.createElement('script'); sc.src='handy/qrcode.js'; sc.onload=draw; document.head.appendChild(sc); } },
+  handStart(why){ this.handStop(); this.hc=''; for (let i=0;i<6;i++) this.hc+=this.AB[Math.floor(Math.random()*this.AB.length)];
+    $('accHandBox').style.display='block'; $('accHandCode').textContent=this.hc; $('accHandLink').textContent=this.handUrl(); this.handQr();
+    if (why) $('accHandTx').textContent=why+' Scanne den QR-Code mit dem Handy oder öffne den Link in Chrome und melde dich dort mit Google an. Dieses Gerät ist danach automatisch angemeldet.';
+    this.st('Warte auf die Anmeldung am anderen Gerät …');
+    try{ const ch=this.rt().channel('hl:'+this.hc,{config:{broadcast:{self:false,ack:false}}}); this.hch=ch;
+      ch.on('broadcast',{event:'s'},({payload})=>this.handRx(payload));
+      ch.subscribe(st=>{ if (st==='CHANNEL_ERROR'||st==='TIMED_OUT') this.st('Keine Verbindung zum Server. Tippe auf „Neuer Code“.','err'); }); }
+    catch(e){ this.st(this.em(e),'err'); }
+    this.hT=setTimeout(()=>{ this.handStop(); $('accHandCode').textContent='abgelaufen'; this.st('Code abgelaufen. Tippe auf „Neuer Code“.'); },10*60e3); },
+  handStop(){ clearTimeout(this.hT); if (this.hch){ try{ this.rt().removeChannel(this.hch); }catch(e){} this.hch=null; } },
+  async handRx(p){ const ch=this.hch; if (!p || !p.a || !p.r || !ch) return; const ack=(ev,pl)=>{ try{ ch.send({type:'broadcast',event:ev,payload:pl||{}}); }catch(e){} };
+    if (this.user){ ack('ok'); return; } if (this.handBusy) return; this.handBusy=true;
+    try{ const {error}=await this.sb.auth.setSession({access_token:p.a, refresh_token:p.r}); if (error) throw error; ack('ok');
+      this.st('Angemeldet über das andere Gerät.','on'); setTimeout(()=>{ if (this.hch===ch) this.handStop(); $('accHandBox').style.display='none'; },2000); }
+    catch(e){ ack('err',{m:this.em(e)}); this.st(this.em(e),'err'); }
+    this.handBusy=false; },
+  forget(){ try{ this.sb.auth.stopAutoRefresh(); }catch(e){} try{ Object.keys(localStorage).filter(k=>k.indexOf('hicoreRide.auth')===0).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+    this.user=null; this.prof=null; this.rides=[]; this.nBest=0; this.mk(); this.ui(); },
+  async give(){ const c=String($('accGive').value||'').toUpperCase().replace(/[^A-Z0-9]/g,''); if (c.length!==6){ this.st('Der Code hat 6 Zeichen.','err'); return; }
+    const {data}=await this.sb.auth.getSession(); const ses=data&&data.session; if (!ses){ this.st('Hier ist niemand angemeldet.','err'); return; }
+    clearTimeout(this.pushT); try{ await this.pushProf(); }catch(e){}
+    this.st('Übertrage Anmeldung …'); try{ this.sb.auth.stopAutoRefresh(); }catch(e){}
+    const r=await hlSend(this.rt(), c, ses);
+    if (r===true){ $('accGive').value=''; this.forget(); this.st('Anmeldung übertragen. Das andere Gerät ist angemeldet, dieses hier abgemeldet.','on'); }
+    else { try{ this.sb.auth.startAutoRefresh(); }catch(e){} this.st(r===false?'Keine Antwort vom anderen Gerät. Ist dort der Code noch offen?':r,'err'); } },
   init(){
     $('accBtn').onclick=()=>this.show(); $('accX').onclick=()=>this.hide(); $('accModal').onclick=e=>{ if (e.target.id==='accModal') this.hide(); };
     if (window.NO_ACC){ $('accBtn').style.display='none'; return; }
     const SB=window.HC_SB||window.supabase; if (!SB || !SB.createClient){ this.st('Baustein fehlt (Supabase).','err'); return; }
     let err=''; try{ const sp=new URLSearchParams(location.search), hp=new URLSearchParams(location.hash.slice(1)); err=sp.get('error_description')||hp.get('error_description')||''; }catch(e){}
-    try{ this.sb=SB.createClient(MP.URL,MP.KEY,{auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:'hicoreRide.auth'}}); }catch(e){ this.st('Konto nicht verfügbar: '+this.em(e),'err'); return; }
-    this.sb.auth.onAuthStateChange((ev,ses)=>{ setTimeout(()=>this.onAuth(ev,ses),0); });
+    this.SB=SB; try{ this.mk(); }catch(e){ this.st('Konto nicht verfügbar: '+this.em(e),'err'); return; }
     let hadCode=false; try{ hadCode=new URLSearchParams(location.search).has('code'); }catch(e){}
     if (hadCode && !err) this.sb.auth.getSession().then(({data})=>{ if (!(data&&data.session)){ const m='Anmelde-Link ungültig oder in einem anderen Browser geöffnet. Bitte im Konto den Code aus der E-Mail eingeben.'; toast(m); this.st(m,'err'); } this.cleanUrl(); }).catch(()=>this.cleanUrl());
     if (err){ setTimeout(()=>{ toast('Anmeldung: '+this.em(err)); this.st(this.em(err),'err'); this.cleanUrl(); },800); }
     /* Änderungen an Einstellungen merken und (angemeldet) kurz danach hochladen */
     const _set=store.set; store.set=(k,v)=>{ _set(k,v); try{ ACC.touch(k); }catch(e){} };
     try{ $('bike').addEventListener('change',()=>this.touch('bike')); }catch(e){}
-    $('accG').onclick=()=>this.google(); $('accSend').onclick=()=>this.sendCode(); $('accVerify').onclick=()=>this.verify(); $('accPwGo').onclick=()=>this.pwLogin();
+    $('accG').onclick=()=>this.google(); $('accHand').onclick=()=>this.handStart(); $('accHandNew').onclick=()=>this.handStart(); $('accGiveGo').onclick=()=>this.give();
+    $('accHandCopy').onclick=()=>{ const u=this.handUrl(); try{ navigator.clipboard.writeText(u).then(()=>toast('Link kopiert. In Chrome einfügen.'),()=>toast(u)); }catch(e){ toast(u); } };
+    if (this.blu()) $('accG').innerHTML='<b>G</b> Mit Google anmelden (über Handy oder Chrome)'; $('accSend').onclick=()=>this.sendCode(); $('accVerify').onclick=()=>this.verify(); $('accPwGo').onclick=()=>this.pwLogin();
     $('accCode').onkeydown=e=>{ if (e.key==='Enter') this.verify(); }; $('accMail').onkeydown=e=>{ if (e.key==='Enter') this.sendCode(); };
     $('accOutB').onclick=()=>this.logout(); $('accSync').onclick=()=>this.sync(true); $('accPwSet').onclick=()=>this.setPw(); $('accDel').onclick=()=>this.delAcc();
     $('accName').onchange=()=>{ const v=$('accName').value.trim().slice(0,16); store.set('mpName',v); try{ $('mpName').value=v; }catch(e){} this.ui(); };
@@ -12466,7 +12518,7 @@ const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:
     $('accMail').value=store.get('accMail','');
     this.ui(); },
   show(){ this.ui(); $('accModal').style.display='flex'; if (this.user){ this.loadRides(); } else setTimeout(()=>{ try{ if (!$('accMail').value) $('accMail').focus(); }catch(e){} },50); },
-  hide(){ $('accModal').style.display='none'; },
+  hide(){ $('accModal').style.display='none'; if (!this.hch) $('accHandBox').style.display='none'; },
   name(){ const n=store.get('mpName',''); return n || (this.user&&this.user.email ? this.user.email.split('@')[0] : ''); },
   ui(){ const u=this.user; $('accOut').style.display=u?'none':'block'; $('accIn').style.display=u?'block':'none';
     $('accBtn').textContent=u?'👤 '+(this.name()||'Konto'):'👤 Anmelden'; $('accBtn').classList.toggle('on',!!u);
@@ -12479,7 +12531,7 @@ const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:
   async sendCode(){ const m=this.mail(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){ this.st('Bitte eine gültige E-Mail-Adresse eingeben.','err'); return; }
     store.set('accMail',m); this.st('Sende Code …'); $('accSend').disabled=true;
     try{ const {error}=await this.sb.auth.signInWithOtp({email:m, options:{emailRedirectTo:this.redir(), shouldCreateUser:true}}); if (error) throw error;
-      $('accCodeBox').style.display='block'; this.st('Code ist unterwegs an '+m+'. Auch im Spam-Ordner nachsehen.','on'); setTimeout(()=>{ try{ $('accCode').focus(); }catch(e){} },50); }
+      $('accCodeBox').style.display='block'; this.st('Mail ist unterwegs an '+m+' (auch im Spam-Ordner nachsehen). Die 6-stellige Zahl daraus unten eingeben.','on'); setTimeout(()=>{ try{ $('accCode').focus(); }catch(e){} },50); }
     catch(e){ this.st(this.em(e),'err'); }
     setTimeout(()=>{ $('accSend').disabled=false; },4000); },
   async verify(){ const m=this.mail(), c=($('accCode').value||'').replace(/\D/g,''); if (c.length<6){ this.st('Der Code hat 6 oder mehr Ziffern.','err'); return; }
@@ -12487,7 +12539,9 @@ const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:
     catch(e){ this.st(this.em(e),'err'); } },
   async pwLogin(){ const m=this.mail(), p=$('accPw').value||''; if (!m||!p){ this.st('E-Mail und Passwort eingeben.','err'); return; } store.set('accMail',m);
     this.st('Melde an …'); try{ const {error}=await this.sb.auth.signInWithPassword({email:m, password:p}); if (error) throw error; $('accPw').value=''; }catch(e){ this.st(this.em(e),'err'); } },
-  async google(){ this.st('Weiter zu Google …');
+  async google(){ if (this.blu()){ this.handStart('Google lässt in Bluefy keine Anmeldung zu.'); return; }
+    this.st('Prüfe Google-Anmeldung …'); const on=await this.googleOn(); if (on===false){ this.st('Google-Anmeldung ist in Supabase noch nicht eingeschaltet (Authentication › Sign In / Providers › Google).','err'); return; }
+    this.st('Weiter zu Google …');
     /* Seite wird verlassen: Absturz-Erkennung beim Start (bootN/stage) nicht auslösen, sonst startet das iPad danach im Minimal-Modus */
     try{ localStorage.setItem('hicoreRide.bootN','0'); localStorage.setItem('hicoreRide.stage','ok'); }catch(e){}
     try{ const {error}=await this.sb.auth.signInWithOAuth({provider:'google', options:{redirectTo:this.redir()}}); if (error) throw error; }catch(e){ this.st(this.em(e),'err'); } },
@@ -12503,7 +12557,7 @@ const ACC={ sb:null, user:null, prof:null, applying:false, syncing:false, pushT:
       this.user=null; this.prof=null; this.rides=[]; this.ui(); this.st('Konto gelöscht. Die Einstellungen auf diesem Gerät bleiben.','on'); }
     catch(e){ this.st(this.em(e),'err'); } b.textContent='Konto löschen'; this.delArm=0; },
   onAuth(ev,ses){ const u=ses&&ses.user||null, was=this.user&&this.user.id; this.user=u;
-    if (u && was!==u.id){ this.cleanUrl(); this.ui(); if (ev==='SIGNED_IN'){ toast('Angemeldet: '+(u.email||'')); } this.sync(); }
+    if (u && was!==u.id){ this.cleanUrl(); this.ui(); if (this.hch && !this.handBusy){ this.handStop(); $('accHandBox').style.display='none'; } if (ev==='SIGNED_IN'){ toast('Angemeldet: '+(u.email||'')); } this.sync(); }
     else if (!u && was){ this.prof=null; this.rides=[]; this.nBest=0; this.ui(); }
     else this.ui(); },
   /* ---- Einstellungen ---- */

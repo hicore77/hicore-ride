@@ -1,0 +1,59 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0d1117">
+<title>Hicore Ride Anmelden</title>
+<style>
+:root{--acc:#ff7a1a;--line:rgba(255,255,255,.14)}
+body{margin:0;background:#0d1117;color:#f0f3f6;font:16px/1.45 system-ui,-apple-system,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center}
+.box{width:min(380px,calc(100% - 32px));padding:20px 0}
+h1{font-size:22px;margin:0 0 4px}p{color:#9aa4af;font-size:14px;margin:6px 0 14px}
+input{width:100%;box-sizing:border-box;background:#161b22;color:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;font:inherit;font-size:24px;letter-spacing:6px;text-align:center;text-transform:uppercase}
+button{width:100%;margin-top:12px;padding:13px;border-radius:12px;border:1px solid var(--line);background:#21262d;color:#fff;font:inherit;font-weight:600}
+.g{background:#fff;color:#1f1f1f}.g b{color:#4285f4;margin-right:6px}
+#st{margin-top:14px;font-size:14px;color:#9aa4af;min-height:20px}#st.ok{color:#3fb950}#st.err{color:#ff7b72}
+.big{font-size:44px;text-align:center}
+</style></head><body><div class="box">
+<h1>🚴 Hicore Ride</h1>
+<p id="intro">Anmeldung für ein anderes Gerät (z. B. Bluefy am iPad). Code vom Spiel eingeben und mit Google anmelden. Das Spiel ist danach automatisch angemeldet.</p>
+<input id="code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="CODE">
+<button id="g" class="g"><b>G</b> Mit Google anmelden</button>
+<div id="st"></div>
+</div>
+<script src="supabase.js"></script>
+<script>
+/* 0.24.2: Anmelden mit Google auf dem Handy oder in Chrome und die Sitzung per Kanal hl:CODE an das Spiel übergeben (Gegenstück: ACC.handStart/handRx in quelle/gpu/src.html).
+   Die Sitzung zieht um: diese Seite vergisst sie danach, damit nicht zwei Geräte denselben Erneuerungsschlüssel benutzen. */
+const URL_SB='https://snpmmskruuzqrvvsdztz.supabase.co', KEY='sb_publishable_a1YQq6t9obBaiHeQiEB5QQ_tpzzWHWR', SK='hicoreLogin.auth';
+const $=id=>document.getElementById(id);
+function st(t,c){ const e=$('st'); e.textContent=t||''; e.className=c||''; }
+function clean(c){ return String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); }
+function hlSend(sb, code, ses){ return new Promise(res=>{ let done=false, iv=0, to=0; const ch=sb.channel('hl:'+code,{config:{broadcast:{self:false,ack:false}}});
+  const fin=v=>{ if (done) return; done=true; clearInterval(iv); clearTimeout(to); try{ sb.removeChannel(ch); }catch(e){} res(v); };
+  ch.on('broadcast',{event:'ok'},()=>fin(true)).on('broadcast',{event:'err'},({payload})=>fin((payload&&payload.m)||'Fehler am anderen Gerät.'));
+  to=setTimeout(()=>fin(false),25000);
+  ch.subscribe(s=>{ if (s==='SUBSCRIBED'){ const snd=()=>{ try{ ch.send({type:'broadcast',event:'s',payload:{a:ses.access_token, r:ses.refresh_token}}); }catch(e){} }; snd(); iv=setInterval(snd,2500); }
+    else if (s==='CHANNEL_ERROR'||s==='TIMED_OUT') fin('Keine Verbindung zum Server.'); }); }); }
+const SBM=window.HC_SB||window.supabase;
+let sb=null, rt=null, busy=false;
+const qs=new URLSearchParams(location.search), err=qs.get('error_description')||new URLSearchParams(location.hash.slice(1)).get('error_description');
+let code=clean(qs.get('c')||localStorage.getItem('hicoreLogin.code')||''); $('code').value=code;
+$('code').oninput=()=>{ code=clean($('code').value); try{ localStorage.setItem('hicoreLogin.code',code); }catch(e){} };
+function cleanUrl(){ try{ history.replaceState(null,'',location.pathname+(code?'?c='+code:'')); }catch(e){} }
+async function transfer(ses){ if (busy) return; busy=true; if (code.length!==6){ st('Angemeldet als '+(ses.user&&ses.user.email||'?')+'. Jetzt den 6-stelligen Code vom Spiel eingeben.'); busy=false; $('g').textContent='Anmeldung ans Spiel übertragen'; return; }
+  st('Übertrage Anmeldung ans Spiel …'); try{ sb.auth.stopAutoRefresh(); }catch(e){}
+  const r=await hlSend(rt, code, ses);
+  if (r===true){ try{ Object.keys(localStorage).filter(k=>k.indexOf(SK)===0||k==='hicoreLogin.code').forEach(k=>localStorage.removeItem(k)); }catch(e){}
+    document.querySelector('.box').innerHTML='<div class="big">✅</div><h1 style="text-align:center">Fertig</h1><p style="text-align:center">Das Spiel ist angemeldet als '+String(ses.user&&ses.user.email||'').replace(/</g,'')+'. Du kannst zurück zum Spiel wechseln und diese Seite schließen.</p>'; }
+  else { try{ sb.auth.startAutoRefresh(); }catch(e){} st(r===false?'Keine Antwort vom Spiel. Ist dort der Code noch offen? Code prüfen und erneut tippen.':r,'err'); $('g').textContent='Erneut übertragen'; }
+  busy=false; }
+async function googleOn(){ try{ const r=await fetch(URL_SB+'/auth/v1/settings',{headers:{apikey:KEY}}); if (!r.ok) return null; const j=await r.json(); return !!(j&&j.external&&j.external.google); }catch(e){ return null; } }
+$('g').onclick=async()=>{ code=clean($('code').value); try{ localStorage.setItem('hicoreLogin.code',code); }catch(e){}
+  const {data}=await sb.auth.getSession(); if (data&&data.session) return transfer(data.session);
+  if (code.length!==6){ st('Bitte zuerst den 6-stelligen Code vom Spiel eingeben.','err'); return; }
+  st('Prüfe Google-Anmeldung …'); if (await googleOn()===false){ st('Google-Anmeldung ist in Supabase noch nicht eingeschaltet.','err'); return; }
+  st('Weiter zu Google …'); const {error}=await sb.auth.signInWithOAuth({provider:'google', options:{redirectTo:location.origin+location.pathname}}); if (error) st(error.message,'err'); };
+if (!SBM || !SBM.createClient) st('Verbindungsbaustein konnte nicht geladen werden. Seite neu laden.','err');
+else { sb=SBM.createClient(URL_SB,KEY,{auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce', storageKey:SK}});
+  rt=SBM.createClient(URL_SB,KEY,{auth:{persistSession:false, autoRefreshToken:false, detectSessionInUrl:false, storageKey:'hicoreLogin.rt'}, realtime:{params:{eventsPerSecond:5}}});
+  if (err){ st('Anmeldung fehlgeschlagen: '+err,'err'); cleanUrl(); }
+  sb.auth.getSession().then(({data})=>{ cleanUrl(); if (data&&data.session) transfer(data.session); else if (qs.has('code')) st('Anmeldung nicht abgeschlossen. Bitte erneut auf „Mit Google anmelden“ tippen.','err'); });
+  sb.auth.onAuthStateChange((ev,ses)=>{ if (ev==='SIGNED_IN' && ses) setTimeout(()=>transfer(ses),0); }); }
+</script></body></html>

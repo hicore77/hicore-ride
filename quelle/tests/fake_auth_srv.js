@@ -5,6 +5,7 @@ module.exports=function(){ const S={users:{}, pw:{}, db:{profiles:[],rides:[],se
     if (o.op==='otp') return {ok:1};
     if (o.op==='verify'){ if (o.token!=='123456') return {error:'Token has expired or is invalid'}; let u=S.users[o.email]; if (!u) u=S.users[o.email]={id:'u-'+Object.keys(S.users).length+'-'+Math.random().toString(16).slice(2,10), email:o.email, app_metadata:{provider:'email'}}; return {user:u}; }
     if (o.op==='pw'){ const u=S.users[o.email]; if (!u || S.pw[u.id]!==o.password) return {error:'Invalid login credentials'}; return {user:u}; }
+    if (o.op==='ses'){ const id=String(o.r||'').replace(/^ref:/,''); const u=Object.values(S.users).find(x=>x.id===id); return u?{user:u}:{error:'Invalid Refresh Token'}; }
     if (!uid) return {error:'not authenticated'};
     if (o.op==='setpw'){ S.pw[uid]=o.password; return {ok:1}; }
     if (o.op==='db'){ const q=o.q, T=S.db[q.t]; if (!T) return {error:'relation does not exist'};

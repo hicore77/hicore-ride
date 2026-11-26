@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.1 Beta** (HUD oben aufgeräumt, Puls am Handy). Davor 0.24.0 (Konten), 0.23.2 (Autoräder, Einlenken).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.2 Beta** (Anmeldung in Bluefy: E-Mail-Code vorn, Google über Handy/Chrome mit Übergabe per Code/QR). Davor 0.24.1 (HUD oben, Puls am Handy), 0.24.0 (Konten).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.24.1** | **HUD oben Mitte gestapelt ohne Überlappung, Bergwertung einzeilig, FPS oben links, Kreuzung erst ab 110 m; Puls am Handy auch im Testmodus** |
+| **0.24.2** | **Bluefy-Anmeldung: E-Mail-Code wieder vorn mit Erklärung, Google in Bluefy über Handy/Chrome (Seite handy/login.html, Übergabe per Code/QR, Kanal hl:CODE), Anmeldung von Spiel zu Spiel übertragen, Prüfung ob Google eingeschaltet** |
+| 0.24.1 | HUD oben Mitte gestapelt ohne Überlappung, Bergwertung einzeilig, FPS oben links, Kreuzung erst ab 110 m; Puls am Handy auch im Testmodus |
 | 0.24.0 | Konten (Supabase Auth): E-Mail-Code, Passwort, Google; Profil, Einstellungen, Bestzeiten, Fahrten mit FIT im Konto |
-| 0.23.2 | Autoräder sitzen im Radkasten (eingerückt, dunkles Radhaus), Einlenken nach Einspurmodell |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -141,6 +141,12 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - HUD: `hudStack()` (vor `toast`, 10x/s im HUD-Takt) setzt `top` von `#segbox`, `#junc`, `#toast` der Reihe nach unter die Kacheln (`.hud`), je 6 px Abstand. FPS-Anzeige oben links (vorher Mitte über den Kacheln). Bergwertung eine Zeile (`.segbox.cmp .sr`: Name, Rest-m, Zeit, Best, Marke „Test“), Testmodus-Hinweis nur noch einmal je Fahrt als Meldung (`SEG.testNote`). Hauptkreuzungen erst ab max(110 m, 9 s) sichtbar (Wahl per Taste/Handy weiter ab 160 m), neben Bergwertung kleinere Knöpfe (`#junc.jseg`). Alt: `window.OLD_HUDSTACK` (Stapeln, Kreuzungsabstand, jseg).
 - Test `tests/thud.js` (ca. 20 min, `ROOT=` für alten Stand, `TAG`): Bergwertung + Kreuzung + Meldung + FPS gleichzeitig, misst Überlappungen, Bilder iPad 1180×820 und Handy 390×844. Bilder vorschau/261, 262.
 
+**Bluefy-Anmeldung 0.24.2** (Hicore 26.11.: Google geht in Bluefy nicht, E-Mail brachte nur „Confirm“-Link, keinen Code)
+- Ursache E-Mail: Supabase-Vorlagen enthalten ab Werk keinen Code; `{{ .Token }}` muss in „Magic Link“ und „Confirm signup“ stehen (siehe `docs/KONTO_EINRICHTEN.md`). Nach Bestätigung kommt beim nächsten Code die Magic-Link-Vorlage. E-Mail-Feld steht wieder vorn, Codefeld erklärt das.
+- Google in Bluefy wird gesperrt (eingebetteter Browser). `ACC.blu()` = iOS + `navigator.bluetooth`; dort öffnet der Google-Knopf die Übergabe (`ACC.handStart`): Code + QR auf `handy/login.html?c=CODE`. Die Seite (Handy oder Chrome) meldet mit Google an und sendet die Sitzung über Realtime-Kanal `hl:CODE` (`hlSend`, Wiederholung alle 2,5 s bis `ok`); Spiel macht `setSession`. Der Sender vergisst die Sitzung danach lokal (gleicher Erneuerungsschlüssel auf zwei Geräten → Supabase meldet beide ab). Code gilt 10 min.
+- Angemeldetes Spiel kann unter „Anderes Gerät anmelden“ selbst übertragen (`ACC.give`, meldet sich dabei ab). Vor Google-Weiterleitung `GET /auth/v1/settings` (`googleOn`), damit keine rohe JSON-Fehlerseite kommt.
+- Test `tests/thlogin.js` (Spiel ↔ login.html und Spiel → Spiel, `fake_auth.js` mit Fake-Kanal/`FAKE_OAUTH`), `tacc` weiter grün.
+
 **Konten 0.24.0** (Hicore 26.11.: „Accounts wäre nicht schlecht“)
 - Supabase Auth im selben Projekt wie Multiplayer (`ACC` in `src.html` direkt vor `$('bTr').onclick`). Eigener Client mit `persistSession`, `flowType:'pkce'`, `storageKey:'hicoreRide.auth'`; Multiplayer/Handy-Clients bleiben ohne Sitzung. Rückkehr-Adresse = `location.origin+pathname` (nichts fest verdrahtet, eigene Domain nur in Supabase eintragen).
 - Anmelden über 👤 oben rechts im Menü (`#accModal`): E-Mail-Code (`signInWithOtp` + `verifyOtp type:'email'`, Hauptweg für Bluefy, weil Links aus der Mail-App in Safari landen), Passwort (nach erster Anmeldung im Konto festlegen), Google (`signInWithOAuth`; setzt vorher `bootN`/`stage` zurück, sonst startet das iPad nach der Rückkehr im MINI-Modus). Fehlertexte deutsch (`ACC.em`). Link im falschen Browser → Hinweis, Code einzugeben.
@@ -150,12 +156,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Einrichtung im Supabase-Dashboard: `docs/KONTO_EINRICHTEN.md` (SQL, Redirect-URLs, `{{ .Token }}` in Mail-Vorlagen, eigener SMTP für Freunde, Google-Client). Supabase-Standardversand schickt nur an Team-Mitglieder.
 - Test `tests/tacc.js` (ca. 1 min, kein Spielstart nötig): `fake_auth.js` (im Browser, über `window.HC_SB`) + `fake_auth_srv.js` (Node, RLS-Nachbau), zwei Kontexte = zwei Geräte. 23 Prüfungen: Code-Login, Profil/Einstellungen hoch und runter, Bestzeiten in beide Richtungen, Fahrt + FIT, Passwort, Sitzung nach Neuladen, Google-Meldung, Konto löschen. Echte Supabase nur bei Hicore prüfbar.
 
-**Autoräder und Einlenken 0.23.2** (Hicore 26.11.: „Räder sehen aufgesetzt aus, Einlenken sieht komisch aus“)
-- Ursache Räder: Außenseite stand ca. 8 cm über dem Kotflügel (Lage aus den herausgeschnittenen Modellrädern), Radkasten zeigte Karosserie/Himmel und Reste des Modellreifens. Jetzt misst `split` je Achse die Kotflügelkante `A.ax` (98 % der Punkte im Ring 1,06–1,5 r über der Achse), schneidet das Modellrad ganz heraus (`A.xi`, unten bis 1,16 r) und rückt das Rad auf 3,5 cm innerhalb der Kante. `linerGeo`/`linerMat`: dunkles Radhaus (Bogen + Innenwand, alle 4 in 1 Zeichenaufruf). Traktor unverändert. Alt: `OLD_WHEELS`.
-- Ursache Einlenken: Lenkwinkel folgte der gemessenen Drehung über zwei Glättungen (ca. 0,7 s zu spät). Neu `steerStep2`: Hinterachse läuft ohne Schräglauf auf der Spur, Karosserie dreht um die Hinterachse (`c.zr`), Lenkwinkel = atan(Radstand·Krümmung) aus Straße (`headingAt` um die Vorderachse, im Kreisel-Gegenverkehr gemessen, `c.rbA`) plus Spurwechsel, max. 0,9 rad/s, Ackermann je Rad, Wanken aus v²·Krümmung. Alt: `OLD_CARSTEER`.
-- Prüfstand ohne Spiel (ca. 1 min statt 20): Thread-Scratchpad `car/` (gen.js zieht die TRAFFIC-Teile aus src.html, shot.js rendert Autos einzeln, steer.js protokolliert einen Spurwechsel). Bild vorschau/250_autoraeder.jpg. Nicht im Repo; bei Bedarf neu bauen.
-
-**Restpunkte 0.23.1:** Details (`twend`, `OLD_STAIRFLOAT`, `terrMeshY`/`OLD_WAYMESHY`, `OLD_WAYSKIRT`, Dachschnee `NO_ROOFSNOW`, Knirschen `NO_SNOWSND`, Speichern-Fenster `saveSheet`/`CMP.sendFile`/`OLD_SAVE`) jetzt in `docs/ARCHIV.md`.
+**0.23.1 Restpunkte, 0.23.2 Autoräder:** Details (`twend`, `OLD_STAIRFLOAT`, Dachschnee `SNOWCAP`, `saveSheet`, `steerStep2`, `OLD_WHEELS`, `OLD_CARSTEER`) jetzt in `docs/ARCHIV.md`.
 
 **Handy-Fernbedienung 0.23.0:** Details (Seite `quelle/handy/`, Kanal `hc:CODE`, `CMP`, `NO_CMP`, Test `thandy` mit `fake_supabase.js`) jetzt in `docs/ARCHIV.md`. Online: https://hicore77.github.io/hicore-ride/webgpu-spiel/handy/
 
@@ -176,6 +177,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - 0.16.1 am iPad prüfen: Vorauswahl in Orten (Spitzkunnersdorf), ob dezente Abzweig-Hinweise reichen, Ruckler beim automatischen Neuberechnen, Optik der Einmündungen.
 - Idee (Hicore 24.11.): Abbiegen über die Schaltgriffe der elektronischen Schaltung (links/rechts) wählen.
 - 0.15.0 am iPad prüfen: Fahrgefühl Gravel/MTB, Ladezeit (+0,7 s), Wurzeln/Brücken.
+- 0.24.2 prüfen: E-Mail-Code in Bluefy (nach Vorlagen-Ergänzung), Übergabe per QR vom Handy, Google in Chrome.
 - 0.24.0 einrichten und prüfen: Dashboard-Schritte aus `docs/KONTO_EINRICHTEN.md`, dann Anmelden per Code in Bluefy, Google in Chrome und Bluefy (Google sperrt evtl. eingebettete Browser), Fahrt speichern, FIT aus dem Konto laden.
 - 0.23.2 am iPad prüfen: Räder im Radkasten, Einlenken beim Überholen und in Kurven, Kreisel-Gegenverkehr.
 - 0.23.1 am iPad prüfen: Speichern in Bluefy (Teilen-Knopf, sonst „An Handy senden“), Dachschnee bei „viel“, Knirschen, Treppen/Wegenden. KI-Gespräch mit Figuren auf dem iPad unzuverlässig.

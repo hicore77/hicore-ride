@@ -18,7 +18,7 @@ Authentication › Emails › Templates, bei **Magic Link** und bei **Confirm si
 ```html
 <p>Dein Code für Hicore Ride: <b>{{ .Token }}</b></p>
 ```
-Grund: Ein Link aus der Mail-App öffnet sich in Safari, nicht in Bluefy. Den Code tippt man direkt im Spiel ein.
+Grund: Ein Link aus der Mail-App öffnet sich in Safari, nicht in Bluefy. Den Code tippt man direkt im Spiel ein. Ohne diese Zeile kommt nur ein Link und kein Code (so passiert am 26.11.). Neue Konten bekommen zuerst „Confirm signup“, danach immer „Magic Link“.
 
 ## 4. E-Mail-Versand für Freunde (optional)
 Der eingebaute Versand von Supabase schickt nur an Adressen von Mitgliedern deines Supabase-Teams und nur wenige Mails pro Stunde. Für dich selbst reicht das.
@@ -34,4 +34,4 @@ Alternative ohne Mail: Freunde melden sich mit Google an.
 4. Client ID und Client Secret kopieren.
 5. Supabase › Authentication › Sign In / Providers › Google › Enable, beide Werte einfügen › Save.
 
-Hinweis Bluefy: Google sperrt Anmeldungen aus manchen eingebetteten Browsern. Ob Bluefy betroffen ist, zeigt erst der Test. Falls ja: in Bluefy per E-Mail-Code anmelden, in Chrome per Google; beides landet im selben Konto, wenn die E-Mail-Adresse gleich ist.
+Bluefy: Google sperrt die Anmeldung dort (getestet 26.11.). Seit 0.24.2 öffnet der Google-Knopf in Bluefy einen Code mit QR: am Handy scannen (oder Link in Chrome öffnen), dort mit Google anmelden, Bluefy ist danach angemeldet. Seite: `webgpu-spiel/handy/login.html`, liegt unter der schon eingetragenen Redirect-URL `https://hicore77.github.io/hicore-ride/**`.
