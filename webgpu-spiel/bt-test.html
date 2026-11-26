@@ -20,6 +20,15 @@ button.g{background:#444}
 <button onclick="go('C')">3 · Alle Geräte</button>
 <button onclick="go('D')">4 · Name „DR“ einfach</button>
 </div>
+<p>Neu: ohne Zusatzdienste (bitte 5 bis 10 probieren, 9 ist zum Vergleich der Pulsgurt):</p>
+<div class="b">
+<button onclick="go('E')">5 · Name „DR“ pur</button>
+<button onclick="go('F')">6 · Tempo/Kadenz pur</button>
+<button onclick="go('G')">7 · Alle Geräte pur</button>
+<button onclick="go('H')">8 · Leistung + Tempo/Kadenz</button>
+<button onclick="go('I')">9 · Pulsgurt (Vergleich)</button>
+<button onclick="go('J')">10 · Namen als Text</button>
+</div>
 <div class="b"><button class="g" onclick="copyLog()">Log kopieren</button><button class="g" onclick="disc()">Trennen</button></div>
 <div id="live">noch nicht verbunden</div>
 <div id="raw"></div>
@@ -31,7 +40,7 @@ let dev=null, raw={}, t0=performance.now(), nRaw=0;
 const L=document.getElementById('log');
 function log(s){ const t=((performance.now()-t0)/1000).toFixed(1); L.textContent+=t+'s  '+s+'\n'; L.scrollTop=1e9; }
 function hex(dv){ return [...new Uint8Array(dv.buffer,dv.byteOffset,dv.byteLength)].map(b=>b.toString(16).padStart(2,'0')).join(' '); }
-function err(e){ return e ? (e.name||'')+': '+(e.message||String(e)) : 'unbekannt'; }
+function err(e){ if (e==null) return 'leer'; let j=''; try { j=JSON.stringify(e); } catch(_){} return 'typ='+typeof e+' name='+(e.name||'-')+' msg='+(e.message||'-')+' str='+String(e)+(j&&j!=='{}'?' json='+j:''); }
 function showRaw(){ document.getElementById('raw').textContent=Object.entries(raw).map(([k,v])=>k+': '+v).join('\n'); }
 log('Browser: '+navigator.userAgent);
 log('navigator.bluetooth: '+(navigator.bluetooth?'ja':'NEIN'));
@@ -39,14 +48,20 @@ function opts(k){
   if (k==='A') return {filters:[{namePrefix:'DR'}], optionalServices:OPT};
   if (k==='B') return {filters:[{services:[CSC]}], optionalServices:OPT};
   if (k==='C') return {acceptAllDevices:true, optionalServices:OPT};
-  return {filters:[{namePrefix:'DR'}], optionalServices:[CPS,CSC]};
+  if (k==='D') return {filters:[{namePrefix:'DR'}], optionalServices:[CPS,CSC]};
+  if (k==='E') return {filters:[{namePrefix:'DR'}]};
+  if (k==='F') return {filters:[{services:[CSC]}]};
+  if (k==='G') return {acceptAllDevices:true};
+  if (k==='H') return {filters:[{services:[CPS]},{services:[CSC]}]};
+  if (k==='I') return {filters:[{services:[0x180d]}]};
+  return {filters:[{services:['cycling_speed_and_cadence']}], optionalServices:['cycling_power','device_information']};
 }
 async function go(k){
   if (!navigator.bluetooth){ log('Kein Web Bluetooth in diesem Browser.'); return; }
-  const o=opts(k); log('— Versuch '+k+': '+JSON.stringify(o));
+  const o=opts(k); const tq=performance.now(); log('— Versuch '+k+': '+JSON.stringify(o));
   let d;
   try { d=await navigator.bluetooth.requestDevice(o); }
-  catch(e){ log('requestDevice Fehler → '+err(e)); return; }
+  catch(e){ log('requestDevice Fehler nach '+Math.round(performance.now()-tq)+' ms → '+err(e)); return; }
   log('gewählt: "'+(d.name||'(ohne Namen)')+'" id='+d.id);
   dev=d; d.addEventListener('gattserverdisconnected',()=>log('Verbindung getrennt'));
   let srv; try { srv=await d.gatt.connect(); log('verbunden'); } catch(e){ log('connect Fehler → '+err(e)); return; }
