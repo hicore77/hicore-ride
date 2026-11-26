@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.25.1** | **Elite Drivo in Bluefy verbindbar (Suche ohne Dienst-Nummern), echte Watt/Kadenz über Cycling Power; Testseite `webgpu-spiel/bt-test.html`** |
+| **0.25.2** | **Dolomiten: Alpenhäuser statt Umgebinde, Wegkreuze/Bildstöcke, Fels mit Relief und Schichtbändern** |
+| 0.25.1 | Elite Drivo in Bluefy verbindbar (Suche ohne Dienst-Nummern), echte Watt/Kadenz über Cycling Power; Testseite `webgpu-spiel/bt-test.html` |
 | 0.25.0 | Neue Welt Dolomiten (Cortina–Passo Giau–Caprile–Passo Falzarego, 66 km): echtes Gelände, Satellitenbild, Fernpanorama, Felsen, Wald bis zur Baumgrenze; nur Hauptstraßen befahrbar |
-| 0.24.5 | Abbiege-Fehler in Rundkurs-Welten behoben (nach Zittau-Fahrt), Hügelland und Alpenpass ausgeblendet |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -140,6 +140,12 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Drivo 1 (nRF Connect + `bt-test.html`): wirbt nur CSC 0x1816 + Elite `347b0001-…`, hat verbunden aber auch **Cycling Power 0x1818** (Feature `0d 02 01 00`, Control Point 2A66), Device Info (Elite, HW 001, FW 026), Legacy DFU. Spiel nimmt den CPS-Zweig → echte Watt/Kadenz. Elite-Merkmale: 0010 w, 0011 n (sendet `00` je Sekunde), 0012 w, 0013 r (Nullen), 0014 n, 0015 n (3 Pakete/s: `01|02|03`, u16 Zähler, dann 8×u16, vermutlich Kraftverlauf je Kurbelumdrehung), 0016 w, 0017 n. Widerstand vermutlich über 0010/0012/0016, Befehle unbekannt (nicht öffentlich).
 - Testseite `webgpu-spiel/bt-test.html`: 10 Suchvarianten, Dienste, Geräteinfo, Watt/Kadenz live, Elite-Rohdaten, „Log kopieren“. Nützlich für jedes neue Gerät.
 
+**0.25.2 Alpenhäuser, Wegkreuze, Fels** (Hicore 26.11. zu 0.25.0: „Berge verwaschen, nicht das typische Grau-Weiß, überall Umgebindehäuser“; FPS super)
+- Häuser: Alpen-Atlas (`atlasFn` mit `alp`, Zellen 8–12 und 31, Giebel 1–4 ersetzt, eigener Cache `atlasA`, `GT.hm` wird in `dataReset` geleert). Typen `LAD`, `STADEL`, `TABIA`, `RIFUGIO`, `HOTELA` (`HT`, `alp`: Traufe 0,95 m, Giebel 0,7 m; `bal`: Holzbalkone an den Traufseiten, Hotel je Geschoss; Dach `rf` m = Blech grau/rot/grün, w = Lärchenschindeln). `htPick` Dolomiten neu, `dolo_bau.py` trennt Stadel/Ställe (k 3) von Hütten (k 7). Alt: `window.OLD_ALPH`.
+- Wegkreuze: `buildDoloShrines` (Holzkreuz mit Dächlein, Bildstock, Marterl; OSM-Knoten `ZGNET.crosses` ohne Gipfelkreuze + an der Runde alle 1,5–2,6 km, nicht an Häusern/steilen Stellen). Aus: `window.NO_SHRINES`. Test: `SHR=3 node tdolo.js` fotografiert die ersten Kreuze.
+- Fels: `dlRockD` verschiebt Kachel- und Grobgelände auf Fels/Geröll (gratige Rauschsumme, Bänder, Kanten geschärft gegen 55-m-Mittel, nie näher als 10–35 m an Straßen; nur Optik). Grobgelände Dolomiten 480 statt 320 Zellen. Fels-Erkennung zusätzlich über Helligkeit (Dolomit ist im Satellitenbild beige), Faktor 0,74 (`DLROCKF`), Shader mit Schichtbändern, Regenstreifen, Ockerflecken (`OLD_ROCKSH`). Schalter: `NO_ROCKD`, `OLD_DLROCKL`.
+- Satellitenbild: Schattenseiten entsättigt (vorher cyan/neongrün), Unscharf-Maskieren.
+
 **0.25.0 Dolomiten** (Hicore 26.11.: „wie Zittauer Gebirge, mit allen Daten“, nur Hauptstraßen befahrbar, Nebenstraßen sichtbar, Panorama „atemberaubend“; Wunschliste in Projekt-Memory `dolomiten-welt`)
 - Daten: `werkzeuge/dolo_bau.py` baut `quelle/dolo/` (ca. 9 s) aus Rohdaten unter `/home/user/dolo` (nicht im Repo): Copernicus GLO-30 (S3, Kacheln N46 E011/E012), ESA WorldCover 2021 (S3, Dateiname mit kleinem „v200“), Sentinel-2 L2A Kachel **32TQS** Szene S2C_32TQS_20250919_0 (33TUM deckt das Gebiet nicht), OSM über Sandbox/Overpass (`osmc.json`, als PNG-Chunks geholt). Projektion LAT0 46.49, LON0 12.06, Welt-y = Höhe − 1200 m.
 - Inhalt: DEM 25 m (x −21000…21000, z −16000…14000, Waldkorrektur −11 m), 4 Kanten per Dijkstra auf primary/secondary/tertiary (SR48 Cortina–Pocol, SP638 Giau, SP638 Giau–Selva–Caprile, SR48 Falzarego), Steigung geglättet max. 15,5 %; Runde = Pocol-Schleife, Start Cortina über `zgApplyStart`. Nebenstraßen/Wege im ZGSIDE-Format (nur sichtbar, `NO_WAYNET`). Gebäude, Ortsschilder, Bergwertungen (Giau von Pocol/Selva, Falzarego von Andraz/Pocol, Pocol), 233 Gipfel in `pois`. Landbedeckung 10 m (`lc.png`, Klassen 6 Fels, 8 Schnee, 9 Geröll, 10 Alpweide), Satellitenbild nah 10 m / fern 25 m mit Schatten-/Blaustich-Korrektur.
@@ -147,17 +153,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Test `tests/tdolo.js` (`W=dolo|zittau`, `OUT`, `D` Fahrerbilder in m, `V` freie Kamera `[x,z,h,lx,lz,name]`, `NF`); ein Bild mit Panorama dauert in der Cloud ca. 5–7 min.
 - Farben: Satellitenwerte sind sRGB, `lcCol` setzt sie mit `THREE.SRGBColorSpace` (vorher linear gelesen = viel zu hell, alt `window.OLD_DLLIN`), Fels zusätzlich ×0,6 (`window.DLROCKF`), weil das Bild schon Sonnenlicht enthält.
 - Grenzen: Gelände-Farbe = Eckpunktfarbe, fern also unscharf; Häuser vorerst Zittauer Typen; Gipfel noch ohne Beschriftung.
-**0.24.5 Abbiege-Fehler, Welten ausgeblendet** (Hicore 26.11.: Fehler „bt.innerHTML … null“ auf der Sonneninsel vor einem Abzweig; Hügelland/Alpenpass nicht löschen, nur unsichtbar)
-- Ursache: Zittau (`gJunUI`) und Rundkurs-Welten (`junUI`) teilen sich `#junc`. `junUI(null)` (auch aus `gNetStep`) setzt `dataset.g=''`, ohne den Inhalt zurückzubauen; nach einer Zittau-Fahrt in derselben Seite fand `junUI` dann keinen `[data-v=turn]`-Knopf. Jetzt baut `junUI` neu, wenn der Knopf fehlt. Elbsandstein hat keine Abzweige (`NET` null), dort tritt der Fehler nicht auf.
-- Welten: `hidden:true` an `huegel`/`pass`, `wVis(w)` (nach `WORLDS`) filtert Weltauswahl, gespeicherte/Konto-Welt, Fortsetzen, Freischalt-Meldungen. Zum Testen `window.SHOW_ALL_WORLDS=1`.
-- Test `tests/tworlds.js` (`W=insel,elbe`, ca. 10 min je Welt): ganze Runde mit `netStep`, frisch und mit Zittau-Kreuzungsfeld; listet Weltkarten. Alt (ROOT=webgpu-spiel): Fehler wie bei Hicore, neu 65× Abzweig angezeigt, kein Fehler. `terr2` none.
 
-**0.24.4 Zäune, Gras, Handy, Trikots** (Hicore 26.11.: Dekozäune quer über Straßen und Bahn, Grasbüschel auf Kopfsteinpflaster, Handy-Layout springt, Trikot-Schrift zu groß)
-- Zäune: `fenceHit(ax,az,bx,bz,m)` (bei `propOnWay`) prüft ein Zaunstück alle 0,5 m gegen Straßen (`gnNear`, Rand + m), Wege/Treppen (`waysNear`) und Gleise (`railNear`, eigenes 20-m-Raster aus `ZSB.lines`, Schmalspur 1,6 m, Normalspur 2,1 m halbe Bettbreite). Gilt für OSM-Zäune (`gtFenceMesh`, m 1,0), Deko-Zaun entlang der Runde (`addProps`, m 2,6 = auch nicht auf dem Pflasterstreifen), Weidezaun (m 2,6), Jägerzaun/Hecke (m 1,0 + nicht auf Pflaster, `buildFencesHedges`) und Vorgartenzäune (`gardenFences`). Vorher wurden Gleise nirgends, Wege bei Weide-/Jägerzaun gar nicht geprüft. Alt: `window.OLD_FENCECHK`.
-- Gras: `gnPave(x,z,m)` (nach `gnNear`, das jetzt auch `px/pz` liefert) = liegt der Punkt auf dem Pflaster-/Splittstreifen im Ort (gleiche Breiten wie `orBuilder`). Feines Gras/Büschel (`gfCell`) und Rand-Büschel/Blumen (`buildVerge`, dort auch nicht mehr auf Wegen) lassen diese Stellen aus. Alt: `window.OLD_GRASSPAVE`.
-- Handy (`quelle/handy/index.html`): Kreuzungsfeld hat feste Höhe (Text 2 Zeilen, Knopfreihe 52 px, Knöpfe einzeilig), Pfeile rutschen nicht mehr.
-- Trikots: Schriftzüge aus `jer/tex_sprint.jpg` und `jer/tex_berg.jpg` entfernt (`werkzeuge/trikot_ohne_text.py`, Inpainting direkt in der UV-Textur; Originale in der Git-Historie). Vorschaubilder `thumb_*` unverändert.
-- Test `tests/tfence.js` (ca. 20 min, `PRE='window.OLD_FENCECHK=1;window.OLD_GRASSPAVE=1;'` = alter Stand): zählt Zaunstücke, die Straße/Weg/Gleis berühren, und Feingras auf Pflaster. Ergebnis Start Zittau: alt 54 Zaunstücke über Wege/Gleise (Weide, Jäger, Hecke), neu 0; Ortskern Zittau Feingras auf Pflaster alt 3.653, neu 0. `terr2` none.
 
 
 **Bluefy-Anmeldung 0.24.2:** Details (`ACC.blu`, `ACC.handStart`, Kanal `hl:CODE`, `ACC.give`, Test `thlogin`) jetzt in `docs/ARCHIV.md`.
@@ -196,7 +192,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 ## 6. Nächste Schritte
 
-0. Dolomiten 0.25.x (Reihenfolge mit Hicore abgesprochen): alpine Häuser (Rifugi aus OSM, Heustadel, ladinische Holzhäuser), Wegkreuze/Kapellen; Lärche/Zirbe/Latschen, Alpenblumen; Bäche Boite/Cordevole/Codalonga türkis mit Rauschen; Kühe mit Glocken, Gämsen/Steinböcke, Murmeltiere, versteckter Yeti; Gipfelnamen.
+0. Dolomiten 0.25.x: Fels weiter verbessern (Hicore-Priorität: grau-weiße Wände, Details nah und fern, ggf. Fels-Textur aus Higgsfield/Poly Haven), Kapellen; Lärche/Zirbe/Latschen, Alpenblumen; Bäche Boite/Cordevole/Codalonga türkis mit Rauschen; Kühe mit Glocken, Gämsen/Steinböcke, Murmeltiere, versteckter Yeti; Gipfelnamen.
 
 1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
 1a. 0.19.8 am iPad prüfen: Absteigen/Aufsteigen über den Sattel natürlich? Schultern Gravel (0.19.7) hat Hicore bestätigt. Gabeln 0.19.5 (Gravel starr, MTB federt genug/zu viel?), Treppe Oybin Kammstraße frei (0.19.2). Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).

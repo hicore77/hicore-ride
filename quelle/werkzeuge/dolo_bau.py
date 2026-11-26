@@ -205,6 +205,16 @@ for o in NODES:
         if ' - ' in nm: nm = nm.split(' - ')[-1]
         pois.append([t['place'], nm, '', round(x, 1), round(z, 1)])
 net['pois'] = pois
+# 0.25.2: Wegkreuze, Bildstöcke, Kapellen-Punkte (Knoten) für Kleinbauten im Spiel
+crs = []
+for o in O:
+    if o[0] != 'n': continue
+    t = o[4] if len(o) > 4 and isinstance(o[4], dict) else {}
+    ty = 'cross' if t.get('man_made') == 'cross' or t.get('historic') == 'wayside_cross' else 'shrine' if t.get('historic') == 'wayside_shrine' else 'chapel' if t.get('building') == 'chapel' or (t.get('amenity') == 'place_of_worship' and t.get('building') != 'church') else ''
+    if not ty: continue
+    x, z = xy(o[2], o[3])
+    if -14000 < x < 14000 and -12000 < z < 12000: crs.append([ty, round(x, 1), round(z, 1), 1 if t.get('summit:cross') == 'yes' or t.get('natural') == 'peak' else 0])
+net['crosses'] = crs; print('Kreuze/Bildstöcke', len(crs))
 peaks = []
 for o in NODES:
     t = o[4]
@@ -262,7 +272,8 @@ for o in W.values():
     if A < 6: continue
     b = t.get('building'); am = t.get('amenity'); tour = t.get('tourism')
     k = 4 if (b in ('church', 'chapel') or am == 'place_of_worship') and A > 40 else \
-        7 if b in ('hut', 'cabin', 'shed', 'barn', 'farm_auxiliary', 'stable', 'cowshed', 'hay') and A < 160 else \
+        3 if b in ('barn', 'farm_auxiliary', 'stable', 'cowshed', 'hay', 'farm') and A < 420 else \
+        7 if b in ('hut', 'cabin', 'shed') and A < 160 else \
         6 if tour in ('alpine_hut', 'wilderness_hut') or am == 'restaurant' and A < 600 else \
         1 if A < 28 or b in ('garage', 'garages', 'carport', 'roof') else \
         2 if b in ('apartments', 'hotel', 'commercial', 'retail', 'industrial', 'school', 'office', 'public') or A > 450 else 0
@@ -408,6 +419,9 @@ def sat_grid(x0, z0, cell, w, h, level):
     f = ndimage.gaussian_filter(f, 1.0)
     corr = np.clip(f, 0.25, 1.6) ** -0.55
     out = out * corr[..., None]
+    # 0.25.2: Schattenseiten sind himmelblau beleuchtet -> nach dem Aufhellen cyan/neongrün. Dort entsättigen und warm stellen.
+    bl = np.clip((corr - 1.05) / 0.55, 0, 1)[..., None]; lm = out.mean(-1, keepdims=True)
+    out = out * (1 - bl * 0.75) + lm * bl * 0.75 * np.array([1.05, 1.0, 0.9])
     # Schlagschatten (Felswände) auffüllen: dunkle Stellen gegenüber der Umgebung, Farbe aus der hellen Nachbarschaft
     lum = out.mean(-1); sig = max(2.0, 60.0 / cell)
     med = ndimage.gaussian_filter(lum, sig)
@@ -423,7 +437,10 @@ def sat_grid(x0, z0, cell, w, h, level):
     l2 = out.mean(-1, keepdims=True); kn = 170.0
     comp = np.where(l2 > kn, kn + (l2 - kn) * 0.45, l2); out = out * (comp / np.maximum(l2, 1))
     warm = np.clip((out.mean(-1) - 120) / 80, 0, 1)[..., None]; out = out * (1 + warm * np.array([0.03, 0.0, -0.06]))
-    out = np.clip(out * 1.06, 0, 255)
+    out = out * 1.06
+    # 0.25.2: Schärfen (Unscharf-Maskieren), damit Grate und Wände im Fernpanorama nicht verwaschen wirken
+    bl2 = np.stack([ndimage.gaussian_filter(out[..., c], 1.3) for c in range(3)], -1); out = out + (out - bl2) * (0.9 if cell > 15 else 0.6)
+    out = np.clip(out, 0, 255)
     return out.astype(np.uint8), XX, ZZ
 near_img, _, _ = sat_grid(LC0x, LC0z, LCc, LCw, LCh, 0)
 Image.fromarray(near_img).save(os.path.join(OUT, 'sat_near.jpg'), quality=82)
