@@ -29,6 +29,10 @@ button.g{background:#444}
 <button onclick="go('I')">9 · Pulsgurt (Vergleich)</button>
 <button onclick="go('J')">10 · Namen als Text</button>
 </div>
+<p><b>Widerstand (Drivo):</b> erst mit Knopf 10 verbinden, dann gleichmäßig treten (gleiche Kadenz, gleicher Gang) und nacheinander tippen. Jeder Wert bleibt, bis du einen anderen tippst. Merk dir, ab welchem Wert es spürbar schwerer wird.</p>
+<div class="b">
+<button onclick="res(10)">W 10</button><button onclick="res(20)">W 20</button><button onclick="res(30)">W 30</button><button onclick="res(50)">W 50</button><button onclick="res(80)">W 80</button><button onclick="res(120)">W 120</button><button onclick="res(5)">W 5</button><button onclick="res(0)">W 0</button>
+</div>
 <div class="b"><button class="g" onclick="copyLog()">Log kopieren</button><button class="g" onclick="disc()">Trennen</button></div>
 <div id="live">noch nicht verbunden</div>
 <div id="raw"></div>
@@ -84,6 +88,7 @@ async function go(k){
   try { const s=await srv.getPrimaryService(ELITE); const chs=await s.getCharacteristics();
     for (const ch of chs){ const id=ch.uuid.slice(4,8), p=ch.properties;
       log('Elite '+id+': '+['read','write','writeWithoutResponse','notify','indicate'].filter(x=>p[x]).join(','));
+      if (id==='0010') el10=ch;
       if (p.read){ try { const v=await ch.readValue(); raw['Elite '+id+' (gelesen)']=hex(v); log('Elite '+id+' gelesen: '+hex(v)); } catch(e){ log('Elite '+id+' lesen: '+err(e)); } }
       if (p.notify||p.indicate){ ch.addEventListener('characteristicvaluechanged',e=>{ const h=hex(e.target.value); raw['Elite '+id]=h; showRaw(); if (nRaw++<60) log('Elite '+id+' → '+h); });
         try { await ch.startNotifications(); } catch(e){ log('Elite '+id+' abonnieren: '+err(e)); } }
@@ -91,11 +96,13 @@ async function go(k){
   } catch(e){ log('Elite-Dienst: '+err(e)); }
   showRaw(); log('Fertig. Jetzt treten, dann Log kopieren.');
 }
-let lc=null;
+let lc=null, el10=null, resV=null, resT=null;
+async function resW(){ if (!el10||resV==null) return; try { const b=new Uint8Array([1,resV]); await (el10.writeValueWithResponse?el10.writeValueWithResponse(b):el10.writeValue(b)); } catch(e){ log('Widerstand schreiben: '+err(e)); } }
+function res(v){ if (!el10){ log('Erst mit Knopf 10 verbinden (Elite-Kanal 0010 fehlt).'); return; } resV=v; log('Widerstand: sende 01 '+v.toString(16).padStart(2,'0')+' (Wert '+v+')'); document.getElementById('live').dataset.w=v; resW(); if (!resT) resT=setInterval(resW,2000); }
 function cps(dv){ let o=0; const f=dv.getUint16(o,true); o+=2; const w=dv.getInt16(o,true); o+=2; let cad='–';
   if (f&1) o+=1; if (f&4) o+=2; if (f&16) o+=6;
   if (f&32){ const r=dv.getUint16(o,true), t=dv.getUint16(o+2,true); if (lc){ const dr=(r-lc.r+65536)%65536, dt=((t-lc.t+65536)%65536)/1024; if (dt>0&&dr>0) cad=Math.round(dr/dt*60); } lc={r,t}; }
-  document.getElementById('live').textContent='Watt: '+w+'   Kadenz: '+cad;
+  const lv=document.getElementById('live'); lv.textContent='Watt: '+w+'   Kadenz: '+cad+(lv.dataset.w?'   W '+lv.dataset.w:'');
   raw['CPS 2a63']=hex(dv); showRaw(); }
 function disc(){ try { dev&&dev.gatt.disconnect(); } catch(e){} }
 function copyLog(){ const s=L.textContent+'\n'+document.getElementById('raw').textContent;
