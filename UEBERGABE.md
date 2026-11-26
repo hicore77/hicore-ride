@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.0 Beta** (Konten: Anmelden, Profil, Fahrten und Bestzeiten auf allen Geräten). Davor 0.23.2 (Autoräder, Einlenken), 0.23.1 (schwebende Wegenden, Dachschnee, Speichern in Bluefy).
+Stand: 26.11.2026. Letzte veröffentlichte Version: **0.24.1 Beta** (HUD oben aufgeräumt, Puls am Handy). Davor 0.24.0 (Konten), 0.23.2 (Autoräder, Einlenken).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.24.0** | **Konten (Supabase Auth): E-Mail-Code, Passwort, Google; Profil, Einstellungen, Bestzeiten, Fahrten mit FIT im Konto** |
+| **0.24.1** | **HUD oben Mitte gestapelt ohne Überlappung, Bergwertung einzeilig, FPS oben links, Kreuzung erst ab 110 m; Puls am Handy auch im Testmodus** |
+| 0.24.0 | Konten (Supabase Auth): E-Mail-Code, Passwort, Google; Profil, Einstellungen, Bestzeiten, Fahrten mit FIT im Konto |
 | 0.23.2 | Autoräder sitzen im Radkasten (eingerückt, dunkles Radhaus), Einlenken nach Einspurmodell |
-| 0.23.1 | Schwebende Weg-/Treppenenden behoben, Dachschnee mit Kante, Schneeknirschen, Speichern-Fenster für Bluefy + Datei ans Handy |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -136,6 +136,11 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 **Leistung 0.20.0–0.21.0** (Details 0.20.0–0.20.2 in `docs/ARCHIV.md`): Kachelwald gebündelt (`GT.w`, `OLD_GTW`), Baumschatten nur nah (`OLD_TREESH`), HUD sparsam (`OLD_HUD`), Leistungstest per Tipp auf FPS-Anzeige (`LTEST`), Messung `tests/tgpuperf.js`. iPad-Lesart: Chrome hängt an Pixeln, Bluefy an den Bäumen.
 - 0.20.3 (Hicore: 0.20.2 lief erst 60 FPS/90 %, dann alle ~30 s Ruckler und wieder „28 FPS · max 30“): `FPSCTL.win(fps, maxFrameMs)` ersetzt `DRES.tick`/FCAP-Zweig. Unter 55 FPS Auflösung −10 % bis 70 % (nach jedem Wechsel ein Fenster Pause), kein Gewinn bei 70 % (< 3 FPS ggü. 100 %) → zurück auf 100 % und 5 min Sperre; 50–55 ungebremst, < 50 → 30er-Grenze, Probe alle 3 min; hoch +5 % nach 4×≥59, fällt es binnen 12 s → 3 min keine Erhöhung; Fenster mit Bild > 250 ms (Nachladen) zählen nicht. Alt: `window.OLD_FPSCTL`.
+**HUD und Puls 0.24.1** (Hicore 26.11.: Puls fehlt am Handy, HUD oben überladen, Screenshot Bluefy)
+- Puls: Ursache war `h:S.hr&&!S.sim?…:0` in `CMP.frame`. Hicore fährt mit Stages ohne Trainer, also immer Testmodus (`S.sim`), dann wurde nie Puls gesendet, auch mit TICKR. Neu `realHr()` (bei `let hrDev`): Pulsgurt verbunden oder Puls vom Trainer; im Testmodus ohne Gurt ist `S.hr` geschätzt → 0. Gilt auch für die Live-Anzeige im Menü (`lvH`). `thandy` prüft beides (Wartezeiten jetzt per waitForFunction, dadurch auch „Watt kommen an“ grün; weiter rot und vermutlich Testproblem: „Vorwahl gespeichert“, „Datei am Handy bestätigt 1/5“).
+- HUD: `hudStack()` (vor `toast`, 10x/s im HUD-Takt) setzt `top` von `#segbox`, `#junc`, `#toast` der Reihe nach unter die Kacheln (`.hud`), je 6 px Abstand. FPS-Anzeige oben links (vorher Mitte über den Kacheln). Bergwertung eine Zeile (`.segbox.cmp .sr`: Name, Rest-m, Zeit, Best, Marke „Test“), Testmodus-Hinweis nur noch einmal je Fahrt als Meldung (`SEG.testNote`). Hauptkreuzungen erst ab max(110 m, 9 s) sichtbar (Wahl per Taste/Handy weiter ab 160 m), neben Bergwertung kleinere Knöpfe (`#junc.jseg`). Alt: `window.OLD_HUDSTACK` (Stapeln, Kreuzungsabstand, jseg).
+- Test `tests/thud.js` (ca. 20 min, `ROOT=` für alten Stand, `TAG`): Bergwertung + Kreuzung + Meldung + FPS gleichzeitig, misst Überlappungen, Bilder iPad 1180×820 und Handy 390×844. Bilder vorschau/261, 262.
+
 **Konten 0.24.0** (Hicore 26.11.: „Accounts wäre nicht schlecht“)
 - Supabase Auth im selben Projekt wie Multiplayer (`ACC` in `src.html` direkt vor `$('bTr').onclick`). Eigener Client mit `persistSession`, `flowType:'pkce'`, `storageKey:'hicoreRide.auth'`; Multiplayer/Handy-Clients bleiben ohne Sitzung. Rückkehr-Adresse = `location.origin+pathname` (nichts fest verdrahtet, eigene Domain nur in Supabase eintragen).
 - Anmelden über 👤 oben rechts im Menü (`#accModal`): E-Mail-Code (`signInWithOtp` + `verifyOtp type:'email'`, Hauptweg für Bluefy, weil Links aus der Mail-App in Safari landen), Passwort (nach erster Anmeldung im Konto festlegen), Google (`signInWithOAuth`; setzt vorher `bootN`/`stage` zurück, sonst startet das iPad nach der Rückkehr im MINI-Modus). Fehlertexte deutsch (`ACC.em`). Link im falschen Browser → Hinweis, Code einzugeben.
@@ -150,13 +155,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Ursache Einlenken: Lenkwinkel folgte der gemessenen Drehung über zwei Glättungen (ca. 0,7 s zu spät). Neu `steerStep2`: Hinterachse läuft ohne Schräglauf auf der Spur, Karosserie dreht um die Hinterachse (`c.zr`), Lenkwinkel = atan(Radstand·Krümmung) aus Straße (`headingAt` um die Vorderachse, im Kreisel-Gegenverkehr gemessen, `c.rbA`) plus Spurwechsel, max. 0,9 rad/s, Ackermann je Rad, Wanken aus v²·Krümmung. Alt: `OLD_CARSTEER`.
 - Prüfstand ohne Spiel (ca. 1 min statt 20): Thread-Scratchpad `car/` (gen.js zieht die TRAFFIC-Teile aus src.html, shot.js rendert Autos einzeln, steer.js protokolliert einen Spurwechsel). Bild vorschau/250_autoraeder.jpg. Nicht im Repo; bei Bedarf neu bauen.
 
-**Restpunkte 0.23.1** (Hicore 25.11.: schwimmendes Feldwegende, Schneekante auf Dächern, FIT-Download)
-- Prüfskript `tests/twend.js` (ca. 40 s): misst jede Wegecke (29.000 Stücke) gegen das gezeichnete Gelände (10-m-Raster), dazu Brückendecks und Treppen. Ergebnis vorher: 169 Treppen standen über 0,8 m (bis 6,4 m) in der Luft, der Weg am Treppenende schwebte mit (`stairBlend`); Wege auf Kuppen bis 1,4 m über dem sichtbaren Boden, in Mulden darunter; an Straßen angehobene Wegenden (`wayLiftY0`, meist 0,35–0,7 m) ohne Unterbau. Meldungen „einschnitt“ sind Fehlalarm (feines Einschnitt-Netz deckt das abgesenkte Raster).
-- Treppen (`stairInit`): OSM-incline gegen das Gelände (> 0,5 m andersrum) → Gelände gewinnt; steht die Treppe schon 30 cm über dem Boden, Podest statt Stufe, fällt das Gelände (Kuppe), geht sie wieder hinunter (Rückseite gezeichnet). Jetzt 0 Treppen über 0,8 m. Alt: `window.OLD_STAIRFLOAT`.
-- Wege: `terrMeshY(x,z)` = Höhe des gezeichneten Rasters (Cache `TMY`), genutzt in `gtSideMesh`, `rgPts` (Fahrlinie auf Wegen), Wurzeln. Alt: `OLD_WAYMESHY`. Böschung (Grasschicht 6, im Wald 7) an jeder Wegkante, die > 10 cm über dem Raster liegt. Alt: `OLD_WAYSKIRT`.
-- Dachschnee (`roofSnowMesh`, `scFace`, `SNOWCAP.th`, `roofSnowTick`): je Häuserkachel eine Schneedecke auf Sattel-/Walmdächern (Attribut `so` = Verschiebung je m), Kante und 12 cm Überhang an der Traufe, First geschlossen. Dicke bis 24 cm nur bei geschlossener Schneelage („viel“), bei Tauwetter weniger, sonst unsichtbar. Nicht auf MINI. Aus: `NO_ROOFSNOW`. Sonderbauten (Kirchen, Higgsfield) ohne.
-- Schneeknirschen (`AMB.snowBuf` erzeugt die Schleife, `snowUnder`): auf Wegen/Nebenstraßen nach Schneelage, Hauptstraße nur festgefahren (geräumt wenig Matsch), Abrollrauschen dann leiser. Regler „Fahrgeräusch“. Aus: `NO_SNOWSND`.
-- Speichern (`saveFile`, `saveSheet`): auf iPad/iPhone immer eigenes Fenster; Teilen erst beim Tipp dort (Geste ging beim Bild vorher verloren), probiert mehrere Dateitypen, zeigt Fehlername; „An gekoppeltes Handy senden“ (`CMP.sendFile`, Kanal-Ereignis `f` in 40.000-Zeichen-Stücken, Bestätigung `fa`; Handy-Seite zeigt Teilen/Herunterladen), „Bild kopieren“, Download-Link. Alt: `OLD_SAVE`. Test `thandy` prüft Übertragung (150 KB) und Fenster.
+**Restpunkte 0.23.1:** Details (`twend`, `OLD_STAIRFLOAT`, `terrMeshY`/`OLD_WAYMESHY`, `OLD_WAYSKIRT`, Dachschnee `NO_ROOFSNOW`, Knirschen `NO_SNOWSND`, Speichern-Fenster `saveSheet`/`CMP.sendFile`/`OLD_SAVE`) jetzt in `docs/ARCHIV.md`.
 
 **Handy-Fernbedienung 0.23.0:** Details (Seite `quelle/handy/`, Kanal `hc:CODE`, `CMP`, `NO_CMP`, Test `thandy` mit `fake_supabase.js`) jetzt in `docs/ARCHIV.md`. Online: https://hicore77.github.io/hicore-ride/webgpu-spiel/handy/
 

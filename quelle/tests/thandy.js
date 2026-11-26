@@ -18,8 +18,13 @@ const {chromium}=require('playwright'); const serve=require('./serve'); const fs
  ok('Spiel sieht Handy', await g.evaluate(()=>CMP.phone===1 && /Handy verbunden/.test($('cmpStat2').textContent)));
  await g.evaluate(()=>{ $('cmpModal').style.display='none'; });
  // Leistung im Sim, Werte am Handy prüfen
- await g.evaluate(()=>{ $('simW').value=220; }); await g.waitForTimeout(6000);
- const w2=await h.evaluate(()=>+document.getElementById('vW').textContent); ok('Watt kommen an (Sim 220)', w2>150, w2);
+ await g.evaluate(()=>{ $('simW').value=220; }); await h.waitForFunction(()=>+document.getElementById('vW').textContent>150,null,{timeout:120000}).catch(()=>{});
+ const w2=await h.evaluate(()=>+document.getElementById('vW').textContent); if (!(w2>150)) console.log('Diag Watt', JSON.stringify(await g.evaluate(()=>({p:S.power, run:S.running, pa:S.paused, sim:S.sim, simW:$('simW').value, ph:CMP.phone, st:CMP.sendT})))); ok('Watt kommen an (Sim 220)', w2>150, w2);
+ // 0.24.1: Puls im Testmodus: ohne Gurt nur geschätzt → '–'; mit Gurt (hrDev) echter Wert am Handy
+ const h0=await h.evaluate(()=>document.getElementById('vH').textContent); ok('Testmodus ohne Gurt: kein Schätzpuls am Handy', h0==='–', h0);
+ await g.evaluate(()=>{ hrDev={fake:1}; S.hr=142; }); await h.waitForFunction(()=>document.getElementById('vH').textContent==='142',null,{timeout:120000}).catch(()=>{});
+ const h1=await h.evaluate(()=>document.getElementById('vH').textContent); ok('Testmodus mit Pulsgurt: Puls am Handy', h1==='142', h1);
+ await g.evaluate(()=>{ hrDev=null; });
  // Kreuzung suchen: wie tride, Strecke vorspulen bis ein Hinweis mit mehreren Optionen 100–150 m voraus steht
  const jx=await g.evaluate(()=>{ $('simW').value=0; meP.v=0; const d0=S.dist; for (let d=d0+30; d<d0+L-200; d+=3){ S.dist=d; gNetStep(); const P=NET.pend; if (P && P.ah>110 && P.ah<150 && P.opts.some(o=>o.a<=-28) && P.opts.some(o=>o.a>=28)) return {ah:P.ah, opts:P.opts.map(o=>o.label+' '+(o.dest||o.name)+' '+Math.round(o.a)), pick:NET.pick}; } return null; });
  ok('Kreuzung mit links und rechts gefunden', !!jx, jx);

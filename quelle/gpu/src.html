@@ -11,6 +11,7 @@
 html,body{margin:0;height:100%;background:linear-gradient(180deg,#9cc6e8 0%,#cfe3ef 45%,#7aa35c 46%,#4d7a3a 100%);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
 canvas#world{display:block;width:100vw;height:100vh;touch-action:none}
 .segbox{position:fixed;top:84px;left:50%;transform:translateX(-50%);background:rgba(10,14,22,.72);color:#fff;border-radius:12px;padding:7px 14px;font:600 14px system-ui;text-align:center;pointer-events:none;display:none;z-index:4;max-width:calc(100vw - 24px);box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.segbox.cmp{padding:5px 12px;font-size:13px;border-radius:10px}.segbox .sr{display:flex;align-items:baseline;gap:8px;justify-content:center;white-space:nowrap}.segbox .sr .st{font-size:18px}.segbox .tag{font-size:10px;font-weight:600;padding:1px 5px;border-radius:5px;background:rgba(255,255,255,.16);opacity:.85}
 .segbox .st{font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:.5px}.segbox .sm{font-size:12px;opacity:.85;font-weight:500}.segbox .gd{color:#7dffa0}.segbox .bd{color:#ffb38a}.segbox .tm{color:#ffd45a}
 .hud{position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 24px);pointer-events:none}
 .tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 12px;min-width:86px;text-align:center;backdrop-filter:blur(6px)}
@@ -38,7 +39,7 @@ body.hHud .hud,body.hSide .side,body.hProf .prof,body.hBoard .board,body.hCtrl .
 #junc .j2{display:none;margin-top:5px;padding-top:4px;border-top:1px solid rgba(255,255,255,.14);opacity:.88}
 #junc .j2 .jt{font-size:11px;margin-bottom:3px}
 #junc .j2 button{padding:2px 6px;font-size:11px}
-#junc .j2 button small{font-size:9px}#junc.jmin{opacity:.7;transform:translateX(-50%) scale(.8);transform-origin:50% 0}
+#junc .j2 button small{font-size:9px}#junc.jseg button{padding:3px 7px;font-size:12px}#junc.jseg button small{font-size:10px}#junc.jmin{opacity:.7;transform:translateX(-50%) scale(.8);transform-origin:50% 0}
 .side{position:fixed;left:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .side .tile{min-width:120px;text-align:left}
 .side .tile .v{font-size:20px}
@@ -131,11 +132,13 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
  .board{display:none}#mmap{width:104px;height:104px;top:50px}.ctrl{bottom:112px;left:12px;right:12px}.ctrl>div:last-child{flex-wrap:wrap;justify-content:flex-end}.simbox input{width:90px}
  .hud{flex-wrap:nowrap;gap:5px}.ctrl button{padding:6px 9px;font-size:13px}
  .side{bottom:200px}.side .tile:nth-child(n+5){display:none}
+ /* 0.24.1: Hochformat-Handy: Kacheln unter die Knöpfe, Minikarte und FPS rechts unten aus dem Stapel heraus */
+ .hud{top:50px}#mmap{top:auto;bottom:250px}#fps{left:auto!important;right:12px;top:auto!important;bottom:362px}
 }
 </style>
 </head>
 <body>
-<div id="fps" style="position:fixed;top:6px;left:50%;transform:translateX(-50%);font:600 12px system-ui;color:#fff;background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;z-index:5;pointer-events:auto;cursor:pointer;display:none" title="Antippen: Leistungstest"></div>
+<div id="fps" style="position:fixed;top:8px;left:10px;font:600 11px system-ui;color:#fff;background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;z-index:5;pointer-events:auto;cursor:pointer;display:none" title="Antippen: Leistungstest"></div>
 <canvas id="world" style="visibility:hidden"></canvas>
 <div id="loadbox" style="display:none;position:fixed;inset:0;z-index:30;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:linear-gradient(180deg,#9cc6e8 0%,#cfe3ef 45%,#7aa35c 46%,#4d7a3a 100%);color:#10161d;font-weight:600"><div style="font-size:15px;opacity:.75">Hicore Ride</div><div style="font-size:24px">Lade <span id="loadname"></span></div><div style="width:min(78vw,420px);height:12px;border-radius:7px;background:rgba(255,255,255,.55);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"><div class="lbar"></div></div><div id="loadstep" style="font-size:14px;opacity:.8"></div></div>
 
@@ -335,7 +338,11 @@ const $ = id => document.getElementById(id);
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const logEl = $('log');
 function log(m){ console.log(m); logEl.textContent = (m + '\n' + logEl.textContent).slice(0, 1500); }
-let toastT; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
+/* 0.24.1: HUD oben Mitte stapeln: Kacheln → Bergwertung → Kreuzung → Meldung, jeweils unter dem vorigen, keine Überlappung. Alt: window.OLD_HUDSTACK */
+const HSTK={t:0}; function hudStack(){ if (window.OLD_HUDSTACK) return; const vis=e=>e && e.style.display!=='none' && getComputedStyle(e).display!=='none';
+  const hud=document.querySelector('.hud'); let y=vis(hud)?hud.getBoundingClientRect().bottom+8:12;
+  for (const id of ['segbox','junc','toast']){ const e=$(id); if (!e) continue; if (id==='toast'?!e.classList.contains('show'):!vis(e)) continue; const ty=Math.round(y)+'px'; if (e.style.top!==ty) e.style.top=ty; const h=e.getBoundingClientRect().height; y+=h+6; } }
+let toastT; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); try{ hudStack(); }catch(e){} clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
 
 // ================= Live state =================
 const S = {
@@ -3308,6 +3315,7 @@ function gNetStep(){ const C=NET, D=gnRG(), A=gAdj(D);
     if (C.pick!=null && C.pick!==C.pend.planned){ if (!C.hyp || C.hyp.tag!==C.pend.tag || C.hyp.pick!==C.pick){ let nr=null; try{ nr=gTurn(R,C.pend,C.pick); }catch(e){ console.warn('jun2',e); } C.hyp={tag:C.pend.tag, pick:C.pick, r:nr}; C.p2c=new Map(); } RR=C.hyp.r; i0=RR&&RR.ents[best.i]&&RR.ents[best.i].n1===best.node?best.i:-1; }
     if (RR && i0>=0){ const rd0=RR.ents[i0].r1; for (let i=i0+1;i<RR.ents.length;i++){ const en=RR.ents[i]; if (en.r1-rd0>150) break; if ((A[en.n1]||[]).length<3) continue; const tag=i+':'+en.n1+':'+Math.round(en.r1); if (RR===R && C.appl.has(tag)) continue;
       if (!C.p2c) C.p2c=new Map(); if (!C.p2c.has(tag)) C.p2c.set(tag, gMakePend(RR,{i, rd:en.r1, node:en.n1, tag, ah:0})); const p2=C.p2c.get(tag); if (!p2) continue; p2.ah=en.r1-rd0+best.ah; C.pend2v=p2; break; } } }
+  if (!window.OLD_HUDSTACK && !C.pend.minor && best.ah>Math.max(110, S.speed*9) && !NET.pend2v){ junUI(null); return; }   /* 0.24.1: Anzeige erst kurz vor der Kreuzung (Wahl per Taste/Handy geht schon ab 160 m) */
   gJunUI(C.pend, best.ah); }
 /* 0.10.21: nach dem Umschalten der Strecke an genau derselben Stelle weiterfahren (Punkte der neuen Strecke liegen anders verteilt, Strecke davor kann um Meter abweichen) */
 function gSnapDist(old, d0){ let bd=1e9, bs=d0; for (let s=Math.max(0,d0-80); s<=Math.min(L,d0+80); s+=0.5){ const q=posAt(s), dd=Math.hypot(q.x-old.x,q.z-old.z); if (dd<bd){ bd=dd; bs=s; } } return bs; }
@@ -3320,7 +3328,7 @@ function gJunUI(p, ah){ let el=$('junc'); if (!el){ el=document.createElement('d
       p2.opts.forEach(o=>{ const b=document.createElement('button'); b.dataset.v=o.e; b.innerHTML=gJunBtn(o); b.onclick=()=>{ (NET.pre||(NET.pre=new Map())).set(p2.tag,o.e); gJunUI(NET.pend,null); }; jb2.appendChild(b); }); }
     j2.style.display='block'; j2.querySelector('.jt').textContent='Danach in '+Math.max(0,Math.round(p2.ah))+' m'; const s2=(NET.pre&&NET.pre.has(p2.tag))?NET.pre.get(p2.tag):p2.nat; j2.querySelectorAll('button').forEach(b=>b.classList.toggle('on', +b.dataset.v===s2)); }
   else j2.style.display='none';
-  el.style.display='block'; el.classList.toggle('jmin', !!(p.minor && NET.pick===p.nat && !p2)); if (ah!=null) el.querySelector('.jt').textContent=(p.minor?'Abzweig in ':'Kreuzung in ')+Math.max(0,Math.round(ah))+' m';
+  el.style.display='block'; el.classList.toggle('jseg', !window.OLD_HUDSTACK && $('segbox').style.display==='block'); el.classList.toggle('jmin', !!(p.minor && NET.pick===p.nat && !p2)); if (ah!=null) el.querySelector('.jt').textContent=(p.minor?'Abzweig in ':'Kreuzung in ')+Math.max(0,Math.round(ah))+' m';
   el.querySelectorAll(':scope > .jb button').forEach(b=>b.classList.toggle('on', +b.dataset.v===NET.pick)); }
 
 function b64i16(s){ const bin=atob(s), n=bin.length>>1, out=new Int16Array(n); for (let i=0;i<n;i++) out[i]=(bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8))<<16>>16; return out; }
@@ -5569,11 +5577,11 @@ const SEG={ list:[], act:[], prev:null, show:null, showT:0,
     for (const sg of this.list){ if (D-P<30 && Math.floor((P-sg.s)/L)!==Math.floor((D-sg.s)/L) && !this.act.some(a=>a.sg===sg)){ const d0=sg.s+Math.floor((D-sg.s)/L)*L; this.act.push({sg, d0, t0:S.segT-(D-d0)/v, ok:this.real()}); } }
     this.ui(dt); },
   finish(a, t){ const sg=a.sg, B=this.bests(), old=B[sg.id]&&B[sg.id].t;
-    if (!a.ok){ this.flash(sg, t, '<span class="sm">Testmodus ohne Trainer: Zeit zählt nicht</span>'); return; }
+    if (!a.ok){ this.flash(sg, t, '<span class="sm">Testmodus: zählt nicht</span>'); return; }
     let msg; if (!old || t<old){ B[sg.id]={t, at:Date.now()}; store.set(this.key(),B); try{ ACC.bestPush(WORLD.id, sg.id, t); }catch(e){} msg='<span class="gd">Neue Bestzeit!'+(old?' (−'+(old-t).toFixed(1).replace('.',',')+' s)':'')+'</span>'; toast(sg.ico+' '+sg.name+': neue Bestzeit '+this.fmt(t)); try{ MP.trackBests(); }catch(e){} }
     else msg='<span class="bd">+'+(t-old).toFixed(1).replace('.',',')+' s zur Bestzeit '+this.fmt(old)+'</span>';
     this.flash(sg, t, msg+this.roomHtml(sg)); },
-  flash(sg, t, html){ this.show={html:'<div>'+sg.ico+' '+sg.name+'</div><div class="st">'+this.fmt(t)+'</div><div>'+html+'</div>'}; this.showT=7; },
+  flash(sg, t, html){ this.show={html:'<div class="sr"><span>'+sg.ico+' '+sg.name+'</span><span class="st">'+this.fmt(t)+'</span></div><div>'+html+'</div>'}; this.showT=7; },
   /* Bestzeiten der Leute im selben Raum (aus der Anwesenheitsliste) */
   room(sg){ const out=[]; try{ if (MP.ch && MP.on){ const ps=MP.ch.presenceState(); Object.entries(ps).forEach(([k,v])=>{ const p=v[0]||{}; const b=p.b&&p.b[(WORLD.id)+'|'+sg.id]; if (b) out.push({n:k===MP.id?'Du':p.n, t:b}); }); } }catch(e){} return out.sort((a,b)=>a.t-b.t); },
   roomHtml(sg){ const r=this.room(sg); if (r.length<2) return ''; return '<div class="sm">Raum: '+r.slice(0,3).map((x,i)=>(i+1)+'. '+MP.esc(x.n)+' '+this.fmt(x.t)).join(' · ')+'</div>'; },
@@ -5581,10 +5589,12 @@ const SEG={ list:[], act:[], prev:null, show:null, showT:0,
     const B=this.bests(), a=this.act.filter(x=>x.sg.id!=='runde').sort((p,q)=>(p.d0+p.sg.len)-(q.d0+q.sg.len))[0];
     let h='';
     if (a){ const sg=a.sg, el2=S.segT-a.t0, rest=a.d0+sg.len-S.dist, b=B[sg.id];
-      h='<div>'+sg.ico+' '+sg.name+' <span class="sm">noch '+Math.max(0,Math.round(rest))+' m</span></div><div class="st tm">'+this.fmt(el2)+'</div>'+(b?'<div class="sm">Bestzeit '+this.fmt(b.t)+'</div>':'')+(a.ok?'':'<div class="sm">Testmodus ohne Trainer: zählt nicht</div>'); }
+      /* 0.24.1: eine Zeile statt vier (Name, Rest, Zeit, Bestzeit, Testmarke) */
+      h='<div class="sr"><span>'+sg.ico+' '+sg.name+'</span><span class="sm">'+Math.max(0,Math.round(rest))+' m</span><span class="st tm">'+this.fmt(el2)+'</span>'+(b?'<span class="sm">Best '+this.fmt(b.t)+'</span>':'')+(a.ok?'':'<span class="tag">Test</span>')+'</div>'; }
     else if (this.show) h=this.show.html;
-    else { for (const sg of this.list){ if (sg.id==='runde') continue; const ahead=((sg.s-S.dist)%L+L)%L; if (ahead<250){ const b=B[sg.id]; h='<div>'+sg.ico+' '+sg.name+' in '+Math.round(ahead)+' m <span class="sm">'+sg.info+'</span></div>'+(b?'<div class="sm">Deine Bestzeit '+this.fmt(b.t)+'</div>':'<div class="sm">noch keine Bestzeit</div>')+(this.real()?'':'<div class="sm">Testmodus: Zeiten zählen nur mit echtem Trainer</div>'); break; } } }
-    if (h!==this._h){ this._h=h; el.innerHTML=h; } el.style.display=h?'block':'none'; },
+    else { for (const sg of this.list){ if (sg.id==='runde') continue; const ahead=((sg.s-S.dist)%L+L)%L; if (ahead<250){ const b=B[sg.id]; h='<div class="sr"><span>'+sg.ico+' '+sg.name+' in '+Math.round(ahead)+' m</span><span class="sm">'+sg.info+(b?' · Best '+this.fmt(b.t):'')+'</span>'+(this.real()?'':'<span class="tag">Test</span>')+'</div>';
+        if (!this.real() && !this.testNote){ this.testNote=1; toast('Testmodus ohne Trainer: Bergwertungen und Sprints zählen nicht'); } break; } } }
+    if (h!==this._h){ this._h=h; el.innerHTML=h; el.classList.add('cmp'); } el.style.display=h?'block':'none'; },
   allBests(){ const o={}; WORLDS.forEach(w=>{ const B=store.get('seg_'+w.id,{}); Object.keys(B).forEach(k=>{ o[w.id+'|'+k]=+B[k].t.toFixed(2); }); }); return o; }
 };
 let bots = [];
@@ -5739,6 +5749,8 @@ function sendGrade(gr){
 function sendErg(w){ if (trainer.type==='FTMS' && trainer.cp) cpWrite([0x05, w&255, (w>>8)&255]); }
 
 let hrDev=null;
+/* 0.24.1: echter Puls = Pulsgurt verbunden (auch im Testmodus ohne Trainer) oder Puls vom Trainer; im Testmodus ohne Gurt ist S.hr nur geschätzt */
+function realHr(){ return S.hr && (hrDev || !S.sim) ? Math.round(S.hr) : 0; }
 async function connectHR(){
   if (!btAvailable()) return;
   try {
@@ -7890,7 +7902,7 @@ const CMP={ sb:null, ch:null, on:false, code:'', phone:0, sendT:0, want:null, wa
     if (!this.phone) return; this.sendT-=dt; if (this.sendT>0) return; this.sendT=0.5;
     const wd=builtWorld||selWorld, wn=(WORLDS.find(x=>x.id===wd)||{}).name||'';
     const pl={run:S.running?1:0, pa:S.paused?1:0, wn, bk:BIKE};
-    if (S.running) Object.assign(pl,{w:Math.max(0,Math.round(active?S.power:0)), c:Math.max(0,Math.round(active?S.cadence:0)), h:S.hr&&!S.sim?Math.round(S.hr):0, v:+(S.speed*3.6).toFixed(1), g:+(S.grade*100).toFixed(1), d:+(((S.odo!==undefined?S.odo:S.dist))/1000).toFixed(2), t:Math.round(S.time), el:Math.round(S.climb), dir:S.dir||1, sim:S.sim?1:0, j:this.jun(), wa:this.want?this.want.a:''});
+    if (S.running) Object.assign(pl,{w:Math.max(0,Math.round(active?S.power:0)), c:Math.max(0,Math.round(active?S.cadence:0)), h:realHr(), v:+(S.speed*3.6).toFixed(1), g:+(S.grade*100).toFixed(1), d:+(((S.odo!==undefined?S.odo:S.dist))/1000).toFixed(2), t:Math.round(S.time), el:Math.round(S.climb), dir:S.dir||1, sim:S.sim?1:0, j:this.jun(), wa:this.want?this.want.a:''});
     this.ch.send({type:'broadcast', event:'s', payload:pl}).catch(()=>{}); } };
 try{ if (!window.NO_CMP){ $('cmpOpen').onclick=()=>CMP.show(); $('bPhone').onclick=e=>{ e.stopPropagation(); CMP.show(); $('bPhone').blur(); }; $('cmpClose').onclick=()=>{ $('cmpModal').style.display='none'; }; $('cmpOff').onclick=()=>{ CMP.stop(); $('cmpModal').style.display='none'; }; $('cmpNew').onclick=()=>CMP.renew();
   $('cmpModal').onclick=e=>{ if (e.target.id==='cmpModal') $('cmpModal').style.display='none'; };
@@ -7966,7 +7978,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.24.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0])) selWorld='insel';
   WORLDS.forEach(def=>{
@@ -8184,7 +8196,7 @@ addEventListener('keydown',e=>{
   if (S.sim && (e.key==='ArrowUp'||e.key==='ArrowDown')){ const s=$('simW'); s.value=clamp(+s.value+(e.key==='ArrowUp'?10:-10),0,500); $('simWv').textContent=s.value; }
 });
 // Live-Werte im Geräte-Tab
-setInterval(()=>{ if($('menu').style.display==='none') return; $('lvW').textContent=trainer.type?Math.round(S.power):'–'; $('lvC').textContent=trainer.type?Math.round(S.cadence):'–'; $('lvH').textContent=S.hr&&!S.sim?Math.round(S.hr):'–'; },500);
+setInterval(()=>{ if($('menu').style.display==='none') return; $('lvW').textContent=trainer.type?Math.round(S.power):'–'; $('lvC').textContent=trainer.type?Math.round(S.cadence):'–'; $('lvH').textContent=realHr()||'–'; },500);
 
 function resetRide(){
   Object.assign(S,{dist:0,odo:0,dir:1,time:0,climb:0,lap:1,energy:0,speed:0,grade:0}); meP.v=0; meP.dir=1; lastLapDist=0; prevY=null; try{ SEG.reset(); }catch(e){} camPos.set(0,0,0); snapCam=true; track=[]; trackAcc=0; rideStart=null;
@@ -8707,8 +8719,8 @@ function frame(now){
   if (skyDome) skyDome.position.copy(camera.position); if (cloudLayer) cloudLayer.position.set(camera.position.x, 0, camera.position.z); try{ ATMO.update(dt); }catch(e){}   // Himmel immer um die endgültige Kameraposition   // tiefere Sonne: längere Schatten, mehr Tiefe
 
   // HUD
-  if (window.OLD_HUD || now-HUDT.t>=100){ HUDT.t=now;   /* 0.20.0: HUD 10x pro Sekunde und nur geänderte Texte schreiben (jede Zuweisung löst sonst Stil/Layout aus). Alt: window.OLD_HUD */
-  hudT('pw',Math.round(S.power)); hudT('cad',Math.round(S.cadence)); hudT('hr',S.hr?Math.round(S.hr):'--');
+  if (window.OLD_HUD || now-HUDT.t>=100){ HUDT.t=now; try{ hudStack(); }catch(e){}   /* 0.20.0: HUD 10x pro Sekunde und nur geänderte Texte schreiben (jede Zuweisung löst sonst Stil/Layout aus). Alt: window.OLD_HUD */
+  hudT('pw',Math.max(0,Math.round(S.power))); hudT('cad',Math.round(S.cadence)); hudT('hr',S.hr?Math.round(S.hr):'--');
   hudT('spd',(S.speed*3.6).toFixed(1));
   const gp=S.grade*100; hudT('grade',gp.toFixed(1)+' %'); { const cn=gp>5?'steep':gp>1?'up':gp<-1?'down':''; if (HUDT.gc!==cn){ HUDT.gc=cn; $('grade').className=cn; } }
   hudT('dist',((S.odo!==undefined?S.odo:S.dist)/1000).toFixed(2)+' km'); hudT('time',fmtTime(S.time)); hudT('elev',Math.round(S.climb)+' m');
