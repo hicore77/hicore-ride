@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 27.11.2026. Letzte veröffentlichte Version: **0.25.7 Beta** (Dolomiten: Fotohimmel, Grashalme aus der Nähe, Almwiese, Randstreifen in Wiesenfarbe). Davor 0.25.6 (10-m-Gelände TINITALY, Fels, Dunst, Bachrinnen, Haustypen), 0.25.5 (Drivo-Kadenz).
+Stand: 27.11.2026. Letzte veröffentlichte Version: **0.25.8 Beta** (Dolomiten: Felsformen mit senkrechten Rippen, Türmen, Schuttkegeln und Felsbrocken). Davor 0.25.7 (Fotohimmel, Grashalme aus der Nähe, Almwiese, Randstreifen in Wiesenfarbe), 0.25.6 (10-m-Gelände TINITALY, Fels, Dunst, Bachrinnen, Haustypen).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.25.7** | **Dolomiten: echter Himmel als Foto (Poly Haven), Halm-Nahdetail am Boden, Almwiese höher, Randstreifen nimmt Satellitenfarbe an** |
+| **0.25.8** | **Dolomiten: Felsformen wie auf Hicores Fotos (Schattenkarte aus dem Höhenmodell, senkrechte Rippen und Risse, Türme, Schuttkegel, harte Kante Wiese/Fels, Felsbrocken am Wandfuß)** |
+| 0.25.7 | Dolomiten: echter Himmel als Foto (Poly Haven), Halm-Nahdetail am Boden, Almwiese höher, Randstreifen nimmt Satellitenfarbe an |
 | 0.25.6 | Dolomiten realistischer: Höhenmodell TINITALY 10 m, Poly-Haven-Fels, Dunst, Bachrinnen mit Ufersteinen und Strömung, Haustypen Cortina/Chalet/Albergo/Casa, Datenquellen-Seite |
-| 0.25.5 | Drivo: Kadenz im Steuermodus (Commit c5482d0) |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -139,6 +139,17 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Ursache: Bluefy 3.9.3 lehnt `requestDevice` mit **optionalServices als Zahlen** sofort ab (Fehler ohne Text, nur `2`, Liste öffnet sich nicht). Ohne optionalServices oder mit Text-Namen (`'cycling_power'` usw.) geht es; Bluefy gibt nach dem Verbinden ohnehin alle Dienste frei (auch den Elite-Dienst). In `connectTrainer` jetzt Text-Namen (`OPT`), alt: `window.OLD_BTOPT`. Gilt für jedes Gerät, nicht nur den Drivo.
 - Drivo 1 (nRF Connect + `bt-test.html`): wirbt nur CSC 0x1816 + Elite `347b0001-…`, hat verbunden aber auch **Cycling Power 0x1818** (Feature `0d 02 01 00`, Control Point 2A66), Device Info (Elite, HW 001, FW 026), Legacy DFU. Spiel nimmt den CPS-Zweig → echte Watt/Kadenz. Elite-Merkmale: 0010 w, 0011 n (sendet `00` je Sekunde), 0012 w, 0013 r (Nullen), 0014 n, 0015 n (3 Pakete/s: `01|02|03`, u16 Zähler, dann 8×u16, vermutlich Kraftverlauf je Kurbelumdrehung), 0016 w, 0017 n. **Widerstand (0.25.3):** Zwift-Mitschnitt (Android-HCI-Snoop am Redmi, Fehlerbericht per `*#*#284#*#*`, Auswertung `btsnoop_hci.log` mit eigenem Parser) zeigt nur einen Befehl: Write-Request `[0x01, X]` auf `347b0010`, alle ~2 s, keine Elite-Notifications nötig. X = Steigung in 0,1 % + 10 (10 = flach, 0 = −1 %, 120 ≈ 11 % „fast nicht tretbar“, per W-Knöpfen in bt-test.html bestätigt). Im Spiel `eliteSlope()` aus `sendGrade` (CPS-Zweig mit `trainer.eli`), Steigung × `S.diff`, begrenzt −1 … +15 %, sofort bei ≥0,3 % Änderung, sonst alle 2 s. Aus: `window.NO_ELITESLOPE`. **Kadenz (0.25.5):** Sobald Steigungsbefehle laufen, sendet der Drivo im CPS keine Kurbeldaten mehr (auch bei Zwift: Balance-Byte `c8`, Kurbel `00 00 00 00`). Kadenz steht in Elite 0015, Byte 3 = U/min (mit Screenshots verglichen: 0x35 = 53). Spiel abonniert 0015 und nimmt dann nur noch diese Kadenz (nach 2,5 s ohne Paket 0), alt: `window.OLD_ELICAD`. Chrome braucht ELITE in optionalServices (wird außer in Bluefy mitgegeben).
 - Testseite `webgpu-spiel/bt-test.html`: 10 Suchvarianten, Dienste, Geräteinfo, Watt/Kadenz live, Elite-Rohdaten, „Log kopieren“. Nützlich für jedes neue Gerät.
+
+**0.25.8 Dolomiten: Felsformen** (Hicore 27.11. mittags mit 6 Fotos vom Passo Giau: „Berge zu Standard, zu gleichmäßig“, „mach alles möglich was geht“; Fotos nur als Anschauung)
+- Kette der Werkzeuge: `werkzeuge/dolo_bau.py` → `werkzeuge/dolo_terrassen.py` → `werkzeuge/dolo_detail.py` → `build_gpu.py`. `dolo_terrassen.py` sichert beim ersten Lauf `dolo/dem10_roh.png` und rechnet immer von dort (mehrfach ausführbar).
+- `dolo_terrassen.py`: versteilt nur steilen Fels (>40–52°, nicht Wald/Siedlung, Abstand zu Straßen, Wegen, Häusern, Bächen) in Wandstufen von 105–150 m; 9,9 % der Fläche geändert, höchstens 35 m, Anteil >70° von 0,34 auf 1,46 %. Schreibt außerdem 20.000 Felsbrocken nach `meta.json` (`blk`, int16 x·2, z·2, Größe·100): bis 520 m unterhalb von Wänden >54°, bis 1 km neben der Runde, dichter nahe Wand und Straße, in Flecken, höchstens ca. 45 je Hektar.
+- `dolo_detail.py`: `dolo/det10.jpg` (R/G = Geländenormale aus dem 10-m-Modell, B = Himmelssicht aus 16 Richtungen mal Hohlform). Kommt über `build_gpu.py` als `DLDETI` ins Spiel, Textur `window.DLDETT`. Im Dolomiten-Block von `gpuFx` wird daraus Licht/Schatten je Pixel gerechnet (Rinnen und Wandfüße dunkel, Sonnenseiten hell), unabhängig vom groben Netz. Aus: `NO_DLDET`.
+- Fels-Shader: senkrechte Pfeiler und Risse entlang der Wand, hellerer Dolomit, schwächere waagerechte Bänder, heller Schutt am Wandfuß (alt `OLD_RIBS`); harte, leicht ausgefranste Kante Wiese/Fels (alt `OLD_ROCKEDGE`).
+- `dlRockD`: stärkeres Relief und einzelne Türme im Steilen, Grate weniger zugespitzt (alt `OLD_ROCKAMP`).
+- Felsbrocken: `buildDoloBlocks` (verformter Ikosaeder mit Dolomit-Textur, Größe 0,6–6 m, je 700-m-Zelle ein InstancedMesh mit Hüllkugel, Name `blockfeld`; Stufe Niedrig halbe Anzahl). Aus: `NO_DLBLK`. Lehre: zuerst waren sie „unsichtbar“, Ursache war keine Zeichenpanne, sondern zu geringe Dichte (2 je Hektar am Giau). Dichte vorab mit einem Histogramm aus `meta.json` prüfen.
+- Randstreifen: Aufhellung nach Helligkeit gedeckelt, Parkplatz am Pass nicht mehr grellweiß.
+- Test `tdolo.js`: `EVB` (JS vor jedem Bild).
+- Offen: FPS auf „Mittel“ am iPad (Hicore testet abends), warmes Abendlicht, Grasbänder im Fels, Latschen zwischen den Brocken.
 
 **0.25.7 Dolomiten: Himmel und Nahdetail** (Nachtarbeit 27.11., Hicores Auftrag „so nah wie möglich an Unreal“, Detail nach Entfernung)
 - Himmel: `texjpg/dolosky.jpg` (Poly Haven HDRI `sunflowers_puresky`, CC0, obere Hälfte 4096×1024, aufgehellt) liegt als Foto auf der Himmelskuppel (`DLS2`, 48×24 Segmente, Horizont läuft in die Dunstfarbe). Gemalte Wolken-Sprites entfallen in den Dolomiten. Die helle Stelle dreht sich mit dem Sonnenazimut (`skyDome.userData.su`, in `ATMO.apply`), Tageszeit/Wetter tönen das Foto über die Eckfarben. `toneMapped:false`. Alt: `OLD_DLSKY2`. Bekannt: Sonne im Foto steht ca. 44° hoch, die Spielsonne nachmittags 20°; bei bedecktem Wetter bleibt es ein getönter Schönwetterhimmel.
@@ -212,7 +223,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 ## 6. Nächste Schritte
 
-0. Dolomiten 0.25.x: Hicores iPad-Urteil zu 0.25.6/0.25.7 abwarten (FPS auf Mittel, Himmel, Gras, Wald nahe der Straße echt oder Kegel?). Dann weiter Nahdetail nach Entfernung (Blätter/Rinde/Gras/Fassaden: nah Struktur, ab 20–30 m schlicht, weiche Übergänge), Licht/Atmosphäre, Wolken weniger gemalt, Wasser aus der Nähe prüfen; für alle Welten Texturen/Bewuchs gegen freie Alternativen prüfen (vorher/nachher messen). Kapellen; Lärche/Zirbe/Latschen, Alpenblumen; Bäche Boite/Cordevole/Codalonga türkis mit Rauschen; Kühe mit Glocken, Gämsen/Steinböcke, Murmeltiere, versteckter Yeti; Gipfelnamen.
+0. Dolomiten 0.25.x: Hicores iPad-Urteil zu 0.25.6–0.25.8 abwarten (FPS auf Mittel, Himmel, Gras, Wald nahe der Straße echt oder Kegel?). Dann weiter Nahdetail nach Entfernung (Blätter/Rinde/Gras/Fassaden: nah Struktur, ab 20–30 m schlicht, weiche Übergänge), Licht/Atmosphäre, Wolken weniger gemalt, Wasser aus der Nähe prüfen; für alle Welten Texturen/Bewuchs gegen freie Alternativen prüfen (vorher/nachher messen). Kapellen; Lärche/Zirbe/Latschen, Alpenblumen; Bäche Boite/Cordevole/Codalonga türkis mit Rauschen; Kühe mit Glocken, Gämsen/Steinböcke, Murmeltiere, versteckter Yeti; Gipfelnamen.
 
 1. Hicores Rückmeldung zu 0.13.0 und 0.14.0 (iPad).
 1a. 0.19.8 am iPad prüfen: Absteigen/Aufsteigen über den Sattel natürlich? Schultern Gravel (0.19.7) hat Hicore bestätigt. Gabeln 0.19.5 (Gravel starr, MTB federt genug/zu viel?), Treppe Oybin Kammstraße frei (0.19.2). Aus 0.19.1 noch offen: Tschechien-Bäume (FPS, Optik südlich der Lausche), Treppen (Böschung/Erdrampe).

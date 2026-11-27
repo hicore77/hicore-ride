@@ -707,3 +707,6 @@ Die Sandbox ist über das Higgsfield-MCP-Werkzeug `sandbox_exec` erreichbar und 
 - Test `tests/tfence.js` (ca. 20 min, `PRE='window.OLD_FENCECHK=1;window.OLD_GRASSPAVE=1;'` = alter Stand): zählt Zaunstücke, die Straße/Weg/Gleis berühren, und Feingras auf Pflaster. Ergebnis Start Zittau: alt 54 Zaunstücke über Wege/Gleise (Weide, Jäger, Hecke), neu 0; Ortskern Zittau Feingras auf Pflaster alt 3.653, neu 0. `terr2` none.
 
 **0.25.4 Bergbäche und Seen**: `dolo_bau.py` exportiert `ZGNET.streams` ([Breite, x0,z0,…], stream 2,6 m, river 7 m, OSM-width) und `ZGNET.lakes`. `buildDoloWater`: Kiesbett (`geroell`-Textur) + türkises Fließwasser (`flowWaterMaterial`, schneller) knapp über dem Gelände, unter Straßen ausgespart; Seen auf tiefster Uferhöhe. Bachrauschen über `window.DLWPTS` (Ton `prep`). Aus: `window.NO_DLWATER`. Test: `WAT=1 node tdolo.js`. Offen: Bäume halten noch keinen Abstand zum Bach.
+
+## Aus UEBERGABE.md verschoben (Stand 0.25.8)
+| 0.25.5 | Drivo: Kadenz im Steuermodus (Commit c5482d0) |
