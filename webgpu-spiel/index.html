@@ -5005,7 +5005,10 @@ let ponds=[];
 function baseH(x,z){
   const d=sampleGrid(nearD,x,z), ry=sampleGrid(nearY,x,z), bl=clamp((d-9)/70,0,1);
   if (WORLD.terrain==='real'){ const b2=clamp((d-4.5)/28,0,1), sm=b2*b2*(3-2*b2); return (ry-0.45)*(1-sm)+demH(x,z)*sm; }
-  if (WORLD.terrain==='dem' && WORLD.graph && GN.d){ const n=gnNear(x,z,40), g=gdemH(x,z); let dd=n.d-(n.w/2+0.4), yy=n.y; const rb=GN.d.rb||gnRB(); for (const R of rb){ const dx=x-R.x, dz=z-R.z, e=R.ro+32; if (dx>e||dx<-e||dz>e||dz<-e) continue; const dr=Math.hypot(dx,dz)-R.ro-0.4; if (dr<dd){ dd=dr; yy=R.a+R.gx*dx+R.gz*dz; } } if (n.d>=40 && dd>=30) return g; const b2=clamp(dd/30,0,1), sm=b2*b2*(3-2*b2); return (yy-0.5)*(1-sm)+g*sm; }
+  if (WORLD.terrain==='dem' && WORLD.graph && GN.d){ const n=gnNear(x,z,40), g=gdemH(x,z); let dd=n.d-(n.w/2+0.4), yy=n.y; const rb=GN.d.rb||gnRB(); for (const R of rb){ const dx=x-R.x, dz=z-R.z, e=R.ro+32; if (dx>e||dx<-e||dz>e||dz<-e) continue; const dr=Math.hypot(dx,dz)-R.ro-0.4; if (dr<dd){ dd=dr; yy=R.a+R.gx*dx+R.gz*dz; } } if (n.d>=40 && dd>=30) return g; const b2=clamp(dd/30,0,1), sm=b2*b2*(3-2*b2); let hh=(yy-0.5)*(1-sm)+g*sm;
+    /* 0.25.9 (Hicore: Gelände ragt wie ein Sandhaufen auf die Fahrbahn): im 10-m-Kachelraster steigt der Hang bergseits sonst schon innerhalb einer Masche über die Straße. Dolomiten: bis 14 m neben dem Rand höchstens 14 % Anstieg (flache Bank), danach steil. Alt: window.OLD_ROADBENCH */
+    if (WORLD.id==='dolo' && !window.OLD_ROADBENCH){ const e=Math.max(0,dd), cap=yy-0.5+(e<=14?0.14*e:1.96+(e-14)+(e-14)*(e-14)*0.15); if (hh>cap) hh=cap; const fl=yy-0.5-(e<=14?0.3*e:4.2+(e-14)*1.2+(e-14)*(e-14)*0.15); if (hh<fl) hh=fl;   /* talseits ein Damm statt sofortigem Abbruch, Einfahrten schweben weniger */ }
+    return hh; }
   if (WORLD.terrain==='dem'){ const b2=clamp((d-4.2)/30,0,1), sm=b2*b2*(3-2*b2); return (ry-0.5)*(1-sm)+gdemH(x,z)*sm; }
   if (WORLD.terrain==='island') return ry-0.7 + bl*(noise(x,z)*0.15+2.5) - Math.max(0,d-110)*0.09;
   if (WORLD.terrain==='mountains') return ry-0.7 + bl*bl*(noise(x,z)*2.2 + 70*bl);
@@ -5618,7 +5621,8 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
           shd=mix(float(1.0), clamp(l1.div(l0),0.5,1.8).mul(dt.b.mul(0.82).add(0.32)), inD); }
         const stp=max(float(1.0).sub(nW.y), float(1.0).sub(nD.y));
         const rkC=smoothstep(0.07,0.15,lum).mul(float(1.0).sub(smoothstep(0.012,0.04,mxc.sub(mnc)))), rkS=smoothstep(0.28,0.48,stp);
-        const rk0=clamp(max(rkC,rkS).add(H.vnz(Pw.xz.mul(0.07)).sub(0.5).mul(0.35)),0.0,1.0), rk=window.OLD_ROCKEDGE?rk0:smoothstep(0.22,0.78,rk0.add(H.vnz(Pw.xz.mul(0.33)).sub(0.5).mul(0.3)));   /* harte Kante Wiese/Fels wie in echt */
+        const rk0=clamp(max(rkC,rkS).add(H.vnz(Pw.xz.mul(0.07)).sub(0.5).mul(0.35)),0.0,1.0), fdW=smoothstep(350.0,1600.0,length(cameraPosition.sub(Pw))), wN=!window.DLWASH?null:H.vnz(Pw.xz.mul(0.021)).mul(0.62).add(H.vnz(Pw.xz.mul(0.0063).add(vec2(4.7,1.9))).mul(0.38)),
+          rk=window.OLD_ROCKEDGE?rk0:(wN?smoothstep(mix(float(0.22),float(0.36),fdW),mix(float(0.78),float(0.62),fdW),rk0.add(H.vnz(Pw.xz.mul(0.33)).sub(0.5).mul(0.3)).add(wN.sub(0.5).mul(fdW).mul(0.75))):smoothstep(0.22,0.78,rk0.add(H.vnz(Pw.xz.mul(0.33)).sub(0.5).mul(0.3))));   /* 0.25.9 (Hicore: verwaschene Bergrücken): in der Ferne sind die Eckfarben des groben Netzes nur weiche Flecken. Dort zerlegt ein Muster von 50 bis 160 m die Übergänge in klar begrenzte Fels- und Latschenflecken. Noch ungeprüft, daher nur mit window.DLWASH=1 */   /* harte Kante Wiese/Fels wie in echt */
         const an=T.abs(nW), tw=an.div(an.x.add(an.y).add(an.z).add(0.001)), sc=float(0.11);
         const rT=texture(window.DLROCK, Pw.zy.mul(sc)).rgb.mul(tw.x).add(texture(window.DLROCK, Pw.xz.mul(sc)).rgb.mul(tw.y)).add(texture(window.DLROCK, Pw.xy.mul(sc)).rgb.mul(tw.z));
         /* 0.25.6: zwei Poly-Haven-Texturen (Wand mit Schichtfugen seitlich, Fels von oben), nah (9 m) und fern (75 m) überlagert: scharfe Details aus der Nähe, Wandgliederung aus der Ferne, keine Kachelung */
@@ -5646,7 +5650,7 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
           const l1=dot(g1,vec3(0.3,0.59,0.11)).div(0.384), l2=dot(g2,vec3(0.3,0.59,0.11)).div(0.384);
           const gf=mix(vec3(l1),g1.div(gm),0.3).mul(l2.sub(1.0).mul(0.75).add(1.0)), gw=smoothstep(-0.01,0.035,vc.g.sub(max(vc.r.mul(0.93),vc.b))).mul(float(1.0).sub(smoothstep(0.3,0.5,float(1.0).sub(nW.y))));
           c=c.mul(mix(vec3(1.0),clamp(gf,0.35,1.9),nf.mul(gw).mul(0.9))); }
-        c=mix(c, rC2, rk); if (shd) c=c.mul(shd); } }
+        if (wN) c=c.mul(mix(float(1.0), wN.mul(0.55).add(0.72), fdW.mul(smoothstep(0.1,0.3,stp)).mul(0.8)));   /* 0.25.9: ferne Hänge fleckig (Latschen, Rinnen) statt glatt */ c=mix(c, rC2, rk); if (shd) c=c.mul(shd); } }
     col=vec4(c, tex.a.mul(T.materialReference('opacity','float')));
   }
   /* 0.21.0 Bild-Baum (Impostor): Quad dreht sich zur Kamera, Atlasbild nach Blickrichtung relativ zur Baumdrehung, zwei Nachbarrichtungen weich überblendet */
@@ -6607,6 +6611,15 @@ function gnData(){ if (GN.d) return GN.d; const D=window.ZGNET; if (!D) return n
       for (let it=0;it<6;it++){ const y=P.map(p=>p.y); for (let i=0;i<P.length;i++){ let s=0,m=0; for (let o=-4;o<=4;o++){ const j=i+o; if (j<0||j>=P.length) continue; s+=y[j]; m++; } P[i].y=s/m; } }   /* Messrauschen raus */
       const L0=P.length-1, ya=na.y-P[0].y, yb=nb.y-P[L0].y; P.forEach((p,i)=>{ const t=i/L0; p.y+=ya*(1-t)+yb*t; }); P[0].y=na.y;
       d.edges.push({k:d.edges.length, a:A.a, b:A.b, c:A.c, nm:A.nm, w:A.w, P, add:true}); }); }
+  /* 0.25.9 (Hicore: Kurven eckig, Fahrer ruckt alle paar Meter): Dolomiten-Kanten haben Punkte im 5-m-Abstand mit Knicken bis über 20 Grad. Hier glätten (höchstens 1 m Versatz, Enden fest)
+     und in Kurven mit einer Catmull-Rom-Kurve verdichten, bis kein Knick mehr über ca. 2,5 Grad liegt. Fahrbahn, Randstreifen und Fahrer folgen denselben Punkten. Alt: window.OLD_CURVES */
+  if (!window.OLD_CURVES && (D.lat0<48 || window.CURVE_ALL)) try{ d.edges.forEach(e=>{ const P=e.P, n=P.length; if (n<4) return; const ox=P.map(p=>p.x), oz=P.map(p=>p.z);
+      for (let it=0;it<2;it++){ const X=P.map(p=>p.x), Z=P.map(p=>p.z); for (let i=1;i<n-1;i++){ let x=(X[i-1]+2*X[i]+X[i+1])/4, z=(Z[i-1]+2*Z[i]+Z[i+1])/4; const dx=x-ox[i], dz=z-oz[i], dd=Math.hypot(dx,dz); if (dd>1){ x=ox[i]+dx/dd; z=oz[i]+dz/dd; } P[i].x=x; P[i].z=z; } }
+      const ang=new Float32Array(n); for (let i=1;i<n-1;i++){ const a1=Math.atan2(P[i].x-P[i-1].x,P[i].z-P[i-1].z), a2=Math.atan2(P[i+1].x-P[i].x,P[i+1].z-P[i].z); let da=a2-a1; da=Math.abs(Math.atan2(Math.sin(da),Math.cos(da))); ang[i]=da; }
+      const Q=[P[0]]; for (let i=0;i<n-1;i++){ const p0=P[Math.max(0,i-1)], p1=P[i], p2=P[i+1], p3=P[Math.min(n-1,i+2)], m=Math.min(4,Math.max(1,Math.ceil(Math.max(ang[i],ang[i+1])/0.044)));
+        for (let k=1;k<m;k++){ const t=k/m, t2=t*t, t3=t2*t, cr=(a,b,c,dd)=>0.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-dd)*t2+(-a+3*b-3*c+dd)*t3); Q.push(new THREE.Vector3(cr(p0.x,p1.x,p2.x,p3.x), p1.y+(p2.y-p1.y)*t, cr(p0.z,p1.z,p2.z,p3.z))); }
+        Q.push(p2); }
+      e.P=Q; }); }catch(err){ console.warn('kurven',err); }
   d.edges.forEach(e=>{ const parts=(e.nm||'').split('|'); e.ref=parts[0]||''; e.street=parts[1]||''; const c=[0]; for (let i=1;i<e.P.length;i++) c.push(c[i-1]+Math.hypot(e.P[i].x-e.P[i-1].x,e.P[i].z-e.P[i-1].z)); e.len=c[c.length-1]; });
   /* 0.10.21 (Hicore, Zittau): Einbahnstraßen aus OSM (oneway, Kreisel, Fahrstreifen). E.ow=1 nur a->b, -1 nur b->a; mehrspurige Einbahnstraßen so breit wie in echt */
   if (window.ZGOW){ try{ const bin=atob(window.ZGOW), u=new Uint8Array(bin.length); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); const dv=new DataView(u.buffer); let o=4; const nW=dv.getUint32(0,true), C=20, GR=new Map();
@@ -7689,13 +7702,13 @@ function gtSideMesh(i,j,fineOnly){ const L=gtSideIdx().get(i+','+j); if (!L || !
   const wm=WAYS_ON && window.GPU_MODE ? waysMat() : null;
   if (!wm && fineOnly) return null;
   if (!wm && !SIDE_MAT) SIDE_MAT=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.95, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2});
-  const pos=[], col=[], idx=[], uv=[], wl=[]; let rs=(i*7919+j*104729)%1000; const C=[[0.33,0.335,0.345],[0.43,0.40,0.37],[0.60,0.56,0.49]];
+  const DOL=WORLD&&WORLD.id==='dolo'&&!window.OLD_SIDECLIP; const pos=[], col=[], idx=[], uv=[], wl=[]; let rs=(i*7919+j*104729)%1000; const C=[[0.33,0.335,0.345],[0.43,0.40,0.37],[0.60,0.56,0.49]];
   L.forEach(({P,w,sf,ly,rut,fine})=>{ if (!!fine!==!!fineOnly) return; if (!wm && fine) return; const cc=C[sf]||C[0], b0=pos.length/3; let along=0; rs=(rs*9301+49297)%233280; const ro=rs/233280;
     const SK=[]; let skMax=0;   /* 0.23.1: Böschung, wo der Weg über dem sichtbaren Gelände liegt (an Straßen angehoben, Treppenenden) */
     for (let k=0;k<P.length;k++){ const a=P[Math.max(0,k-1)], b=P[Math.min(P.length-1,k+1)]; let tx=b[0]-a[0], tz=b[1]-a[1]; const l=Math.hypot(tx,tz)||1; tx/=l; tz/=l; const nx=-tz*w/2, nz=tx*w/2;
       if (k) along+=Math.hypot(P[k][0]-P[k-1][0],P[k][1]-P[k-1][1]);
-      [[P[k][0]+nx,P[k][1]+nz,0],[P[k][0]-nx,P[k][1]-nz,1]].forEach(([x,z,s])=>{ const y=wayLiftY(x,z,terrMeshY(x,z)+(fine?0.07:0.09)); pos.push(x,y,z); if (wm){ uv.push(s,along); wl.push(ly,rut,w,ro); } else { const f=0.94+Math.random()*0.08; col.push(cc[0]*f,cc[1]*f,cc[2]*f); }
-        if (wm && !window.OLD_WAYSKIRT){ const sg=s?-1:1, fl=Math.max(0,y-terrMeshY(x,z)-0.06); SK.push([x,z,y,nx/(w/2)*sg,nz/(w/2)*sg,fl,along]); if (fl>skMax) skMax=fl; } });
+      [[P[k][0]+nx,P[k][1]+nz,0],[P[k][0]-nx,P[k][1]-nz,1]].forEach(([x,z,s])=>{ if (DOL){ const nr=gnNear(x,z,14), lim=nr.w/2-0.25; if (nr.k>=0 && nr.px!==undefined && nr.d<lim && nr.d>0.05){ const f=lim/nr.d; x=nr.px+(x-nr.px)*f; z=nr.pz+(z-nr.pz)*f; } }   /* 0.25.9: Ecken von Einfahrten ragen nicht mehr als Keil in die Fahrbahn, sie enden am Fahrbahnrand */ const y=wayLiftY(x,z,terrMeshY(x,z)+(fine?0.07:0.09)); pos.push(x,y,z); if (wm){ uv.push(s,along); wl.push(ly,rut,w,ro); } else { const f=0.94+Math.random()*0.08; col.push(cc[0]*f,cc[1]*f,cc[2]*f); }
+        if (wm && !window.OLD_WAYSKIRT){ const sg=s?-1:1; let fl=Math.max(0,y-terrMeshY(x,z)-0.06); if (fl>0 && WORLD.id==='dolo' && !window.OLD_SKIRTRD){ const nr=gnNear(x,z,14); if (nr.k>=0 && nr.d-nr.w/2<4.2) fl=0; }   /* 0.25.9: keine Böschung über dem Pflaster-/Grasstreifen der Hauptstraße (lag als Keil auf dem Randstreifen) */ SK.push([x,z,y,nx/(w/2)*sg,nz/(w/2)*sg,fl,along]); if (fl>skMax) skMax=fl; } });
       if (k){ const v=b0+k*2; idx.push(v-2,v,v-1, v-1,v,v+1); } }
     if (skMax>0.1){ const fo=gnForest(P[0][0],P[0][1])?7:6;
       for (let side=0;side<2;side++){ const s0=pos.length/3; let n=0;
@@ -11615,7 +11628,7 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
     for (const c of [...this.act]){ const x=c.o.position.x, z=c.o.position.z; let bd=1e9, bi=-1; for (let i=0;i<N;i++){ const p=pts[i], dd=(p.x-x)*(p.x-x)+(p.z-z)*(p.z-z); if (dd<bd){ bd=dd; bi=i; } }
       if (bi<0 || bd>14*14){ this.kill(c); continue; } const a=pts[bi], b=pts[(bi+1)%N]; const nd=cum[bi], hd=Math.atan2(b.x-a.x,b.z-a.z);
       const fw=Math.cos(c.hd-hd)>0?1:-1; c.d=nd; c.cd=fw; } },
-  step(dt, active){ if (this.waveBy>0) this.waveBy-=dt; if (!this.on || !scene || !pts || !pts.length || !S.running){ if (pts&&pts.length){ const W1=roadWAt(S.dist); this.rLane=W1<3.4?-Math.max(0,Math.min(0.3,W1/2-0.6)):-Math.max(0.3, W1/2-0.5); } return; }
+  step(dt, active){ if (this.waveBy>0) this.waveBy-=dt; if (!this.on || !scene || !pts || !pts.length || !S.running){ if (pts&&pts.length){ const W1=roadWAt(S.dist); this.rLane=W1<3.4?-Math.max(0,Math.min(0.3,W1/2-0.6)):-Math.max(0.3, W1/2-(WORLD&&WORLD.id==='dolo'&&!window.OLD_RLANE?1.0:0.5));   /* 0.25.9 Dolomiten: 1 m vom Fahrbahnrand, in Kurven sonst auf dem Pflasterstreifen */ } return; }
     if (this.pk!==pts){ if (this.pk) this.remap(); this.pk=pts; }
     const s=S.dir||1, rp=posAt(S.dist), rv=meP.v, W0=roadWAt(S.dist);
     /* Spawnen nach Verkehrsdichte am Fahrer */
@@ -11696,7 +11709,7 @@ const TRAFFIC={ on:true, pool:[], act:[], pk:null, rLane:-0.3, rLaneT:-0.3, acc:
       const vol=(T.slow?1.3:1)*Math.min(1,c.v/12+0.15)/(1+(dist/14)*(dist/14)); if (vol>snd){ snd=vol; sndV=c.v*(c.cd===s?1:-1)*(r>0?-1:1); }
     }
     /* Ziel-Spur des Fahrers */
-    this.rLaneT = pass ? Math.min(W0/4, W0/2-0.9) : W0<3.4 ? -Math.max(0, Math.min(0.3, W0/2-0.6)) : -Math.max(0.3, W0/2-0.5);   /* 0.15.0: schmale Wege mittig */   /* Hicore: rechts fahren, ca. 50 cm vom Fahrbahnrand */
+    this.rLaneT = pass ? Math.min(W0/4, W0/2-0.9) : W0<3.4 ? -Math.max(0, Math.min(0.3, W0/2-0.6)) : -Math.max(0.3, W0/2-(WORLD&&WORLD.id==='dolo'&&!window.OLD_RLANE?1.0:0.5));   /* 0.25.9 Dolomiten: 1 m vom Fahrbahnrand, in Kurven sonst auf dem Pflasterstreifen */   /* 0.15.0: schmale Wege mittig */   /* Hicore: rechts fahren, ca. 50 cm vom Fahrbahnrand */
     this.rLane += Math.sign(this.rLaneT-this.rLane)*Math.min(Math.abs(this.rLaneT-this.rLane), 0.9*dt);
     this.hornCd=(this.hornCd||0)-dt; this.draft=drf; try{ this._smp=this.carAudio(dt, (typeof me!=='undefined'&&me.g)?me.g.position:rp); }catch(e){ this._smp=false; } this.sound(snd, sndV, dt); },
   talkLen:14,
@@ -12767,7 +12780,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.8 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.9 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
   WORLDS.forEach(def=>{ if (!wVis(def)) return;
@@ -13248,7 +13261,9 @@ function wayFeelStep(dt){ WF.add=0; WF.lat=WF.yaw=WF.roll=WF.pitch=WF.y=0; if (!
     if (E.fo==null){ const xz=E.xz||[], m=(xz.length/4|0)*2; E.fo=xz.length?(gnForest(xz[m],xz[m+1])?1:0):0; }
     rough=(WF_ROUGH[sf]!=null?WF_ROUGH[sf]:0.6)*(E.kind==='w'&&(E.c===11||E.c===14)?1.2:1)*(E.fo?1.15:1);
     mud=(WF_MUD[sf]||0)*clamp((E.fo?0.3:0.03)+WET.w.value*0.5+PU*0.7,0,1); }
-  WF.rough+=(rough-WF.rough)*Math.min(1,dt*2); WF.mud+=(mud-WF.mud)*Math.min(1,dt*1.5); WF.unp=unp;
+  /* 0.25.9 (Hicore): gerät der Fahrer auf den Pflaster-/Splittstreifen neben der Fahrbahn, rüttelt es wie auf Kopfsteinpflaster. Alle 0,12 s geprüft. Aus: window.NO_PAVEFEEL */
+  if (E && E.kind==='r' && !window.NO_PAVEFEEL && v>0.5){ WF.pvT=(WF.pvT||0)-dt; if (WF.pvT<=0){ WF.pvT=0.12; WF.pv=0; try{ const q=wfLanePos(S.dist,(TRAFFIC.rLane||0)+(WF.pOff||0),rev), g=gnNear(q.x,q.z,30); if (g.k>=0 && g.d>g.w/2-0.05 && gnPave(q.x,q.z,0,g)) WF.pv=orKind(g.px,g.pz)===1?0.85:0.5; }catch(e){} } if (WF.pv) rough=WF.pv; } else WF.pv=0;
+  WF.rough+=(rough-WF.rough)*Math.min(1,dt*(WF.pv?6:2)); WF.mud+=(mud-WF.mud)*Math.min(1,dt*1.5); WF.unp=unp;
   const s=S.dist, sp=clamp(v/5,0,1.3);
   /* 1. Linie und Stöße */
   /* 0.17.3 (Hicore): Unruhe in zufälligen Phasen statt gleichmäßig: mal 1-3 s ruhig, mal 2-4 s normal, mal 3-4 s ruppig, ab und zu ein einzelner Huckel */

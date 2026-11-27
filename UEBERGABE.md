@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 27.11.2026. Letzte veröffentlichte Version: **0.25.9 Beta** (Dolomiten nach Hicores iPad-Test: runde Kurven, kein Gelände auf der Fahrbahn, Einfahrten enden am Rand, Rütteln auf dem Pflasterstreifen, ferne Hänge weniger verwaschen). Davor 0.25.8 (Felsformen, Felsbrocken), 0.25.7 (Fotohimmel, Grashalme aus der Nähe).
+Stand: 27.11.2026. Letzte veröffentlichte Version: **0.25.9 Beta** (Dolomiten nach Hicores iPad-Test: runde Kurven, kein Gelände auf der Fahrbahn, Einfahrten enden am Rand, Rütteln auf dem Pflasterstreifen; verwaschene Hänge noch offen). Davor 0.25.8 (Felsformen, Felsbrocken), 0.25.7 (Fotohimmel, Grashalme aus der Nähe).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,7 +100,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.25.9** | **Dolomiten nach iPad-Test: Kurven geglättet, Bank neben der Straße (kein Hang auf der Fahrbahn), Einfahrten am Fahrbahnrand gekappt, Rütteln auf Pflasterstreifen, ferne Hänge fleckig statt verwaschen** |
+| **0.25.9** | **Dolomiten nach iPad-Test: Kurven geglättet, Bank neben der Straße (kein Hang auf der Fahrbahn), Einfahrten am Fahrbahnrand gekappt, Rütteln auf Pflasterstreifen, Fahrer 1 m vom Rand** |
 | 0.25.8 | Dolomiten: Felsformen wie auf Hicores Fotos (Schattenkarte aus dem Höhenmodell, senkrechte Rippen und Risse, Türme, Schuttkegel, harte Kante Wiese/Fels, Felsbrocken am Wandfuß) |
 | 0.25.7 | Dolomiten: echter Himmel als Foto (Poly Haven), Halm-Nahdetail am Boden, Almwiese höher, Randstreifen nimmt Satellitenfarbe an |
 
@@ -145,8 +145,8 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - „Sandhaufen“ auf der Straße: `baseH` blendete in 30 m von Fahrbahn −0,5 m zum Höhenmodell; im 10-m-Kachelraster stieg der Hang bergseits schon innerhalb einer Masche über die Fahrbahn. Dolomiten: bis 14 m neben dem Rand höchstens 14 % Anstieg bzw. 30 % Gefälle (Bank/Damm), danach steil. Alt `OLD_ROADBENCH`.
 - Einfahrten/Nebenwege (`gtSideMesh`): Ecken, die in die Fahrbahn ragten, werden auf den Fahrbahnrand geschoben (alt `OLD_SIDECLIP`); keine Böschung mehr über dem Pflaster-/Grasstreifen (alt `OLD_SKIRTRD`). Dass Wegstücke beim Näherkommen teils verschwinden, ist nicht untersucht.
 - Rütteln: `wayFeelStep` prüft alle 0,12 s, ob der Fahrer auf dem Pflaster-/Splittstreifen ist (`gnPave`), dann `WF.rough` 0,85 bzw. 0,5. Aus `NO_PAVEFEEL`. Fahrer fährt in den Dolomiten 1 m statt 0,5 m vom Rand (`TRAFFIC.rLane`, alt `OLD_RLANE`).
-- Verwaschene Hänge: Ursache sind die Eckfarben des groben Netzes (29 m), die nur weiche Flecken ergeben. Im Fels-Shader ab 350 m Entfernung ein Muster von 50–160 m, das die Fels/Grün-Grenze in klare Flecken zerlegt und Hänge fleckig tönt. Alt `OLD_WASH`. Kostet zwei Rauschabfragen im Geländeshader; FPS am iPad neu prüfen lassen.
-- Offen: Nahgras steht als dunkle Büschel auf heller Fläche (Beobachtung des Koordinators, Hicore hat es nicht bemängelt); Kurvenglättung für Zittau (`CURVE_ALL`) ungetestet.
+- Verwaschene Hänge: NICHT gelöst. Ursache sind die Eckfarben des groben Netzes (29 m), die nur weiche Flecken ergeben. Versuch im Fels-Shader (ab 350 m ein Muster von 50–160 m, das die Fels/Grün-Grenze in klare Flecken zerlegt) ist eingebaut, aber abgeschaltet, weil das Prüfbild nicht zustande kam: einschalten mit `window.DLWASH=1`, dann aus Hicores Blickrichtung (km 1,5–1,8, Blick nach Norden/Osten auf den nahen Rücken) vorher/nachher prüfen.
+- Offen: Einfahrten haben am Randstreifen noch kleine Pfeilspitzen; der Pflasterstreifen beginnt in Kurven sichtbar näher an der Mittellinie als die halbe Fahrbahnbreite (Fahrer rollt trotz 1 m Abstand an der Kante), Ursache ungeklärt (Streifen und Bankett folgen den 3000 Routenpunkten über `lateralAt`, die Fahrbahn evtl. nicht); Lehre: nach jedem Suchen-und-Ersetzen im Spielcode `node --check` auf das Skript, ein Tippfehler hat 40 min Prüflauf gekostet. Nahgras steht als dunkle Büschel auf heller Fläche (Beobachtung des Koordinators, Hicore hat es nicht bemängelt); Kurvenglättung für Zittau (`CURVE_ALL`) ungetestet.
 
 **0.25.8 Dolomiten: Felsformen** (Hicore 27.11. mittags mit 6 Fotos vom Passo Giau: „Berge zu Standard, zu gleichmäßig“, „mach alles möglich was geht“; Fotos nur als Anschauung)
 - Kette der Werkzeuge: `werkzeuge/dolo_bau.py` → `werkzeuge/dolo_terrassen.py` → `werkzeuge/dolo_detail.py` → `build_gpu.py`. `dolo_terrassen.py` sichert beim ersten Lauf `dolo/dem10_roh.png` und rechnet immer von dort (mehrfach ausführbar).
