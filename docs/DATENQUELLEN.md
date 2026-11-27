@@ -15,7 +15,7 @@ Stand 26.11.2026 (0.25.6). Maßstab: Alles muss auch bei kommerzieller Nutzung e
 | Luftbild Sachsen DOP20 (GeoSN) | Zittau, Einzelbäume | Datenlizenz Deutschland Namensnennung 2.0 | „© GeoSN, dl-de/by-2-0“ |
 | Orthofoto ČÚZK | Zittau, Bäume auf tschechischer Seite | CC BY 4.0 | „© ČÚZK“ |
 | Kronenhöhen Meta / WRI (1 m) | Zittau, Baumhöhen | CC BY 4.0 | Quellenangabe |
-| Poly Haven | Texturen (Asphalt, Wiese, Waldboden, Fels, Felswand, Bachgeröll usw.) | CC0 | keine, wird trotzdem genannt |
+| Poly Haven | Texturen (Asphalt, Wiese, Waldboden, Fels, Felswand, Bachgeröll usw.), Himmelsfoto Dolomiten (HDRI sunflowers_puresky) | CC0 | keine, wird trotzdem genannt |
 | Three.js, Supabase-Client, QR-Code-Bibliothek | Programmcode | MIT | Lizenzhinweis im Code bleibt erhalten |
 | Eigene, im Spiel erzeugte Texturen und Modelle | Häuser, Fahrzeuge, Räder, Bäume | eigenes Werk | keine |
 
