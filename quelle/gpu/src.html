@@ -1224,7 +1224,12 @@ function gpuFx(nm, m){ const T=TSL, u=m.userData||{}, fx=u.fx||{}; if (u.isWater
           const l1=dot(g1,vec3(0.3,0.59,0.11)).div(0.384), l2=dot(g2,vec3(0.3,0.59,0.11)).div(0.384);
           const gf=mix(vec3(l1),g1.div(gm),0.3).mul(l2.sub(1.0).mul(0.75).add(1.0)), gw=smoothstep(-0.01,0.035,vc.g.sub(max(vc.r.mul(0.93),vc.b))).mul(float(1.0).sub(smoothstep(0.3,0.5,float(1.0).sub(nW.y))));
           c=c.mul(mix(vec3(1.0),clamp(gf,0.35,1.9),nf.mul(gw).mul(0.9))); }
-        if (wN) c=c.mul(mix(float(1.0), wN.mul(0.55).add(0.72), fdW.mul(smoothstep(0.1,0.3,stp)).mul(0.8)));   /* 0.25.9: ferne Hänge fleckig (Latschen, Rinnen) statt glatt */ c=mix(c, rC2, rk); if (shd) c=c.mul(shd); } }
+        if (wN) c=c.mul(mix(float(1.0), wN.mul(0.55).add(0.72), fdW.mul(smoothstep(0.1,0.3,stp)).mul(0.8)));   /* 0.25.9: ferne Hänge fleckig (Latschen, Rinnen) statt glatt */ c=mix(c, rC2, rk);
+        if (window.DLWALDT){ const Q=window.DLWALDQ, uw=Pw.xz.sub(vec2(Q.x0,Q.z0)).div(vec2(Q.sx,Q.sz)), fm=texture(window.DLWALDT, clamp(uw,0.0,1.0)).r, dF=length(cameraPosition.sub(Pw)), far=smoothstep(1500.0,2100.0,dF);
+          const kr=H.vnz(Pw.xz.mul(0.11)), kr2=H.vnz(Pw.xz.mul(0.027).add(vec2(7.3,2.1))), wd=smoothstep(0.42,0.58,fm.add(kr.sub(0.5).mul(0.3)));
+          const wc=vec3(0.085,0.135,0.07).mul(kr.mul(0.75).add(0.55)).mul(kr2.mul(0.5).add(0.72));   /* Fichtenwald von weitem: dunkel, Kronen als Körnung, Bestände unterschiedlich hell */
+          const inL=T.step(0.002,T.min(T.min(uw.x,uw.y),T.min(float(1.0).sub(uw.x),float(1.0).sub(uw.y)))); c=mix(c, wc, wd.mul(far).mul(inL).mul(float(1.0).sub(rk.mul(0.6)))); }
+        if (shd) c=c.mul(shd); } }
     col=vec4(c, tex.a.mul(T.materialReference('opacity','float')));
   }
   /* 0.21.0 Bild-Baum (Impostor): Quad dreht sich zur Kamera, Atlasbild nach Blickrichtung relativ zur Baumdrehung, zwei Nachbarrichtungen weich überblendet */
@@ -4437,6 +4442,8 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   if (def.id==='dolo' && !window.DLWAND){ try{ [['DLWAND','dolowand'],['DLFELS','dolofels'],['DLGRAS','almgras']].forEach(([n,k])=>{ const t=photoTex(k,MINI?512:1024); if (t){ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=MINI?2:8; t.needsUpdate=true; window[n]=t; } }); }catch(e){ console.warn('fels2',e); } }
   if (def.id==='dolo' && window.DLDETI && !window.DLDETT && !window.NO_DLDET){ try{ const I=window.DLDETI; let src=I.im; if (LITE){ const c=document.createElement('canvas'); c.width=c.height=Math.round(I.n/2); c.getContext('2d').drawImage(I.im,0,0,c.width,c.height); src=c; }
       const t=new THREE.Texture(src); t.flipY=false; t.colorSpace=THREE.NoColorSpace; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.anisotropy=4; t.needsUpdate=true; window.DLDETT=t; window.DLDETQ={x0:I.x0-I.c*0.5, z0:I.z0-I.c*0.5, sz:I.c*I.n}; }catch(e){ console.warn('detailkarte',e); } }
+    /* 0.25.10 (Hicore: verwaschene Bergrücken): Waldmaske aus der 10-m-Landbedeckung als Textur. Auf dem groben Fernnetz (Eckfarben alle 29 m) zeichnet sie Waldränder und Kronendach je Bildpunkt. Aus: NO_DLWALD */
+    window.DLWALDT=null; if (def.id==='dolo' && window.LCD && !window.NO_DLWALD && !MINI){ try{ const R=window.LCD, u=new Uint8Array(R.w*R.h); for (let i=0;i<u.length;i++) u[i]=R.b[i]===1?255:0; const t=new THREE.DataTexture(u,R.w,R.h,THREE.RedFormat,THREE.UnsignedByteType); t.magFilter=t.minFilter=THREE.LinearFilter; t.generateMipmaps=false; t.colorSpace=THREE.NoColorSpace; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.needsUpdate=true; window.DLWALDT=t; window.DLWALDQ={x0:R.x0, z0:R.z0, sx:R.w*R.c, sz:R.h*R.c}; }catch(e){ console.warn('waldmaske',e); } }
   if (def.id==='dolo' && !window.DLROCK){ try{ const t=photoTex('dolomit',512)||photoTex('fels',512); if (t){ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; t.needsUpdate=true; window.DLROCK=t; } }catch(e){ console.warn('fels',e); } }
   if (worldGroup){ scene.remove(worldGroup); disposeGroup(worldGroup); }
   pbrReset();
@@ -8064,12 +8071,16 @@ let builtWorld = null;
 const MM={key:null, net:null, rt:null, rk:null};
 /* 0.9.6 Große Karte (Tipp auf die Minikarte, Spiel läuft weiter) und Startpunkt per Klick auf der Karte */
 const BM={on:false, pick:false, cx:0, cz:0, sc:0.06, sel:null, drag:null, pin:null};
-let START_PICK=store.get('zgStart',null);
-function bmNet(){ const D=gnData(); if (!D) return null; if (!BM.net){ const P=new Path2D(); let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; D.edges.forEach(E=>E.P.forEach((q,i)=>{ i?P.lineTo(q.x,q.z):P.moveTo(q.x,q.z); x0=Math.min(x0,q.x); x1=Math.max(x1,q.x); z0=Math.min(z0,q.z); z1=Math.max(z1,q.z); })); BM.net=P; BM.bb=[x0,x1,z0,z1];
-    const C=window.ZGRES&&window.ZGRES.climbs; if (C){ const Q=new Path2D(); C.forEach(c=>c.p.forEach((q,i)=>i?Q.lineTo(q[0],q[1]):Q.moveTo(q[0],q[1]))); BM.cl=Q; } } return D; }
-function bmNearest(x,z){ const D=gnData(); let best=null, bd=1e9; D.edges.forEach((E,k)=>E.P.forEach((q,j)=>{ const d=Math.hypot(q.x-x,q.z-z); if (d<bd){ bd=d; best={k,j,x:q.x,z:q.z,d}; } })); return best; }
-function bmPlace(x,z){ const P=(window.ZGNET&&ZGNET.pois)||[]; let b='', bd=1e9; P.forEach(p=>{ if (p[0]!=='village'&&p[0]!=='town'&&p[0]!=='hamlet') return; const d=Math.hypot(p[3]-x,p[4]-z); if (d<bd){ bd=d; b=p[1]; } }); if (!b) return 'Startpunkt'; return (bd<900?'bei ':'nahe ')+b; }
-function bmOpen(pick){ if (!bmNet()) return; BM.on=true; BM.pick=!!pick; BM.sel=pick&&START_PICK?{x:START_PICK.x,z:START_PICK.z}:null; const cv=$('bmCv');
+let START_PICK=store.get('zgStart',null), DL_PICK=store.get('dlStart',null);
+/* 0.25.10 (Hicore): Startpunkt auch in den Dolomiten wählbar. Im Menü sind die Dolomiten-Daten noch nicht die aktive Welt, daher eigene Quelle für die Karte: Kanten direkt aus DLDATA. */
+function bmDolo(){ return !!(BM.pick && selWorld==='dolo' && window.DLDATA && window.DLDATA.ZGNET); }
+function bmSrc(){ if (bmDolo()){ if (!BM.dl){ const N=window.DLDATA.ZGNET; BM.dl=N.edges.map(e=>{ const a=b64i16(e[5]), o=[]; let x=e[7]||0, z=e[8]||0; for (let i=0;i<a.length;i+=3){ x+=a[i]; z+=a[i+1]; o.push({x:x/4,z:z/4}); } return o; }); } return {key:'dl', E:BM.dl, pois:window.DLDATA.ZGNET.pois||[], sat:window.DLDATA.DLSAT}; }
+  const D=gnData(); if (!D) return null; return {key:'w'+(DATA.cur||''), E:D.edges.map(E=>E.P), pois:(window.ZGNET&&ZGNET.pois)||[], sat:(WORLD&&WORLD.id==='dolo')?window.DLSAT:null, D}; }
+function bmNet(){ const SRC=bmSrc(); if (!SRC) return null; const D=SRC; if (BM.nk!==SRC.key){ BM.nk=SRC.key; BM.net=null; BM.cl=null; } if (!BM.net){ const P=new Path2D(); let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; SRC.E.forEach(EP=>EP.forEach((q,i)=>{ i?P.lineTo(q.x,q.z):P.moveTo(q.x,q.z); x0=Math.min(x0,q.x); x1=Math.max(x1,q.x); z0=Math.min(z0,q.z); z1=Math.max(z1,q.z); })); BM.net=P; BM.bb=[x0,x1,z0,z1];
+    const C=SRC.key==='dl'?null:(window.ZGRES&&window.ZGRES.climbs); if (C){ const Q=new Path2D(); C.forEach(c=>c.p.forEach((q,i)=>i?Q.lineTo(q[0],q[1]):Q.moveTo(q[0],q[1]))); BM.cl=Q; } } return D; }
+function bmNearest(x,z){ const SRC=bmSrc(); let best=null, bd=1e9; SRC.E.forEach((EP,k)=>EP.forEach((q,j)=>{ const d=Math.hypot(q.x-x,q.z-z); if (d<bd){ bd=d; best={k,j,x:q.x,z:q.z,d}; } })); return best; }
+function bmPlace(x,z){ const P=(bmSrc()||{}).pois||[]; let b='', bd=1e9; P.forEach(p=>{ if (p[0]!=='village'&&p[0]!=='town'&&p[0]!=='hamlet') return; const d=Math.hypot(p[3]-x,p[4]-z); if (d<bd){ bd=d; b=p[1]; } }); if (!b) return 'Startpunkt'; return (bd<900?'bei ':'nahe ')+b; }
+function bmOpen(pick){ BM.pick=!!pick; if (!bmNet()){ BM.pick=false; return; } BM.on=true; const SP0=selWorld==='dolo'?DL_PICK:START_PICK; BM.pick=!!pick; BM.sel=pick&&SP0?{x:SP0.x,z:SP0.z}:null; const cv=$('bmCv');
   if (S.running && !pick && pts.length>1){ const a=posAt(S.dist); BM.cx=a.x; BM.cz=a.z; BM.sc=0.25; } else { const b=BM.bb; BM.cx=(b[0]+b[1])/2; BM.cz=(b[2]+b[3])/2; BM.sc=Math.min(innerWidth/(b[1]-b[0]),innerHeight/(b[3]-b[2]))*0.9; if (BM.sel){ BM.cx=BM.sel.x; BM.cz=BM.sel.z; BM.sc*=2.2; } }
   $('bigmap').classList.add('on'); $('bmTitle').textContent=pick?'Startpunkt wählen':'Karte'; $('bmGo').style.display=pick&&BM.sel?'':'none';
   $('bmHint').textContent=pick?'Tippe auf eine Straße, dort startest du. Ziehen zum Verschieben, + und − zum Zoomen.':'Das Spiel läuft weiter. Ziehen zum Verschieben, + und − zum Zoomen.'; bmDraw(); }
@@ -8077,12 +8088,12 @@ function bmClose(){ BM.on=false; $('bigmap').classList.remove('on'); }
 function bmDraw(){ if (!BM.on) return; const cv=$('bmCv'), dpr=Math.min(2,devicePixelRatio||1), W=cv.clientWidth, H=cv.clientHeight; if (cv.width!==Math.round(W*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
   const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H); g.fillStyle='rgba(28,40,30,.9)'; g.fillRect(0,0,W,H);
   const sc=BM.sc, tx=x=>W/2+(x-BM.cx)*sc, tz=z=>H/2+(z-BM.cz)*sc; g.save(); g.setTransform(dpr*sc,0,0,dpr*sc,dpr*(W/2-BM.cx*sc),dpr*(H/2-BM.cz*sc)); g.lineJoin='round'; g.lineCap='round';
-  if (window.DLSAT && WORLD && WORLD.id==='dolo'){ const S2=window.DLSAT; [S2.f,S2.n].forEach(I=>{ if (I&&I.im) try{ g.drawImage(I.im, I.x0, I.z0, I.w*I.c, I.h*I.c); }catch(e){} }); }   /* 0.25.0: Satellitenbild als Kartengrund */
+  const SRCd=bmSrc()||{}; if (SRCd.sat){ const S2=SRCd.sat; [S2.f,S2.n].forEach(I=>{ if (I&&I.im) try{ g.drawImage(I.im, I.x0, I.z0, I.w*I.c, I.h*I.c); }catch(e){} }); }   /* 0.25.0: Satellitenbild als Kartengrund */
   g.strokeStyle='rgba(235,238,240,.75)'; g.lineWidth=Math.max(2.2/sc,6); g.stroke(BM.net);
   if (BM.cl){ g.strokeStyle='rgba(255,70,70,.85)'; g.lineWidth=Math.max(3.2/sc,8); g.stroke(BM.cl); }
   if (S.running && pts.length>1 && !BM.pick){ const P=new Path2D(); for (let i=0;i<pts.length;i+=2) i?P.lineTo(pts[i].x,pts[i].z):P.moveTo(pts[i].x,pts[i].z); g.strokeStyle='#ff8a1f'; g.lineWidth=Math.max(3/sc,8); g.stroke(P); }
   g.restore();
-  g.font='600 13px system-ui'; g.textAlign='center'; ((window.ZGNET&&ZGNET.pois)||[]).forEach(p=>{ const big=p[0]==='town'||p[0]==='village'; if (!big && !(p[0]==='peak'&&sc>0.12) && !(p[0]==='hamlet'&&sc>0.1)) return; const x=tx(p[3]), y=tz(p[4]); if (x<-50||y<-20||x>W+50||y>H+20) return;
+  g.font='600 13px system-ui'; g.textAlign='center'; (SRCd.pois||[]).forEach(p=>{ const big=p[0]==='town'||p[0]==='village'; if (!big && !(p[0]==='peak'&&sc>0.12) && !(p[0]==='hamlet'&&sc>0.1)) return; const x=tx(p[3]), y=tz(p[4]); if (x<-50||y<-20||x>W+50||y>H+20) return;
     g.fillStyle=p[0]==='peak'?'rgba(200,230,200,.9)':'#fff'; g.strokeStyle='rgba(0,0,0,.75)'; g.lineWidth=3; const t=(p[0]==='peak'?'▲ ':'')+p[1]; g.strokeText(t,x,y); g.fillText(t,x,y); });
   if (BM.sel){ const x=tx(BM.sel.x), y=tz(BM.sel.z); g.fillStyle='#3fb950'; g.strokeStyle='#fff'; g.lineWidth=3; g.beginPath(); g.arc(x,y,9,0,7); g.fill(); g.stroke(); }
   if (S.running && pts.length>1 && !BM.pick){ const a=posAt(S.dist), b=posAt(S.dist+6*((S.dir||1)<0?-1:1)), x=tx(a.x), y=tz(a.z); g.save(); g.translate(x,y); g.rotate(Math.atan2(b.x-a.x,-(b.z-a.z))); g.fillStyle='#fff'; g.strokeStyle='#111'; g.lineWidth=2; g.beginPath(); g.moveTo(0,-13); g.lineTo(9,10); g.lineTo(0,5); g.lineTo(-9,10); g.closePath(); g.fill(); g.stroke(); g.restore(); }
@@ -8096,10 +8107,10 @@ setInterval(()=>{ try{ if (BM.on && !BM.pick) bmDraw(); }catch(e){} }, 500);
   cv.addEventListener('wheel',e=>{ e.preventDefault(); BM.sc=clamp(BM.sc*(e.deltaY<0?1.2:1/1.2),0.01,2); bmDraw(); },{passive:false});
   $('bmPlus').onclick=()=>{ BM.sc=Math.min(2,BM.sc*1.4); bmDraw(); }; $('bmMinus').onclick=()=>{ BM.sc=Math.max(0.01,BM.sc/1.4); bmDraw(); };
   $('bmClose').onclick=bmClose; $('mmap').addEventListener('click',()=>bmOpen(false));
-  $('bmGo').onclick=()=>{ if (!BM.sel) return; START_PICK={x:BM.sel.x,z:BM.sel.z,n:bmPlace(BM.sel.x,BM.sel.z)}; store.set('zgStart',START_PICK); bmClose(); spRender(); toast('Start '+START_PICK.n); };
-  $('bPickStart').onclick=()=>bmOpen(true); $('bPickReset').onclick=()=>{ START_PICK=null; store.set('zgStart',null); spRender(); };
+  $('bmGo').onclick=()=>{ if (!BM.sel) return; const sp={x:BM.sel.x,z:BM.sel.z,n:bmPlace(BM.sel.x,BM.sel.z)}; if (selWorld==='dolo'){ DL_PICK=sp; store.set('dlStart',sp); } else { START_PICK=sp; store.set('zgStart',sp); } bmClose(); spRender(); toast('Start '+sp.n); };
+  $('bPickStart').onclick=async()=>{ if (selWorld==='dolo' && !(window.DLDATA&&window.DLDATA.ZGNET&&window.DLDATA.DLMETA)){ toast('Karte wird geladen …'); try{ await dataLoadDolo(); }catch(e){ console.warn('karte',e); } } bmOpen(true); }; $('bPickReset').onclick=()=>{ if (selWorld==='dolo'){ DL_PICK=null; store.set('dlStart',null); } else { START_PICK=null; store.set('zgStart',null); } spRender(); };
   addEventListener('resize',()=>bmDraw()); })();
-function spRender(){ const el=$('startPick'); if (!el) return; el.style.display=selWorld==='zittau'?'block':'none'; $('spName').textContent=START_PICK?START_PICK.n:'Jonsdorf (Standard)'; $('bPickReset').style.display=START_PICK?'':'none'; }
+function spRender(){ const el=$('startPick'); if (!el) return; const dl=selWorld==='dolo', sp=dl?DL_PICK:START_PICK; el.style.display=(selWorld==='zittau'||dl)?'block':'none'; $('spName').textContent=sp?sp.n:(dl?'Cortina (Standard)':'Jonsdorf (Standard)'); $('bPickReset').style.display=sp?'':'none'; }
 /* Startroute: vom gewählten Punkt auf kürzestem Weg zur Hauptrunde, einmal herum und zurück; wird zur neuen Hauptrunde, damit Abbiegen und Wenden wie gewohnt gehen */
 function zgApplyStart(sp){ const g0=window.GADJ; window.GADJ='R'; try{ return zgApplyStart0(sp); } finally{ window.GADJ=g0; } }   /* 0.15.0: Startrunde nur über Straßen bilden */
 function zgApplyStart0(sp){ if (!sp || !NET || !NET.graph) return false; const D=gnRG(), M=NET.base||NET.main; NET.base=M; let bi=0, bd=1e9; for (let i=0;i<M.pts.length;i++){ const d=Math.hypot(M.pts[i].x-sp.x,M.pts[i].z-sp.z); if (d<bd){ bd=d; bi=i; } }
@@ -8354,7 +8365,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.9 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.10 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
   WORLDS.forEach(def=>{ if (!wVis(def)) return;
@@ -8650,7 +8661,7 @@ async function start(){
           { const tA0=performance.now(); try{ TRAFFIC.prebuild(true); }catch(e){ console.warn('autos',e); } if (window.LOADT) LOADT.a=performance.now()-tA0; }
           { const tV0=performance.now(); try{ const n=await warmShaders(); if (window.LOADT){ LOADT.v=performance.now()-tV0; LOADT.vn=n; } }catch(e){ console.warn('warm',e); } } const tW0=performance.now(); try{ POST.render(); }catch(e){} await paint(); if (window.LOADT){ LOADT.w=performance.now()-tW0; LOADT.ff=1; } } else try{ stageCompile(); renderer.compile(scene,camera); }catch(e){} $('world').style.visibility='visible'; await paint(); }
       finally{ lb.style.display='none'; window.LOADING=false; } }
-    resetRide(); if (def.id==='dolo'){ try{ zgApplyStart({x:5877.5, z:-5542.8, n:'Cortina'}); }catch(e){ console.warn('start',e); } } if (def.id==='zittau'){ try{ if (START_PICK) zgApplyStart(START_PICK); else if (NET && NET.base && NET.main!==NET.base) zgApplyStart({x:NET.base.pts[0].x,z:NET.base.pts[0].z}); }catch(e){ console.warn('start',e); } } setupBots(+$('bots').value);
+    resetRide(); if (def.id==='dolo'){ try{ zgApplyStart(DL_PICK||{x:5877.5, z:-5542.8, n:'Cortina'}); }catch(e){ console.warn('start',e); } } if (def.id==='zittau'){ try{ if (START_PICK) zgApplyStart(START_PICK); else if (NET && NET.base && NET.main!==NET.base) zgApplyStart({x:NET.base.pts[0].x,z:NET.base.pts[0].z}); }catch(e){ console.warn('start',e); } } setupBots(+$('bots').value);
     if (window.__resume){ const r=window.__resume; window.__resume=null; try{ Object.assign(S,r.S); track=r.track||[]; rideStart=r.rs||null; lastLapDist=r.ll||0; if (S.dist>=L) S.dist=0; snapCam=true; toast('Fahrt fortgesetzt: '+((S.odo||S.dist)/1000).toFixed(2)+' km'); }catch(e){ console.warn('resume',e); } }
   }
   $('menu').style.display='none'; $('simbox').style.display=S.sim?'flex':'none';

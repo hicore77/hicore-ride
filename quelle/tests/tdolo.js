@@ -7,6 +7,7 @@ const {chromium}=require('playwright'); const serve=require('./serve');
  if (process.env.PRE) await p.addInitScript(process.env.PRE);
  await p.goto('http://127.0.0.1:8765/index.html?gl=1'+(process.env.QS||'')); await p.waitForFunction(()=>window.glbRiderReady,null,{timeout:800000});
  const t0=Date.now();
+ if (process.env.MENU){ try{ console.log('MENU', JSON.stringify(await p.evaluate(process.env.MENU))); }catch(e){ console.log('MENU Fehler', String(e).slice(0,300)); } }   /* 0.25.10: JS im Menü vor dem Start (z. B. Startpunkt wählen) */
  await p.evaluate(w=>{ selWorld=w; $('bots').value='0'; BIKE='road'; $('bSim').click(); },process.env.W||'dolo');
  await p.waitForFunction(()=>S.running,null,{timeout:1500000});
  console.log('geladen nach', Math.round((Date.now()-t0)/1000),'s');
