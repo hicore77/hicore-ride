@@ -241,6 +241,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
         Landbedeckung: © ESA WorldCover project 2021 (CC BY 4.0).<br>
         Bäume Zittau: Luftbild © GeoSN, dl-de/by-2-0; Orthofoto © ČÚZK (CC BY 4.0); Kronenhöhen Meta / WRI (CC BY 4.0).<br>
         Texturen: Poly Haven (CC0). Geräusche: elevenlabs.io. Wetter: open-meteo.com (CC BY 4.0).<br>
+        Tiere Dolomiten (Modelle und Laute): mit Higgsfield erzeugt (Tripo, Mirelo; eigene Nutzungsrechte laut Higgsfield-Nutzungsbedingungen).<br>
         Programm: three.js (MIT), Supabase (MIT).</div></details>
       <div class="mpbox"><h4>Tageszeit &amp; Wetter</h4>
         <div class="mpgrid"><select id="tod"><option value="morgen">🌅 Morgen</option><option value="mittag">☀️ Mittag</option><option value="nachm" selected>🌤️ Nachmittag</option><option value="abend">🌇 Abend</option><option value="nacht">🌙 Nacht</option><option value="echt">🌐 Echte Tageszeit</option></select>
@@ -4771,8 +4772,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   if (T.ShaderChunk && !window.GPU_MODE) T.ShaderChunk.common='#ifndef mapTexelToLinear\n#define mapTexelToLinear(t) (t)\n#endif\n#if defined(USE_MAP) && !defined(vUv)\n#define vUv vMapUv\n#endif\n'+T.ShaderChunk.common;
   window.R187=true; })();
 </script>
-<script>window.PROP_GLB={};window.PROP_LIST=["amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "gruft", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "gruft": "3a94d372", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
-<script src="data/media.js?h=5d02c4b0"></script>
+<script>window.PROP_GLB={};window.PROP_LIST=["alpkuh", "amt_spitzk", "auto_rot", "bank", "bank_wanderer", "baum_birke", "baum_eiche", "baum_kiefer", "briefkasten", "burg_oybin", "busch_blumen", "bussard", "eichhorn", "ente", "fels_1", "fels_2", "fels_3", "gaemse", "gruft", "hahn", "hase", "haus_chalet", "haus_cottage", "haus_strand", "heuballen", "hirsch", "hochwaldturm", "hotel_hwb", "hubertusbaude", "huhn", "hw_baude", "hw_turm", "jaeger", "jaegerwaeldchen", "jeep", "jq_haus", "jq_quelle", "katze", "kelchsteine", "kirche_oybin", "kirche_spitzk", "kletterer", "kletterer2", "kreuzhaus", "kuh", "meise", "moewe", "murmel", "murmeltier", "oybin_berg", "pferd", "polizeiauto", "polizist", "reh", "ruebezahlbaude", "schaf", "schild_holz", "schild_steigung", "sonnebergbaude", "steinbock", "traktor", "veh_klein", "veh_kombi", "veh_suv", "veh_traktor", "veh_van", "wanderer1", "wanderer2", "yeti", "zaun", "ziege", "zsb_gruen", "zsb_lok", "zsb_rot"];window.PROP_HASH={"alpkuh": "2ffa1da7", "amt_spitzk": "a1a59e09", "auto_rot": "90312bb9", "bank": "9278d4a2", "bank_wanderer": "c6f67dc1", "baum_birke": "a7a93556", "baum_eiche": "d451c5fe", "baum_kiefer": "5d5f4dff", "briefkasten": "101ddc08", "burg_oybin": "31455626", "busch_blumen": "8602f7b0", "bussard": "80454fab", "eichhorn": "c43898a8", "ente": "28b81bd5", "fels_1": "31de3161", "fels_2": "b899ed19", "fels_3": "72277c35", "gaemse": "05c804fa", "gruft": "3a94d372", "hahn": "8e35a193", "hase": "7722e922", "haus_chalet": "af30257f", "haus_cottage": "4cb284fe", "haus_strand": "04189aed", "heuballen": "2b586554", "hirsch": "38f9570e", "hochwaldturm": "6cb5723c", "hotel_hwb": "5dd87a37", "hubertusbaude": "5f4199c5", "huhn": "502e64c4", "hw_baude": "f954f1d4", "hw_turm": "3adb57a2", "jaeger": "3d5e98af", "jaegerwaeldchen": "b8e2a6f6", "jeep": "30b5ce5c", "jq_haus": "121567c6", "jq_quelle": "e8766fdb", "katze": "18bffb72", "kelchsteine": "cacf450d", "kirche_oybin": "b0f77068", "kirche_spitzk": "f0305e05", "kletterer": "ccce6091", "kletterer2": "7849a096", "kreuzhaus": "636e5d18", "kuh": "90c72289", "meise": "80d2c69d", "moewe": "e4bffb27", "murmel": "ee96bed7", "murmeltier": "b607b4cf", "oybin_berg": "596b751c", "pferd": "175097ab", "polizeiauto": "9ab6a277", "polizist": "cbf8c716", "reh": "0ea4cc18", "ruebezahlbaude": "1eda3d15", "schaf": "0d0d1149", "schild_holz": "db86500c", "schild_steigung": "3644300b", "sonnebergbaude": "06ec29a1", "steinbock": "771a91e3", "traktor": "9af59f41", "veh_klein": "34a1261b", "veh_kombi": "5389f6e1", "veh_suv": "5f09b2db", "veh_traktor": "f7e72651", "veh_van": "527f68e5", "wanderer1": "882d900d", "wanderer2": "21d47c2d", "yeti": "c7c9503d", "zaun": "0a00c39e", "ziege": "4fa028ce", "zsb_gruen": "4c64a800", "zsb_lok": "1166438e", "zsb_rot": "7c388b7e"};</script>
+<script src="data/media.js?h=4220ee5f"></script>
 <script>window.DL_FILE="data/dolomiten.js?h=1f75afa4";</script><script src="data/zittau.js?h=b0e274d9"></script>
 <script>
 "use strict";
@@ -9097,6 +9098,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   }
   // Deko aus Blender
   addProps(def); buildFencesHedges(def, worldGroup, def.roadW||7);
+  if (def.id==='dolo') try{ buildDoloFauna(worldGroup); }catch(e){ console.warn('dolo-tiere',e); }
   // Wahrzeichen
   if (def.lighthouse){ const d=L*def.lighthouse, p=posAt(d); const l=Math.hypot(p.x,p.z)||1; addLighthouse(worldGroup, p.x+p.x/l*55, p.z+p.z/l*55); }
   // Start/Ziel: eckiger, schlanker Luft-Torbogen (aufblasbar) + Schachbrett-Linie
@@ -10574,7 +10576,7 @@ async function connectHR(){
 // ================= Deko-Objekte aus Blender (GLB, eingebettet) =================
 const PROP_GLB = window.PROP_GLB || {};          // Name -> Base64
 const PROP_LIB = {};
-const PROP_FIX = { reh:{h:1.15,ry:0,ry0:Math.PI}, hirsch:{h:2.35,ry:-Math.PI/2,ry0:Math.PI}, eichhorn:{h:0.26}, katze:{h:0.34,ry:Math.PI}, meise:{h:0.13}, bussard:{h:0.45}, jaeger:{h:1.8,ry:Math.PI/2}, polizist:{h:1.82,ry:Math.PI/2}, jeep:{h:1.95,ry:Math.PI/2}, polizeiauto:{h:1.75,ry:Math.PI/2}, auto_rot:{h:1.45,ry:Math.PI/2,keepLow:1}, hase:{h:0.55,ry:-Math.PI/2}, kuh:{h:1.5,ry:-Math.PI/2,ry0:Math.PI}, schaf:{h:1.0}, pferd:{h:1.75,ry:Math.PI,ry0:0}, ziege:{h:0.9,ry:-Math.PI/4,ry0:0}, huhn:{h:0.42,ry:Math.PI,ry0:0}, hahn:{h:0.55,ry:Math.PI}, ente:{h:0.36}, kletterer:{h:2.9}, kirche_spitzk:{h:30}, amt_spitzk:{h:16}, kirche_oybin:{h:20}, hochwaldturm:{h:30}, gruft:{h:10}, kelchsteine:{h:12.5}, jaegerwaeldchen:{h:11}, wanderer1:{h:1.8}, wanderer2:{h:1.68,ry:-Math.PI/2}, bank_wanderer:{h:1.3,ry:Math.PI}, kletterer2:{h:2.4}, sonnebergbaude:{h:13}, hubertusbaude:{h:14}, ruebezahlbaude:{h:14}, oybin_berg:{h:100}, hw_turm:{h:30}, hw_baude:{h:17}, hotel_hwb:{h:15}, kreuzhaus:{h:13}, tree_spruce:{h:12.8}, tree_beech:{h:15.5}, jq_haus:{h:11.5}, jq_quelle:{h:2.6}, veh_klein:{h:1.48,len:4.05,ry:-Math.PI/2}, zsb_lok:{h:3.3,len:10.2,ry:-Math.PI/2}, zsb_gruen:{h:3.25,len:10.6}, zsb_rot:{h:3.3,len:11.2}, veh_kombi:{h:1.5,len:4.75,ry:-Math.PI/2}, veh_suv:{h:1.68,len:4.6,ry:-Math.PI/2}, veh_van:{h:2.55,len:5.95,ry:-Math.PI/2}, veh_traktor:{h:2.95,len:4.4,ry:-Math.PI/2} };                             // Name -> [{geo, mat}] (zu einem Objekt verschmolzen)
+const PROP_FIX = { reh:{h:1.15,ry:0,ry0:Math.PI}, hirsch:{h:2.35,ry:-Math.PI/2,ry0:Math.PI}, eichhorn:{h:0.26}, katze:{h:0.34,ry:Math.PI}, meise:{h:0.13}, bussard:{h:0.45}, jaeger:{h:1.8,ry:Math.PI/2}, polizist:{h:1.82,ry:Math.PI/2}, jeep:{h:1.95,ry:Math.PI/2}, polizeiauto:{h:1.75,ry:Math.PI/2}, auto_rot:{h:1.45,ry:Math.PI/2,keepLow:1}, hase:{h:0.55,ry:-Math.PI/2}, kuh:{h:1.5,ry:-Math.PI/2,ry0:Math.PI}, schaf:{h:1.0}, pferd:{h:1.75,ry:Math.PI,ry0:0}, ziege:{h:0.9,ry:-Math.PI/4,ry0:0}, huhn:{h:0.42,ry:Math.PI,ry0:0}, hahn:{h:0.55,ry:Math.PI}, ente:{h:0.36}, kletterer:{h:2.9}, kirche_spitzk:{h:30}, amt_spitzk:{h:16}, kirche_oybin:{h:20}, hochwaldturm:{h:30}, gruft:{h:10}, kelchsteine:{h:12.5}, jaegerwaeldchen:{h:11}, wanderer1:{h:1.8}, wanderer2:{h:1.68,ry:-Math.PI/2}, bank_wanderer:{h:1.3,ry:Math.PI}, kletterer2:{h:2.4}, sonnebergbaude:{h:13}, hubertusbaude:{h:14}, ruebezahlbaude:{h:14}, oybin_berg:{h:100}, hw_turm:{h:30}, hw_baude:{h:17}, hotel_hwb:{h:15}, kreuzhaus:{h:13}, tree_spruce:{h:12.8}, tree_beech:{h:15.5}, jq_haus:{h:11.5}, jq_quelle:{h:2.6}, veh_klein:{h:1.48,len:4.05,ry:-Math.PI/2}, zsb_lok:{h:3.3,len:10.2,ry:-Math.PI/2}, zsb_gruen:{h:3.25,len:10.6}, zsb_rot:{h:3.3,len:11.2}, veh_kombi:{h:1.5,len:4.75,ry:-Math.PI/2}, veh_suv:{h:1.68,len:4.6,ry:-Math.PI/2}, veh_van:{h:2.55,len:5.95,ry:-Math.PI/2}, veh_traktor:{h:2.95,len:4.4,ry:-Math.PI/2}, alpkuh:{h:1.5,ry:Math.PI}, gaemse:{h:1.15,ry:Math.PI}, steinbock:{h:1.5,ry:Math.PI}, murmel:{h:0.47,ry:-Math.PI/2}, yeti:{h:2.4,ry:-Math.PI/2} };                             // Name -> [{geo, mat}] (zu einem Objekt verschmolzen)
 function b64ToBuf(b64){ const s=atob(b64), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u.buffer; }
 /* 0.13.0: Auf Tablet/Handy die 1536er-Texturen von Autos und Zügen auf 1024 verkleinern (je ca. 12 MB -> 5 MB Grafikspeicher, schnelleres Hochladen beim ersten Auftauchen).
    Wahrzeichen bleiben unverändert. ?texcap=0 aus, ?texcap=1024 erzwingt es auch am Rechner. */
@@ -10640,7 +10642,8 @@ const ANIM_CFG={
   hirsch:{bf:0.35, gr:1.05, run:'gal', vmax:12},  reh:{bf:0.40, gr:1.1, run:'gal', vmax:11},
   pferd:{bf:0.38, gr:1.0, run:'gal'}, kuh:{bf:0.37, gr:0.75, run:'trot'}, schaf:{bf:0.28, gr:0.35, run:'trot'}, ziege:{bf:0.30, gr:0.9, run:'trot'},
   katze:{bf:0.22, gr:0.5, run:'bound'}, eichhorn:{bf:0.2, gr:0.4, run:'bound'},
-  huhn:{bf:0.12, gr:1.0, nl:2, bi:1}, hahn:{bf:0.13, gr:1.0, nl:2, bi:1} };
+  huhn:{bf:0.12, gr:1.0, nl:2, bi:1}, hahn:{bf:0.13, gr:1.0, nl:2, bi:1},
+  alpkuh:{bf:0.37, gr:0.75, run:'trot'}, gaemse:{bf:0.38, gr:0.95, run:'gal', vmax:10}, steinbock:{bf:0.33, gr:0.85, run:'gal', vmax:6} };   /* 0.26.0 Dolomiten */
 const ANIM_GAITS={   /* Beinreihenfolge: LH, LV, RH, RV (links/rechts, hinten/vorn) */
   walk:{off:[0,0.25,0.5,0.75], du:0.65}, trot:{off:[0,0.5,0.5,0], du:0.45},
   gal:{off:[0,0.42,0.12,0.55], du:0.35}, bound:{off:[0,0.5,0.06,0.56], du:0.35}, bi:{off:[0,0,0.5,0.5], du:0.6} };
@@ -12093,9 +12096,72 @@ function critterAnim(c,dt){ const o=c.o, an=o.userData.an, bi=!!an.R.C.bi, cp=ca
     o.position.x+=Math.sin(o.rotation.y)*v*dt; o.position.z+=Math.cos(o.rotation.y)*v*dt; o.position.y=terrainH(o.position.x,o.position.z); }
   if (far && an._f && c.m!=='walk') return; an._f=1;
   animUpdate(an, dt, v, {graze:c.m==='graze'?1:0, chew:c.m==='graze', peck:c.m==='peck'?(Math.sin(c.t*9+c.phase)>0.3?0.85:0.1):0}); }
-function animateCritters(dt){
+/* 0.26.0 (Heiko: Kühe mit Glocken, Gämsen, Murmeltiere, versteckter Yeti): Tiere der Dolomiten. Modelle per Higgsfield (Bild → Tripo H3.1, 3–7 Tsd. Dreiecke, Textur 512 px).
+   Platz nach Landbedeckung, Höhe und Hangneigung entlang der Runde: Alpenkühe (Herden mit Glocken) auf Almwiesen, Gämsen auf steilen Hängen und im Fels (pfeifen und flüchten bergauf),
+   Steinböcke hoch oben (ruhiger, Hörner krachen), Murmeltiere am Straßenrand über 1.800 m (Wächter taucht ab), ein Yeti versteckt nahe dem Passo Giau.
+   Weiter als DLF.vis() m: unsichtbar (spart Zeichenaufrufe). Aus: window.NO_DLFAUNA */
+const DLF={ list:[], yeti:null, cd:{}, vis:()=>MINI?200:LITE?300:380 };
+function buildDoloFauna(grp){ DLF.list=[]; DLF.yeti=null; DLF.cd={}; if (window.NO_DLFAUNA) return; const D=gnData(); if (!D || !D.edges) return;
+  let sd=4711; const R=()=>((sd=(sd*16807)%2147483647)/2147483647); const Q=MINI?0.35:LITE?0.6:1;
+  const slope=(x,z)=>Math.hypot(terrainH(x+6,z)-terrainH(x-6,z),terrainH(x,z+6)-terrainH(x,z-6))/12, elev=(x,z)=>terrainH(x,z)+1200;
+  const add=(name,x,z,yaw,ex)=>{ if (!PROP_LIB[name]) return null; const o=propObject(name); if (!o) return null; o.position.set(x,terrainH(x,z),z); o.rotation.order='YXZ'; o.rotation.y=yaw; grp.add(o);
+    const c=Object.assign({o, kind:name, base:o.position.clone(), yaw, t:R()*10, phase:R()*6.28, dl:1}, ex||{}); critters.push(c); DLF.list.push(c); return c; };
+  /* Kandidaten alle 60 m entlang aller Kanten, beidseitig, mehrere Abstände */
+  const C=[]; let run=0;
+  D.edges.forEach((E,ei)=>{ if (!E || !E.P) return; const P=E.P; let acc=0; for (let i=1;i<P.length;i++){ const a=P[i-1], b=P[i], l=Math.hypot(b.x-a.x,b.z-a.z); acc+=l; run+=l; if (acc<60) continue; acc=0;
+      const tx=(b.x-a.x)/(l||1), tz=(b.z-a.z)/(l||1); for (const s of [1,-1]) for (const o of [16,24,35,50,75,110,160,230,320]){ const x=b.x+tz*o*s, z=b.z-tx*o*s; C.push({x,z,o,s,run,ex:b.x,ez:b.z}); } } });
+  const info=c=>{ if (c.k===undefined){ c.k=gnLC(c.x,c.z); c.h=elev(c.x,c.z); c.sl=slope(c.x,c.z); c.rd=gnNear(c.x,c.z,400).d; const q=typeof dlBedQ==='function'?dlBedQ(c.x,c.z):null; c.bed=!!(q && q.e<12); if (c.bed) c.k=-2; } return c; };   /* nicht ins Bachbett */
+  const used={};
+  const place=(name,test,gap,maxG,nMin,nMax,spread,ex)=>{ const last=[]; let g=0; const stat={};
+    for (const c of C){ if (g>=maxG) break; if (last.some(r=>Math.abs(r-c.run)<gap)) continue; if (R()>0.5) continue; info(c); if (!test(c)) continue;
+      const n=Math.max(1,Math.round((nMin+R()*(nMax-nMin))*Q)), yaw0=R()*6.28, grpO={cd:0, n:0}; let k=0;
+      for (let t=0;t<n*4 && k<n;t++){ const a=R()*6.28, r=k?spread*(0.3+R()*0.7):0, x=c.x+Math.cos(a)*r, z=c.z+Math.sin(a)*r, q=info({x,z}); if (!test(q)) continue;
+        const key=Math.round(x/4)+','+Math.round(z/4); if (used[key]) continue; used[key]=1; if (add(name,x,z,yaw0+(R()-0.5)*1.6,Object.assign({grp:grpO},ex||{}))){ k++; grpO.n++; } }
+      if (k){ last.push(c.run); g++; stat[Math.round(c.run)]=k; } }
+    return g; };
+  const past=c=>(c.k===0||c.k===10) && c.sl<0.32 && c.h>1250;
+  const town=c=>{ if (c.tw===undefined){ c.tw=false; for (const [a,b] of [[45,0],[-45,0],[0,45],[0,-45],[30,30],[-30,-30]]) if (gnLC(c.x+a,c.z+b)===4){ c.tw=true; break; } } return c.tw; };
+  const nK=place('alpkuh', c=>past(c) && c.rd>18 && c.rd<150 && !town(c), 1700, 12, 4, 8, 22);
+  const nG=place('gaemse', c=>(c.k===6||c.k===9||(c.k===10&&c.sl>0.45)||(c.k===0&&c.h>1900&&c.sl>0.5)) && c.sl>0.4 && c.sl<1.4 && c.rd>55 && c.rd<330, 2600, 10, 2, 5, 12, {flee:70, vmax:9});
+  const nS=place('steinbock', c=>(c.k===6||c.k===9||c.k===10) && c.h>2050 && c.sl>0.3 && c.sl<1.2 && c.rd>40 && c.rd<330, 3200, 6, 1, 4, 10, {flee:32, vmax:5});
+  const nM=place('murmel', c=>(c.k===10||c.k===9||c.k===0) && c.h>1800 && c.h<2650 && c.sl<0.6 && c.rd>13 && c.rd<50, 1400, 12, 2, 4, 9);
+  /* Yeti: einmal, im Fels/Geröll nahe dem höchsten Punkt der Runde (Passo Giau), 70–160 m von der Straße, schaut zur Straße */
+  let top=null; for (const c of C) if (!top || terrainH(c.ex,c.ez)>terrainH(top.ex,top.ez)) top=c;
+  /* bevorzugt hinter einem großen Felsbrocken (schaut halb dahinter hervor) */
+  const M=window.DLMETA; if (top && PROP_LIB.yeti && M && M.blk && !MINI && !window.OLD_YETIPOS){ const bin=atob(M.blk), n=bin.length/6, A=new Int16Array(n*3); { const u=new Uint8Array(A.buffer); for (let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); }
+    let bb=null, bd=1e9; for (let i=0;i<n;i++){ const x=A[i*3]/2, z=A[i*3+1]/2, sz=A[i*3+2]/100; if (sz<2.4) continue; const d=Math.hypot(x-top.ex,z-top.ez); if (d>3500 || d>=bd) continue; const g=gnNear(x,z,400); if (g.k<0 || g.d<45 || g.d>190) continue; bd=d; bb={x,z,sz}; }
+    if (bb){ const g=gnNear(bb.x,bb.z,400), D2=gnData(), E=D2.edges[g.k], Pp=E.P[Math.min(g.i,E.P.length-1)], ux=bb.x-Pp.x, uz=bb.z-Pp.z, ul=Math.hypot(ux,uz)||1, RB=bb.sz*1.45+0.9, r=RB*0.55, side=RB*0.88;   /* Brocken-Radius bis ca. 1,4 × Größe (buildDoloBlocks) */
+      const yx=bb.x+ux/ul*r-uz/ul*side, yz=bb.z+uz/ul*r+ux/ul*side; const y=add('yeti', yx, yz, Math.atan2(Pp.x-yx, Pp.z-yz), {yeti:1}); if (y){ let rd=0; if (!window.NO_ROCKD) try{ rd=dlRockD(yx,yz)||0; }catch(er){} y.o.position.y+=Math.max(0,rd); y.base.y=y.o.position.y; DLF.yeti=y; window.DLYETI=[+yx.toFixed(0),+yz.toFixed(0),'fels',+bb.sz.toFixed(1)]; } } }
+  if (!DLF.yeti && top && PROP_LIB.yeti){ let best=null, bd=1e9; for (const c of C){ const d=Math.hypot(c.ex-top.ex,c.ez-top.ez); if (d>2500 || d>bd) continue; info(c); if (c.rd<70 || c.rd>170 || c.sl>0.9 || c.k===4 || c.k===1) continue; bd=d; best=c; }
+    if (best){ const y=add('yeti', best.x, best.z, Math.atan2(best.ex-best.x, best.ez-best.z), {yeti:1}); if (y){ DLF.yeti=y; window.DLYETI=[+best.x.toFixed(0),+best.z.toFixed(0)]; } } }
+  window.DLFAUNA={kuh:nK, gaemse:nG, steinbock:nS, murmel:nM, yeti:!!DLF.yeti, tiere:DLF.list.length}; }
+/* Gämse/Steinbock: schauen, ab Fluchtdistanz Pfiff, dann bergauf und weg vom Fahrer, nie über die Straße */
+function dlWildStep(c,dt,P){ const o=c.o, an=o.userData.an, dx=o.position.x-P.x, dz=o.position.z-P.z, d=Math.hypot(dx,dz);
+  if (!c.fl && d<c.flee){ c.fl=1; c.ft=0; c.v=0; const G=c.grp; if (G && !(G.cd>0)){ G.cd=25; if (c.kind==='gaemse' && typeof AMB!=='undefined' && AMB.on){ try{ AMB.at={x:o.position.x,y:o.position.y+1,z:o.position.z}; AMB.sample('dl_gaemse', (AMB.vol.sndAnimal??0.5)*Math.max(0.25,1-d/120), 0, d/120, 0.9); AMB.at=null; }catch(e){} } } }
+  if (c.grp && c.grp.cd>0) c.grp.cd-=dt;
+  if (!c.fl){ if (d<160){ const look=Math.atan2(P.x-o.position.x,P.z-o.position.z)-o.rotation.y; c.lk=Math.atan2(Math.sin(look),Math.cos(look)); } else c.lk=0; return false; }
+  c.ft+=dt; if (c.ft<0.4){ animUpdate(an,dt,0,{look:clamp(c.lk||0,-1.1,1.1)}); return true; }
+  const x=o.position.x, z=o.position.z, gx=terrainH(x+5,z)-terrainH(x-5,z), gz=terrainH(x,z+5)-terrainH(x,z-5), gl=Math.hypot(gx,gz)||1, al=d||1;
+  let wx=gx/gl+dx/al*0.7, wz=gz/gl+dz/al*0.7; if (gnNear(x+wx*6,z+wz*6,40).d<12){ wx=dx/al; wz=dz/al; }
+  let dy=Math.atan2(wx,wz)-o.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); o.rotation.y+=clamp(dy,-2.4*dt,2.4*dt);
+  const vm=c.vmax*(c.ft>6?Math.max(0,1-(c.ft-6)/2.5):1); c.v+=(vm-c.v)*Math.min(1,dt*2.5);
+  const nx=x+Math.sin(o.rotation.y)*c.v*dt, nz=z+Math.cos(o.rotation.y)*c.v*dt; if (gnNear(nx,nz,40).d>11){ o.position.x=nx; o.position.z=nz; } o.position.y=terrainH(o.position.x,o.position.z);
+  animUpdate(an,dt,c.v,{});
+  if (c.ft>9 && c.v<0.2){ c.fl=0; c.base.copy(o.position); c.flee*=d<c.flee*1.2?0.6:1; }   /* nach der Flucht: wieder grasen; ist der Fahrer noch nah, weniger scheu */
+  return true; }
+function dlFaunaStep(c,dt,P,cp){ const o=c.o, dC=Math.abs(o.position.x-cp.x)+Math.abs(o.position.z-cp.z); const vis=dC<DLF.vis()*1.25; if (o.visible!==vis) o.visible=vis; if (!vis) return true; const sh=dC<90; if (c.sh!==sh){ c.sh=sh; o.traverse(m=>{ if (m.isMesh) m.castShadow=sh; }); }   /* Schatten nur nah */
+  if (c.yeti){ const dx=P.x-o.position.x, dz=P.z-o.position.z, d=Math.hypot(dx,dz); if (d<220){ let dy=Math.atan2(dx,dz)-o.rotation.y; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); o.rotation.y+=clamp(dy,-0.5*dt,0.5*dt); }
+    o.rotation.z=Math.sin(c.t*0.9)*0.025; o.rotation.x=Math.sin(c.t*0.45)*0.02;
+    if (d<130 && !(DLF.cd.yeti>0) && typeof AMB!=='undefined' && AMB.on){ DLF.cd.yeti=240; try{ AMB.at={x:o.position.x,y:o.position.y+2,z:o.position.z}; AMB.sample('dl_yeti', (AMB.vol.sndAnimal??0.5)*Math.max(0.35,1-d/180), 0, d/180, 1.0); AMB.at=null; }catch(e){} }
+    if (DLF.cd.yeti>0) DLF.cd.yeti-=dt; return true; }
+  if (c.kind==='murmel'){ const cyc=(c.t+c.phase*3)%11, up=cyc<6.5?1:cyc<7?1-(cyc-6.5)/0.5:cyc<10.5?0:(cyc-10.5)/0.5, dd=Math.hypot(o.position.x-P.x,o.position.z-P.z); c.dn=Math.max(c.dn||0,dd<11?1:0); if (dd>25) c.dn=Math.max(0,(c.dn||0)-dt*0.2);
+    o.position.y=c.base.y-0.5*(1-up*(1-(c.dn||0))); if (cyc<0.05) o.rotation.y+=(Math.random()-0.5)*1.5; return true; }
+  if (c.flee && o.userData.an && dC<500) return dlWildStep(c,dt,P);
+  return false; }
+function animateCritters(dt){ const _P=(typeof me!=='undefined'&&me.g)?me.g.position:camera.position, _cp=window._camFix?{x:window._camFix[0],z:window._camFix[2]}:camera.position;   /* Testkamera */
   for (const c of critters){
     c.t+=dt;
+    if (c.dl && dlFaunaStep(c,dt,_P,_cp)) continue;
     if (c.o.userData.an){ critterAnim(c,dt); continue; }
     if (c.kind==='hase'){
       // alle paar Sekunden ein paar Hüpfer
@@ -12392,7 +12458,7 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
     let n=0; try{ if (TREE_LOD) for (const ty of TREE_LOD.types){ const p=ty.pos, m=ty.st.c; for (let i=0;i<m;i++){ const dx=p[i*2]-P.x, dz=p[i*2+1]-P.z; if (dx*dx+dz*dz<3600) n++; } } }catch(e){} E.trees=n; let hd=1e9; for (const h of this.houses||[]){ const d=Math.hypot(h.x-P.x,h.z-P.z); if (d<hd) hd=d; } if (hd<45) E.trees=Math.max(E.trees,8);
     E.sea=1e9; const wy=(typeof GF!=='undefined'&&GF.waterY>-1e8)?GF.waterY:null; if (wy!==null){ outer: for (const r of [25,50,90,140,200,280,380]){ for (let a=0;a<16;a++){ const an=a*0.3927; if (terrainH(P.x+Math.cos(an)*r, P.z+Math.sin(an)*r)<wy){ E.sea=r; break outer; } } } }
     E.church=1e9; const def=WORLDS.find(w=>w.id===world)||{}; if (def.real && REAL.churchP && REAL.churchP.length){ let x=0,z=0; REAL.churchP.forEach(q=>{ x+=q[0]; z+=q[1]; }); E.church=Math.hypot(x/REAL.churchP.length-P.x, z/REAL.churchP.length-P.z); }
-    E.cows=1e9; if (typeof critters!=='undefined') for (const cr of critters){ if (cr.kind!=='kuh') continue; const o=cr.o.position; E.cows=Math.min(E.cows, Math.hypot(o.x-P.x,o.z-P.z)); }
+    E.cows=1e9; if (typeof critters!=='undefined') for (const cr of critters){ if (cr.kind!=='kuh' && cr.kind!=='alpkuh') continue; const o=cr.o.position; E.cows=Math.min(E.cows, Math.hypot(o.x-P.x,o.z-P.z)); }
     return E; },
   near(world,V,t){ if (typeof me==='undefined') return; if (this.pw!==world+'|'+builtWorld) this.prep(world); const P=me.g.position, c=this.ctx; const E=this.scan(world,P), woods=clamp(E.trees/14,0,1);
     // Wasser in der Nähe: Abstand zu Teichen, Seeufern, Bachläufen
@@ -12413,6 +12479,9 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
       if (tick('wald',40,120) && day && woods>0.4){ const k=oneOf(['specht','kuckuck']); if (k) this.sample(k, 0.2+0.2*R(), rp(), 0.4+0.4*R(), 0.8, this.birdBus); }
       if (tick('feld',45,130) && day && woods<0.5 && hd>60){ const k=oneOf(['kraehe']); if (k) this.sample(k, 0.2+0.2*R(), rp(), 0.3+0.5*R(), 0.8, this.birdBus); }
       if (E.church<350 && tick('glocke',120,300) && V('sndVillage')>0.01){ const k=oneOf(['kirchturm']); if (k) this.sample(k, V('sndVillage')*0.7, rp()*0.6, 0.55, 0.9); } }
+    if (world==='dolo' && !window.NO_DLFAUNA){   /* 0.26.0: Herdenglocken nah an den Alpenkühen öfter, Adler über den Pässen */
+      if (E.cows<160 && tick('glocken',E.cows<70?5:10,E.cows<70?12:28)){ const k=oneOf(['dl_glocken','kuhglocken']); if (k) this.sample(k, V('sndAnimal')*(0.3+0.35*R())*Math.max(0.3,1-E.cows/170), rp(), Math.min(0.9,E.cows/170), 0.8); }
+      if (day && woods<0.5 && terrainH(P.x,P.z)>650 && tick('adler',70,200)){ const k=oneOf(['dl_adler','greifvogel']); if (k) this.sample(k, 0.18+0.2*R(), rp(), 0.55+0.3*R(), 0.8, this.birdBus); } }
     if (world==='pass' || world==='huegel'){
       if (E.cows<120 && tick('glocken',14,45)){ const k=oneOf(['kuhglocken']); if (k) this.sample(k, V('sndAnimal')*(0.35+0.3*R()), rp(), 0.3+0.4*R(), 0.8); }
       if (tick('greif',world==='pass'?60:150,world==='pass'?160:360) && woods<0.6){ const k=oneOf(['greifvogel']); if (k) this.sample(k, 0.2+0.2*R(), rp(), 0.5+0.3*R(), 0.8, this.birdBus); } }
@@ -12427,9 +12496,9 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
     if (V('sndAnimal')<0.01 || typeof critters==='undefined') return;
     let tr=1e9; for (const cr of critters){ if (cr.kind==='traktor') tr=Math.min(tr, Math.hypot(cr.o.position.x-P.x, cr.o.position.z-P.z)); }
     this.mixL('traktorloop', ATMO.night()?0:V('sndVillage')*0.8*Math.pow(clamp(1-tr/170,0,1),1.6), 0.6);
-    for (const cr of critters){ if (cr.kind==='hase'||cr.kind==='traktor') continue; const o=cr.o.position, dx=o.x-P.x, dz=o.z-P.z, d=Math.hypot(dx,dz), maxD={moewe:90,pferd:70,murmeltier:80,ente:50,huhn:40,hahn:70}[cr.kind]||60; if (d>maxD) continue;
+    for (const cr of critters){ if (cr.kind==='hase'||cr.kind==='traktor'||cr.kind==='gaemse'||cr.kind==='yeti') continue; const o=cr.o.position, dx=o.x-P.x, dz=o.z-P.z, d=Math.hypot(dx,dz), maxD={moewe:90,pferd:70,murmeltier:80,murmel:80,alpkuh:90,steinbock:90,ente:50,huhn:40,hahn:70}[cr.kind]||60; if (d>maxD) continue;
       if ((cr.kind==='ente'||cr.kind==='huhn'||cr.kind==='hahn'||cr.kind==='ziege') && ATMO.night()) continue;
-      cr.cd=(cr.cd||3+R()*10)-0.1; if (cr.cd>0) continue; if (this.t-(this.lastCall||-99)<this.callGap) continue; cr.cd=cr.kind==='moewe'?15+R()*30:20+R()*45; this.lastCall=this.t; this.callGap=5+R()*9;   /* nie mehrere Tiere direkt hintereinander */
+      cr.cd=(cr.cd||3+R()*10)-0.1; if (cr.cd>0) continue; if (this.t-(this.lastCall||-99)<this.callGap) continue; cr.cd=cr.kind==='moewe'?15+R()*30:cr.kind==='steinbock'?90+R()*150:20+R()*45; this.lastCall=this.t; this.callGap=5+R()*9;   /* nie mehrere Tiere direkt hintereinander */
       const vol=V('sndAnimal')*Math.pow(1-d/maxD,1.6), pan=clamp((dx*(-fz)+dz*fx)/fl/Math.max(d,1),-1,1);
       this.at={x:o.x,y:o.y+1,z:o.z}; this.call(cr.kind, vol, pan, d/maxD); this.at=null; } },
   /* 0.10.4 (Hicore): Raumklang. Quellen mit echter Weltposition laufen über einen 3D-Panner (HRTF für Kopfhörer), Hörer = Kamera. Lautstärke rechnen wir selbst (rolloff 0) */
@@ -12471,7 +12540,7 @@ const AMB={ ctx:null, on:true, vol:{}, preview:0, t:0, nextBird:2, clickAcc:0, g
         o.frequency.setTargetAtTime(f0*(0.85+R()*0.35),tt,0.04); f1.frequency.setTargetAtTime(vw[0],tt,0.02); f2.frequency.setTargetAtTime(vw[1],tt,0.02);
         g.gain.setTargetAtTime(vol*0.1*(0.6+R()*0.4),tt,0.025); g.gain.setTargetAtTime(0,tt+sl*0.75,0.03); tt+=sl+(R()<0.15?0.2+R()*0.3:0.02); }
       o.start(t); o.stop(tt+0.2); nz.start(t,R()*4); nz.stop(tt+0.2); } },
-  call(kind, vol, pan, far){ const kk=kind==='kuh'&&this.buf&&this.buf.kuh2&&Math.random()<0.5?'kuh2':kind; if (this.sample(kk, vol, pan, far, 0.8)) return; const c=this.ctx, R=Math.random, t=c.currentTime+0.02; const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter(), p=c.createStereoPanner?c.createStereoPanner():null;
+  call(kind, vol, pan, far){ kind={alpkuh:'kuh', murmel:'murmeltier', steinbock:'dl_steinbock'}[kind]||kind; const kk=kind==='kuh'&&this.buf&&this.buf.kuh2&&Math.random()<0.5?'kuh2':kind; if (this.sample(kk, vol, pan, far, 0.8)) return; const c=this.ctx, R=Math.random, t=c.currentTime+0.02; const o=c.createOscillator(), g=c.createGain(), f=c.createBiquadFilter(), p=c.createStereoPanner?c.createStereoPanner():null;
     o.type='sawtooth'; f.type='lowpass'; f.frequency.value=2400*(1-far*0.6); f.Q.value=0.7; o.connect(f); f.connect(g); if (p){ p.pan.value=pan; g.connect(p); p.connect(this.animBus); } else g.connect(this.animBus);
     const env=(a,h,dur,v)=>{ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v,t+a); g.gain.setValueAtTime(v,t+h); g.gain.linearRampToValueAtTime(0,t+dur); };
     if (kind==='kuh'){ const f0=95+R()*35, dur=1.1+R()*0.8; o.frequency.setValueAtTime(f0*0.85,t); o.frequency.linearRampToValueAtTime(f0*1.12,t+dur*0.3); o.frequency.linearRampToValueAtTime(f0*0.8,t+dur);
@@ -12798,7 +12867,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.25.10 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.26.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
   WORLDS.forEach(def=>{ if (!wVis(def)) return;
