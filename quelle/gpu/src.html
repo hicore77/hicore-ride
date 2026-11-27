@@ -4420,6 +4420,7 @@ function buildDoloShrines(grp){ const P=[], N=[], Cc=[], m4=new THREE.Matrix4(),
   pts.forEach(([x,z,r,t])=>{ const y=terrainH(x,z); (t===1?bild:t===2?mart:kreuz)(x,y,z,r); });
   if (!P.length) return; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3)); g.computeBoundingSphere();
   const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true})); m.castShadow=!LITE; m.receiveShadow=true; m.name='wegkreuze'; grp.add(m); window.DLSHR=pts; return m; }
+function dlWaldTex(){ if (window.DLWALDT && window.DLWALDT._lcd===window.LCD) return window.DLWALDT; window.DLWALDT=null; if (window.LCD && !window.NO_DLWALD && !MINI){ try{ const R=window.LCD, u=new Uint8Array(R.w*R.h); for (let i=0;i<u.length;i++) u[i]=R.b[i]===1?255:0; const t=new THREE.DataTexture(u,R.w,R.h,THREE.RedFormat,THREE.UnsignedByteType); t.magFilter=t.minFilter=THREE.LinearFilter; t.generateMipmaps=false; t.colorSpace=THREE.NoColorSpace; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.needsUpdate=true; t._lcd=R; window.DLWALDT=t; window.DLWALDQ={x0:R.x0, z0:R.z0, sx:R.w*R.c, sz:R.h*R.c}; }catch(e){ console.warn('waldmaske',e); } } return window.DLWALDT; }
 function buildDoloPano(grp){ const G=GN.dem, S=window.DLSAT; if (!G) return; const st=MINI?6:LITE?4:3, nx=Math.floor((G.nx-1)/st)+1, nz=Math.floor((G.nz-1)/st)+1, cs=G.cell*st;
   const pos=new Float32Array(nx*nz*3), uv=new Float32Array(nx*nz*2), F=S&&S.f, W=F?F.w*F.c:1, Hh=F?F.h*F.c:1, inner=EXT/2-450;
   for (let j=0;j<nz;j++) for (let i=0;i<nx;i++){ const k=j*nx+i, x=G.x0+i*cs, z=G.z0+j*cs, hd=G.H[Math.min(G.nz-1,j*st)*G.nx+Math.min(G.nx-1,i*st)], e=Math.max(Math.abs(x),Math.abs(z)), sink=e<EXT/2+300?14:0;
@@ -4435,7 +4436,13 @@ function buildDoloPano(grp){ const G=GN.dem, S=window.DLSAT; if (!G) return; con
     const d2=T.dot(T.texture(W,Pw.zy.mul(1/1400).add(T.vec2(0.3,0.7))).rgb,lw).mul(sw).add(T.dot(T.texture(W,Pw.xy.mul(1/1400).add(T.vec2(0.8,0.2))).rgb,lw).mul(T.float(1.0).sub(sw))).div(0.4);
     const st=T.smoothstep(0.22,0.5,T.float(1.0).sub(nW.y)), sat=T.texture(map,T.uv()).rgb, l=T.dot(sat,T.vec3(0.3,0.59,0.11)), hi=T.smoothstep(700.0,1100.0,Pw.y);
     const grey=T.mix(sat, T.vec3(l).mul(T.vec3(1.04,1.0,0.94)), st.mul(hi).mul(0.8)), det=T.max(d1.sub(1.0).mul(1.6).add(1.0),0.3).mul(T.max(d2.sub(1.0).mul(1.4).add(1.0),0.4));
-    m2.colorNode=T.vec4(grey.mul(T.mix(T.float(1.0),det,st)),1.0); m2.userData.noSnow=true; mat=m2; }catch(e){ console.warn('panotex',e); } }
+    let pc=grey.mul(T.mix(T.float(1.0),det,st));
+    /* 0.25.10 (Hicore: verwaschene Bergrücken, z. B. östlich von Cortina): das Fernpanorama zeigte dort nur das unscharfe Satellitenbild. Jetzt Waldränder und Kronendach je Bildpunkt aus der 10-m-Waldmaske, Wiesen und Schutt leicht gekörnt. Alt: OLD_PANOWALD */
+    const WT=window.OLD_PANOWALD?null:dlWaldTex(); if (WT){ const Q=window.DLWALDQ, uw=Pw.xz.sub(T.vec2(Q.x0,Q.z0)).div(T.vec2(Q.sx,Q.sz)), fm=T.texture(WT,T.clamp(uw,0.0,1.0)).r, inL=T.step(0.002,T.min(T.min(uw.x,uw.y),T.min(T.float(1.0).sub(uw.x),T.float(1.0).sub(uw.y))));
+      const n1=T.dot(T.texture(W,Pw.xz.mul(1/41)).rgb,lw).div(0.4), n2=T.dot(T.texture(W,Pw.xz.mul(1/190).add(T.vec2(0.4,0.1))).rgb,lw).div(0.4), wd=T.smoothstep(0.42,0.58,fm.add(n1.sub(1.0).mul(0.3))).mul(inL);
+      const wc=T.vec3(0.10,0.155,0.085).mul(T.clamp(n1.sub(1.0).mul(1.3).add(1.0),0.45,1.6)).mul(T.clamp(n2.sub(1.0).mul(0.8).add(1.0),0.6,1.4));
+      pc=T.mix(pc.mul(T.mix(T.float(1.0),T.clamp(n1.sub(1.0).mul(0.5).add(1.0),0.7,1.3),inL.mul(T.float(1.0).sub(st)))), wc, wd.mul(T.float(1.0).sub(st.mul(0.8)))); }
+    m2.colorNode=T.vec4(pc,1.0); m2.userData.noSnow=true; mat=m2; }catch(e){ console.warn('panotex',e); } }
   const m=new THREE.Mesh(geo,mat); m.name='panorama'; m.receiveShadow=false; m.castShadow=false; m.frustumCulled=false; grp.add(m); window.DLPANO=m; return m; }
 function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){} STG('Weltaufbau '+def.id+(window._bw?' (2.)':'')); window._bw=1; BUILT_R=GFX_BUILD_R; window._alleys=[]; window._alleyN=0;
   WORLD=def; rnd=12345; GN.bed=undefined; GT.mh=undefined; if (def.id==='dolo') try{ gnData(); if (GN.dem) dlBedIndex(); else console.warn('bachbett: Höhenmodell fehlt'); }catch(e){ console.warn('bachbett',e); GN.bed=null; }
@@ -4443,7 +4450,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   if (def.id==='dolo' && window.DLDETI && !window.DLDETT && !window.NO_DLDET){ try{ const I=window.DLDETI; let src=I.im; if (LITE){ const c=document.createElement('canvas'); c.width=c.height=Math.round(I.n/2); c.getContext('2d').drawImage(I.im,0,0,c.width,c.height); src=c; }
       const t=new THREE.Texture(src); t.flipY=false; t.colorSpace=THREE.NoColorSpace; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.anisotropy=4; t.needsUpdate=true; window.DLDETT=t; window.DLDETQ={x0:I.x0-I.c*0.5, z0:I.z0-I.c*0.5, sz:I.c*I.n}; }catch(e){ console.warn('detailkarte',e); } }
     /* 0.25.10 (Hicore: verwaschene Bergrücken): Waldmaske aus der 10-m-Landbedeckung als Textur. Auf dem groben Fernnetz (Eckfarben alle 29 m) zeichnet sie Waldränder und Kronendach je Bildpunkt. Aus: NO_DLWALD */
-    window.DLWALDT=null; if (def.id==='dolo' && window.LCD && !window.NO_DLWALD && !MINI){ try{ const R=window.LCD, u=new Uint8Array(R.w*R.h); for (let i=0;i<u.length;i++) u[i]=R.b[i]===1?255:0; const t=new THREE.DataTexture(u,R.w,R.h,THREE.RedFormat,THREE.UnsignedByteType); t.magFilter=t.minFilter=THREE.LinearFilter; t.generateMipmaps=false; t.colorSpace=THREE.NoColorSpace; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.needsUpdate=true; window.DLWALDT=t; window.DLWALDQ={x0:R.x0, z0:R.z0, sx:R.w*R.c, sz:R.h*R.c}; }catch(e){ console.warn('waldmaske',e); } }
+    if (def.id==='dolo') dlWaldTex(); else window.DLWALDT=null;
   if (def.id==='dolo' && !window.DLROCK){ try{ const t=photoTex('dolomit',512)||photoTex('fels',512); if (t){ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=4; t.needsUpdate=true; window.DLROCK=t; } }catch(e){ console.warn('fels',e); } }
   if (worldGroup){ scene.remove(worldGroup); disposeGroup(worldGroup); }
   pbrReset();
