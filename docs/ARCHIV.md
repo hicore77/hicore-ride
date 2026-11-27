@@ -710,3 +710,6 @@ Die Sandbox ist über das Higgsfield-MCP-Werkzeug `sandbox_exec` erreichbar und 
 
 ## Aus UEBERGABE.md verschoben (Stand 0.25.8)
 | 0.25.5 | Drivo: Kadenz im Steuermodus (Commit c5482d0) |
+
+## Aus UEBERGABE.md verschoben (Stand 0.25.9)
+| 0.25.6 | Dolomiten realistischer: Höhenmodell TINITALY 10 m, Poly-Haven-Fels, Dunst, Bachrinnen mit Ufersteinen und Strömung, Haustypen Cortina/Chalet/Albergo/Casa, Datenquellen-Seite |

@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 27.11.2026. Letzte veröffentlichte Version: **0.25.8 Beta** (Dolomiten: Felsformen mit senkrechten Rippen, Türmen, Schuttkegeln und Felsbrocken). Davor 0.25.7 (Fotohimmel, Grashalme aus der Nähe, Almwiese, Randstreifen in Wiesenfarbe), 0.25.6 (10-m-Gelände TINITALY, Fels, Dunst, Bachrinnen, Haustypen).
+Stand: 27.11.2026. Letzte veröffentlichte Version: **0.25.9 Beta** (Dolomiten nach Hicores iPad-Test: runde Kurven, kein Gelände auf der Fahrbahn, Einfahrten enden am Rand, Rütteln auf dem Pflasterstreifen, ferne Hänge weniger verwaschen). Davor 0.25.8 (Felsformen, Felsbrocken), 0.25.7 (Fotohimmel, Grashalme aus der Nähe).
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.25.8** | **Dolomiten: Felsformen wie auf Hicores Fotos (Schattenkarte aus dem Höhenmodell, senkrechte Rippen und Risse, Türme, Schuttkegel, harte Kante Wiese/Fels, Felsbrocken am Wandfuß)** |
+| **0.25.9** | **Dolomiten nach iPad-Test: Kurven geglättet, Bank neben der Straße (kein Hang auf der Fahrbahn), Einfahrten am Fahrbahnrand gekappt, Rütteln auf Pflasterstreifen, ferne Hänge fleckig statt verwaschen** |
+| 0.25.8 | Dolomiten: Felsformen wie auf Hicores Fotos (Schattenkarte aus dem Höhenmodell, senkrechte Rippen und Risse, Türme, Schuttkegel, harte Kante Wiese/Fels, Felsbrocken am Wandfuß) |
 | 0.25.7 | Dolomiten: echter Himmel als Foto (Poly Haven), Halm-Nahdetail am Boden, Almwiese höher, Randstreifen nimmt Satellitenfarbe an |
-| 0.25.6 | Dolomiten realistischer: Höhenmodell TINITALY 10 m, Poly-Haven-Fels, Dunst, Bachrinnen mit Ufersteinen und Strömung, Haustypen Cortina/Chalet/Albergo/Casa, Datenquellen-Seite |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -139,6 +139,14 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - Ursache: Bluefy 3.9.3 lehnt `requestDevice` mit **optionalServices als Zahlen** sofort ab (Fehler ohne Text, nur `2`, Liste öffnet sich nicht). Ohne optionalServices oder mit Text-Namen (`'cycling_power'` usw.) geht es; Bluefy gibt nach dem Verbinden ohnehin alle Dienste frei (auch den Elite-Dienst). In `connectTrainer` jetzt Text-Namen (`OPT`), alt: `window.OLD_BTOPT`. Gilt für jedes Gerät, nicht nur den Drivo.
 - Drivo 1 (nRF Connect + `bt-test.html`): wirbt nur CSC 0x1816 + Elite `347b0001-…`, hat verbunden aber auch **Cycling Power 0x1818** (Feature `0d 02 01 00`, Control Point 2A66), Device Info (Elite, HW 001, FW 026), Legacy DFU. Spiel nimmt den CPS-Zweig → echte Watt/Kadenz. Elite-Merkmale: 0010 w, 0011 n (sendet `00` je Sekunde), 0012 w, 0013 r (Nullen), 0014 n, 0015 n (3 Pakete/s: `01|02|03`, u16 Zähler, dann 8×u16, vermutlich Kraftverlauf je Kurbelumdrehung), 0016 w, 0017 n. **Widerstand (0.25.3):** Zwift-Mitschnitt (Android-HCI-Snoop am Redmi, Fehlerbericht per `*#*#284#*#*`, Auswertung `btsnoop_hci.log` mit eigenem Parser) zeigt nur einen Befehl: Write-Request `[0x01, X]` auf `347b0010`, alle ~2 s, keine Elite-Notifications nötig. X = Steigung in 0,1 % + 10 (10 = flach, 0 = −1 %, 120 ≈ 11 % „fast nicht tretbar“, per W-Knöpfen in bt-test.html bestätigt). Im Spiel `eliteSlope()` aus `sendGrade` (CPS-Zweig mit `trainer.eli`), Steigung × `S.diff`, begrenzt −1 … +15 %, sofort bei ≥0,3 % Änderung, sonst alle 2 s. Aus: `window.NO_ELITESLOPE`. **Kadenz (0.25.5):** Sobald Steigungsbefehle laufen, sendet der Drivo im CPS keine Kurbeldaten mehr (auch bei Zwift: Balance-Byte `c8`, Kurbel `00 00 00 00`). Kadenz steht in Elite 0015, Byte 3 = U/min (mit Screenshots verglichen: 0x35 = 53). Spiel abonniert 0015 und nimmt dann nur noch diese Kadenz (nach 2,5 s ohne Paket 0), alt: `window.OLD_ELICAD`. Chrome braucht ELITE in optionalServices (wird außer in Bluefy mitgegeben).
 - Testseite `webgpu-spiel/bt-test.html`: 10 Suchvarianten, Dienste, Geräteinfo, Watt/Kadenz live, Elite-Rohdaten, „Log kopieren“. Nützlich für jedes neue Gerät.
+
+**0.25.9 Dolomiten: Hicores iPad-Test** (27.11. 17:10, Bluefy, Stufe „Mittel“: stabil 29–30 FPS bei Grenze 30, CPU ca. 8 ms; 8 Screenshots Anstieg Pocol km 1,1–1,8)
+- Kurven eckig, Fahrer ruckt: Ursache waren die Kantenpunkte (`net.json`, 5 m Abstand, 0,25 m gerastert) mit Knicken bis über 20°; das Rauschen fraß außerdem das Budget der 3000 Routenpunkte (`gRoute` verteilt nach Krümmung). Jetzt in `gnData`: zwei Glättungsgänge (höchstens 1 m Versatz, Enden fest) und Catmull-Rom-Verdichtung, bis kein Knick über ca. 2,5° bleibt (11.395 → 19.673 Punkte). Nur Dolomiten (`D.lat0<48`) oder mit `window.CURVE_ALL`; alt `OLD_CURVES`. Messung über die ganze Runde (alle 2 m `gnNear(posAt(d)).d`): Stellen über 1,2 m neben der Kantenmitte 282 → 1.
+- „Sandhaufen“ auf der Straße: `baseH` blendete in 30 m von Fahrbahn −0,5 m zum Höhenmodell; im 10-m-Kachelraster stieg der Hang bergseits schon innerhalb einer Masche über die Fahrbahn. Dolomiten: bis 14 m neben dem Rand höchstens 14 % Anstieg bzw. 30 % Gefälle (Bank/Damm), danach steil. Alt `OLD_ROADBENCH`.
+- Einfahrten/Nebenwege (`gtSideMesh`): Ecken, die in die Fahrbahn ragten, werden auf den Fahrbahnrand geschoben (alt `OLD_SIDECLIP`); keine Böschung mehr über dem Pflaster-/Grasstreifen (alt `OLD_SKIRTRD`). Dass Wegstücke beim Näherkommen teils verschwinden, ist nicht untersucht.
+- Rütteln: `wayFeelStep` prüft alle 0,12 s, ob der Fahrer auf dem Pflaster-/Splittstreifen ist (`gnPave`), dann `WF.rough` 0,85 bzw. 0,5. Aus `NO_PAVEFEEL`. Fahrer fährt in den Dolomiten 1 m statt 0,5 m vom Rand (`TRAFFIC.rLane`, alt `OLD_RLANE`).
+- Verwaschene Hänge: Ursache sind die Eckfarben des groben Netzes (29 m), die nur weiche Flecken ergeben. Im Fels-Shader ab 350 m Entfernung ein Muster von 50–160 m, das die Fels/Grün-Grenze in klare Flecken zerlegt und Hänge fleckig tönt. Alt `OLD_WASH`. Kostet zwei Rauschabfragen im Geländeshader; FPS am iPad neu prüfen lassen.
+- Offen: Nahgras steht als dunkle Büschel auf heller Fläche (Beobachtung des Koordinators, Hicore hat es nicht bemängelt); Kurvenglättung für Zittau (`CURVE_ALL`) ungetestet.
 
 **0.25.8 Dolomiten: Felsformen** (Hicore 27.11. mittags mit 6 Fotos vom Passo Giau: „Berge zu Standard, zu gleichmäßig“, „mach alles möglich was geht“; Fotos nur als Anschauung)
 - Kette der Werkzeuge: `werkzeuge/dolo_bau.py` → `werkzeuge/dolo_terrassen.py` → `werkzeuge/dolo_detail.py` → `build_gpu.py`. `dolo_terrassen.py` sichert beim ersten Lauf `dolo/dem10_roh.png` und rechnet immer von dort (mehrfach ausführbar).
