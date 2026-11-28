@@ -11,7 +11,8 @@ const {chromium}=require('playwright'); const serve=require('./serve');
  console.log('geladen nach', Math.round((Date.now()-t0)/1000),'s');
  if (process.env.EV){ try{ console.log('EV', JSON.stringify(await p.evaluate(process.env.EV))); }catch(e){ console.log('EV Fehler', String(e).slice(0,300)); } }
  const out=process.env.OUT; require('fs').mkdirSync(out,{recursive:true}); await p.evaluate(()=>{ TRAFFIC.nextT=1e9; $('simW').value=0; meP.v=0; document.querySelectorAll('body>div').forEach(e=>{if(!e.querySelector('canvas'))e.style.visibility='hidden'}); });
- for (const [x,z,h,lx,lz,n] of JSON.parse(process.env.V||'[]')){ const t1=Date.now();
+ let VL=JSON.parse(process.env.V||'[]'); if (process.env.VJS){ VL=VL.concat(await p.evaluate(process.env.VJS)); console.log('VJS', JSON.stringify(VL)); }
+ for (const [x,z,h,lx,lz,n] of VL){ const t1=Date.now();
   await p.evaluate(([x,z,h,lx,lz])=>{ const y=terrainH(x,z); window._camFix=[x,y+h,z,lx,terrainH(lx,lz)+(window.LY||0),lz]; window.__F0=FRC; },[x,z,h,lx,lz]);
   await p.waitForFunction(()=>FRC>=window.__F0+5,null,{timeout:600000});
   try{ await p.evaluate(([x,z])=>kcWait([{x,z}],700,240000),[x,z]); }catch(e){ console.log('kcWait', String(e).slice(0,100)); }

@@ -721,6 +721,35 @@ function zoCar(B, x, z, yaw, k){ const c=ZO_CARC[Math.floor(zoR(k,7)*ZO_CARC.len
 /* Sonnenschirm mit Streifen */
 function zoSchirm(B, x, z, k){ const F={x,y:gtMeshH(x,z),z,yaw:zoR(k,3)*6.28}, G=zoGeo(), cs=[[0.85,0.15,0.12],[0.12,0.35,0.7],[0.95,0.75,0.1],[0.1,0.55,0.4]], c=cs[Math.floor(zoR(k,4)*cs.length)];
   zoPart(B,F,G.cyl,0,1.1,0,0.04,2.2,0.04,ZOC.weiss); zoPart(B,F,G.cone,0,2.15,0,2.1,0.55,2.1,i=>(i%2)?c:ZOC.weiss, 0.12*(zoR(k,5)-0.5)); }
+/* 0.28.0 (Heiko 27.11.: Texturatlas, wo er Ruckeln spart): alle festen OSM-Objekte einer Zelle (Bänke, Wegweiser, Steine, Schaufelrad, Muschel, Wohnwagen,
+   Wohnmobile, Zelte, Badegäste) teilen sich EINE Textur (Atlas 2048 x 2048, 16 Felder à 512 px, Feld 0 weiß für einfarbige Teile) und werden je Ebene
+   und Zelle als ein BatchedMesh gezeichnet: 1 Zeichenaufruf statt einem je Modell und Zelle. Modellgeometrie liegt je Zelle nur einmal im Speicher.
+   Schwimmer (bewegt) bleiben Instanzen. Alt: window.OLD_ZOATLAS */
+const ZA={on:!window.OLD_ZOATLAS && !!THREE.BatchedMesh, S:2048, T:512, names:['bank','schild_holz','fels_1','zs_schaufelrad','zs_muschel','zs_wohnmobil','zs_wohnwagen','zs_zelt1','zs_zelt2','zs_frau_liegt','zs_mann_liegt','zs_mann_steht','zs_frau_steht','zs_paar'], geo:{}, slot:{}, nslot:1, cv:null, tex:null, mat:null, bad:{}};
+function zaPlain(){ if (!ZA.matP){ ZA.matP=new THREE.MeshStandardMaterial({vertexColors:true, roughness:0.9, metalness:0, side:THREE.DoubleSide}); ZA.matP.userData.lin=true; ZA.matP.name='zoplain'; } return ZA.matP; }
+function zaMat(){ if (ZA.mat) return ZA.mat; const c=ZA.cv=document.createElement('canvas'); c.width=c.height=ZA.S; const g=c.getContext('2d'); g.fillStyle='#808080'; g.fillRect(0,0,ZA.S,ZA.S); g.fillStyle='#ffffff'; g.fillRect(0,0,ZA.T,ZA.T);
+  const t=ZA.tex=new THREE.CanvasTexture(c); t.flipY=false; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; t.generateMipmaps=true; t.minFilter=THREE.LinearMipmapLinearFilter;
+  ZA.mat=new THREE.MeshStandardMaterial({map:t, vertexColors:true, roughness:0.9, metalness:0, side:THREE.DoubleSide});   /* zweiseitig wie Bank und Schild */ ZA.mat.userData.lin=true; ZA.mat.name='zoatlas'; return ZA.mat; }
+/* Modell in Atlas-Form: Teile zusammengeführt, uv ins eigene Feld, Materialfarbe als Eckfarbe */
+function zaGeo(n){ if (!ZA.on || ZA.bad[n] || !ZA.names.includes(n)) return null; if (ZA.geo[n]) return ZA.geo[n]; const L=PROP_LIB[n]; if (!L) return null; const tx=L.some(q=>q.mat.map&&q.mat.map.image); if (tx) zaMat();   /* einfarbige Modelle (Bank, Schild, Stein) brauchen den Atlas nicht: eigenes Material ohne Textur, Atlas wird erst mit dem ersten Seemodell angelegt */
+  const per=ZA.S/ZA.T, P=[], N=[], U=[], C=[], I=[]; let o=0;
+  for (const {geo,mat} of L){ const im=mat.map&&mat.map.image, uv=geo.attributes.uv; if (mat.transparent || (mat.alphaTest>0)){ ZA.bad[n]=1; return null; }
+    let sx=0, sy=0, ok=false; if (im && uv){ let a=1e9,b=-1e9; for (let i=0;i<uv.count;i++){ const x=uv.getX(i), y=uv.getY(i); a=Math.min(a,x,y); b=Math.max(b,x,y); } if (a<-0.01||b>1.01){ ZA.bad[n]=1; return null; }
+      const key=mat.map.uuid; let sl=ZA.slot[key]; if (sl===undefined){ if (ZA.nslot>=per*per){ ZA.bad[n]=1; return null; } sl=ZA.slot[key]=ZA.nslot++; const X=(sl%per)*ZA.T, Y=Math.floor(sl/per)*ZA.T; try{ ZA.cv.getContext('2d').drawImage(im,X,Y,ZA.T,ZA.T); ZA.tex.needsUpdate=true; }catch(e){ ZA.bad[n]=1; console.warn('zoatlas',n,e); return null; } }
+      sx=(sl%per)*ZA.T; sy=Math.floor(sl/per)*ZA.T; ok=true; }
+    const pos=geo.attributes.position, nor=geo.attributes.normal, col=mat.color||{r:1,g:1,b:1}, k=1.5/ZA.S, w=(ZA.T-3)/ZA.S;
+    for (let i=0;i<pos.count;i++){ P.push(pos.getX(i),pos.getY(i),pos.getZ(i)); if (nor) N.push(nor.getX(i),nor.getY(i),nor.getZ(i)); else N.push(0,1,0);
+      if (ok){ U.push(sx/ZA.S+k+uv.getX(i)*w, sy/ZA.S+k+uv.getY(i)*w); } else U.push(ZA.T*0.5/ZA.S, ZA.T*0.5/ZA.S); C.push(col.r,col.g,col.b); }
+    if (geo.index) for (let i=0;i<geo.index.count;i++) I.push(geo.index.getX(i)+o); else for (let i=0;i<pos.count;i++) I.push(i+o);
+    o+=pos.count; }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2)); g.setAttribute('color',new THREE.Float32BufferAttribute(C,3)); g.setIndex(I); g.computeBoundingSphere(); g.computeBoundingBox();
+  g.userData.tx=tx; return ZA.geo[n]=g; }
+/* Instanzlisten {name:[Matrix4]} einer Ebene -> ein BatchedMesh; erledigte Namen werden aus T entfernt (Rest bleibt Instanzen) */
+function zaBatch(grp, T){ if (!ZA.on || !T) return; const all=Object.keys(T).filter(n=>T[n].length && zaGeo(n)); for (const tx of [true,false]) zaBatch1(grp, T, all.filter(n=>!!ZA.geo[n].userData.tx===tx), tx?ZA.mat:zaPlain()); }
+function zaBatch1(grp, T, names, mat){ if (!names.length) return; let nv=0, ni=0, nin=0;
+  for (const n of names){ const g=ZA.geo[n]; nv+=g.attributes.position.count; ni+=g.index.count; nin+=T[n].length; }
+  try{ const bm=new THREE.BatchedMesh(nin, nv, ni, mat); bm.sortObjects=false; for (const n of names){ const id=bm.addGeometry(ZA.geo[n]); for (const m of T[n]){ const k=bm.addInstance(id); bm.setMatrixAt(k,m); } delete T[n]; }
+    bm.castShadow=true; bm.receiveShadow=true; bm.name='zoatlas'; grp.add(bm); }catch(e){ console.warn('zoatlas', e); ZA.on=false; } }
 function zoBuild(c){ const L=ZO.idx.get(c.key)||[], G=zoGeo(), M=zoMats(), PB=zoBuf(), SB=zoBuf(), AB=zoBuf(), KB=zoBuf(), I={}, BI={}, R=zoRad();
   const inst=(n,x,y,z,yaw,s,big)=>{ const T=big?BI:I; (T[n]||(T[n]=[])).push(new THREE.Matrix4().compose(new THREE.Vector3(x,y,z), new THREE.Quaternion().setFromAxisAngle(UPV,yaw), new THREE.Vector3(s,s,s))); };
   const face=(o,clr)=>{ let x=o.x, z=o.z; const p=zoPath(x,z,25); let yaw=zoR(o.id,1)*6.28; if (p.d<25){ if (p.d<p.w+clr && p.d>0.05){ const k=(p.w+clr)/p.d; x=p.px+(x-p.px)*k; z=p.pz+(z-p.pz)*k; } yaw=Math.atan2(p.px-x,p.pz-z); }
@@ -763,6 +792,7 @@ function zoBuild(c){ const L=ZO.idx.get(c.key)||[], G=zoGeo(), M=zoMats(), PB=zo
   for (const [B,m] of [[SB,M.sand],[AB,M.asph],[KB,M.kies]]){ const me=zoMesh(B,m,'zobelag'); if (me) Ld.add(me); }
   { const me=zoMesh(PB,M.p,'zoteile'); if (me){ me.castShadow=true; Lo.add(me); } }
   if (c.cars && c.cars.p.length){ const me=zoMesh(c.cars,M.p,'zoautos'); Lb.add(me); }
+  zaBatch(Lo,I); if (ZA.on && c.bigI){ for (const n in c.bigI) (BI[n]||(BI[n]=[])).push(...c.bigI[n]); c.bigI=null; } zaBatch(Lb,BI); zaBatch(La,c.bath);
   for (const n in I) placeInstanced(Lo,n,I[n]); for (const n in BI) placeInstanced(Lb,n,BI[n]);
   if (c.bath) for (const n in c.bath) placeInstanced(La,n,c.bath[n]);
   if (c.bigI) for (const n in c.bigI) placeInstanced(Lb,n,c.bigI[n]);
@@ -812,7 +842,7 @@ function zoPlayers(c, o, r){ if (!ZO.bathOn || !PROP_LIB.zs_mann_steht || zoR(o.
 function zoStep(dt){ if (!ZO.on || !ZO.grp) return; const cp=window._camFix?{x:window._camFix[0],z:window._camFix[2]}:camera.position, CS=ZO.CS, R=zoRad(); ZO.t-=dt; const bath=zoBath();
   if (ZO.t<=0){ ZO.t=0.4; const rb=R.dec+CS, i0=Math.floor((cp.x-rb)/CS), i1=Math.floor((cp.x+rb)/CS), j0=Math.floor((cp.z-rb)/CS), j1=Math.floor((cp.z+rb)/CS); let built=0;
     const cand=[]; for (let i=i0;i<=i1;i++) for (let j=j0;j<=j1;j++){ const key=i+','+j; if (!ZO.idx.has(key)) continue; const d=Math.hypot((i+0.5)*CS-cp.x,(j+0.5)*CS-cp.z)-CS*0.71; if (d>R.dec) continue; let c=ZO.cells.get(key); if (!c){ c={key,i,j}; ZO.cells.set(key,c); } if (!c.g || c.rebuild) cand.push([d,c]); }
-    cand.sort((a,b)=>a[0]-b[0]); for (const [d,c] of cand){ if (built>=1) break; if (c.g){ ZO.grp.remove(c.g); c.g.traverse(o=>{ if (o.geometry && !o.isInstancedMesh) o.geometry.dispose(); }); ZO.swim=ZO.swim.filter(s=>s!==c); c.g=null; c.swim=null; c.bath=null; c.bigI=null; c.schirm=null; }
+    cand.sort((a,b)=>a[0]-b[0]); for (const [d,c] of cand){ if (built>=1) break; if (c.g){ ZO.grp.remove(c.g); c.g.traverse(o=>{ if (o.isBatchedMesh) o.dispose(); else if (o.geometry && !o.isInstancedMesh) o.geometry.dispose(); }); ZO.swim=ZO.swim.filter(s=>s!==c); c.g=null; c.swim=null; c.bath=null; c.bigI=null; c.schirm=null; }
       c.rebuild=false; c.needBathM=false; ZO._cars=c.cars=zoBuf(); zoBuild(c); built++; }
     ZO.cells.forEach(c=>{ if (!c.g) return; const d=Math.hypot((c.i+0.5)*CS-cp.x,(c.j+0.5)*CS-cp.z)-CS*0.71; c.g.visible=d<R.dec; c.g.children.forEach(q=>{ q.visible=d<q.userData.R && (!q.userData.bath||bath); }); }); }
   if (!bath) return; const t=performance.now()/1000, m=_zm2, q=_zq2;
@@ -1644,8 +1674,19 @@ function wingTexture(kind){ const S=64, c=document.createElement('canvas'); c.wi
 function buildFauna(def, grp){ if (!LU || def.real || GFX_BUILD_R<180) return;
   const kinds=['weiss','weiss','zitrone','pfau','blau'], mats={}; kinds.forEach(k=>{ if (!mats[k]) mats[k]=new THREE.MeshLambertMaterial({map:wingTexture(k), transparent:true, alphaTest:0.3, side:THREE.DoubleSide}); });
   const wg=new THREE.PlaneGeometry(0.09,0.072).translate(0.045,0,0).rotateX(-Math.PI/2), bodyG=new THREE.CylinderGeometry(0.004,0.003,0.04,4).rotateX(Math.PI/2), bodyM=new THREE.MeshLambertMaterial({color:0x2a2620});
-  const bfs=[]; for (let i=0;i<16;i++){ const k=kinds[i%kinds.length], o=new THREE.Group(), l=new THREE.Mesh(wg,mats[k]), r=new THREE.Mesh(wg,mats[k]); r.scale.x=-1; o.add(l,r,new THREE.Mesh(bodyG,bodyM)); o.visible=false; grp.add(o);
-    bfs.push({o,l,r,t:Math.random()*9,ph:Math.random()*6.28,v:new THREE.Vector3(),base:0,alive:false}); }
+  /* 0.28.0: Schmetterlinge über einen Flügel-Atlas (4 Arten nebeneinander, 256 x 64) als EIN BatchedMesh: vorher 3 Meshes je Falter,
+     zweiseitig-transparent doppelt gezeichnet = ca. 64 Zeichenaufrufe, jetzt 1. Flügel als Ausschnitt (alphaTest) statt halbtransparent. Alt: window.OLD_BFATLAS */
+  const BFA=!window.OLD_BFATLAS && !!THREE.BatchedMesh; let bm=null, bfI=null;
+  if (BFA){ const U=[...new Set(kinds)], ac=document.createElement('canvas'); ac.width=64*(U.length+1); ac.height=64; const ag=ac.getContext('2d'); U.forEach((k,i)=>ag.drawImage(mats[k].map.image,i*64,0)); ag.fillStyle='#2a2620'; ag.fillRect(U.length*64,0,64,64);
+    const at=new THREE.CanvasTexture(ac); at.colorSpace=mats[U[0]].map.colorSpace; const n=U.length+1, am=new THREE.MeshLambertMaterial({map:at, alphaTest:0.3, side:THREE.DoubleSide});
+    const sub=(g0,i)=>{ const g=g0.clone(), uv=g.attributes.uv; for (let j=0;j<uv.count;j++) uv.setX(j,(i+0.04+uv.getX(j)*0.92)/n); if (!g.index){ const ix=[]; for (let j=0;j<g.attributes.position.count;j++) ix.push(j); g.setIndex(ix); } return g; };
+    const bg0=bodyG.clone(); { const uv=bg0.attributes.uv; for (let j=0;j<uv.count;j++){ uv.setX(j,(U.length+0.5)/n); uv.setY(j,0.5); } }
+    const geos=U.map((k,i)=>sub(wg,i)); let nv=bg0.attributes.position.count, ni=bg0.index.count; geos.forEach(g=>{ nv+=g.attributes.position.count; ni+=g.index.count; });
+    bm=new THREE.BatchedMesh(48, nv, ni, am); bm.sortObjects=false; bm.perObjectFrustumCulled=false; bm.frustumCulled=false; bm.name='falter'; const gid={}; U.forEach((k,i)=>{ gid[k]=bm.addGeometry(geos[i]); }); const bid=bm.addGeometry(bg0); bfI={gid,bid}; grp.add(bm); }
+  const bfs=[]; for (let i=0;i<16;i++){ const k=kinds[i%kinds.length], o=new THREE.Group(), l=new THREE.Mesh(wg,mats[k]), r=new THREE.Mesh(wg,mats[k]), bd=new THREE.Mesh(bodyG,bodyM); r.scale.x=-1; o.add(l,r,bd); o.visible=false;
+    const B={o,l,r,t:Math.random()*9,ph:Math.random()*6.28,v:new THREE.Vector3(),base:0,alive:false};
+    if (bm){ B.ids=[bm.addInstance(bfI.gid[k]), bm.addInstance(bfI.gid[k]), bm.addInstance(bfI.bid)]; B.ids.forEach(id=>bm.setVisibleAt(id,false)); B.parts=[l,r,bd]; } else grp.add(o);
+    bfs.push(B); }
   // Starenschwarm: einfache V-Silhouetten, Flügelschlag über Skalierung
   const NB=48, bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0.09, -0.2,0.05,-0.05, 0,0,-0.06, 0,0,0.09, 0,0,-0.06, 0.2,0.05,-0.05],3)); bg.computeVertexNormals();
   const flock=new THREE.InstancedMesh(bg,new THREE.MeshBasicMaterial({color:0x1f1d22, side:THREE.DoubleSide}),NB); flock.frustumCulled=false; grp.add(flock);
@@ -1659,7 +1700,8 @@ function buildFauna(def, grp){ if (!LU || def.real || GFX_BUILD_R<180) return;
         b.o.position.set(x,h+0.4+Math.random()*0.6,z); b.base=h; b.v.set(Math.random()-0.5,0,Math.random()-0.5).multiplyScalar(1.2); b.alive=true; b.o.visible=true; }
       b.v.x+=(Math.sin(b.t*1.7+b.ph)*1.6-b.v.x)*dt*1.5; b.v.z+=(Math.cos(b.t*1.3+b.ph*2)*1.6-b.v.z)*dt*1.5;
       const o=b.o; o.position.x+=b.v.x*dt; o.position.z+=b.v.z*dt; o.position.y=b.base+0.55+0.35*Math.sin(b.t*1.1+b.ph)+0.06*Math.sin(b.t*14);
-      o.rotation.y=Math.atan2(b.v.x,b.v.z); const f=Math.sin(b.t*22+b.ph)*1.1; b.l.rotation.z=f; b.r.rotation.z=-f; }
+      o.rotation.y=Math.atan2(b.v.x,b.v.z); const f=Math.sin(b.t*22+b.ph)*1.1; b.l.rotation.z=f; b.r.rotation.z=-f;
+      if (bm){ o.updateMatrixWorld(true); for (let j=0;j<3;j++){ bm.setMatrixAt(b.ids[j], b.parts[j].matrixWorld); if (!b.vis) bm.setVisibleAt(b.ids[j], true); } b.vis=true; } }
     // Schwarm: wogende Wolke hoch über den Feldern seitlich voraus
     C.set(P.x+Math.sin(hd+0.6)*110+Math.sin(T*0.05)*60, P.y+28+6*Math.sin(T*0.13), P.z+Math.cos(hd+0.6)*110+Math.cos(T*0.04)*60);
     const sx=9+5*Math.sin(T*0.31), sy=3+2*Math.sin(T*0.23+1), sz=7+5*Math.cos(T*0.27);
@@ -2780,6 +2822,20 @@ function buildSign(o){ const grp=new THREE.Group(), y0=terrainH(o.x,o.z), pm=new
     const f=new THREE.Mesh(new THREE.PlaneGeometry(L,H), new THREE.MeshLambertMaterial({map:tex(true)})); f.position.set(cx+Math.sin(th)*0.01,y,cz+Math.cos(th)*0.01); f.rotation.y=th; grp.add(f);
     const b=new THREE.Mesh(new THREE.PlaneGeometry(L,H), new THREE.MeshLambertMaterial({map:tex(false)})); b.position.set(cx-Math.sin(th)*0.01,y,cz-Math.cos(th)*0.01); b.rotation.y=th+Math.PI; grp.add(b); });
   grp.position.set(o.x,y0,o.z); return grp; }
+/* 0.28.0: alle Schilder einer Kachel (Ortstafeln, Wegweiser) teilen sich einen Schilder-Atlas (Regalpackung, bis 2048 px), Pfosten je Farbe ein Mesh.
+   Vorher je Schild 3–9 Zeichenaufrufe, jetzt 1 + 1 je Kachel. Alt: window.OLD_SIGNATLAS */
+function signMerge(G){ G.updateMatrixWorld(true); const faces=[], poles=new Map(); G.traverse(o=>{ if (!o.isMesh) return; const m=o.material; if (m.map && m.map.image && m.map.image.getContext) faces.push(o); else if (!m.map && m.color){ const k=m.color.getHex(); if (!poles.has(k)) poles.set(k,[]); poles.get(k).push(o); } });
+  if (faces.length<2 && poles.size===0) return; const W=1024, P=2; let x=0, y=0, rh=0; const rect=[];
+  const fs=faces.slice().sort((a,b)=>b.material.map.image.height-a.material.map.image.height);
+  for (const o of fs){ const im=o.material.map.image, w=im.width+2*P, h=im.height+2*P; if (w>W) continue; if (x+w>W){ x=0; y+=rh; rh=0; } if (y+h>2048) break; rect.push([o,x+P,y+P]); x+=w; rh=Math.max(rh,h); }
+  const out=[]; if (rect.length>=2){ const H=Math.ceil((y+rh)/4)*4;   /* keine Zweierpotenz nötig (WebGL 2/WebGPU), spart Speicher */ const c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
+    for (const [o,rx,ry] of rect){ const im=o.material.map.image, w=im.width, h=im.height; g.drawImage(im,rx,ry); g.drawImage(im,0,0,w,1,rx,ry-P,w,P); g.drawImage(im,0,h-1,w,1,rx,ry+h,w,P); g.drawImage(im,0,0,1,h,rx-P,ry,P,h); g.drawImage(im,w-1,0,1,h,rx+w,ry,P,h); }
+    const t=new THREE.CanvasTexture(c); t.anisotropy=4; t.colorSpace=faces[0].material.map.colorSpace; const mat=new THREE.MeshLambertMaterial({map:t});
+    const list=rect.map(([o,rx,ry])=>{ const im=o.material.map.image, g2=o.geometry.clone(), uv=g2.attributes.uv; const fy=o.material.map.flipY!==false;
+      for (let i=0;i<uv.count;i++){ const u=uv.getX(i), v=fy?1-uv.getY(i):uv.getY(i); uv.setXY(i,(rx+0.5+u*(im.width-1))/W, (ry+0.5+v*(im.height-1))/H); } return [g2,o.matrixWorld.clone(),o]; });
+    t.flipY=false; const m=new THREE.Mesh(mergeGeo(list.map(q=>[q[0],q[1]])),mat); m.name='schilder'; out.push(m); list.forEach(q=>{ q[0].dispose(); const o=q[2]; o.parent.remove(o); o.geometry.dispose(); o.material.map.dispose(); o.material.dispose(); }); }
+  poles.forEach((L,k)=>{ if (L.length<2) return; const mat=L[0].material, m=new THREE.Mesh(mergeGeo(L.map(o=>[o.geometry,o.matrixWorld.clone()])),mat); m.castShadow=true; m.receiveShadow=true; m.name='pfosten'; out.push(m); L.forEach(o=>{ o.parent.remove(o); o.geometry.dispose(); if (o.material!==mat) o.material.dispose(); }); });
+  out.forEach(m=>G.add(m)); }
 function disposeSigns(g){ g.traverse(o=>{ if (o.geometry) o.geometry.dispose(); if (o.material){ if (o.material.map) o.material.map.dispose(); o.material.dispose(); } }); }
 /* ---------- 0.8.0 Paket 3 Zittau: Radstreifen (gestrichelt, Fahrrad-Symbol), Pfeile auf Abbiegespuren, Vorwegweiser, alles aus OpenStreetMap (zt2.json) ---------- */
 function ztTex(key, W, H, draw){ ztTex.c=ztTex.c||{}; if (ztTex.c[key]) return ztTex.c[key]; const c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d'); draw(g,W,H); const t=new THREE.CanvasTexture(c); t.anisotropy=4; return (ztTex.c[key]=t); }
@@ -3344,7 +3400,7 @@ function gtChurch(C){ const {P,area,u0,u1,v0,v1,p3,gmin,y0,rnd,isCity,quad,tri,l
    (Normalen · Schilder · Nebenstraßen · Wege+Treppen · Einhängen), sichtbar wird die Kachel erst komplett im letzten Schritt. Alt: window.OLD_GTFS */
 function gtFinishStep(J){ const geo=J.geo, i=J.i, j=J.j, st=J.fs|0; J.fs=st+1;
   if (st===0){ geo.setAttribute('color',new THREE.BufferAttribute(J.col,3)); geo.setAttribute('luk',new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count).fill(1),1)); geo.computeVertexNormals(); return null; }
-  if (st===1){ const l=GT.sig.get(i+','+j); if (l){ J.sg=new THREE.Group(); l.forEach(o=>{ try{ J.sg.add(buildSign(o)); }catch(e){ console.warn('schild',e); } }); } return null; }
+  if (st===1){ const l=GT.sig.get(i+','+j); if (l){ J.sg=new THREE.Group(); l.forEach(o=>{ try{ J.sg.add(buildSign(o)); }catch(e){ console.warn('schild',e); } }); if (!window.OLD_SIGNATLAS) try{ signMerge(J.sg); }catch(e){ console.warn('schildatlas',e); } } return null; }
   if (st===2){ try{ J.sr=gtSideMesh(i,j); }catch(e){ console.warn('nebenstr',e); } return null; }
   if (st===3){ try{ let sp=gtSideMesh(i,j,true); { let stm=null; try{ stm=stairsMesh(i,j); }catch(e){ console.warn('treppen',e); } if (stm){ if (sp) sp.add(stm); else sp=stm; } } J.sp=sp; }catch(e){ console.warn('nebenstr',e); } return null; }
   const m=new THREE.Mesh(geo, GT.mat); m.receiveShadow=true; GT.grp.add(m); const sg=J.sg||null, sr=J.sr||null, sp=J.sp||null;
@@ -3533,7 +3589,7 @@ function gtRootMesh(i,j){ const R=GN.rg; if (!R || !R.roots.size) return null; c
   if (!ROOT_MAT) ROOT_MAT=new THREE.MeshStandardMaterial({color:0x3e2c1d, roughness:0.85}); const m=new THREE.Mesh(g,ROOT_MAT); m.name='wurzeln'; m.receiveShadow=true; return m; }
 /* 0.15.0: Brücken auf Wegen und Nebenstraßen (OSM bridge): gerades Deck zwischen den Brückenenden, Holz oder Beton, mit Geländer. Je 1-km-Feld ein Netz. */
 function buildWayBridges(){ const grp=new THREE.Group(); grp.name='wegbruecken'; const R=gnRG(); if (!R) return grp; const cells=new Map();
-  R.edges.forEach(E=>{ if (E.kind==='r' || !E.br || E.len<1.5) return; const P=E.P, ck=Math.floor(P[0].x/1000)+','+Math.floor(P[0].z/1000); let C=cells.get(ck); if (!C) cells.set(ck,C={v:[],c:[]});
+  R.edges.forEach(E=>{ if (E.kind==='r' || !E.br || E.len<1.5) return; const P=E.P, CK=window.OLD_WBMERGE?1000:4000, ck=Math.floor(P[0].x/CK)+','+Math.floor(P[0].z/CK);   /* 0.28.0: 4-km- statt 1-km-Zellen (ca. 21 → 4 Zeichenaufrufe). Alt: window.OLD_WBMERGE */ let C=cells.get(ck); if (!C) cells.set(ck,C={v:[],c:[]});
     const wood=E.sf===11 || (E.kind==='w' && E.c!==13 && E.sf!==0 && E.sf!==3), col=wood?[0.42,0.31,0.21]:[0.58,0.57,0.55], rc=wood?[0.33,0.24,0.16]:[0.36,0.37,0.39], hw=Math.max(0.9,(E.w||2)/2+0.25), v=C.v, cc=C.c;
     const quad=(a,b,c2,d,cl)=>{ v.push(...a,...b,...c2, ...a,...c2,...d); for (let k=0;k<6;k++) cc.push(...cl); };
     let acc=0; for (let i=0;i<P.length-1;i++){ const p=P[i], q=P[i+1], dx=q.x-p.x, dz=q.z-p.z, l=Math.hypot(dx,dz)||1, nx=-dz/l*hw, nz=dx/l*hw, yp=p.y-0.03, yq=q.y-0.03;
@@ -7212,13 +7268,16 @@ const ZG_SIG=[[5372.8,-5299.6],[4910.4,-4797.9],[5073.3,-5919.2],[4755.4,-4822.9
 const SIGS={ph:[], t0:0};
 function zgSignals(g){ const pole=new THREE.MeshStandardMaterial({color:0x7d8287, roughness:0.6, metalness:0.4}), boxM=new THREE.MeshStandardMaterial({color:0x1d1f21, roughness:0.7});
   for (let k=0;k<4;k++){ const mk=c=>new THREE.MeshStandardMaterial({color:0x202020, emissive:c, emissiveIntensity:0.05, roughness:0.4}); SIGS.ph.push({off:k*11.5, r:mk(0xff2a1a), y:mk(0xffb21a), g:mk(0x26ff5a)}); }
+  const SM=window.OLD_SIGMERGE?null:[];   /* 0.28.0: alle Ampeln je Material zu einem Mesh (vorher 8 Zeichenaufrufe je Ampel). Alt: window.OLD_SIGMERGE */
   const done=[]; ZG_SIG.forEach(([x,z],si)=>{ const r=zgRoadAt(x,z); if (!r || Math.hypot(r.x-x,r.z-z)>14) return; if (done.some(q=>Math.hypot(q[0]-r.x,q[1]-r.z)<8)) return; done.push([r.x,r.z]);
     const ph=SIGS.ph[si%4]; [1,-1].forEach(sg=>{ const tx=r.tx*sg, tz=r.tz*sg, nx=tz, nz=-tx;   /* rechts der Fahrtrichtung, 7 m vor der Haltelinie */
       const px=r.x-tx*7+nx*(r.w/2+0.9), pz=r.z-tz*7+nz*(r.w/2+0.9), py=terrainH(px,pz), G=new THREE.Group(); G.position.set(px,py,pz); G.rotation.y=Math.atan2(-tx,-tz);
       const pm=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,3.4,8),pole); pm.position.y=1.7; pm.castShadow=true; G.add(pm);
       const bx=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.95,0.24),boxM); bx.position.set(0,3.0,0.1); bx.castShadow=true; G.add(bx);
       [['r',3.3],['y',3.0],['g',2.7]].forEach(([c,h])=>{ const l=new THREE.Mesh(new THREE.CircleGeometry(0.1,12),ph[c]); l.position.set(0,h,0.225); G.add(l); const v=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.04,0.14),boxM); v.position.set(0,h+0.12,0.29); G.add(v); });
-      g.add(G); }); }); SIGS.n=done.length; }
+      if (SM) SM.push(G); else g.add(G); }); }); SIGS.n=done.length;
+  if (SM && SM.length){ const by=new Map(), Gs=new THREE.Group(); Gs.name='ampeln'; SM.forEach(G=>{ G.updateMatrixWorld(true); G.children.forEach(m=>{ if (!by.has(m.material)) by.set(m.material,[]); by.get(m.material).push([m.geometry, m.matrixWorld.clone()]); }); });
+    by.forEach((L,mat)=>{ const m=new THREE.Mesh(mergeGeo(L),mat); m.castShadow=mat===pole||mat===boxM; m.receiveShadow=true; Gs.add(m); L.forEach(([q])=>q.dispose()); }); g.add(Gs); } }
 function zgSignalsTick(t){ if (!SIGS.ph.length) return; SIGS.ph.forEach(p=>{ const c=((t/1000+p.off)%46+46)%46, st=c<20?'g':c<23?'y':c<45?'r':'ry'; p.r.emissiveIntensity=(st==='r'||st==='ry')?2.2:0.05; p.y.emissiveIntensity=(st==='y'||st==='ry')?2.2:0.05; p.g.emissiveIntensity=st==='g'?2.2:0.05; }); }
 function zgExtras099(g){ const r=zgRoadAt(3822,912); if (!r) return; let nx=3822-r.x, nz=912-r.z; { const l=Math.hypot(nx,nz)||1; nx/=l; nz/=l; }
   const qx=r.x+nx*(r.w/2+5.5), qz=r.z+nz*(r.w/2+5.5), q=zgPlaceFree('jq_quelle',qx,qz,2*qx-r.x,2*qz-r.z,0.2); if (q){ q.traverse(m=>{ if (m.isMesh){ m.castShadow=true; m.receiveShadow=true; } }); g.add(q); }
@@ -8814,7 +8873,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.27.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.28.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
   WORLDS.forEach(def=>{ if (!wVis(def)) return;
