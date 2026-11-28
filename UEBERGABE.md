@@ -1,6 +1,6 @@
 # Hicore Ride: Übergabe (aktueller Stand)
 
-Stand: 28.11.2026 (Nacht). Letzte veröffentlichte Version: **0.28.0 Beta** (Texturatlas/Bündeln: OSM-Objekte, Schmetterlinge, Schilder, Ampeln, Wegbrücken; gleiches Aussehen, 22–42 % weniger Zeichenaufrufe). Davor 0.27.0 (Olbersdorfer See, OSM-Objekte), 0.26.1 (Dolomiten-Fahrfehler, Seen flach).
+Stand: 28.11.2026 (Nacht). Online (main): **0.27.0**. Fertig, aber noch nicht gemergt: **0.28.0** (Texturatlas, PR 1) und darauf **0.29.0** (Blätter-Nahdetail: Higgsfield-Zweigfotos für Buche und Kiefer, eigener PR auf Basis von PR 1). Merge entscheidet Heiko; der Auto-Modus blockiert Pushes auf main.
 Diese Datei ist bewusst kurz und enthält nur, was ein neuer Thread zum Weiterarbeiten braucht.
 Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, Asset-Herkunft) steht in **`docs/ARCHIV.md`**. Nur bei Bedarf gezielt darin suchen (`grep`), nicht ganz lesen.
 
@@ -33,7 +33,7 @@ Alles Ältere (Entscheidungsgeschichte, frühere Versionen, Hardware-Details, As
 - Er testet abends am iPad, schreibt oft per Sprache (Tippfehler wie „Polyheaven“, „Fixfield“ = Higgsfield).
 
 **Geld und Freigaben**
-- Nie automatisch nachkaufen. Higgsfield (seit 27.11. Ultra, 3.000 Credits/Monat): bis 100 Credits je Aufgabe ohne Rückfrage, danach immer Verbrauch und Restguthaben nennen; darüber erst Kosten nennen und fragen. Stand 27.11. abends: 2.931 Credits.
+- Nie automatisch nachkaufen. Higgsfield (seit 27.11. Ultra, 3.000 Credits/Monat): bis 100 Credits je Aufgabe ohne Rückfrage, danach immer Verbrauch und Restguthaben nennen; darüber erst Kosten nennen und fragen. Stand 28.11. nachts: 2.697 Credits.
 - Senden, Buchen, Kaufen, Löschen nur mit Zustimmung. Keine Secrets ins Repo (Gemini-Schlüssel bleibt im Browser, Mapillary-Token in der Higgsfield-Sandbox).
 
 **Arbeitsweise**
@@ -100,9 +100,9 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 | Version | Inhalt |
 |---|---|
-| **0.28.0** | **Texturatlas und Bündeln: OSM-Objekte je Zelle als ein BatchedMesh mit Atlas, Schmetterlinge 1 statt ca. 64 Zeichenaufrufe, Schilder-Atlas je Kachel, Ampeln zusammengefasst, Wegbrücken in 4-km-Zellen** |
+| **0.29.0** | **Blätter-Nahdetail: Buche (auch Kirsche, Büsche) und Kiefer mit Higgsfield-Zweigfotos als Blattkarten (1024 px), Detail nimmt über Mipmaps stufenlos ab, Fichtenzweige doppelte Auflösung** |
+| 0.28.0 | Texturatlas und Bündeln: OSM-Objekte je Zelle als ein BatchedMesh mit Atlas, Schmetterlinge 1 statt ca. 64 Zeichenaufrufe, Schilder-Atlas je Kachel, Ampeln zusammengefasst, Wegbrücken in 4-km-Zellen |
 | 0.27.0 | Zittau: Objekte aus OSM an echten Stellen (Bänke, Wegweiser, Tafeln, Hütten, Hochsitze, Parkplätze, Camping, Strände, Sportplätze), Olbersdorfer See mit Schaufelrad, Muschel, Badegästen; Zufalls-Deko entfernt |
-| 0.26.1 | Dolomiten: Gelände nie mehr auf der Fahrbahn, Kehren rund, Bach in 3D mit Mäander und Durchlass, Einfahrten sauber, Buckel, Pedal innen oben; Zittau: alle Seen flach (Olbersdorfer See) |
 
 **Kacheln/Rand (0.17.0):** Details (Datenquellen, `rand_auffuellen.py`, `kacheln.py`, `KC`/`kcTick`/`kcReady`, Felsen, Zäune, Wanderer `HIKE`, Tests `tkc`/`thike`) jetzt in `docs/ARCHIV.md`.
 
@@ -121,6 +121,14 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 **Leistung 0.20.0–0.21.0** (Details 0.20.0–0.20.2 in `docs/ARCHIV.md`): Kachelwald gebündelt (`GT.w`, `OLD_GTW`), Baumschatten nur nah (`OLD_TREESH`), HUD sparsam (`OLD_HUD`), Leistungstest per Tipp auf FPS-Anzeige (`LTEST`), Messung `tests/tgpuperf.js`. iPad-Lesart: Chrome hängt an Pixeln, Bluefy an den Bäumen.
 **Drivo 0.25.1–0.25.5:** Details (Bluefy-optionalServices als Text, Elite-Widerstand `[0x01, g*10+10]` auf 347b0010, Kadenz aus 0015 Byte 3, `bt-test.html`, Schalter `OLD_BTOPT`, `NO_ELITESLOPE`, `OLD_ELICAD`) jetzt in `docs/ARCHIV.md`.
 
+**0.29.0 Blätter-Nahdetail** (Heiko 27.11. 22:11–22:16: nah fast Blattadern, weiter weg nur Blattform, in 20–50 m nur Grün; Übergänge dürfen nicht springen; Higgsfield-Zweigbilder nutzen)
+- Befund: In Higgsfield lagen seit 21./22.11. ungenutzt ein Buchenzweig, ein Kiefernzweig und zwei ganze Bäume (Buche, Fichte, nur als Bild). Genutzt waren nur die Rindenfotos (`texjpg/eiche|birke|buche|kiefer.jpg`). Blattkarten waren bisher gezeichnet (`leafClusterTexture`, 512 px, Deckung ca. 0,2). Higgsfield-3D-Bäume wurden schon in 0.9.8 getestet und verworfen (`?baum3d=1`).
+- Weg: kein zusätzliches Nahmodell, sondern bessere Blattkarten. Das Detail nimmt über die Mipmaps stufenlos ab (Blattadern → Blattform → Grün), also gibt es keine neue Stufe, die umspringen kann, und keine zusätzlichen Dreiecke (Bluefy hängt an den Bäumen). Fernkrone und Bild-Bäume (`impAtlas`) werden aus denselben Materialien gerendert und passen dadurch automatisch.
+- Daten: `quelle/texjpg/laub_buche.jpg` + `laub_buche_a.jpg` (Alpha als Graustufen-JPEG), `laub_kiefer*.jpg`. Freigestellt in der Higgsfield-Sandbox (weißer Hintergrund → Alpha, Kanten entmischt, Farbe in den Hintergrund ausgebreitet), übertragen als Graustufen-PNG, md5 geprüft.
+- Spiel (Block „0.29.0“ vor `leafClusterTexture0`): `leafClusterTexture` mit globalem Zwischenspeicher `LEAF_TC` (vorher je `treeKit`-Aufruf neu erzeugt), `leafPhotoTexture`: Zweig verkleinert und um 45° gedreht in die Karte (Blätter ca. 8 cm, Deckung 0,22 wie vorher 0,19), Farbe kanalweise an die gezeichnete Karte angeglichen (Faktor 0,55–1,7, `LEAF_PH.log`), dann `coverageMips`. 1024 px ab Mittel, 512 auf Niedrig/Minimal (`leafHiRes`). Kiefer: Zweigfoto statt gezeichneter Laubblätter, 3,5× mehr Karten, kleinerer Kern. Fichtenzweig (`sprBoughM`) 512×256 statt 256×128. Gezeichnete Karten der übrigen Arten bleiben 512 px (1024 brachte kaum etwas, +20 MB). Alles alt: `window.OLD_LEAFPH`.
+- Messung (`tatlas.js`, Zittau Start, Mittel): Zeichenaufrufe gleich, CPU render gleich (19,0 vs 19,1 ms), Texturen geschätzt +11 MB. Tests: `tests/tleaf2.js` (Baum einer Art isoliert vor Himmel, `KS`, `DS` Abstände zur Krone, `PRE`), `tests/tleaf.js` (Baum in der Welt, braucht Kacheln, langsam). Bilder vorschau/290_*. `terr2` none.
+- Offen: Eiche, Birke, Ahorn, Linde, Esche, Fichte haben noch keine Zweigfotos (Higgsfield-Erzeugung vom Auto-Modus ohne Heikos ausdrückliches OK blockiert, ca. 6 Credits). Danach gleiche Kette (`LEAF_PH` um die Art ergänzen). Am iPad prüfen: Übergang nah/fern unsichtbar?, FPS auf Mittel, Ladezeit (+4 Bilder, ca. 1 MB).
+
 **0.28.0 Texturatlas und Bündeln** (Heiko 27.11.: Atlas dort, wo er Ruckeln oder Speicher spart; Vorbereitung für Blätter-Nahdetail)
 - Messwerkzeug `tests/tatlas.js`: zählt Zeichenaufrufe je Gruppe über einen Haken in `renderer._renderObjectDirect`, CPU-Zeit von render, geschätzten Texturspeicher. `W=zittau|dolo`, `CAM='[x,z,h,lx,lz]'` oder `CAMJS`, `DEEP=<Gruppenanfang>` für Feinaufschlüsselung, `PRE` für Schalter, `EXTRA` für eigene Abfragen. Läuft mit `?gl=1` (WebGPU über SwiftShader verlor bei Zittau das Gerät). `renderer.info.render.drawCalls` ist unzuverlässig (zählt Nachbearbeitung mit), Hakenwert nehmen.
 - Befund vorher: am See 311 Zeichenaufrufe, davon 96 Ampeln (8 Meshes je Ampel, bis ins Zentrum im Bild), ca. 50 OSM-Objekte (je Modell und Zelle ein InstancedMesh), 21 Wegbrücken. Überall ca. 64 für 16 Schmetterlinge (2 Flügel + Körper, zweiseitig-transparent = doppelt gezeichnet). Häuser sind schon je Kachel und Material gebündelt (4 je Kachel, Wand-Atlas gibt es seit früher), Dolomiten-Tiere nur ca. 8 Aufrufe an einer Herde (Skelett je Tier, Bündeln lohnt nicht).
@@ -136,17 +144,6 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 - See: Schaufelrad und Muschel an den OSM-Punkten (Higgsfield `zs_schaufelrad`, `zs_muschel`), OSM-Schutzhütte an der Muschel ausgelassen (`ZO.skip`), Volleyballnetze als Maschen mit Spielern, Parkplätze mit Autos (am See 55 % belegt), SeeCamping mit Wohnwagen/Wohnmobilen/Zelten (50 %) und Leuten, Strand mit bis 42 Badegästen, Schirmen, 11 Schwimmern (kreisen/wippen), Stehenden im Wasser; Naturstrand/FKK-Bereich gegenüber mit liegenden/sitzenden Figuren. Badegäste nur ohne Regen/Schnee/Nacht. Abschaltbar: Einstellungen → Welten → `zgBad`.
 - Higgsfield-Modelle `quelle/props/zs_*.glb` (12 Stück, `PROP_FIX`, nur bei Bedarf geladen). Unbekleidete Figuren (oben ohne, FKK) hat Higgsfield als nsfw abgelehnt, deshalb nur bekleidete Badegäste. 174 Credits verbraucht, Rest 2.697.
 - Test `tests/tzo.js` (V-Kameras, wartet auf Kacheln und ZO-Zellen). Bilder vorschau/270_*.jpg. Nicht geprüft: FPS am iPad am See, Ausrichtung einzelner Figuren, Wirkung abseits des Sees.
-
-**0.26.1 Dolomiten-Fahrfehler, Zittauer Seen, Bach** (Heiko 27.11. abends mit Screenshots; Nachtarbeit)
-- Gelände auf der Straße (große hellgrüne, kantige Flächen, Kehren): Ursache war das 10-m-Kachelnetz. Zwischen zwei Eckpunkten wird linear gemittelt; ein Eckpunkt am Hang oder an der anderen Seite einer Kehre hob das Dreieck bis 9,6 m über die Fahrbahn, obwohl `terrainH` auf der Straße stimmte. Jetzt `gnCap`: jeder Eckpunkt (Kachelbau und `gtMeshH`) wird gegen alle Straßenstücke im Umkreis von 16 m gedeckelt (0,35 m unter der Fahrbahn, 5 % bis 6 m, dann 16 %). Automatische Prüfung (`EV` mit `gtMeshH` alle 4 m an 6 Querpunkten der Runde, 94.200 Punkte): vorher 251 Treffer, jetzt 0 (schlechtester Wert 0,18 m unter der Fahrbahn). Panorama und Grobnetz waren es nicht (ebenfalls geprüft, 0 Treffer). Alt `OLD_GTCAP`.
-- Kehren rund: Dolomiten haben jetzt 9000 statt 3000 Fahrlinienpunkte (`N` ist `let`, in `buildWorld` gesetzt; `gRoute` mit 13 statt 7,5 Punkten je Radiant). Alt `OLD_RTN`.
-- Pedal: beim Rollen (Kadenz < 3, > 4 m/s) vor und in Kurven geht das kurveninnere Pedal nach oben (`me.turnAhead`, Kurswinkel über max(14 m, 1,8 s)). Aus `NO_COASTPEDAL`.
-- Zittau, Olbersdorfer See „blauer Hügel“: Seen waren dort nur blau gefärbtes Gelände (Landbedeckung Klasse 5), das dem Höhenmodell folgte (im See bis 68 m Höhenunterschied). Jetzt `zwInit`/`zwH`/`buildZgLakes`: jede Wasserfläche ab 6 Zellen bekommt einen Spiegel (15-%-Wert der Uferhöhen minus 0,25 m; lange Flüsse örtlich, bisher keiner erkannt), Gelände darunter als Mulde, flache Ufer leicht angehoben, eigenes Wasser-Netz (`waterMaterial`), nie über Land oder Straße. 81 Seen, Prüfung `EV`: Straßen der Runde und aller Kanten nie unter dem Spiegel. Andere Welten: Teiche (`ponds`) sind schon flach und liegen unter dem Ufer, Dolomiten-Seen flach auf tiefster Uferhöhe. Alt `OLD_ZGLAKE`.
-- Bach (`buildDoloWater3`, Ufer längs geglättet, alt `OLD_BANKSM`): Mäander und wechselnde Breite (`dlMeander`), eigene feine Rinne mit Ufern, Sohle und tiefer liegendem 3D-Wasser mit Wellen, Glanz und Schaum (`dlWaterMat3`); das Kachelgelände wird im Umkreis von ca. 230 m um die Kamera entlang des Bachs ausgeblendet (Maske `DLH`, 0,5 m je Pixel, `dlHoleStep`). An Straßen endet der Bach in einem Durchlass (Stirnmauer mit Rohr, `dlCulverts`). Alt `OLD_DLBACH`, nur ohne Ausblenden `NO_DLHOLE`.
-- Einfahrten: Enden von Nebenwegen an der Hauptstraße werden entlang der Seitenlinie auf den Fahrbahnrand geschnitten (keine Pfeilspitzen mehr). Alt `OLD_SIDEEND`.
-- Buckel: kleine Hügel 15–60 m, bis ca. ±1,5 m auf Wiesen/Almen (`dlBump`, ab 10 m neben der Straße, schwach in Orten/Fels, nicht im Bachbett). Aus `NO_DLBUMP`.
-- Felsstreifen: schärfere Dreifach-Projektion und verbogene Höhenproben, damit die Wände nicht wie Höhenlinien wirken. Alt `OLD_ROCKSTRIPE`. Panorama nahe der Straße abgesenkt (`OLD_PANOLOW`, wirkungslos für den Straßenfehler, aber unschädlich).
-- Prüfung abgekürzt (Heikos Wunsch): Bilder 640×360, `NF=12`, Zahlenprüfungen per `EV` statt Bilder; `tdolo.js` hat `XB` (Bachquerungen) und `XH` (Kehren). Higgsfield: nichts verbraucht.
 
 **0.26.0 Tiere in den Dolomiten:** Details (`buildDoloFauna`, `dlFaunaStep`, `DLF`, Yeti, Töne `dl_*`, `NO_DLFAUNA`) jetzt in `docs/ARCHIV.md`.
 
@@ -190,6 +187,7 @@ rm -rf webgpu-spiel/data webgpu-spiel/props && cp -r quelle/gpu/data quelle/gpu/
 
 ## 6. Nächste Schritte
 
+0000. 0.29.0 am iPad (nach Merge von PR 1 und dem 0.29.0-PR): nah an Buchen/Kiefern heranfahren (Blattadern sichtbar?), wegfahren (Übergang zu Bildbäumen ab ca. 60 m unsichtbar?), FPS auf Mittel. Danach Zweigfotos für die übrigen Arten (Freigabe Credits).
 000. 0.28.0 am iPad: FPS/CPU-Anzeige auf Mittel am See und in Jonsdorf mit 0.27.0-Werten vergleichen (vorher 8,8–10 ms am See), Strand/Camping/Schilder/Ampeln unverändert? Danach Blätter-Nahdetail.
 00. Zittau 0.27.0: Heikos iPad-Urteil (FPS am See auf Mittel, Strand/Camping/Parkplätze, fehlt etwas?). Danach nächster Schritt laut Gedächtnis: Texturatlas, dann Blätter-Nahdetail. Weitere Originaltreue Zittau: Baumarten/Sträucher, Zäune aus OSM (barrier=fence), Spielgeräte genauer.
 0. Dolomiten: Heikos iPad-Urteil zu 0.26.1 abwarten (FPS auf Mittel mit neuem Bach und 9000 Fahrlinienpunkten, Kehren rund genug, noch Gelände auf der Straße an Nebenstraßen?, Bach-Optik, Pedal in Kurven; Zittau: Olbersdorfer See). Dann Texturatlas-Version (Tiere, Kleinobjekte, Fassaden, mit Messung) und Blatt-/Baumbilder aus Higgsfield prüfen. Aus 0.26.0 weiter offen: FPS mit Tieren, Tiere zu klein/groß, Flucht, Glocken-Lautstärke). Offene Tier-Ideen: Kühe mit Glocken auch in Zittau, Kleinobjekte (Heuharfen, Wegweiser Wanderwege, Bänke an Aussichtspunkten), Alpendohlen. Danach 0.25.6–0.25.8-Punkte (FPS auf Mittel, Himmel, Gras, Wald nahe der Straße echt oder Kegel?). Dann weiter Nahdetail nach Entfernung (Blätter/Rinde/Gras/Fassaden: nah Struktur, ab 20–30 m schlicht, weiche Übergänge), Licht/Atmosphäre, Wolken weniger gemalt, Wasser aus der Nähe prüfen; für alle Welten Texturen/Bewuchs gegen freie Alternativen prüfen (vorher/nachher messen). Kapellen; Lärche/Zirbe/Latschen, Alpenblumen; Bäche Boite/Cordevole/Codalonga türkis mit Rauschen; Gipfelnamen.

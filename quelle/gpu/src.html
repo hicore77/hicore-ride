@@ -241,7 +241,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
         Landbedeckung: © ESA WorldCover project 2021 (CC BY 4.0).<br>
         Bäume Zittau: Luftbild © GeoSN, dl-de/by-2-0; Orthofoto © ČÚZK (CC BY 4.0); Kronenhöhen Meta / WRI (CC BY 4.0).<br>
         Texturen: Poly Haven (CC0). Geräusche: elevenlabs.io. Wetter: open-meteo.com (CC BY 4.0).<br>
-        Tiere Dolomiten (Modelle und Laute), Schaufelrad, Muschel, Camper und Badegäste am Olbersdorfer See: mit Higgsfield erzeugt (Tripo, Mirelo; eigene Nutzungsrechte laut Higgsfield-Nutzungsbedingungen).<br>
+        Tiere Dolomiten (Modelle und Laute), Schaufelrad, Muschel, Camper und Badegäste am Olbersdorfer See, Zweigfotos für Buchen- und Kiefernlaub, Rindenfotos: mit Higgsfield erzeugt (Tripo, Mirelo; eigene Nutzungsrechte laut Higgsfield-Nutzungsbedingungen).<br>
         Bänke, Hütten, Wegweiser, Plätze, Strände, Parkplätze Zittau: © OpenStreetMap-Mitwirkende (ODbL).<br>
         Programm: three.js (MIT), Supabase (MIT).</div></details>
       <div class="mpbox"><h4>Tageszeit &amp; Wetter</h4>
@@ -1798,7 +1798,30 @@ function leafTexture(hue, light, needles){ const S=256, c=document.createElement
     g.restore(); }
   const t=new THREE.CanvasTexture(c); return t; }
 // Zweig mit Blättern (Blattkarte), artspezifische Blattform
-function leafClusterTexture(shape, hue, light){ const S=512, c=document.createElement('canvas'); c.width=S; c.height=S; const g=c.getContext('2d'); let sd=Math.floor(hue*1e4+light*777)+shape.length*31; const R=()=>((sd=(sd*16807)%2147483647)/2147483647);
+/* 0.29.0 Blätter-Nahdetail (Heiko 27.11.: nah Blattadern, weiter weg nur Blattform, in 20–50 m nur Grün; Übergänge dürfen nicht springen).
+   Buche (auch Kirsche, Büsche) und Kiefer bekommen Higgsfield-Zweigfotos als Blattkarten (1024 px ab Mittel, 512 auf Niedrig/Minimal), Fichtenzweige doppelte Auflösung; die übrigen Arten bleiben bei der gezeichneten Karte, bis es Zweigfotos gibt.
+   Das Detail nimmt mit der Entfernung über die Mipmaps stufenlos ab (keine zusätzliche Stufe, die umspringen könnte, keine zusätzlichen Dreiecke); Farbe wird an die bisherige Karte angeglichen,
+   damit Fernkrone und Bild-Bäume (aus denselben Materialien gerendert) gleich aussehen. Texturen werden jetzt einmal je Art erzeugt statt in jedem treeKit-Aufruf. Alt: window.OLD_LEAFPH */
+const LEAF_PH={beech:'buche', pine:'kiefer'}, LEAF_TC={};
+function leafHiRes(){ return !window.OLD_LEAFPH && !LITE; }
+function leafClusterTexture(shape, hue, light){ const key=shape+'|'+hue.toFixed(4)+'|'+light.toFixed(4); if (LEAF_TC[key]) return LEAF_TC[key];
+  let t=null; if (!window.OLD_LEAFPH && LEAF_PH[shape]) t=leafPhotoTexture(LEAF_PH[shape], shape, hue, light);
+  if (!t) t=leafClusterTexture0(shape, hue, light, 512);   /* gezeichnete Karten bleiben 512 px: 1024 brachte kaum sichtbares Detail, aber ca. 20 MB mehr Texturspeicher */
+  return LEAF_TC[key]=t; }
+function leafPhotoTexture(k, shape, hue, light){ const ci=photo('laub_'+k), ai=photo('laub_'+k+'_a'); if (!ci || !ai) return null;
+  try{ const W=ci.naturalWidth, S=leafHiRes()?1024:512;
+    const src=document.createElement('canvas'); src.width=src.height=W; const sg=src.getContext('2d'); sg.drawImage(ci,0,0,W,W); const cd=sg.getImageData(0,0,W,W), d=cd.data;
+    const ac=document.createElement('canvas'); ac.width=ac.height=W; const ag=ac.getContext('2d'); ag.drawImage(ai,0,0,W,W); const ad=ag.getImageData(0,0,W,W).data;
+    const mean=(dd,aa)=>{ let r=0,gg=0,b=0,n=0; for (let i=0;i<dd.length;i+=12){ if ((aa?aa[i]:dd[i+3])>200){ r+=dd[i]; gg+=dd[i+1]; b+=dd[i+2]; n++; } } return n?[r/n,gg/n,b/n]:null; };
+    const ref=leafClusterTexture0(shape,hue,light,128).image; const mr=mean(ref.getContext('2d').getImageData(0,0,ref.width,ref.height).data), mp=mean(d,ad);
+    const f=(mr&&mp)?[0,1,2].map(j=>clamp(mr[j]/Math.max(1,mp[j]),0.55,1.7)):[1,1,1];   /* begrenzt: Blau ×3 färbte die Zweige lila */ LEAF_PH.log=(LEAF_PH.log||{}); LEAF_PH.log[k]={ref:mr&&mr.map(Math.round), ph:mp&&mp.map(Math.round), f:f.map(v=>+v.toFixed(2))};
+    for (let i=0;i<d.length;i+=4){ d[i]=Math.min(255,d[i]*f[0]); d[i+1]=Math.min(255,d[i+1]*f[1]); d[i+2]=Math.min(255,d[i+2]*f[2]); d[i+3]=ad[i]; } sg.putImageData(cd,0,0);
+    const c=document.createElement('canvas'); c.width=c.height=S; const g=c.getContext('2d'); g.imageSmoothingQuality='high';
+    const put=(x,y,sc,rot,fl)=>{ g.save(); g.translate(x*S,y*S); g.rotate(rot); g.scale(fl?-1:1,1); g.drawImage(src,-sc*S/2,-sc*S/2,sc*S,sc*S); g.restore(); };
+    /* Deckung wie die gezeichneten Karten (ca. 0,2–0,3), sonst werden die Kronen dichter und dunkler: ein Zweig, verkleinert (Blätter ca. 8 cm) und um 45° gedreht, bleibt ganz in der Karte (keine abgeschnittenen Blätter) */
+    const L=window.LEAFPH_LAY||(k==='kiefer'?[[0.5,0.5,0.7,0.785,false]]:[[0.5,0.5,0.56,0.785,false]]); L.forEach(q=>put(...q));
+    const t=new THREE.CanvasTexture(c); t.anisotropy=8; return coverageMips(t,0.45); }catch(e){ console.warn('leafPhoto',e); return null; } }
+function leafClusterTexture0(shape, hue, light, SZ){ const S=512, c=document.createElement('canvas'); c.width=SZ||S; c.height=SZ||S; const g=c.getContext('2d'); if (SZ && SZ!==S) g.setTransform(SZ/S,0,0,SZ/S,0,0); let sd=Math.floor(hue*1e4+light*777)+shape.length*31; const R=()=>((sd=(sd*16807)%2147483647)/2147483647);
   // Blattumriss je Art (Spitze bei y=-L, Stielansatz bei 0)
   const serr=(x0,y0,x1,y1,n,amp)=>{ for (let k=1;k<=n;k++){ const t=k/n, x=x0+(x1-x0)*t, y=y0+(y1-y0)*t, nx=-(y1-y0), ny=(x1-x0), nl=Math.hypot(nx,ny)||1; const o=(k%2?amp:0); g.lineTo(x+nx/nl*o, y+ny/nl*o); } };
   const outline=(L,W)=>{ const pts=[];
@@ -1862,8 +1885,9 @@ function treeKit(def){
   const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
   const decid=(trunkKind, trunk, branches, blobs, leafH, leafL, coreCol, cardN, cardS)=>()=>{
     const tg=mergeGeoC([limb(V3(0,-0.3,0),trunk[0],trunk[1],trunk[2],9), ...branches.map(([a,b,r0,r1])=>limb(a,b,r0,r1,6))]);
-    const cg=mergeGeoC(blobs.map(([x,y,z,r,sy],i)=>blob(x,y,z,r*0.82,sy,i*1.7+leafH*9)));
-    const near=[[tg,trunkM[trunkKind]],[cg,coreM(coreCol),'vary'],[cards(blobs,cardN,cardS),leafM(leafH,leafL),'vary']];
+    const pph=trunkKind==='pine' && !window.OLD_LEAFPH && photo('laub_kiefer') && photo('laub_kiefer_a');   /* 0.29.0: Kiefer mit Higgsfield-Zweigfoto (Nadeln) statt gezeichneter Laubblätter; mehr Zweige, kleinerer dunkler Kern */
+    const cg=mergeGeoC(blobs.map(([x,y,z,r,sy],i)=>blob(x,y,z,r*(pph?0.7:0.82),sy,i*1.7+leafH*9)));
+    const near=[[tg,trunkM[trunkKind]],[cg,coreM(coreCol),'vary'],[cards(blobs,pph?cardN*3.5:cardN,pph?cardS*1.1:cardS),pph ? leafMC({leaf:'pine',hue:leafH,l:leafL}) : leafM(leafH,leafL),'vary']];   /* 0.29.0: Kiefer mit Higgsfield-Zweigfoto (Nadeln) statt gezeichneter Laubblätter */
     near.far=()=>{ const ft=limb(V3(0,-0.3,0),trunk[0],trunk[1],trunk[2],5); const fc=mergeGeoC(blobs.slice(0,4).map(([x,y,z,r,sy],i)=>blob(x,y,z,r*1.02,sy,i*1.7,true)));
       return [[ft,trunkM[trunkKind]],[fc,coreM(new THREE.Color().setHSL(leafH,0.42,leafL*0.78)),'vary']]; };
     return near; };
@@ -1880,11 +1904,11 @@ function treeKit(def){
     cherry:{H:2.2,r:0.24,CR:2.8,CY:5.0,n:6,tilt:0.8,hue:0.26,l:0.40,leaf:'beech',core:0x42722f,lead:true,bark:'beech',fruit:0x8e1020},
     plum:{H:1.5,r:0.16,CR:2.0,CY:3.4,n:5,tilt:0.7,hue:0.25,l:0.38,leaf:'ash',core:0x3e6c2c,lead:false,bark:'pine',fruit:0x3b2a5e},
     walnut:{H:2.4,r:0.36,CR:4.4,CY:5.4,n:6,tilt:0.5,hue:0.24,l:0.40,leaf:'ash',core:0x467632,lead:false,bark:'beech',fruit:0x5e7a2e} };
-  let _sprB=null; const sprBoughM=()=>{ if (_sprB) return _sprB; const W=256, H=128, c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d'); let sd=7; const R=()=>((sd=(sd*16807)%2147483647)/2147483647);
+  let _sprB=null; const sprBoughM=()=>{ if (_sprB) return _sprB; if (LEAF_TC.spr){ _sprB=windify(lam({map:LEAF_TC.spr, alphaTest:0.4, side:THREE.DoubleSide, vertexColors:true}),0.02,6.0); return _sprB; } const W=256, H=128, KS=leafHiRes()?2:1, c=document.createElement('canvas'); c.width=W*KS; c.height=H*KS; const g=c.getContext('2d'); if (KS>1) g.setTransform(KS,0,0,KS,0,0);   /* 0.29.0: Fichtenzweig 512×256 statt 256×128 */ let sd=7; const R=()=>((sd=(sd*16807)%2147483647)/2147483647);
     const twig=(x0,y0,x1,y1,dens,lw)=>{ g.strokeStyle='rgba(70,50,30,.95)'; g.lineWidth=lw; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); const L=Math.hypot(x1-x0,y1-y0), ux=(x1-x0)/L, uy=(y1-y0)/L;
       for (let d=0; d<L; d+=dens){ const px=x0+ux*d, py=y0+uy*d, f=1-d/L*0.5; [-1,1].forEach(sg=>{ const nl=(6+R()*5)*f, a=Math.atan2(uy,ux)+sg*(0.9+R()*0.4); const l=(0.16+R()*0.14+0.2*(d/L))*100; g.strokeStyle=`hsl(${130+R()*25},${35+R()*20}%,${l*0.32}%)`; g.lineWidth=1.3; g.beginPath(); g.moveTo(px,py); g.lineTo(px+Math.cos(a)*nl,py+Math.sin(a)*nl); g.stroke(); }); } };
     twig(2,H/2,W-6,H/2+4,1.6,3); for (let k=0;k<9;k++){ const x=20+k*25+R()*8, sg=k%2?1:-1, len=(H*0.42)*(1-k/12); twig(x,H/2+x/W*4,x+len*0.8,H/2+sg*len*0.75,2.0,1.6); }
-    const t=new THREE.CanvasTexture(c); t.anisotropy=4; _sprB=windify(lam({map:t, alphaTest:0.4, side:THREE.DoubleSide, vertexColors:true}),0.02,6.0); return _sprB; };
+    const t=new THREE.CanvasTexture(c); t.anisotropy=leafHiRes()?8:4; LEAF_TC.spr=t; _sprB=windify(lam({map:t, alphaTest:0.4, side:THREE.DoubleSide, vertexColors:true}),0.02,6.0); return _sprB; };
   const leafTexC={}; const leafMC=(p)=>{ const k=p.leaf; if (!leafTexC[k]) leafTexC[k]=windify(lam({map:leafClusterTexture(k,p.hue-0.005,p.l*1.16), alphaTest:0.45, side:THREE.DoubleSide, vertexColors:true}),0.06,6.0); return leafTexC[k]; };
   const genTree=(name, seed)=>()=>{ const p=SP[name]; let sd=seed*9301+49297; const r=()=>((sd=(sd*16807)%2147483647)/2147483647);
     const limbs=[], blobs=[]; const lean=V3((r()-0.5)*0.4,0,(r()-0.5)*0.4);
@@ -8873,7 +8897,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.28.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.29.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
   WORLDS.forEach(def=>{ if (!wVis(def)) return;
