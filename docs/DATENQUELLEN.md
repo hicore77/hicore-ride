@@ -1,12 +1,12 @@
 # Datenquellen und Lizenzen
 
-Stand 27.11.2026 (0.26.0). Maßstab: Alles muss auch bei kommerzieller Nutzung erlaubt sein (Heiko hält sich offen, später Geld damit zu verdienen). Nichts mit „nur nicht-kommerziell“ (NC) einbauen. Die Einschätzung ist nach bestem Wissen aus den veröffentlichten Lizenztexten, keine Rechtsberatung. Vor einem Verkauf die mit ⚠ markierten Punkte klären.
+Stand 28.11.2026 (0.27.0). Maßstab: Alles muss auch bei kommerzieller Nutzung erlaubt sein (Heiko hält sich offen, später Geld damit zu verdienen). Nichts mit „nur nicht-kommerziell“ (NC) einbauen. Die Einschätzung ist nach bestem Wissen aus den veröffentlichten Lizenztexten, keine Rechtsberatung. Vor einem Verkauf die mit ⚠ markierten Punkte klären.
 
 ## Unbedenklich, auch kommerziell (teils mit Quellenangabe)
 
 | Quelle | Wofür | Lizenz | Pflicht |
 |---|---|---|---|
-| OpenStreetMap | Straßen, Wege, Gebäude, Bäche, Wegkreuze, Orte (beide Welten) | ODbL 1.0 | Angabe „© OpenStreetMap-Mitwirkende“. Das Spiel selbst ist ein „Produced Work“. Unsere abgeleiteten Datendateien (z. B. `net.json`) müssen auf Wunsch unter ODbL weitergegeben werden; sie liegen ohnehin offen im Repo. |
+| OpenStreetMap | Straßen, Wege, Gebäude, Bäche, Wegkreuze, Orte (beide Welten); ab 0.27.0 Zittau-Objekte (`zg2/osm_obj.json`: Bänke, Hütten, Wegweiser, Tafeln, Hochsitze, Plätze, Strände, Parkplätze, Camping) | ODbL 1.0 | Angabe „© OpenStreetMap-Mitwirkende“. Das Spiel selbst ist ein „Produced Work“. Unsere abgeleiteten Datendateien (z. B. `net.json`) müssen auf Wunsch unter ODbL weitergegeben werden; sie liegen ohnehin offen im Repo. |
 | Overture Maps (Gebäude) | Zittau, Gebäudeumrisse | ODbL bzw. CDLA Permissive 2.0 | Quellenangabe |
 | TINITALY 1.1 (INGV) | Dolomiten, Höhenmodell 10 m | CC BY 4.0 | Zitat: Tarquini S., Isola I., Favalli M., Battistini A., Dotta G. (2023), TINITALY 1.1, INGV, doi 10.13127/tinitaly/1.1 |
 | Copernicus DEM GLO-30 | Höhen (Zittau; Dolomiten bis 0.25.5) | frei, auch kommerziell | „© DLR e.V. 2010–2014 und © Airbus Defence and Space GmbH 2014–2018, bereitgestellt unter COPERNICUS durch die Europäische Union und ESA“ |
@@ -18,7 +18,7 @@ Stand 27.11.2026 (0.26.0). Maßstab: Alles muss auch bei kommerzieller Nutzung e
 | Poly Haven | Texturen (Asphalt, Wiese, Waldboden, Fels, Felswand, Bachgeröll usw.), Himmelsfoto Dolomiten (HDRI sunflowers_puresky) | CC0 | keine, wird trotzdem genannt |
 | Three.js, Supabase-Client, QR-Code-Bibliothek | Programmcode | MIT | Lizenzhinweis im Code bleibt erhalten |
 | Eigene, im Spiel erzeugte Texturen und Modelle | Häuser, Fahrzeuge, Räder, Bäume | eigenes Werk | keine |
-| Higgsfield (Bild: GPT Image 2.6, 3D: Tripo H3.1, Töne: Mirelo SFX) | Dolomiten-Tiere ab 0.26.0: `alpkuh`, `gaemse`, `steinbock`, `murmel`, `yeti` (props/), Töne `dl_gaemse`, `dl_glocken`, `dl_steinbock`, `dl_adler`, `dl_yeti` (sfx/) | Higgsfield-Nutzungsbedingungen 4.4 (Stand 23.10.2026): Higgsfield beansprucht keine Rechte an Ergebnissen und schränkt die kommerzielle Nutzung nicht ein, für alle Tarife (erzeugt mit Ultra, 27.11.2026). Keine Exklusivität; Higgsfield darf gespeicherte Ergebnisse zum Training nutzen. | keine Pflicht, im Spiel trotzdem genannt |
+| Higgsfield (Bild: GPT Image 2.6, 3D: Tripo H3.1, Töne: Mirelo SFX) | Dolomiten-Tiere ab 0.26.0: `alpkuh`, `gaemse`, `steinbock`, `murmel`, `yeti` (props/); Olbersdorfer See ab 0.27.0: `zs_*` (Schaufelrad, Muschel, Wohnmobil, Wohnwagen, 2 Zelte, 6 Badegast-Figuren), Töne `dl_gaemse`, `dl_glocken`, `dl_steinbock`, `dl_adler`, `dl_yeti` (sfx/) | Higgsfield-Nutzungsbedingungen 4.4 (Stand 23.10.2026): Higgsfield beansprucht keine Rechte an Ergebnissen und schränkt die kommerzielle Nutzung nicht ein, für alle Tarife (erzeugt mit Ultra, 27.11.2026). Keine Exklusivität; Higgsfield darf gespeicherte Ergebnisse zum Training nutzen. | keine Pflicht, im Spiel trotzdem genannt |
 
 Weitere geprüfte, freie Quellen für später (noch nicht genutzt): ambientCG (CC0, Texturen), ShareTextures und cgbookcase (CC0), Quaternius und Kenney (CC0, einfache Modelle), Poly Haven Modelle (CC0, Felsen und Pflanzen als glTF), Freesound nur mit Filter CC0 (CC BY-NC dort nicht nehmen), LiDAR-Geländemodelle Provinz Bozen und Region Venetien (offen, Lizenz je Datensatz vor Nutzung prüfen).
 

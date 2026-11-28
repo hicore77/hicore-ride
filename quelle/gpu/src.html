@@ -241,7 +241,8 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
         Landbedeckung: © ESA WorldCover project 2021 (CC BY 4.0).<br>
         Bäume Zittau: Luftbild © GeoSN, dl-de/by-2-0; Orthofoto © ČÚZK (CC BY 4.0); Kronenhöhen Meta / WRI (CC BY 4.0).<br>
         Texturen: Poly Haven (CC0). Geräusche: elevenlabs.io. Wetter: open-meteo.com (CC BY 4.0).<br>
-        Tiere Dolomiten (Modelle und Laute): mit Higgsfield erzeugt (Tripo, Mirelo; eigene Nutzungsrechte laut Higgsfield-Nutzungsbedingungen).<br>
+        Tiere Dolomiten (Modelle und Laute), Schaufelrad, Muschel, Camper und Badegäste am Olbersdorfer See: mit Higgsfield erzeugt (Tripo, Mirelo; eigene Nutzungsrechte laut Higgsfield-Nutzungsbedingungen).<br>
+        Bänke, Hütten, Wegweiser, Plätze, Strände, Parkplätze Zittau: © OpenStreetMap-Mitwirkende (ODbL).<br>
         Programm: three.js (MIT), Supabase (MIT).</div></details>
       <div class="mpbox"><h4>Tageszeit &amp; Wetter</h4>
         <div class="mpgrid"><select id="tod"><option value="morgen">🌅 Morgen</option><option value="mittag">☀️ Mittag</option><option value="nachm" selected>🌤️ Nachmittag</option><option value="abend">🌇 Abend</option><option value="nacht">🌙 Nacht</option><option value="echt">🌐 Echte Tageszeit</option></select>
@@ -311,6 +312,7 @@ button.on{background:var(--ok);border-color:var(--ok);color:#111}
       </div>
       <div class="spage" id="sWelt" style="display:none"><button class="sback">‹ Einstellungen</button><h3>Welten</h3>
       <label class="chk"><input type="checkbox" id="unlockAll"> Alle Welten freischalten (zum Ausprobieren)</label>
+      <label class="chk"><input type="checkbox" id="zgBad"> Badegäste, Camper und Spieler am Olbersdorfer See (Zittau)</label>
       </div>
     </div>
 
@@ -648,6 +650,175 @@ function buildZgLakes(grp){ if (!zwInit()) return; const W=ZW.W, H=ZW.H, c=ZW.c,
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(v,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere();
   let big=null; Object.values(ZW.ex).forEach(e=>{ if (!big||e.n>big.n) big=e; }); const ey=big?zwAt(big.x,big.z):null;
   const m=new THREE.Mesh(g, waterMaterial(0x1d4a52, 1, big&&ey?new THREE.Vector3(big.x,ey.L+1.4,big.z):null)); m.receiveShadow=true; m.name='zgseen'; grp.add(m); window.ZGLAKE_V=n; }
+/* 0.27.0 (Heiko 27.11.: Olbersdorfer See und ganze Welt Zittau originalgetreu, „Platzhalter-Sachen entfernen, wenn die nicht an der Stelle sind“):
+   Objekte aus OpenStreetMap an ihrer echten Stelle (zg2/osm_obj.json, werkzeuge/osm_objekte.py, Stand siehe ZGOBJ.src): Bänke, Picknicktische, Schutzhütten,
+   Wegweiser, Infotafeln, Papierkörbe, Hochsitze, Wegkreuze, Bildstöcke, Denkmäler, Grenzsteine, Feuerstellen, Spielplätze, Stege, Sportplätze (Netze, Tore),
+   Strände (Sand), Parkplätze (Belag, parkende Autos), Campingplätze (Wohnwagen, Wohnmobile, Zelte), Sehenswürdigkeiten (Schaufelrad, Muschel am Olbersdorfer See).
+   Am Olbersdorfer See zusätzlich Badegäste (liegen, sitzen, stehen im Wasser, schwimmen), Spieler an den Volleyballfeldern, Leute am Campingplatz (Einstellungen: zgBad).
+   Gebaut wird zellweise (250 m) erst, wenn die Kamera in die Nähe kommt; Sichtweite je Ebene und Grafikstufe. Aus: window.NO_ZGOBJ, zufällige Platzhalter zurück: OLD_ZGPROPS */
+const ZO={on:false, cells:new Map(), idx:new Map(), CS:250, t:0, grp:null, swim:[], bathOn:true, lake:{x:2786,z:-4382,r:1300}};
+const ZO_MODELS=['zs_schaufelrad','zs_muschel','zs_wohnmobil','zs_wohnwagen','zs_zelt1','zs_zelt2','zs_frau_liegt','zs_mann_liegt','zs_mann_steht','zs_frau_steht','zs_paar','zs_schwimmer'];
+function zoR(i,k){ const s=Math.sin(i*12.9898+k*78.233)*43758.5453; return s-Math.floor(s); }
+function zoRad(){ const f=MINI?0.5:LITE?0.7:(PBR_Q0>=1?1.25:1); return {dec:1600, obj:400*f, big:560*f, bath:330*f}; }
+function zoBath(){ return ZO.bathOn && !(ATMO.rainAmt>0) && !(ATMO.sn && ATMO.sn!=='keine') && !(ATMO.night && ATMO.night()); }
+function zoInit(def, grp){ ZO.on=false; ZO.cells=new Map(); ZO.idx=new Map(); ZO.swim=[]; ZO.grp=null;
+  if (window.NO_ZGOBJ || !def || def.id!=='zittau' || !window.ZGOBJ) return; const D=window.ZGOBJ, CS=ZO.CS;
+  try{ ZO.bathOn=store.get('zgBad', true)!==false; }catch(e){ ZO.bathOn=true; }
+  const put=(x,z,o)=>{ const k=Math.floor(x/CS)+','+Math.floor(z/CS); let l=ZO.idx.get(k); if (!l) ZO.idx.set(k,l=[]); l.push(o); };
+  let id=0; for (const k in D.p) for (const q of D.p[k]) put(q[0],q[1],{t:'p', k, x:q[0], z:q[1], dir:typeof q[2]==='number'?q[2]:null, nm:typeof q[2]==='string'?q[2]:(q[3]||''), id:id++});
+  ZO.skip=[]; for (const q of (D.p.sehensw||[]).concat(D.p.rastplatz||[])) if (/schaufelrad|muschel/i.test(String(q[2])+String(q[3]||''))) ZO.skip.push([q[0],q[1]]);   /* OSM-Schutzhütte an der Muschel ist die Muschel selbst */
+  for (const a of D.a){ const f=a[1]; let cx=0, cz=0, n=f.length/2; for (let i=0;i<f.length;i+=2){ cx+=f[i]; cz+=f[i+1]; } cx/=n; cz/=n; put(cx,cz,{t:'a', k:a[0], f, x:cx, z:cz, nm:a[2]||'', sf:a[3]||'', ty:a[4]||'', id:id++}); }
+  for (const l of D.l){ const f=l[1]; put(f[0],f[1],{t:'l', k:l[0], f, x:f[0], z:f[1], id:id++}); }
+  ZO.bare=new Map(); for (const a of D.a){ const k=a[0], sf=a[3]||''; if (!(k==='strand' || (k==='parking' && !/grass/.test(sf) && !/multi|underground|rooftop/.test(a[4]||'')) || (/^pitch:.*(volleyball|tennis)/.test(k)))) continue; const P=zoPoly(a[1]); if (P.length<3) continue; let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; for (const p of P){ x0=Math.min(x0,p[0]); x1=Math.max(x1,p[0]); z0=Math.min(z0,p[1]); z1=Math.max(z1,p[1]); } if ((x1-x0)*(z1-z0)>250000) continue;
+    for (let i=Math.floor(x0/50);i<=Math.floor(x1/50);i++) for (let j=Math.floor(z0/50);j<=Math.floor(z1/50);j++){ const kk=i+','+j; let l=ZO.bare.get(kk); if (!l) ZO.bare.set(kk,l=[]); l.push(P); } }
+  ZO.grp=new THREE.Group(); ZO.grp.name='osmobj'; grp.add(ZO.grp); ZO.on=true;
+  const miss=ZO_MODELS.filter(n=>!PROP_LIB[n]); if (miss.length) loadProps(miss).then(()=>{ ZO.cells.forEach(c=>{ if (c.needM) c.rebuild=true; }); }).catch(e=>console.warn('zs',e));
+  window.ZGOBJN={pts:id, cells:ZO.idx.size}; }
+function zoBare(x,z){ const l=ZO.bare&&ZO.bare.get(Math.floor(x/50)+','+Math.floor(z/50)); if (!l) return false; for (const P of l) if (inPoly(x,z,P)) return true; return false; }
+function zoNearW(x,z,R){ if (!ZW.on) return true; for (let d=0; d<=R; d+=12) for (let k=0;k<12;k++){ const a=k/12*6.283; const q=zwAt(x+Math.cos(a)*d,z+Math.sin(a)*d); if (q && q.wf>0.5) return true; if (d===0) break; } return false; }
+/* nächster Punkt auf Straße oder Weg (für Ausrichtung und Abstand) */
+function zoPath(x,z,R){ let b={d:1e9,px:x,pz:z,w:0}; try{ const g=gnNear(x,z,R); if (g.k>=0 && g.px!==undefined) b={d:g.d,px:g.px,pz:g.pz,w:(g.w||6)/2}; }catch(e){}
+  if (WAYS_ON){ gtSideIdx(); const C=20, r=Math.ceil(R/C), cx=Math.floor(x/C), cz=Math.floor(z/C); for (let a=-r;a<=r;a++) for (let c=-r;c<=r;c++){ const l=WAYS_H.get((cx+a)+','+(cz+c)); if (!l) continue;
+    for (let i=0;i<l.length;i+=5){ const ax=l[i], az=l[i+1], dx=l[i+2]-ax, dz=l[i+3]-az, ll=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/ll)), px=ax+dx*t, pz=az+dz*t, d=Math.hypot(x-px,z-pz); if (d-l[i+4]<b.d-b.w) b={d,px,pz,w:l[i+4]}; } } }
+  return b; }
+function zoBld(x,z,m){ const BI=gtBldIndex(); if (!BI) return false; const i0=Math.floor(x/GT.S), j0=Math.floor(z/GT.S); for (let i=i0-1;i<=i0+1;i++) for (let j=j0-1;j<=j0+1;j++){ const L=BI.get(i+','+j); if (L) for (const o of L){ if (Math.abs(o.cx-x)>60||Math.abs(o.cz-z)>60) continue; if (o.P && bldNearP(o,x,z,m)) return true; } } return false; }
+function zoTree(x,z){ try{ return gnDopW(x,z)>0; }catch(e){ return false; } }
+function zoFree(x,z,m){ const p=zoPath(x,z,m+8); if (p.d<p.w+m) return false; if (zoBld(x,z,m)) return false; const q=ZW.on?zwAt(x,z):null; if (q && q.wf>0.05) return false; return true; }
+function zoPoly(f){ const P=[]; for (let i=0;i<f.length;i+=2) P.push([f[i],f[i+1]]); if (P.length>2 && P[0][0]===P[P.length-1][0] && P[0][1]===P[P.length-1][1]) P.pop(); return P; }
+/* Rechteck-Näherung einer Fläche: Achse der längsten Kante */
+function zoRect(P){ let L=0, ang=0; for (let i=0;i<P.length;i++){ const a=P[i], b=P[(i+1)%P.length], l=Math.hypot(b[0]-a[0],b[1]-a[1]); if (l>L){ L=l; ang=Math.atan2(b[0]-a[0],b[1]-a[1]); } }
+  const ux=Math.sin(ang), uz=Math.cos(ang); let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9; for (const p of P){ const u=p[0]*ux+p[1]*uz, v=p[0]*uz-p[1]*ux; a0=Math.min(a0,u); a1=Math.max(a1,u); b0=Math.min(b0,v); b1=Math.max(b1,v); }
+  const cu=(a0+a1)/2, cv=(b0+b1)/2; return {ang, ux, uz, len:a1-a0, wid:b1-b0, cx:cu*ux+cv*uz, cz:cu*uz-cv*ux, a0,a1,b0,b1}; }
+function zoArea(P){ let s=0; for (let i=0;i<P.length;i++){ const a=P[i], b=P[(i+1)%P.length]; s+=a[0]*b[1]-b[0]*a[1]; } return Math.abs(s)/2; }
+/* zusammengeführte Einfachgeometrie je Zelle (Farbe je Ecke) */
+const ZOG={};
+function zoGeo(){ if (ZOG.box) return ZOG; ZOG.box=new THREE.BoxGeometry(1,1,1).toNonIndexed(); ZOG.cyl=new THREE.CylinderGeometry(0.5,0.5,1,8).toNonIndexed(); ZOG.cyl5=new THREE.CylinderGeometry(0.5,0.5,1,5).toNonIndexed();
+  ZOG.whl=new THREE.CylinderGeometry(0.32,0.32,0.22,10).rotateZ(Math.PI/2).toNonIndexed(); ZOG.cone=new THREE.ConeGeometry(0.5,1,12,1,true).toNonIndexed(); ZOG.ico=new THREE.IcosahedronGeometry(0.5,0).toNonIndexed();
+  const sh=new THREE.Shape([[-2.15,0.32],[2.15,0.32],[2.2,0.72],[1.05,0.86],[0.45,1.42],[-1.55,1.45],[-2.15,1.0]].map(p=>new THREE.Vector2(p[0],p[1]))); const cb=new THREE.ExtrudeGeometry(sh,{depth:1.74,bevelEnabled:false}); cb.translate(0,0,-0.87); cb.rotateY(-Math.PI/2); ZOG.car=cb.toNonIndexed();
+  const gl=new THREE.Shape([[0.95,0.9],[0.42,1.36],[-1.5,1.38],[-1.95,0.95]].map(p=>new THREE.Vector2(p[0],p[1]))); const cg=new THREE.ExtrudeGeometry(gl,{depth:1.77,bevelEnabled:false}); cg.translate(0,0,-0.885); cg.rotateY(-Math.PI/2); ZOG.glass=cg.toNonIndexed(); return ZOG; }
+function zoBuf(){ return {p:[], n:[], c:[]}; }
+const _zm=new THREE.Matrix4(), _zm2=new THREE.Matrix4(), _zq=new THREE.Quaternion(), _zq2=new THREE.Quaternion(), _zv=new THREE.Vector3(), _zs=new THREE.Vector3(), _zn=new THREE.Matrix3(), _ze=new THREE.Euler(), _zt=new THREE.Vector3();
+/* Teil in einen Objektrahmen F={x,y,z,yaw} setzen: lokale Lage (lx,ly,lz), Größe (sx,sy,sz), Drehung rx/ry/rz, Farbe [r,g,b] oder Funktion je Dreieck */
+function zoPart(B, F, geo, lx,ly,lz, sx,sy,sz, col, rx,ry,rz){ const cy=Math.cos(F.yaw), sy0=Math.sin(F.yaw); _zv.set(F.x+lx*cy+lz*sy0, F.y+ly, F.z-lx*sy0+lz*cy);
+  _ze.set(rx||0,(ry||0)+F.yaw,rz||0,'YXZ'); _zq.setFromEuler(_ze); _zm.compose(_zv,_zq,_zs.set(sx,sy,sz)); _zn.getNormalMatrix(_zm);
+  const P=geo.attributes.position, N=geo.attributes.normal, n=P.count; for (let i=0;i<n;i++){ _zt.set(P.getX(i),P.getY(i),P.getZ(i)).applyMatrix4(_zm); B.p.push(_zt.x,_zt.y,_zt.z); _zt.set(N.getX(i),N.getY(i),N.getZ(i)).applyMatrix3(_zn).normalize(); B.n.push(_zt.x,_zt.y,_zt.z); const c=typeof col==='function'?col((i/3)|0):col; B.c.push(c[0],c[1],c[2]); } }
+function zoMesh(B, mat, name){ if (!B.p.length) return null; const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(B.p,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(B.n,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(B.c,3)); if (B.u) g.setAttribute('uv',new THREE.Float32BufferAttribute(B.u,2)); g.computeBoundingSphere(); const m=new THREE.Mesh(g,mat); m.name=name; m.receiveShadow=true; m.castShadow=false; return m; }
+function zoMats(){ if (ZO.mat) return ZO.mat; const pm=new THREE.MeshLambertMaterial({vertexColors:true, side:THREE.DoubleSide});
+  const dec=k=>{ const t=photoTex(k,512); const m=new THREE.MeshLambertMaterial({vertexColors:true, map:t||null, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-4}); m.userData.noSnow=false; return m; };
+  ZO.mat={p:pm, sand:dec('sand')||dec('sandfoto'), asph:dec('asphalt'), kies:dec('schotter')}; return ZO.mat; }
+/* Fläche auf das Gelände legen (Dreiecke bis ca. 3 m Kantenlänge geteilt, Höhe wie das sichtbare Kachelnetz) */
+function zoDecal(B, P, col, uvs, off){ off=(off||0.05)+(window.ZODOFF||0); if (P.length<3) return; const V=P.map(p=>new THREE.Vector2(p[0],p[1])); if (THREE.ShapeUtils.isClockWise(V)) V.reverse(); let T; try{ T=THREE.ShapeUtils.triangulateShape(V,[]); }catch(e){ return; }
+  const H=(x,z)=>gtMeshH(x,z)+off, em=(a,b,c)=>{ const ya=H(a[0],a[1]), yb=H(b[0],b[1]), yc=H(c[0],c[1]); const ux=b[0]-a[0], uy=yb-ya, uz=b[1]-a[1], vx=c[0]-a[0], vy=yc-ya, vz=c[1]-a[1]; let nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx; const l=Math.hypot(nx,ny,nz)||1; if (ny<0){ nx=-nx; ny=-ny; nz=-nz; }
+      if (ZO.wcut && !zoNearW((a[0]+b[0]+c[0])/3,(a[1]+b[1]+c[1])/3,ZO.wcut)) return;
+      for (const [q,y] of [[a,ya],[c,yc],[b,yb]]){ B.p.push(q[0],y,q[1]); B.n.push(nx/l,ny/l,nz/l); B.c.push(col[0],col[1],col[2]); B.u.push(q[0]/uvs,q[1]/uvs); } };
+  B.u=B.u||[]; const sub=(a,b,c,d)=>{ const l0=Math.hypot(b[0]-a[0],b[1]-a[1]), l1=Math.hypot(c[0]-b[0],c[1]-b[1]), l2=Math.hypot(a[0]-c[0],a[1]-c[1]), m=Math.max(l0,l1,l2); if (m<3.2||d>9) return em(a,b,c);
+    if (m===l0){ const q=[(a[0]+b[0])/2,(a[1]+b[1])/2]; sub(a,q,c,d+1); sub(q,b,c,d+1); } else if (m===l1){ const q=[(b[0]+c[0])/2,(b[1]+c[1])/2]; sub(a,b,q,d+1); sub(a,q,c,d+1); } else { const q=[(c[0]+a[0])/2,(c[1]+a[1])/2]; sub(a,b,q,d+1); sub(q,b,c,d+1); } };
+  for (const [i,j,k] of T) sub([V[i].x,V[i].y],[V[j].x,V[j].y],[V[k].x,V[k].y],0); }
+const ZOC={holz:[0.42,0.3,0.2], holzd:[0.3,0.21,0.14], dach:[0.28,0.2,0.16], stein:[0.6,0.59,0.56], granit:[0.5,0.5,0.49], gruen:[0.17,0.3,0.2], weiss:[0.92,0.92,0.9], netz:[0.08,0.08,0.08], metall:[0.45,0.47,0.5], rot:[0.55,0.2,0.15], schwarz:[0.05,0.05,0.05]};
+const ZO_CARC=[[0.85,0.86,0.86],[0.07,0.07,0.08],[0.55,0.57,0.6],[0.33,0.34,0.36],[0.12,0.2,0.38],[0.5,0.08,0.07],[0.75,0.76,0.78],[0.2,0.26,0.22]];
+function zoCar(B, x, z, yaw, k){ const c=ZO_CARC[Math.floor(zoR(k,7)*ZO_CARC.length)], F={x,y:gtMeshH(x,z),z,yaw}, G=zoGeo(); zoPart(B,F,G.car,0,0,0,1,1,1,c); zoPart(B,F,G.glass,0,0,0,1,1,1,[0.06,0.08,0.1]);
+  for (const [lx,lz] of [[-0.8,1.35],[0.8,1.35],[-0.8,-1.35],[0.8,-1.35]]) zoPart(B,F,G.whl,lx,0.32,lz,1,1,1,ZOC.schwarz); }
+/* Sonnenschirm mit Streifen */
+function zoSchirm(B, x, z, k){ const F={x,y:gtMeshH(x,z),z,yaw:zoR(k,3)*6.28}, G=zoGeo(), cs=[[0.85,0.15,0.12],[0.12,0.35,0.7],[0.95,0.75,0.1],[0.1,0.55,0.4]], c=cs[Math.floor(zoR(k,4)*cs.length)];
+  zoPart(B,F,G.cyl,0,1.1,0,0.04,2.2,0.04,ZOC.weiss); zoPart(B,F,G.cone,0,2.15,0,2.1,0.55,2.1,i=>(i%2)?c:ZOC.weiss, 0.12*(zoR(k,5)-0.5)); }
+function zoBuild(c){ const L=ZO.idx.get(c.key)||[], G=zoGeo(), M=zoMats(), PB=zoBuf(), SB=zoBuf(), AB=zoBuf(), KB=zoBuf(), I={}, BI={}, R=zoRad();
+  const inst=(n,x,y,z,yaw,s,big)=>{ const T=big?BI:I; (T[n]||(T[n]=[])).push(new THREE.Matrix4().compose(new THREE.Vector3(x,y,z), new THREE.Quaternion().setFromAxisAngle(UPV,yaw), new THREE.Vector3(s,s,s))); };
+  const face=(o,clr)=>{ let x=o.x, z=o.z; const p=zoPath(x,z,25); let yaw=zoR(o.id,1)*6.28; if (p.d<25){ if (p.d<p.w+clr && p.d>0.05){ const k=(p.w+clr)/p.d; x=p.px+(x-p.px)*k; z=p.pz+(z-p.pz)*k; } yaw=Math.atan2(p.px-x,p.pz-z); }
+    if (o.dir!=null){ const d=o.dir*Math.PI/180; yaw=Math.atan2(Math.sin(d),-Math.cos(d)); } return {x,z,yaw,y:gtMeshH(x,z)}; };
+  const nearLake=o=>Math.hypot(o.x-ZO.lake.x,o.z-ZO.lake.z)<ZO.lake.r;
+  let needM=false;
+  for (const o of L){ try{
+    if (o.t==='p'){ const k=o.k;
+      if (k==='bench'){ const f=face(o,0.9); inst('bank',f.x,f.y,f.z,f.yaw,1); }
+      else if (k==='wegweiser'){ const f=face(o,0.7); inst('schild_holz',f.x,f.y,f.z,f.yaw+Math.PI/2,1); }
+      else if (k==='picnic'){ const f=face(o,1.4), F={...f}; zoPart(PB,F,G.box,0,0.74,0,0.8,0.05,1.9,ZOC.holz); zoPart(PB,F,G.box,0,0.37,0,0.12,0.72,1.5,ZOC.holzd); for (const s of [-1,1]){ zoPart(PB,F,G.box,s*0.68,0.45,0,0.3,0.05,1.9,ZOC.holz); zoPart(PB,F,G.box,s*0.68,0.22,0.7,0.08,0.44,0.08,ZOC.holzd); zoPart(PB,F,G.box,s*0.68,0.22,-0.7,0.08,0.44,0.08,ZOC.holzd); } }
+      else if (k==='tafel'||k==='info'){ const f=face(o,0.8), F={...f}; for (const s of [-0.55,0.55]) zoPart(PB,F,G.box,s,0.95,0,0.09,1.9,0.09,ZOC.holzd); zoPart(PB,F,G.box,0,1.35,0,1.25,0.85,0.05,[0.75,0.72,0.62]); zoPart(PB,F,G.box,0,1.86,-0.05,1.45,0.05,0.4,ZOC.dach,0.35); }
+      else if (k==='waste'){ const f=face(o,0.5), F={...f}; zoPart(PB,F,G.cyl,0,0.45,0,0.06,0.9,0.06,ZOC.metall); zoPart(PB,F,G.cyl,0,0.75,0.2,0.38,0.5,0.38,[0.18,0.3,0.22]); }
+      else if (k==='hochsitz'){ const f=face(o,6), F={...f, yaw:f.yaw+Math.PI}; for (const [a,b] of [[-0.7,-0.7],[0.7,-0.7],[-0.7,0.7],[0.7,0.7]]) zoPart(PB,F,G.cyl5,a,1.9,b,0.13,3.8,0.13,ZOC.holzd); zoPart(PB,F,G.box,0,4.2,0,1.7,1.0,1.7,ZOC.holz); zoPart(PB,F,G.box,0,5.0,0,1.95,0.08,1.95,ZOC.dach,0.12); zoPart(PB,F,G.box,0,1.9,-1.25,0.5,4.0,0.06,ZOC.holzd,-0.3); }
+      else if (k==='shelter'){ if (!ZO.skip.some(q=>Math.hypot(q[0]-o.x,q[1]-o.z)<14)) zoHut(PB, face(o,1.8), 3.6, 2.6); }
+      else if (k==='kreuz'){ const f=face(o,1.2), F={...f}; zoPart(PB,F,G.box,0,0.2,0,0.6,0.4,0.6,ZOC.granit); zoPart(PB,F,G.box,0,1.3,0,0.18,1.9,0.14,ZOC.granit); zoPart(PB,F,G.box,0,1.75,0,0.85,0.16,0.14,ZOC.granit); }
+      else if (k==='bildstock'){ const f=face(o,1.2), F={...f}; zoPart(PB,F,G.box,0,0.9,0,0.45,1.8,0.45,ZOC.stein); zoPart(PB,F,G.box,0,1.95,0,0.6,0.3,0.6,ZOC.dach); }
+      else if (k==='denkmal'){ const f=face(o,1.5), F={...f}; zoPart(PB,F,G.box,0,0.15,0,1.4,0.3,0.8,ZOC.stein); zoPart(PB,F,G.box,0,0.95,0,1.0,1.3,0.38,ZOC.granit); }
+      else if (k==='grenzstein'){ const f=face(o,0.6), F={...f}; zoPart(PB,F,G.box,0,0.22,0,0.26,0.44,0.18,[0.66,0.64,0.6]); }
+      else if (k==='stein'){ const f=face(o,1.2); inst('fels_1',f.x,f.y-0.2,f.z,f.yaw,0.9+zoR(o.id,2)*0.6); }
+      else if (k==='feuer'){ const f=face(o,2), F={...f}; for (let i=0;i<9;i++){ const a=i/9*6.28; zoPart(PB,F,G.ico,Math.cos(a)*0.6,0.1,Math.sin(a)*0.6,0.28,0.22,0.28,ZOC.granit); } zoPart(PB,F,G.cyl,0,0.02,0,0.9,0.04,0.9,[0.12,0.1,0.09]); }
+      else if (k==='spielplatz'){ zoSpiel(PB, face(o,4)); }
+      else if (k==='sehensw' && /schaufelrad/i.test(o.nm)){ const f=face(o,6); if (PROP_LIB.zs_schaufelrad) inst('zs_schaufelrad',f.x,f.y-0.1,f.z,f.yaw+Math.PI/2,1,true); else needM=true; }
+      else if (k==='rastplatz' && /muschel/i.test(o.nm)){ const f=face(o,5); if (PROP_LIB.zs_muschel) inst('zs_muschel',f.x,f.y-0.15,f.z,f.yaw,1,true); else needM=true; }
+      else if (k==='lok'){ const f=face(o,3); if (PROP_LIB.zsb_lok) inst('zsb_lok',f.x,f.y,f.z,f.yaw+Math.PI/2,0.62,true); }
+    } else if (o.t==='a'){ const P=zoPoly(o.f), k=o.k; if (P.length<3) continue; const A=zoArea(P);
+      if (k==='strand'){ const gr=/grass/.test(o.sf)||o.nm==='FKK'&&false; if (!gr){ ZO.wcut=55; zoDecal(SB,P,[1.04,1,0.94],7,0.06); ZO.wcut=0; }   /* Sand nur bis ca. 55 m vom Wasser (OSM-Strand schließt oft die Liegewiese ein) */ if (nearLake(o)) zoBeach(c,o,P,A); }
+      else if (k.startsWith('pitch:')){ const sp=k.slice(6), r=zoRect(P); if (/volleyball/.test(sp)){ if (/sand/.test(o.sf)||/beach/.test(sp)) zoDecal(SB,P,[1.04,1,0.92],6,0.07); zoNet(PB,r,2.43,1.0); if (nearLake(o)) zoPlayers(c,o,r); }
+        else if (/tennis/.test(sp)){ const cl=/clay/.test(o.sf)?[0.85,0.45,0.3]:[0.35,0.5,0.4]; zoDecal(AB,P,cl,4,0.07); zoNet(PB,r,1.07,0.9); }
+        else if (/soccer/.test(sp) && r.len>25){ zoGoals(PB,r); } }
+      else if (k==='parking'){ if (/multi|underground|rooftop/.test(o.ty) || A<60 || A>40000) continue; const gr=/grass/.test(o.sf), kies=/gravel|ground|dirt|unpaved|compacted/.test(o.sf); if (!gr) zoDecal(kies?KB:AB,P,kies?[0.9,0.88,0.84]:[0.82,0.82,0.82],4,0.06); zoPark(PB,o,P,A); }
+      else if (k==='camp'){ zoCamp(c,o,P,A); if (!PROP_LIB.zs_wohnwagen) needM=true; }
+      else if (k==='shelter'){ const r=zoRect(P); if (r.len<20 && !ZO.skip.some(q=>Math.hypot(q[0]-o.x,q[1]-o.z)<14)) zoHut(PB,{x:r.cx,z:r.cz,y:gtMeshH(r.cx,r.cz),yaw:r.ang+Math.PI/2},Math.max(2.5,r.len),Math.max(2,r.wid)); }
+      else if (k==='steg'){ zoSteg(PB,P,true); }
+      else if (k==='spielplatz' && A<6000){ const r=zoRect(P); zoSpiel(PB,{x:r.cx,z:r.cz,y:gtMeshH(r.cx,r.cz),yaw:r.ang}); }
+    } else if (o.t==='l' && o.k==='steg'){ zoSteg(PB,zoPoly(o.f),false); }
+  }catch(e){ if (!window._zoErr){ window._zoErr=1; console.warn('zgobj',o.k,e); } } }
+  const g=new THREE.Group(); g.name='zo'+c.key; const lay=(nm,R)=>{ const q=new THREE.Group(); q.name=nm; q.userData.R=R; g.add(q); return q; };
+  const Ld=lay('dec',R.dec), Lo=lay('obj',R.obj), Lb=lay('big',R.big), La=lay('bath',R.bath); La.userData.bath=true;
+  for (const [B,m] of [[SB,M.sand],[AB,M.asph],[KB,M.kies]]){ const me=zoMesh(B,m,'zobelag'); if (me) Ld.add(me); }
+  { const me=zoMesh(PB,M.p,'zoteile'); if (me){ me.castShadow=true; Lo.add(me); } }
+  if (c.cars && c.cars.p.length){ const me=zoMesh(c.cars,M.p,'zoautos'); Lb.add(me); }
+  for (const n in I) placeInstanced(Lo,n,I[n]); for (const n in BI) placeInstanced(Lb,n,BI[n]);
+  if (c.bath) for (const n in c.bath) placeInstanced(La,n,c.bath[n]);
+  if (c.bigI) for (const n in c.bigI) placeInstanced(Lb,n,c.bigI[n]);
+  if (c.schirm && c.schirm.p.length) La.add(zoMesh(c.schirm,M.p,'zoschirme'));
+  if (c.swim && c.swim.length && PROP_LIB.zs_schwimmer){ const lib=PROP_LIB.zs_schwimmer; c.swimIM=lib.map(({geo,mat})=>{ const im=mkIM(geo,mat,c.swim.length); im.castShadow=false; La.add(im); return im; }); ZO.swim.push(c); }
+  c.g=g; c.needM=needM||!!c.needBathM; ZO.grp.add(g); }
+function zoHut(B, f, len, wid){ const G=zoGeo(), F={...f}, h=2.2; for (const [a,b] of [[-1,-1],[1,-1],[-1,1],[1,1]]) zoPart(B,F,G.box,a*(len/2-0.15),h/2,b*(wid/2-0.15),0.15,h,0.15,ZOC.holzd);
+  zoPart(B,F,G.box,0,h/2,-wid/2+0.1,len-0.1,h,0.06,ZOC.holz); zoPart(B,F,G.box,-len/2+0.1,h/2,-0.1,0.06,h,wid-0.3,ZOC.holz); zoPart(B,F,G.box,len/2-0.1,h/2,-0.1,0.06,h,wid-0.3,ZOC.holz);
+  const ra=0.5, rl=(wid/2+0.35)/Math.cos(ra); for (const s of [-1,1]) zoPart(B,F,G.box,0,h+Math.sin(ra)*rl/2,s*Math.cos(ra)*rl/2,len+0.6,0.07,rl,ZOC.dach,s*ra);
+  zoPart(B,F,G.box,0,0.45,-wid/2+0.45,len-0.6,0.05,0.4,ZOC.holz); zoPart(B,F,G.box,0,0.74,0,Math.min(1.6,len-1.2),0.05,0.7,ZOC.holz); zoPart(B,F,G.box,0,0.37,0,0.1,0.72,0.5,ZOC.holzd); }
+function zoSpiel(B, f){ const G=zoGeo(), F={...f}; for (const s of [-1,1]){ zoPart(B,F,G.cyl5,s*1.6,1.2,0.5,0.1,2.6,0.1,ZOC.holzd,0.2); zoPart(B,F,G.cyl5,s*1.6,1.2,-0.5,0.1,2.6,0.1,ZOC.holzd,-0.2); }
+  zoPart(B,F,G.cyl,0,2.45,0,0.1,3.4,0.1,ZOC.holzd,0,0,Math.PI/2); for (const s of [-0.7,0.7]){ zoPart(B,F,G.box,s,1.4,0,0.02,2.0,0.02,ZOC.metall); zoPart(B,F,G.box,s,0.42,0,0.45,0.04,0.18,[0.8,0.2,0.15]); }
+  zoPart(B,F,G.box,4,1.0,0,1.0,2.0,1.0,ZOC.holz); zoPart(B,F,G.box,4,0.95,1.7,0.6,0.05,2.6,[0.2,0.5,0.75],-0.65); }
+function zoNet(B, r, h, ext){ const G=zoGeo(), F={x:r.cx,z:r.cz,y:gtMeshH(r.cx,r.cz),yaw:r.ang}, w=r.wid/2+ext; for (const s of [-1,1]) zoPart(B,F,G.cyl,s*w,h/2+0.05,0,0.08,h+0.1,0.08,ZOC.metall);
+  const nh=h>2?0.95:0.85, nw=w*2-0.3; for (let y=h-nh; y<h-0.05; y+=0.19) zoPart(B,F,G.box,0,y,0,nw,0.012,0.012,ZOC.netz); for (let x=-nw/2; x<=nw/2+0.01; x+=0.3) zoPart(B,F,G.box,x,h-nh/2,0,0.012,nh,0.012,ZOC.netz);   /* Netz als Maschen, nicht als Wand */
+  zoPart(B,F,G.box,0,h-0.03,0,nw,0.06,0.025,ZOC.weiss); zoPart(B,F,G.box,0,h-nh,0,nw,0.04,0.02,ZOC.weiss); }
+function zoGoals(B, r){ const G=zoGeo(), big=r.len>70, gw=big?7.32:5, gh=big?2.44:2; for (const s of [-1,1]){ const u=s*(r.len/2-0.6), F={x:r.cx+r.ux*u,z:r.cz+r.uz*u,yaw:r.ang}; F.y=gtMeshH(F.x,F.z);
+  for (const t of [-1,1]) zoPart(B,F,G.box,t*gw/2,gh/2,0,0.12,gh,0.12,ZOC.weiss); zoPart(B,F,G.box,0,gh,0,gw+0.12,0.12,0.12,ZOC.weiss); zoPart(B,F,G.box,0,gh*0.55,s*0.9,gw,gh*0.9,0.02,[0.75,0.75,0.75],s*0.45); } }
+function zoSteg(B, P, closed){ const G=zoGeo(), wy=(x,z)=>{ const q=ZW.on?zwAt(x,z):null; return Math.max(gtMeshH(x,z), q&&q.wf>0.1?q.L:-1e9)+0.4; };
+  if (closed){ const r=zoRect(P); const F={x:r.cx,z:r.cz,y:wy(r.cx,r.cz)-0.06,yaw:r.ang}; zoPart(B,F,G.box,0,0,0,r.wid,0.12,r.len,ZOC.holz); return; }
+  for (let i=0;i+1<P.length;i++){ const a=P[i], b=P[i+1], l=Math.hypot(b[0]-a[0],b[1]-a[1]); if (l<0.3) continue; const mx=(a[0]+b[0])/2, mz=(a[1]+b[1])/2, F={x:mx,z:mz,y:wy(mx,mz),yaw:Math.atan2(b[0]-a[0],b[1]-a[1])};
+    zoPart(B,F,G.box,0,0,0,2.0,0.12,l+0.05,ZOC.holz); for (let t=0;t<=l;t+=3){ for (const s of [-0.9,0.9]){ const u=t-l/2; zoPart(B,F,G.cyl5,s,-1.2,u,0.16,2.4,0.16,ZOC.holzd); } } } }
+/* Parkplatz: Reihen entlang der längsten Kante, Besetzung je nach Ort */
+function zoPark(B, o, P, A){ const r=zoRect(P), occ=Math.hypot(o.x-ZO.lake.x,o.z-ZO.lake.z)<ZO.lake.r?0.55:0.35; let n=0; const rowW=5.3, sp=2.6;
+  for (let v=r.b0+rowW/2+0.3; v<r.b1-rowW/2; v+=rowW+(Math.floor((v-r.b0)/rowW)%2?6:0)){ for (let u=r.a0+1.6; u<r.a1-1.4; u+=sp){ n++; if (zoR(o.id*31+n,9)>occ || n>400) continue; const x=u*r.ux+v*r.uz, z=u*r.uz-v*r.ux;
+    let ok=inPoly(x,z,P); for (const [du,dv] of [[1.1,2.3],[-1.1,2.3],[1.1,-2.3],[-1.1,-2.3]]) if (ok && !inPoly(x+du*r.ux+dv*r.uz, z+du*r.uz-dv*r.ux, P)) ok=false; if (!ok) continue;
+    const g=zoPath(x,z,10); if (g.d<g.w+1.4 || zoBld(x,z,1.2) || zoTree(x,z)) continue; const C=ZO._cars; zoCar(C,x,z,r.ang+Math.PI/2+(zoR(n,11)<0.5?0:Math.PI)+(zoR(n,12)-0.5)*0.08,o.id*7+n); } } }
+/* Campingplatz: Stellplätze im 11-m-Raster, nicht unter Bäumen, nicht auf Wegen oder in Gebäuden */
+function zoCamp(c, o, P, A){ if (!PROP_LIB.zs_wohnwagen) return; const r=zoRect(P), T=c.bigI||(c.bigI={}), lake=Math.hypot(o.x-ZO.lake.x,o.z-ZO.lake.z)<ZO.lake.r; let n=0, pers=0;
+  for (let u=r.a0+6; u<r.a1-5; u+=11) for (let v=r.b0+6; v<r.b1-5; v+=11){ n++; const j=(zoR(o.id+n,1)-0.5)*3, x=u*r.ux+v*r.uz+j, z=u*r.uz-v*r.ux-j; if (!inPoly(x,z,P) || zoR(o.id+n,2)>0.5) continue;
+    if (!zoFree(x,z,3.2) || zoTree(x,z) || zoTree(x+3,z) || zoTree(x-3,z) || zoTree(x,z+3) || zoTree(x,z-3)) continue; const q=zoR(o.id+n,3), nm=q<0.38?'zs_wohnwagen':q<0.68?'zs_wohnmobil':q<0.85?'zs_zelt1':'zs_zelt2';
+    const yaw=r.ang+(zoR(o.id+n,4)<0.5?0:Math.PI)+(zoR(o.id+n,5)-0.5)*0.3; (T[nm]||(T[nm]=[])).push(new THREE.Matrix4().compose(new THREE.Vector3(x,gtMeshH(x,z),z), new THREE.Quaternion().setFromAxisAngle(UPV,yaw), new THREE.Vector3(1,1,1)));
+    if (lake && ZO.bathOn && pers<8 && zoR(o.id+n,6)<0.3){ const px=x+Math.cos(yaw)*3.2, pz=z-Math.sin(yaw)*3.2; if (zoFree(px,pz,0.6)){ pers++; const B=c.bath||(c.bath={}), pn=zoR(n,8)<0.5?'zs_mann_steht':'zs_frau_steht'; (B[pn]||(B[pn]=[])).push(new THREE.Matrix4().compose(new THREE.Vector3(px,gtMeshH(px,pz),pz), new THREE.Quaternion().setFromAxisAngle(UPV,zoR(n,9)*6.28), new THREE.Vector3(1,1,1))); } } } }
+/* Badegäste am Strand (Olbersdorfer See), Leute im flachen Wasser und Schwimmer */
+function zoBeach(c, o, P, A){ if (!ZO.bathOn) return; if (!PROP_LIB.zs_frau_liegt){ c.needBathM=true; return; } const B=c.bath||(c.bath={}), S=c.schirm||(c.schirm=zoBuf()), fkk=o.nm==='FKK', nMax=Math.min(fkk?14:42, Math.round(A/(fkk?220:180)));
+  const r=zoRect(P); let n=0, tries=0; const mk=(nm,x,y,z,yaw)=>(B[nm]||(B[nm]=[])).push(new THREE.Matrix4().compose(new THREE.Vector3(x,y,z), new THREE.Quaternion().setFromAxisAngle(UPV,yaw), new THREE.Vector3(1,1,1)));
+  while (n<nMax && tries<nMax*25){ tries++; const u=r.a0+zoR(o.id*13+tries,1)*(r.a1-r.a0), v=r.b0+zoR(o.id*13+tries,2)*(r.b1-r.b0), x=u*r.ux+v*r.uz, z=u*r.uz-v*r.ux; if (!inPoly(x,z,P) || !zoFree(x,z,1.6) || zoTree(x,z)) continue;
+    const q=zoR(o.id*13+tries,3), yaw=zoR(o.id*13+tries,4)*6.28, y=gtMeshH(x,z); const nm=fkk?(q<0.4?'zs_frau_liegt':q<0.75?'zs_mann_liegt':'zs_paar'):(q<0.27?'zs_frau_liegt':q<0.52?'zs_mann_liegt':q<0.72?'zs_paar':q<0.86?'zs_frau_steht':'zs_mann_steht');
+    mk(nm,x,y+(nm.endsWith('liegt')?0.02:0),z,yaw); if (!fkk && /liegt|paar/.test(nm) && zoR(o.id*13+tries,5)<0.4) zoSchirm(S,x+Math.cos(yaw)*1.3,z-Math.sin(yaw)*1.3,o.id+tries); n++; }
+  /* Wasser vor dem Strand: Ring um den Strand absuchen */
+  if (!ZW.on) return; const sw=c.swim||(c.swim=[]); let wn=0, st=0; for (let t=0;t<900 && (sw.length<(fkk?4:11) || st<(fkk?2:6));t++){ const a=zoR(o.id+t,21)*6.28, d=10+zoR(o.id+t,22)*75, x=r.cx+Math.cos(a)*(r.len/2+d), z=r.cz+Math.sin(a)*(r.len/2+d), q=zwAt(x,z); if (!q) continue;
+    if (q.wf>0.98 && q.d>=2.5 && sw.length<(fkk?4:11)){ if (sw.some(s=>Math.hypot(s.x-x,s.z-z)<6)) continue; sw.push({x,z,L:q.L,r:2+zoR(t,23)*6,w:(zoR(t,24)<0.5?1:-1)*(0.05+zoR(t,25)*0.06),ph:zoR(t,26)*6.28}); }
+    else if (q.wf>0.55 && q.wf<0.95 && st<(fkk?2:6)){ st++; mk(zoR(t,27)<0.5?'zs_mann_steht':'zs_frau_steht',x,q.L-0.45,z,zoR(t,28)*6.28); } } }
+function zoPlayers(c, o, r){ if (!ZO.bathOn || !PROP_LIB.zs_mann_steht || zoR(o.id,31)>0.55) return; const B=c.bath||(c.bath={}); for (const s of [-1,1]){ const u=s*r.len/4, x=r.cx+r.ux*u, z=r.cz+r.uz*u, nm=zoR(o.id+s,32)<0.5?'zs_mann_steht':'zs_frau_steht';
+  (B[nm]||(B[nm]=[])).push(new THREE.Matrix4().compose(new THREE.Vector3(x,gtMeshH(x,z),z), new THREE.Quaternion().setFromAxisAngle(UPV,r.ang+(s>0?Math.PI:0)), new THREE.Vector3(1,1,1))); } }
+/* Zellen um die Kamera bauen (höchstens eine je Durchgang), Ebenen nach Entfernung ein/aus, Schwimmer bewegen */
+function zoStep(dt){ if (!ZO.on || !ZO.grp) return; const cp=window._camFix?{x:window._camFix[0],z:window._camFix[2]}:camera.position, CS=ZO.CS, R=zoRad(); ZO.t-=dt; const bath=zoBath();
+  if (ZO.t<=0){ ZO.t=0.4; const rb=R.dec+CS, i0=Math.floor((cp.x-rb)/CS), i1=Math.floor((cp.x+rb)/CS), j0=Math.floor((cp.z-rb)/CS), j1=Math.floor((cp.z+rb)/CS); let built=0;
+    const cand=[]; for (let i=i0;i<=i1;i++) for (let j=j0;j<=j1;j++){ const key=i+','+j; if (!ZO.idx.has(key)) continue; const d=Math.hypot((i+0.5)*CS-cp.x,(j+0.5)*CS-cp.z)-CS*0.71; if (d>R.dec) continue; let c=ZO.cells.get(key); if (!c){ c={key,i,j}; ZO.cells.set(key,c); } if (!c.g || c.rebuild) cand.push([d,c]); }
+    cand.sort((a,b)=>a[0]-b[0]); for (const [d,c] of cand){ if (built>=1) break; if (c.g){ ZO.grp.remove(c.g); c.g.traverse(o=>{ if (o.geometry && !o.isInstancedMesh) o.geometry.dispose(); }); ZO.swim=ZO.swim.filter(s=>s!==c); c.g=null; c.swim=null; c.bath=null; c.bigI=null; c.schirm=null; }
+      c.rebuild=false; c.needBathM=false; ZO._cars=c.cars=zoBuf(); zoBuild(c); built++; }
+    ZO.cells.forEach(c=>{ if (!c.g) return; const d=Math.hypot((c.i+0.5)*CS-cp.x,(c.j+0.5)*CS-cp.z)-CS*0.71; c.g.visible=d<R.dec; c.g.children.forEach(q=>{ q.visible=d<q.userData.R && (!q.userData.bath||bath); }); }); }
+  if (!bath) return; const t=performance.now()/1000, m=_zm2, q=_zq2;
+  for (const c of ZO.swim){ if (!c.swimIM || !c.g || !c.g.visible) continue; const La=c.g.children[3]; if (!La.visible) continue;
+    c.swim.forEach((s,k)=>{ const a=s.ph+t*s.w, x=s.x+Math.cos(a)*s.r, z=s.z+Math.sin(a)*s.r, yaw=Math.atan2(-Math.sin(a)*s.w,Math.cos(a)*s.w); q.setFromAxisAngle(UPV,yaw); m.compose(_zv.set(x,s.L-0.12+Math.sin(t*2.4+k)*0.04,z),q,_zs.set(1,1,1)); c.swimIM.forEach(im=>im.setMatrixAt(k,m)); });
+    c.swimIM.forEach(im=>{ im.instanceMatrix.needsUpdate=true; }); } }
 function inPond(x,z,m){ for (const p of ponds){ const dx=x-p.x, dz=z-p.z; if (dx*dx+dz*dz<(p.r+(m||2))*(p.r+(m||2))) return true; } return (SANDR.length>0 && sandHit(x,z,m||2)) || (BASTEI!==null && basteiHit(x,z,m||2)); }
 /* ---------- Elbsandstein: Elbe und Sandsteinfelsen ---------- */
 let riverD=null, RIVER=null, SANDR=[], SANDT=[];
@@ -1441,7 +1612,7 @@ function gfCell(i,j){ const key=i*100003+j; let c=GF.cells.get(key); if (c) retu
   for (let k=0;k<GF.per;k++){ const x=(i+r())*GF.cs, z=(j+r())*GF.cs; let h; if (XH){ const xc=xrNear(x,z,8); if (xc.d<((xc.k>=0&&XR[xc.k].w)||XW)/2+0.4) continue; } const cn=courseNear(x,z,16);
     if (cn.i>=0 && cn.d<CORR.CW+0.5){ const d=cum[cn.i]+cn.t*(cum[cn.i+1]-cum[cn.i]), Wd=roadWAt(d); if (cn.d<Wd/2+swAt(d)-0.05) continue; const a=pts[cn.i], b=pts[(cn.i+1)%N], side=((b.x-a.x)*(z-a.z)-(b.z-a.z)*(x-a.x))<0?1:-1; h=profileH(d,side,cn.d); }
     else h=terrainMeshH(x,z);
-    if (h<GF.waterY+1.3 || inPond(x,z,1.5)) continue; const G9=GF.def.graph&&window.LCD, gn9=G9?gnNear(x,z,30):null, lu=G9?{t:gnLC(x,z)===3?2:0,edge:99}:LU?landUse(x,z):{t:0,edge:99}; const inF=lu.edge>2; if (gn9 && gn9.k>=0 && gn9.d<(gn9.w||6)/2+0.4) continue; if (gn9 && gnPave(x,z,0.15,gn9)) continue;   /* 0.11.1: kein Gras auf Querstraßen (bisher nur zur eigenen Strecke geprüft) */ const wy9=G9&&!window.NO_GFWAY&&WAYS_ON; if (wy9 && waysNear(x,z,0.3)) continue;   /* 0.17.3 (Hicore): auch nichts auf Feld-/Waldwegen */ if (inF && (lu.t===5 || (lu.t===6 && r()<0.6))) continue; const nearR=G9?(gn9.d<(gn9.w||6)/2+14 || (wy9 && waysNear(x,z,4))):(cn.i>=0 && cn.d<16), crop=inF && lu.t>=2 && lu.t<=4 && !nearR;
+    if (h<GF.waterY+1.3 || inPond(x,z,1.5)) continue; const G9=GF.def.graph&&window.LCD, gn9=G9?gnNear(x,z,30):null, lu=G9?{t:gnLC(x,z)===3?2:0,edge:99}:LU?landUse(x,z):{t:0,edge:99}; const inF=lu.edge>2; if (gn9 && gn9.k>=0 && gn9.d<(gn9.w||6)/2+0.4) continue; if (gn9 && gnPave(x,z,0.15,gn9)) continue; if (ZO.on && zoBare(x,z)) continue;   /* 0.27.0 kein Gras auf Sand/Parkplatz */   /* 0.11.1: kein Gras auf Querstraßen (bisher nur zur eigenen Strecke geprüft) */ const wy9=G9&&!window.NO_GFWAY&&WAYS_ON; if (wy9 && waysNear(x,z,0.3)) continue;   /* 0.17.3 (Hicore): auch nichts auf Feld-/Waldwegen */ if (inF && (lu.t===5 || (lu.t===6 && r()<0.6))) continue; const nearR=G9?(gn9.d<(gn9.w||6)/2+14 || (wy9 && waysNear(x,z,4))):(cn.i>=0 && cn.d<16), crop=inF && lu.t>=2 && lu.t<=4 && !nearR;
     /* 0.17.3 (Hicore): Acker wie die Bodenfarbe je Schlag (lcCol): umgepflügt = kahl, Stoppel = kurz und strohfarben, Wintersaat = kurz und grün; kein hoher grüner Teppich mehr */
     let fv=-1; if (G9 && lu.t===2){ fv=gnAcker(x,z); if (fv>=0.75 || (fv>=0.4 ? r()<0.45 : r()<0.3)) continue; }   /* 0.9.9: im Straßennetz Abstand zu ALLEN Straßen (nicht nur zur Hauptrunde) und Felder nach Satellit statt Flurplan */   /* 0.9.7: am Straßenrand kein hohes Feld/Büschel (Hicore) */
     q.setFromAxisAngle(UPV,r()*6.28); const fine=!!GF.def.graph, tuft=fine&&!crop&&cl0&&(!nearR||hc<0.12)&&Math.hypot(x-cl0[0],z-cl0[1])<(nearR?0.4:0.55)&&r()<(nearR?0.35:0.6), sc=crop?0.9+r()*0.4:fine?(tuft?1.1+r()*0.4:0.85+r()*0.25):0.7+r()*0.8; s.set(sc,sc*(crop?(fv>=0?(fv>=0.4?0.4+r()*0.2:0.35+r()*0.2):lu.t===3?3.2:lu.t===4?3.6:1.8)+r()*0.5:fine?(tuft?1.3+r()*0.6:(GF.def.id==='dolo'&&!window.OLD_ALMGRAS?(nearR?0.4+r()*0.25:0.6+r()*0.55):0.23+r()*0.11)):0.7+r()*0.8),sc);   /* 0.25.7 Dolomiten: ungemähte Almwiese 10–25 cm statt Rasen */   /* 0.9.2: Wiese 5-8 cm, ab und zu ein höherer Büschel */ p.set(x,h-0.02,z); m.compose(p,q,s); M.set(m.elements,n*16);
@@ -1545,7 +1716,7 @@ function buildVerge(def, grp, W){
   for (let d=0; d<L; d+=(0.5/dryness+rand()*0.4)/dens){ const side=rand()<0.5?1:-1, r=rand(); let o; const Sd=swAt(d);
     if (r<0.45) o=Sd-0.15+rand()*0.6; else if (r<0.75) o=Sd+0.4+rand()*2.6; else o=Sd+2.6+rand()*7;
     const Wd=roadWAt(d), off=Wd/2+o, pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
-    if (juncAt(d)>0.3) continue; if (CHASH){ const cc=courseNear(x,z,16); if (cc.d<(ROADW[cc.i]||Wd)/2+(SHW?SHW[cc.i]:S)-0.2) continue; } if (def.real && nearSideRoad(x,z,0.3)) continue; if (def.graph && (gnPave(x,z,0.3) || (WAYS_ON && waysNear(x,z,0.3)))) continue; const h=profileH(d,side,off);
+    if (juncAt(d)>0.3) continue; if (CHASH){ const cc=courseNear(x,z,16); if (cc.d<(ROADW[cc.i]||Wd)/2+(SHW?SHW[cc.i]:S)-0.2) continue; } if (def.real && nearSideRoad(x,z,0.3)) continue; if (def.graph && (gnPave(x,z,0.3) || (WAYS_ON && waysNear(x,z,0.3)) || (ZO.on && zoBare(x,z)))) continue; const h=profileH(d,side,off);
     q.setFromAxisAngle(UPV,rand()*6.28); const edge=o<Sd+0.9, sc=(edge?0.8:0.6)+rand()*0.9; s.set(sc*1.15,sc*(edge?0.95+rand()*0.7:0.6+rand()*0.6),sc*1.15); p.set(x,h-0.03,z); m.compose(p,q,s);
     (rand()<(def.graph?0.72:def.real?0.16:0.3)?flw:tufts).push(m.clone()); }
   for (let d=0; d<L; d+=1.2+rand()*2){ if (juncAt(d)>0.3) continue; const Sd=swAt(d); if (Sd<0.6) continue; const side=rand()<0.5?1:-1, off=roadWAt(d)/2+0.2+rand()*(Sd-0.3), pp=posAt(d), hd=headingAt(d), x=pp.x+Math.cos(hd)*off*side, z=pp.z-Math.sin(hd)*off*side;
@@ -2521,7 +2692,7 @@ window.DOPM_READY=window.ZGDOPM?new Promise(res=>{ const D=window.ZGDOPM, im=new
 function gnDopM(x,z){ const R=window.DOPMD; if (!R) return -1; const gx=Math.floor((x-R.x0)/R.c), gz=Math.floor((z-R.z0)/R.c); if (gx<0||gz<0||gx>=R.w||gz>=R.h) return -1; return gz*R.w+gx; }
 /* Acker-Schlag: 0..1 wie früher der Zufallswert je Schlag (unter 0,4 grün, bis 0,75 Stoppel, darüber umgepflügt); mit Luftbild echter Zustand */
 /* 0.25.0: Weltdaten wechseln (Zittau ist im Seitenkopf geladen, Dolomiten kommen bei Bedarf aus data/dolomiten.js). Alle Zwischenspeicher, die an den Weltdaten hängen, werden geleert. */
-const DATA_KEYS=['ZGNET','ZGRES','ZGSIDE','ZGBLD','ZGKC','ZGLMB','ZGLC','ZGLCO','ZGPARK','ZGDOPM','ZGDOPW','ZGOW','ZGWAYS','ZGSTEPS','ZGTREES','ZGZT','ZSBD','ZGDB','NO_WAYNET','LCD','PARKD','DOPMD','DLSAT','DLMETA','DEM2','DLDETI'];
+const DATA_KEYS=['ZGOBJ','ZGNET','ZGRES','ZGSIDE','ZGBLD','ZGKC','ZGLMB','ZGLC','ZGLCO','ZGPARK','ZGDOPM','ZGDOPW','ZGOW','ZGWAYS','ZGSTEPS','ZGTREES','ZGZT','ZSBD','ZGDB','NO_WAYNET','LCD','PARKD','DOPMD','DLSAT','DLMETA','DEM2','DLDETI'];
 const DATA={cur:'zittau', b:{}, ld:null};
 function dataImg(src){ return new Promise(res=>{ const im=new Image(); im.onload=()=>{ try{ const c=document.createElement('canvas'); c.width=im.width; c.height=im.height; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(im,0,0); res({w:im.width,h:im.height,d:g.getImageData(0,0,im.width,im.height).data, im}); }catch(e){ console.warn('img',e); res(null); } }; im.onerror=()=>res(null); im.src=src; }); }
 function dataLoadDolo(){ if (DATA.ld) return DATA.ld; DATA.ld=new Promise((res,rej)=>{ if (window.DLDATA) return res(); const sc=document.createElement('script'); sc.src=window.DL_FILE||'data/dolomiten.js'; sc.onload=()=>res(); sc.onerror=e=>{ DATA.ld=null; rej(e); }; document.head.appendChild(sc); })
@@ -4908,6 +5079,7 @@ function buildWorld(def){ try{ $('world').style.visibility='visible'; }catch(e){
   try{ SEG.build(def); }catch(e){ console.warn('Segmente',e); }
   if (def.graph && window.ZGZT) try{ const zm=buildZtMarks(); if (zm) worldGroup.add(zm); }catch(e){ console.warn('zittau-markierungen',e); }
   if (def.graph && def.id==='zittau') try{ buildZgLakes(worldGroup); }catch(e){ console.warn('zittau-seen',e); }
+  try{ zoInit(def, worldGroup); }catch(e){ console.warn('zgobj',e); ZO.on=false; }
   if (def.graph && def.id==='zittau') try{ worldGroup.add(buildHochwaldTurm()); }catch(e){ console.warn('hochwaldturm',e); }
   try{ eggReset(); }catch(e){}
   if (def.graph && def.id==='zittau'){ try{ worldGroup.add(buildSchanze()); }catch(e){ console.warn('schanze',e); } try{ worldGroup.add(buildHainFelsen(def)); }catch(e){ console.warn('felsen',e); } try{ worldGroup.add(buildZgScenes()); }catch(e){ console.warn('szenen',e); } try{ worldGroup.add(buildWayBridges()); }catch(e){ console.warn('wegbruecken',e); } try{ worldGroup.add(buildOybinFelsen(def)); }catch(e){ console.warn('oybin',e); } try{ worldGroup.add(buildLandmarks()); }catch(e){ console.warn('landmarks',e); } try{ ZSB.kill(); worldGroup.add(ZSB.build()); }catch(e){ console.warn('schmalspur',e); } }
@@ -6350,7 +6522,7 @@ async function connectHR(){
 // ================= Deko-Objekte aus Blender (GLB, eingebettet) =================
 const PROP_GLB = window.PROP_GLB || {};          // Name -> Base64
 const PROP_LIB = {};
-const PROP_FIX = { reh:{h:1.15,ry:0,ry0:Math.PI}, hirsch:{h:2.35,ry:-Math.PI/2,ry0:Math.PI}, eichhorn:{h:0.26}, katze:{h:0.34,ry:Math.PI}, meise:{h:0.13}, bussard:{h:0.45}, jaeger:{h:1.8,ry:Math.PI/2}, polizist:{h:1.82,ry:Math.PI/2}, jeep:{h:1.95,ry:Math.PI/2}, polizeiauto:{h:1.75,ry:Math.PI/2}, auto_rot:{h:1.45,ry:Math.PI/2,keepLow:1}, hase:{h:0.55,ry:-Math.PI/2}, kuh:{h:1.5,ry:-Math.PI/2,ry0:Math.PI}, schaf:{h:1.0}, pferd:{h:1.75,ry:Math.PI,ry0:0}, ziege:{h:0.9,ry:-Math.PI/4,ry0:0}, huhn:{h:0.42,ry:Math.PI,ry0:0}, hahn:{h:0.55,ry:Math.PI}, ente:{h:0.36}, kletterer:{h:2.9}, kirche_spitzk:{h:30}, amt_spitzk:{h:16}, kirche_oybin:{h:20}, hochwaldturm:{h:30}, gruft:{h:10}, kelchsteine:{h:12.5}, jaegerwaeldchen:{h:11}, wanderer1:{h:1.8}, wanderer2:{h:1.68,ry:-Math.PI/2}, bank_wanderer:{h:1.3,ry:Math.PI}, kletterer2:{h:2.4}, sonnebergbaude:{h:13}, hubertusbaude:{h:14}, ruebezahlbaude:{h:14}, oybin_berg:{h:100}, hw_turm:{h:30}, hw_baude:{h:17}, hotel_hwb:{h:15}, kreuzhaus:{h:13}, tree_spruce:{h:12.8}, tree_beech:{h:15.5}, jq_haus:{h:11.5}, jq_quelle:{h:2.6}, veh_klein:{h:1.48,len:4.05,ry:-Math.PI/2}, zsb_lok:{h:3.3,len:10.2,ry:-Math.PI/2}, zsb_gruen:{h:3.25,len:10.6}, zsb_rot:{h:3.3,len:11.2}, veh_kombi:{h:1.5,len:4.75,ry:-Math.PI/2}, veh_suv:{h:1.68,len:4.6,ry:-Math.PI/2}, veh_van:{h:2.55,len:5.95,ry:-Math.PI/2}, veh_traktor:{h:2.95,len:4.4,ry:-Math.PI/2}, alpkuh:{h:1.5,ry:Math.PI}, gaemse:{h:1.15,ry:Math.PI}, steinbock:{h:1.5,ry:Math.PI}, murmel:{h:0.47,ry:-Math.PI/2}, yeti:{h:2.4,ry:-Math.PI/2} };                             // Name -> [{geo, mat}] (zu einem Objekt verschmolzen)
+const PROP_FIX = { zs_schaufelrad:{h:7.5}, zs_muschel:{h:5.2}, zs_wohnmobil:{h:3.0,len:7.0}, zs_wohnwagen:{h:2.6,len:7.6}, zs_zelt1:{h:1.35,len:3.4}, zs_zelt2:{h:2.0,len:5.2}, zs_frau_liegt:{h:0.42,len:1.95}, zs_mann_liegt:{h:0.45,len:1.95}, zs_mann_steht:{h:1.8}, zs_frau_steht:{h:1.68}, zs_paar:{h:0.95,len:2.0}, zs_schwimmer:{h:0.55,len:1.5}, reh:{h:1.15,ry:0,ry0:Math.PI}, hirsch:{h:2.35,ry:-Math.PI/2,ry0:Math.PI}, eichhorn:{h:0.26}, katze:{h:0.34,ry:Math.PI}, meise:{h:0.13}, bussard:{h:0.45}, jaeger:{h:1.8,ry:Math.PI/2}, polizist:{h:1.82,ry:Math.PI/2}, jeep:{h:1.95,ry:Math.PI/2}, polizeiauto:{h:1.75,ry:Math.PI/2}, auto_rot:{h:1.45,ry:Math.PI/2,keepLow:1}, hase:{h:0.55,ry:-Math.PI/2}, kuh:{h:1.5,ry:-Math.PI/2,ry0:Math.PI}, schaf:{h:1.0}, pferd:{h:1.75,ry:Math.PI,ry0:0}, ziege:{h:0.9,ry:-Math.PI/4,ry0:0}, huhn:{h:0.42,ry:Math.PI,ry0:0}, hahn:{h:0.55,ry:Math.PI}, ente:{h:0.36}, kletterer:{h:2.9}, kirche_spitzk:{h:30}, amt_spitzk:{h:16}, kirche_oybin:{h:20}, hochwaldturm:{h:30}, gruft:{h:10}, kelchsteine:{h:12.5}, jaegerwaeldchen:{h:11}, wanderer1:{h:1.8}, wanderer2:{h:1.68,ry:-Math.PI/2}, bank_wanderer:{h:1.3,ry:Math.PI}, kletterer2:{h:2.4}, sonnebergbaude:{h:13}, hubertusbaude:{h:14}, ruebezahlbaude:{h:14}, oybin_berg:{h:100}, hw_turm:{h:30}, hw_baude:{h:17}, hotel_hwb:{h:15}, kreuzhaus:{h:13}, tree_spruce:{h:12.8}, tree_beech:{h:15.5}, jq_haus:{h:11.5}, jq_quelle:{h:2.6}, veh_klein:{h:1.48,len:4.05,ry:-Math.PI/2}, zsb_lok:{h:3.3,len:10.2,ry:-Math.PI/2}, zsb_gruen:{h:3.25,len:10.6}, zsb_rot:{h:3.3,len:11.2}, veh_kombi:{h:1.5,len:4.75,ry:-Math.PI/2}, veh_suv:{h:1.68,len:4.6,ry:-Math.PI/2}, veh_van:{h:2.55,len:5.95,ry:-Math.PI/2}, veh_traktor:{h:2.95,len:4.4,ry:-Math.PI/2}, alpkuh:{h:1.5,ry:Math.PI}, gaemse:{h:1.15,ry:Math.PI}, steinbock:{h:1.5,ry:Math.PI}, murmel:{h:0.47,ry:-Math.PI/2}, yeti:{h:2.4,ry:-Math.PI/2} };                             // Name -> [{geo, mat}] (zu einem Objekt verschmolzen)
 function b64ToBuf(b64){ const s=atob(b64), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u.buffer; }
 /* 0.13.0: Auf Tablet/Handy die 1536er-Texturen von Autos und Zügen auf 1024 verkleinern (je ca. 12 MB -> 5 MB Grafikspeicher, schnelleres Hochladen beim ersten Auftauchen).
    Wahrzeichen bleiben unverändert. ?texcap=0 aus, ?texcap=1024 erzwingt es auch am Rechner. */
@@ -6359,10 +6531,10 @@ function capPropTex(name, root){ if (!TEXCAP || !/^(veh_|zsb_)/.test(name)) retu
   root.traverse(o=>{ if (!o.material) return; (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ for (const k of ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap']){ const t=m[k]; if (!t || done.has(t) || !t.image) continue; done.add(t);
       const im=t.image, w=im.width||0, h=im.height||0; if (Math.max(w,h)<=TEXCAP) continue; const f=TEXCAP/Math.max(w,h), c=document.createElement('canvas'); c.width=Math.round(w*f); c.height=Math.round(h*f);
       c.getContext('2d').drawImage(im,0,0,c.width,c.height); t.image=c; t.needsUpdate=true; try{ if (im.close) im.close(); }catch(e){} } }); }); }
-function loadProps(){
+function loadProps(only){
   if (!THREE.GLTFLoader) return Promise.resolve();
   const loader=new THREE.GLTFLoader();
-  const names=[...new Set([...Object.keys(PROP_GLB), ...(window.PROP_LIST||[])])], PV=(window.APP_VER||'0110');
+  const names=only||[...new Set([...Object.keys(PROP_GLB), ...(window.PROP_LIST||[])])].filter(n=>!/^zs_/.test(n)), PV=(window.APP_VER||'0110');   /* 0.27.0: zs_* (Olbersdorfer See) erst beim Bau der Welt Zittau */
   /* 0.11.0: Modelle liegen als eigene Dateien unter props/ (Browser-Cache), eingebettete (PROP_GLB) haben Vorrang */
   const getBuf=name=>PROP_GLB[name]?Promise.resolve(b64ToBuf(PROP_GLB[name])):fetch('props/'+name+'.glb?h='+((window.PROP_HASH||{})[name]||PV)).then(r=>{ if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
   return Promise.all(names.map(name=>getBuf(name).then(buf=>new Promise(res=>{
@@ -6568,7 +6740,8 @@ function gardenFences(hm, grp, def){ const pk=[], rl=[], m=new THREE.Matrix4(), 
   if (rl.length){ const im=mkIM(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0xd9d4c6}),rl.length); rl.forEach((mm,i)=>im.setMatrixAt(i,mm)); im.castShadow=true; grp.add(im); } }
 function addProps(def){ window.HOUSE_PTS=[];
   critters=[];
-  const plan=PROP_PLAN[def.id]; if (!plan || !Object.keys(PROP_LIB).length) return;
+  let plan=PROP_PLAN[def.id]; if (!plan || !Object.keys(PROP_LIB).length) return;
+  if (def.id==='zittau' && window.ZGOBJ && !window.NO_ZGOBJ && !window.OLD_ZGPROPS) plan={...plan, extra:[], fence:0};   /* 0.27.0: keine zufälligen Bänke, Schilder, Steine, Heuballen, Blumenbüsche und Zäune mehr, echte Objekte aus OSM (zoInit) */
   const g=worldGroup, km=L/1000, cnt=x=>Math.max(1,Math.round(x*km));
   const add=(arr,m)=>{ if(m) arr.push(m); };
   // Weiler: 3-5 Häuser beidseitig, je ein Briefkasten vorn an der Straße
@@ -8589,7 +8762,7 @@ const LEAD={ cur:{}, t:0, first:true,
     try{ if (me.glb){ const mj=this.jerseyFor('me',$('jersey').value); if (me.jer!==mj) applyJersey(mj); } }catch(e){}
     try{ for (const [k,q] of MP.peers){ if (q.r && q.r.glb){ const pj=this.jerseyFor(k,q.j); if (q.r.jer!==pj) applyJersey(pj,q.r); } } }catch(e){} } };
 showJerseyThumb();
-$('unlockAll').checked = store.get('unlockAll', false);
+$('unlockAll').checked = store.get('unlockAll', false); $('zgBad').checked = store.get('zgBad', true)!==false; $('zgBad').onchange=()=>{ store.set('zgBad',$('zgBad').checked); ZO.bathOn=$('zgBad').checked; ZO.cells.forEach(c=>{ c.rebuild=true; }); };
 $('unlockAll').onchange = ()=>{ store.set('unlockAll',$('unlockAll').checked); renderWorlds(); };
 // Umgebungsgeräusche: Menü
 AMB.on=store.get('sndOn',true); $('sndOn').checked=AMB.on; $('sndOn').onchange=()=>{ AMB.on=$('sndOn').checked; store.set('sndOn',AMB.on); $('sndGrid').style.opacity=AMB.on?1:0.45; };
@@ -8641,7 +8814,7 @@ function worldStats(def){
   return {km:len/1000, up:Math.round(up)};
 }
 function renderWorlds(){
-  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.26.1 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
+  $('prog').textContent = `Gesamt gefahren: ${totalKm.toFixed(1)} km · Version 0.27.0 Beta · Grafik: ${!window.GPU_BACKEND?"wird gestartet":window.GPU_BACKEND==="WebGPU"?"WebGPU":"WebGL 2 (Rückfall)"} · Geräusche: elevenlabs.io`;
   const box=$('worlds'); box.innerHTML='';
   if (!isUnlocked(WORLDS.find(w=>w.id===selWorld)||WORLDS[0]) || !wVis(WORLDS.find(w=>w.id===selWorld))) selWorld='insel';
   WORLDS.forEach(def=>{ if (!wVis(def)) return;
@@ -9433,7 +9606,7 @@ function frame(now){
   if (skyDome) skyDome.position.copy(camera.position);
   if (cloudLayer) cloudLayer.position.set(camera.position.x, 0, camera.position.z);
   for (const fn of animated) fn(dt);
-  animateCritters(dt); try{ eggStep(dt); }catch(err){ if (!window._eggErr){ window._eggErr=1; console.warn('egg',err); } } try{ hikeStep(Math.min(dt,0.1)); }catch(err){ if (!window._hikeErr){ window._hikeErr=1; console.warn('wanderer',err); } }
+  animateCritters(dt); try{ zoStep(dt); }catch(err){ if (!window._zoSErr){ window._zoSErr=1; console.warn('zgobj',err); } } try{ eggStep(dt); }catch(err){ if (!window._eggErr){ window._eggErr=1; console.warn('egg',err); } } try{ hikeStep(Math.min(dt,0.1)); }catch(err){ if (!window._hikeErr){ window._hikeErr=1; console.warn('wanderer',err); } }
   if (window.camAbs){ const o=window.camAbs; camera.position.set(o[0],o[1],o[2]); camera.lookAt(o[3],o[4],o[5]); } else
   if (window._camFix){ const o=window._camFix; camera.position.set(o[0],o[1],o[2]); camera.lookAt(o[3],o[4],o[5]); }
   if (window.camOverride){ const o=window.camOverride; me.g.localToWorld(camera.position.set(o[0],o[1],o[2])); camera.lookAt(me.g.localToWorld(tmp.set(o[3],o[4],o[5]))); }

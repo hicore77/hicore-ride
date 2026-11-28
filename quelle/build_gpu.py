@@ -71,6 +71,7 @@ import hashlib
 os.makedirs(D+'gpu/data',exist_ok=True)
 def wfile(name, js):
     open(D+'gpu/data/'+name,'w').write(js); return name+'?h='+hashlib.md5(js.encode()).hexdigest()[:8]
+sj+=('window.ZGOBJ='+open(D+'zg2/osm_obj.json').read()+';') if os.path.exists(D+'zg2/osm_obj.json') else ''   # 0.27.0 OSM-Objekte (werkzeuge/osm_objekte.py)
 zs=wfile('zittau.js', sj)
 # 0.25.0: Dolomiten-Welt als eigene Datei, wird erst bei Wahl der Welt geladen (werkzeuge/dolo_bau.py erzeugt quelle/dolo/)
 dlj=''
